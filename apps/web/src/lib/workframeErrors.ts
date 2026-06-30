@@ -45,6 +45,22 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
     message: 'Install setup is already finished.',
     hint: 'Open the main app at / or finish user onboarding in Settings.',
   },
+  oauth_start_failed: {
+    message: 'Could not start provider sign-in inside the gateway.',
+    hint: 'Retry in a moment. If it keeps failing, ask an admin to rebuild the workframe-supervisor container.',
+  },
+  raw_container_exec_disabled: {
+    message: 'Provider sign-in is blocked on this secure stack.',
+    hint: 'Rebuild workframe-api and workframe-supervisor from the latest release, then try again.',
+  },
+  device_oauth_start_failed: {
+    message: 'Could not start device sign-in for this provider.',
+    hint: 'Retry, or connect with an API key instead.',
+  },
+  invalid_device_oauth_provider: {
+    message: 'This provider does not support device sign-in on this stack.',
+    hint: 'Use an API key or a different connect method.',
+  },
   forbidden: { message: 'You do not have permission for this action.' },
   room_access_denied: { message: 'You cannot access this room.' },
   room_not_found: { message: 'Room not found.', hint: 'Refresh the workspace list.' },

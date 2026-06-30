@@ -190,6 +190,38 @@ def _host_compose_ready() -> bool:
     return compose.joinpath("docker-compose.yml").is_file()
 
 
+def _supervisor_configured() -> bool:
+    return bool(os.environ.get("WORKFRAME_SUPERVISOR_URL", "").strip()) and bool(
+        os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "").strip()
+    )
+
+
+def _supervisor_gateway_image_digest() -> tuple[str, str]:
+    """Read gateway image digest via workframe-supervisor (SECURE_MODE API has no docker.sock)."""
+    base = str(os.environ.get("WORKFRAME_SUPERVISOR_URL", "")).rstrip("/")
+    token = str(os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "")).strip()
+    if not base or not token:
+        return "", ""
+    req = urllib.request.Request(
+        f"{base}/v1/gateway.image",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "User-Agent": "workframe-api"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return "", ""
+    if not isinstance(data, dict) or not data.get("ok"):
+        return "", ""
+    return str(data.get("digest") or "").strip(), str(data.get("ref") or "").strip()
+
+
+def _admin_stack_updates_enabled() -> bool:
+    if os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") == "1":
+        return True
+    return _supervisor_configured()
+
+
 def _docker_apply_ready() -> tuple[bool, str | None]:
     if not Path(DOCKER_SOCK).exists():
         return False, "Docker socket is not available to the API container."
@@ -200,6 +232,29 @@ def _docker_apply_ready() -> tuple[bool, str | None]:
             "Set WORKFRAME_HOST_COMPOSE_DIR to the host compose folder so updates run on the Docker host."
         )
     return True, None
+
+
+def _update_apply_channel() -> tuple[str, bool, str | None]:
+    """Returns (channel, ready, reason). channel: api_docker | supervisor | none."""
+    api_docker = Path(DOCKER_SOCK).exists()
+    if api_docker:
+        ok, reason = _docker_apply_ready()
+        if ok:
+            return "api_docker", True, None
+        if not _supervisor_configured():
+            return "none", False, reason
+    if _supervisor_configured():
+        if _script_path("apply-update-workframe.sh") is None and _script_path("apply-update-hermes.sh") is None:
+            return "supervisor", False, "Stack update scripts are missing from this install."
+        return "supervisor", True, None
+    if api_docker:
+        _, reason = _docker_apply_ready()
+        return "none", False, reason
+    return (
+        "none",
+        False,
+        "In-place updates need workframe-supervisor or Docker on the stack host.",
+    )
 
 
 def _product_state(*, update_available: bool, can_update: bool) -> str:
@@ -238,7 +293,9 @@ def _releases_manifest() -> dict[str, Any]:
 def updates_available(*, desktop_version: str = "", hermes_agent_version: str = "") -> dict[str, Any]:
     compose_dir = _compose_dir()
     project_root = _project_root()
-    docker_ok = Path(DOCKER_SOCK).exists()
+    api_docker = Path(DOCKER_SOCK).exists()
+    supervisor_ok = _supervisor_configured()
+    apply_channel, apply_ready, apply_reason = _update_apply_channel()
     installed = _read_installed_workframe_version(project_root)
 
     npm_latest = ""
@@ -254,15 +311,20 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     installed_pkg = installed.get("package") or installed.get("api") or ""
     workframe_update = bool(workframe_latest and _version_lt(installed_pkg, workframe_latest))
 
-    hermes_digest, hermes_ref = _container_image_digest(GATEWAY_CONTAINER)
+    hermes_digest, hermes_ref = ("", "")
+    if api_docker:
+        hermes_digest, hermes_ref = _container_image_digest(GATEWAY_CONTAINER)
+    elif supervisor_ok:
+        hermes_digest, hermes_ref = _supervisor_gateway_image_digest()
     hermes_tag = hermes_ref.rsplit(":", 1)[-1] if hermes_ref and ":" in hermes_ref else HERMES_TAG
     hermes_latest_digest = ""
     try:
         hermes_latest_digest = _docker_hub_digest(HERMES_IMAGE, HERMES_TAG)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, KeyError):
         pass
+    hermes_image_known = bool(api_docker or supervisor_ok)
     hermes_update = bool(
-        docker_ok
+        hermes_image_known
         and hermes_latest_digest
         and hermes_digest
         and hermes_digest != hermes_latest_digest,
@@ -275,15 +337,14 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     if len(digest_short) > 28:
         digest_short = digest_short[:28] + "…"
 
-    docker_apply_ok, docker_apply_reason = _docker_apply_ready()
     hermes_script_ok = _script_path("apply-update-hermes.sh") is not None
     workframe_script_ok = _script_path("apply-update-workframe.sh") is not None
-    hermes_can_update = bool(docker_apply_ok and hermes_script_ok)
-    workframe_can_update = bool(docker_apply_ok and workframe_script_ok)
-    hermes_reason = docker_apply_reason
+    hermes_can_update = bool(apply_ready and hermes_script_ok)
+    workframe_can_update = bool(apply_ready and workframe_script_ok)
+    hermes_reason = apply_reason
     if not hermes_reason and hermes_update and not hermes_script_ok:
         hermes_reason = "Hermes update script is missing from this install."
-    workframe_reason = docker_apply_reason
+    workframe_reason = apply_reason
     if not workframe_reason and workframe_update and not workframe_script_ok:
         workframe_reason = "Workframe update script is missing from this install."
     if not workframe_reason and workframe_update and not workframe_latest:
@@ -294,7 +355,11 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
 
     return {
         "ok": True,
-        "docker_available": docker_ok,
+        "docker_available": apply_ready,
+        "docker_sock_on_api": api_docker,
+        "supervisor_configured": supervisor_ok,
+        "update_apply_channel": apply_channel if apply_ready else None,
+        "update_apply_ready": apply_ready,
         "compose_dir": str(compose_dir),
         "project_root": str(project_root),
         "workframe": {
@@ -323,7 +388,7 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
             "reason": hermes_reason,
             "update_mode": "docker-compose-pull",
             "install_kind": "docker",
-            "can_restart_gateway": bool(docker_apply_ok and _script_path("restart-gateway-hermes.sh") is not None),
+            "can_restart_gateway": bool(apply_ready and _script_path("restart-gateway-hermes.sh") is not None),
         },
         "desktop": {
             "current": desktop_installed,
@@ -339,12 +404,33 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     }
 
 
+def _apply_env_for_target(target: str) -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("WORKFRAME_COMPOSE_DIR", str(_compose_dir()))
+    env.setdefault("WORKFRAME_PROJECT_ROOT", str(_project_root()))
+    if target in {"workframe", "all"}:
+        latest = ""
+        try:
+            latest = str(updates_available().get("workframe", {}).get("latest") or "").strip()
+        except Exception:  # noqa: BLE001
+            latest = ""
+        if latest:
+            env["WORKFRAME_UPDATE_ALLOW_NPM"] = "1"
+            env["WORKFRAME_UPDATE_VERSION"] = latest
+    return env
+
+
 def apply_update(target: str) -> dict[str, Any]:
-    if os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") != "1":
+    if not _admin_stack_updates_enabled():
         raise ValueError("admin_updates_disabled")
     target = str(target or "all").strip().lower()
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")
+    _, apply_ready, apply_reason = _update_apply_channel()
+    if not apply_ready:
+        if not Path(DOCKER_SOCK).exists():
+            raise ValueError("docker_unavailable")
+        raise ValueError(str(apply_reason or "docker_apply_unavailable"))
     if not Path(DOCKER_SOCK).exists():
         raise ValueError("docker_unavailable")
 
@@ -360,9 +446,7 @@ def apply_update(target: str) -> dict[str, Any]:
             raise ValueError("update_script_missing:workframe")
         scripts.append(str(script))
 
-    env = os.environ.copy()
-    env.setdefault("WORKFRAME_COMPOSE_DIR", str(_compose_dir()))
-    env.setdefault("WORKFRAME_PROJECT_ROOT", str(_project_root()))
+    env = _apply_env_for_target(target)
 
     logs: list[str] = []
     for script in scripts:
@@ -382,13 +466,15 @@ def apply_update(target: str) -> dict[str, Any]:
 
 
 def restart_gateway() -> dict[str, Any]:
-    if os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") != "1":
+    if not _admin_stack_updates_enabled():
         raise ValueError("admin_updates_disabled")
+    _, apply_ready, apply_reason = _update_apply_channel()
+    if not apply_ready:
+        if not Path(DOCKER_SOCK).exists():
+            raise ValueError("docker_unavailable")
+        raise ValueError(str(apply_reason or "docker_apply_unavailable"))
     if not Path(DOCKER_SOCK).exists():
         raise ValueError("docker_unavailable")
-    docker_apply_ok, docker_apply_reason = _docker_apply_ready()
-    if not docker_apply_ok:
-        raise ValueError(str(docker_apply_reason or "docker_apply_unavailable"))
     script = _script_path("restart-gateway-hermes.sh")
     if not script:
         raise ValueError("restart_script_missing:gateway")
@@ -414,4 +500,7 @@ if __name__ == "__main__":
     assert _version_lt("0.1.0", "0.1.1")
     assert not _version_lt("0.1.0", "0.1.0")
     assert parse_hermes_version_output("Hermes Agent v0.17.0 (2026.6.19)") == "0.17.0"
+    ch, ready, _ = _update_apply_channel()
+    assert ch in {"api_docker", "supervisor", "none"}
+    assert ready is False or ch != "none"
     print("updates module ok")

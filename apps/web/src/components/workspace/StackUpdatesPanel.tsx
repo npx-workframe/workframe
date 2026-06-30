@@ -134,12 +134,15 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
   const canApplyAny = useMemo(() => {
     if (!status) return false
-    const dockerOk = status.docker_available !== false
+    const applyOk = status.update_apply_ready !== false && status.docker_available !== false
     return Boolean(
-      (status.workframe.update_available && resolveCanUpdate(status.workframe, dockerOk)) ||
-        (status.hermes.update_available && resolveCanUpdate(status.hermes, dockerOk)),
+      (status.workframe.update_available && resolveCanUpdate(status.workframe, applyOk)) ||
+        (status.hermes.update_available && resolveCanUpdate(status.hermes, applyOk)),
     )
   }, [status])
+
+  const applyReady = status?.update_apply_ready !== false && status?.docker_available !== false
+  const applyChannel = status?.update_apply_channel
 
   useEffect(() => {
     onBadgeChange?.(updateCount)
@@ -185,7 +188,7 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
     }
   }
 
-  const dockerOk = status?.docker_available !== false
+  const dockerOk = applyReady
   const applyDisabled = !dockerOk || Boolean(applying)
 
   return (
@@ -194,8 +197,19 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
       {message ? <WorkframeStatusNotice message={message} /> : null}
       {loading && !status ? <p className="wf-user-settings__hint">Checking for updates…</p> : null}
 
-      {!dockerOk ? (
-        <WorkframeNotice message="Docker is not available to the API — in-place updates need a Docker host." tone="neutral" />
+      {status && !applyReady ? (
+        <WorkframeNotice
+          message={
+            status.supervisor_configured
+              ? 'Stack updates are not ready — check that update scripts are installed and supervisor can reach Docker.'
+              : 'In-place updates need workframe-supervisor or Docker on the stack host.'
+          }
+          tone="neutral"
+        />
+      ) : null}
+
+      {status && applyReady && applyChannel === 'supervisor' ? (
+        <p className="wf-user-settings__hint">Updates apply via the stack supervisor (runtime data and configs are preserved).</p>
       ) : null}
 
       {status ? (

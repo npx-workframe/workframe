@@ -60,7 +60,7 @@ def _exec_targets_runtime_profile_secrets(cmd: list[str], acting_profile: str = 
     return exec_blocked_for_profile(cmd, acting_profile)
 
 
-def _stack_apply(target: str) -> dict[str, Any]:
+def _stack_apply(target: str, *, workframe_version: str = "") -> dict[str, Any]:
     target = str(target or "all").strip().lower()
     if target == "gateway-restart":
         script = SCRIPTS_DIR / "restart-gateway-hermes.sh"
@@ -90,6 +90,11 @@ def _stack_apply(target: str) -> dict[str, Any]:
         if not p.is_file():
             raise ValueError("update_script_missing:workframe")
         scripts.append(p)
+    env = os.environ.copy()
+    version = str(workframe_version or "").strip()
+    if version and target in {"workframe", "all"}:
+        env["WORKFRAME_UPDATE_ALLOW_NPM"] = "1"
+        env["WORKFRAME_UPDATE_VERSION"] = version
     logs: list[str] = []
     for script in scripts:
         proc = subprocess.run(
@@ -97,12 +102,54 @@ def _stack_apply(target: str) -> dict[str, Any]:
             capture_output=True,
             text=True,
             timeout=900,
+            env=env,
             cwd=str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None,
         )
         logs.append(f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}")
         if proc.returncode != 0:
             raise ValueError(f"update_failed:{script.name}")
     return {"ok": True, "target": target, "log": "\n".join(logs)[-12000:]}
+
+
+_DEVICE_OAUTH_AUTH_IDS = frozenset({"openai-codex", "nous"})
+
+
+def _gateway_image_digest() -> tuple[str, str]:
+    status, data = _docker_request("GET", f"/containers/{urllib.parse.quote(GATEWAY_CONTAINER_NAME, safe='')}/json")
+    if status != 200 or not isinstance(data, dict):
+        return "", ""
+    image_id = str(data.get("Image") or "")
+    ist, idata = _docker_request("GET", f"/images/{image_id}/json")
+    digest = ""
+    ref = os.environ.get("WORKFRAME_HERMES_IMAGE", "nousresearch/hermes-agent")
+    if ist == 200 and isinstance(idata, dict):
+        digests = idata.get("RepoDigests") or []
+        if digests:
+            digest = str(digests[0]).split("@")[-1]
+        tags = idata.get("RepoTags") or []
+        if tags:
+            ref = str(tags[0])
+    return digest, ref
+
+
+def _hermes_device_oauth_start(home: str, hermes_auth_id: str, log_path: str) -> tuple[int, str]:
+    home = str(home or "").strip()
+    hermes_auth_id = str(hermes_auth_id or "").strip()
+    log_path = str(log_path or "").strip()
+    if not home.startswith("/opt/data/profiles/") or not log_path.startswith("/opt/data/profiles/"):
+        raise ValueError("invalid profile home")
+    if hermes_auth_id not in _DEVICE_OAUTH_AUTH_IDS:
+        raise ValueError("invalid_device_oauth_provider")
+    auth_cmd = " ".join(shlex.quote(part) for part in ["auth", "add", hermes_auth_id])
+    shell = (
+        f"mkdir -p {shlex.quote(home)}; "
+        f"chown -R hermes:hermes {shlex.quote(home)}; "
+        f"su -s /bin/sh hermes -c "
+        f"'export HERMES_HOME={shlex.quote(home)} HOME={shlex.quote(home)}; "
+        f"cd {shlex.quote(home)}; "
+        f"/opt/hermes/bin/hermes {auth_cmd} >> {shlex.quote(log_path)} 2>&1'"
+    )
+    return _docker_exec_detached(GATEWAY_CONTAINER_NAME, ["sh", "-lc", shell])
 
 
 def _host_setup_public_https(host: str, port: int) -> dict[str, Any]:
@@ -666,6 +713,17 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {"ok": True, "profiles": profiles, "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
             )
+        if path == "/v1/gateway.image":
+            digest, ref = _gateway_image_digest()
+            return self._json(
+                200,
+                {
+                    "ok": bool(digest or ref),
+                    "digest": digest,
+                    "ref": ref,
+                    "container": GATEWAY_CONTAINER_NAME,
+                },
+            )
         return self._json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:
@@ -721,8 +779,23 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(500, {"ok": False, "error": str(exc)})
             if path == "/v1/stack.apply":
                 target = str(body.get("target") or "all").strip().lower()
+                workframe_version = str(body.get("workframe_version") or "").strip()
                 try:
-                    return self._json(200, _stack_apply(target))
+                    return self._json(200, _stack_apply(target, workframe_version=workframe_version))
+                except ValueError as exc:
+                    return self._json(400, {"ok": False, "error": str(exc)})
+                except Exception as exc:  # noqa: BLE001
+                    return self._json(500, {"ok": False, "error": str(exc)})
+            if path == "/v1/hermes.device_oauth_start":
+                home = str(body.get("home") or "").strip()
+                hermes_auth_id = str(body.get("hermes_auth_id") or "").strip()
+                log_path = str(body.get("log_path") or "").strip()
+                try:
+                    code, out = _hermes_device_oauth_start(home, hermes_auth_id, log_path)
+                    return self._json(
+                        200,
+                        {"ok": code == 0, "exit_code": code, "output": out, "detached": True},
+                    )
                 except ValueError as exc:
                     return self._json(400, {"ok": False, "error": str(exc)})
                 except Exception as exc:  # noqa: BLE001

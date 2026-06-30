@@ -551,12 +551,26 @@ def _admin_write_allowed(handler: BaseHTTPRequestHandler) -> bool:
 
 
 def _apply_stack_update(target: str) -> dict[str, Any]:
+    workframe_version = ""
+    if target in {"workframe", "all"}:
+        try:
+            workframe_version = str(
+                stack_updates.updates_available().get("workframe", {}).get("latest") or ""
+            ).strip()
+        except Exception:  # noqa: BLE001
+            workframe_version = ""
     try:
         return stack_updates.apply_update(target)
     except ValueError as exc:
-        if str(exc) != "docker_unavailable" or not _supervisor_ready():
+        err = str(exc)
+        if not _supervisor_ready():
             raise
-        status, data = _supervisor_request("POST", "/v1/stack.apply", {"target": target}, timeout=900.0)
+        if err not in ("docker_unavailable", "admin_updates_disabled"):
+            raise
+        body: dict[str, Any] = {"target": target}
+        if workframe_version:
+            body["workframe_version"] = workframe_version
+        status, data = _supervisor_request("POST", "/v1/stack.apply", body, timeout=900.0)
         if status >= 300 or not isinstance(data, dict) or not data.get("ok"):
             raise ValueError(str((data or {}).get("error") or "supervisor_apply_failed"))
         return data
@@ -2641,6 +2655,24 @@ def _spawn_hermes_device_oauth(user_id: str, hermes_auth_id: str, log_container:
     """Start long-running `hermes auth add` detached in gateway (survives exec return)."""
     home = _hermes_user_home_container(user_id)
     _user_hermes_home(user_id).mkdir(parents=True, exist_ok=True)
+    if SECURE_MODE and _supervisor_ready():
+        status, data = _supervisor_request(
+            "POST",
+            "/v1/hermes.device_oauth_start",
+            {"home": home, "hermes_auth_id": hermes_auth_id, "log_path": log_container},
+            timeout=30.0,
+        )
+        if status >= 300:
+            err = data.get("error") if isinstance(data, dict) else str(data)
+            raise ValueError(err or "device_oauth_start_failed")
+        if not isinstance(data, dict):
+            raise ValueError("device_oauth_start_invalid")
+        exit_code = data.get("exit_code")
+        try:
+            code = int(exit_code if exit_code is not None else 1)
+        except (TypeError, ValueError):
+            code = 1
+        return code, str(data.get("output") or "")
     auth_cmd = " ".join(shlex.quote(part) for part in ["auth", "add", hermes_auth_id])
     shell = (
         f"mkdir -p {shlex.quote(home)}; "

@@ -174,6 +174,10 @@ export type StackProductUpdateStatus = {
 export type StackUpdatesStatus = {
   ok: boolean
   docker_available: boolean
+  docker_sock_on_api?: boolean
+  supervisor_configured?: boolean
+  update_apply_ready?: boolean
+  update_apply_channel?: 'api_docker' | 'supervisor' | null
   compose_dir?: string
   project_root?: string
   workframe: StackProductUpdateStatus & {
