@@ -1,0 +1,64 @@
+{
+  "name": "create-workframe",
+  "version": "0.1.1",
+  "description": "Scaffold a Workframe + Hermes workspace with guided onboarding",
+  "type": "module",
+  "bin": {
+    "create-workframe": "bin/create-workframe.js"
+  },
+  "files": [
+    "bin",
+    "docs/workspace-instructions",
+    "profiles",
+    "prompts",
+    "rules",
+    "shared",
+    "workframe-api",
+    "workframe-supervisor",
+    "workframe-ui/public",
+    "workframe-ui/docker",
+    "scripts/bundle-workframe-ui.mjs",
+    "scripts/bootstrap-workspace-link.sh",
+    "scripts/setup-stack-secrets.sh",
+    "scripts/sync-canonical-to-package.mjs",
+    "scripts/ensure-compose-host-paths.mjs",
+    "scripts/set-compose-public-url.mjs",
+    "scripts/lib",
+    "scripts/apply-update-hermes.sh",
+    "scripts/apply-update-workframe.sh",
+    "scripts/restart-gateway-hermes.sh",
+    "scripts/compose-docker-host.sh",
+    "scripts/verify-public-deploy.sh",
+    "scripts/fix-zk-encryption-key.sh",
+    "scripts/create_workframe_scaffold.py",
+    "scripts/new-project.mjs",
+    "scripts/select_agent_pack.py",
+    ".dockerignore",
+    ".gitignore",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "bundle-ui": "node scripts/bundle-workframe-ui.mjs",
+    "new-project": "node scripts/new-project.mjs",
+    "sync": "node scripts/sync-canonical-to-package.mjs",
+    "prepack": "node scripts/sync-canonical-to-package.mjs && node scripts/bundle-workframe-ui.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/npx-workframe/workframe.git"
+  },
+  "keywords": [
+    "workframe",
+    "hermes",
+    "agents",
+    "scaffold",
+    "create-workframe"
+  ]
+}

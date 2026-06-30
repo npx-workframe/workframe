@@ -1,0 +1,18 @@
+{
+  "name": "Workframe",
+  "short_name": "Workframe",
+  "description": "Project chat and workspace for Hermes agent crews",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#15151F",
+  "theme_color": "#15151F",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

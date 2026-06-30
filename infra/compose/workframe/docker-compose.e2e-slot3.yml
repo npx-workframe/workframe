@@ -1,0 +1,39 @@
+# Disposable E2E stack (slot 3) — runs beside slot 1 dogfood. Override only; use with base compose.
+name: workframe-e2e-slot3
+
+services:
+  gateway:
+    container_name: workframe-e2e-gateway
+    volumes:
+      - ../../../runtime/e2e-slot3/Agents:/opt/data
+      - ../../../runtime/e2e-slot3/Files:/workspace
+
+  dashboard:
+    container_name: workframe-e2e-dashboard
+
+  workframe-api:
+    container_name: workframe-e2e-api
+    env_file: !override
+      - ./.env.e2e-slot3
+    environment:
+      - SECURE_MODE=false
+      - DEV_LOCAL_UNSAFE=true
+      - WORKFRAME_GATEWAY_CONTAINER=workframe-e2e-gateway
+    volumes:
+      - ../../../runtime/e2e-slot3/workframe-api-data:/app/data
+      - ../../../runtime/e2e-slot3/Agents:/opt/data
+      - ../../../runtime/e2e-slot3/Files:/workspace
+
+  workframe-supervisor:
+    container_name: workframe-e2e-supervisor
+    env_file: !override
+      - ./.env.e2e-slot3
+    environment:
+      - SECURE_MODE=false
+      - DEV_LOCAL_UNSAFE=true
+      - WORKFRAME_GATEWAY_CONTAINER=workframe-e2e-gateway
+    volumes:
+      - ../../../runtime/e2e-slot3/Agents:/opt/data
+
+  workframe-ui:
+    container_name: workframe-e2e-ui

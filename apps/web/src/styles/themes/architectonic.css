@@ -1,0 +1,53 @@
+[data-theme='architectonic'] {
+  color-scheme: dark;
+
+  --wf-accent: #c0392b;
+  --wf-accent-glow: #e74c3c;
+  --wf-violet: #c0392b;
+  --wf-violet-glow: #e74c3c;
+  --wf-cyan: #bdc3c7;
+  --wf-mint: #c0392b;
+  --wf-ring: rgba(192, 57, 43, 0.32);
+
+  --wf-bg: #0e0e12;
+  --wf-text: #d8d8dc;
+  --wf-muted: #6a6a72;
+  --wf-border: rgba(255, 255, 255, 0.08);
+  --wf-border-strong: rgba(192, 57, 43, 0.4);
+  --wf-surface: rgba(18, 18, 24, 0.82);
+  --wf-surface-soft: rgba(18, 18, 24, 0.62);
+  --wf-primary: rgba(255, 255, 255, 0.92);
+  --wf-primary-foreground: #0e0e12;
+
+  --wf-bg-gradient:
+    linear-gradient(180deg, rgba(192, 57, 43, 0.03) 0%, transparent 30%),
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(255, 255, 255, 0.015) 19px, rgba(255, 255, 255, 0.015) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(255, 255, 255, 0.015) 19px, rgba(255, 255, 255, 0.015) 20px),
+    var(--wf-bg);
+
+  --wf-orb-primary: rgba(192, 57, 43, 0.06);
+  --wf-orb-primary-opacity: 0.4;
+  --wf-orb-secondary: rgba(189, 195, 199, 0.03);
+  --wf-orb-secondary-opacity: 0.3;
+
+  --wf-grid-tile: 20px;
+  --wf-grid-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cline x1='0' y1='20' x2='20' y2='20' stroke='%23FFFFFF' stroke-opacity='0.04' stroke-width='0.5'/%3E%3Cline x1='20' y1='0' x2='20' y2='20' stroke='%23FFFFFF' stroke-opacity='0.04' stroke-width='0.5'/%3E%3C/svg%3E");
+  --wf-grid-mask: linear-gradient(to bottom, rgba(14, 14, 18, 1), rgba(14, 14, 18, 0.98));
+
+  --wf-overlay: linear-gradient(180deg, rgba(192, 57, 43, 0.01), transparent 22%, rgba(0, 0, 0, 0.2));
+
+  --wf-notice-fg: var(--wf-text);
+  --wf-notice-muted: var(--wf-muted);
+  --wf-notice-border: rgba(192, 57, 43, 0.35);
+  --wf-notice-bg: var(--wf-surface-soft);
+  --wf-notice-info-bg: var(--wf-surface-soft);
+  --wf-notice-info-border: rgba(192, 57, 43, 0.45);
+  --wf-status-fg: var(--wf-muted);
+
+  --wf-radius: 2px;
+  --wf-rail-cell-radius: 2px;
+
+  --wf-arch-stroke: rgba(255, 255, 255, 0.12);
+  --wf-arch-accent: #c0392b;
+  --wf-arch-accent-glow: rgba(192, 57, 43, 0.25);
+}

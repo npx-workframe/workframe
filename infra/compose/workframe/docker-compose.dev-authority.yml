@@ -1,0 +1,21 @@
+# Local dogfood only — enables admin stack updates from workframe-api (trusted team).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev-authority.yml up -d
+name: workframe
+
+services:
+  workframe-api:
+    volumes:
+      - ../../../services/workframe-api/public:/app/public:ro
+      - ../../../services/workframe-api:/app
+      - ../../../runtime/workframe-api-data:/app/data
+      - ../../../runtime/Agents:/opt/data
+      - ../../../runtime/Files:/workspace
+      - ../../../scripts/workframe:/opt/install/scripts:ro
+      - ../../../:/project
+      - .:/compose
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WORKFRAME_ENABLE_ADMIN_UPDATES=1
+      - WORKFRAME_COMPOSE_DIR=/compose
+      - WORKFRAME_PROJECT_ROOT=/project
+      - WORKFRAME_E2E=${WORKFRAME_E2E:-1}

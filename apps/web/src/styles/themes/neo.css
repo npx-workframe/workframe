@@ -1,0 +1,61 @@
+[data-theme='neo'] {
+  color-scheme: light;
+
+  --wf-violet: #7c6a9e;
+  --wf-violet-glow: #8b7aad;
+  --wf-cyan: #6a8e9e;
+  --wf-mint: #6a9e8a;
+  --wf-ring: rgba(124, 106, 158, 0.22);
+
+  --wf-bg: #e0e0e6;
+  --wf-text: #2a2a32;
+  --wf-muted: #7a7a86;
+  --wf-border: rgba(255, 255, 255, 0.6);
+  --wf-border-strong: rgba(0, 0, 0, 0.08);
+  --wf-surface: #e0e0e6;
+  --wf-surface-soft: rgba(224, 224, 230, 0.82);
+  --wf-primary: #3a3a44;
+  --wf-primary-foreground: #e0e0e6;
+
+  --wf-bg-gradient: linear-gradient(145deg, #d8d8de, #e8e8ee);
+
+  --wf-orb-primary: rgba(124, 106, 158, 0.06);
+  --wf-orb-primary-opacity: 0.4;
+  --wf-orb-secondary: rgba(106, 142, 158, 0.05);
+  --wf-orb-secondary-opacity: 0.34;
+
+  --wf-grid-tile: 10px;
+  --wf-grid-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000000' fill-opacity='0.02' shape-rendering='crispEdges'/%3E%3C/svg%3E");
+  --wf-grid-mask: linear-gradient(to bottom, rgba(224, 224, 230, 1), rgba(224, 224, 230, 0.96));
+
+  --wf-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22%, rgba(0, 0, 0, 0.04));
+
+  --wf-notice-fg: var(--wf-text);
+  --wf-notice-muted: var(--wf-muted);
+  --wf-notice-border: var(--wf-border-strong);
+  --wf-notice-bg: var(--wf-surface-soft);
+  --wf-notice-info-bg: var(--wf-surface-soft);
+  --wf-notice-info-border: var(--wf-border-strong);
+  --wf-status-fg: var(--wf-muted);
+
+  --wf-radius: 12px;
+  --wf-rail-cell-radius: 12px;
+
+  --wf-neo-shadow-light: 6px 6px 12px rgba(163, 163, 176, 0.6);
+  --wf-neo-shadow-dark: -6px -6px 12px rgba(255, 255, 255, 0.9);
+  --wf-neo-shadow-inset-light: inset 3px 3px 6px rgba(163, 163, 176, 0.4);
+  --wf-neo-shadow-inset-dark: inset -3px -3px 6px rgba(255, 255, 255, 0.7);
+  --wf-neo-flat: 3px 3px 6px rgba(163, 163, 176, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.8);
+  --wf-neo-highlight: -3px -3px 6px rgba(255, 255, 255, 0.8);
+
+  --wf-control-bg-flush: transparent;
+  --wf-control-bg-raised: var(--wf-surface);
+  --wf-control-border-ring-closed: #fff;
+  --wf-control-border-ring-raised: var(--wf-surface);
+  --wf-control-shadow-flush: none;
+  --wf-control-shadow-raised: var(--wf-neo-flat);
+  --wf-control-shadow-highlight: var(--wf-neo-highlight);
+  --wf-control-shadow-inset: var(--wf-neo-shadow-inset-light), var(--wf-neo-shadow-inset-dark);
+  --wf-control-shadow-elevated: var(--wf-neo-shadow-light), var(--wf-neo-shadow-dark);
+  --wf-control-shadow-footer: 0 -3px 6px rgba(163, 163, 176, 0.3);
+}

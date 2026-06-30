@@ -1,0 +1,171 @@
+{
+  "version": 3,
+  "public_base": "/assets/avatars",
+  "avatars": [
+    {
+      "id": "ada",
+      "file": "ada.png",
+      "label": "Ada"
+    },
+    {
+      "id": "aibert",
+      "file": "aibert.png",
+      "label": "Aibert"
+    },
+    {
+      "id": "amelia",
+      "file": "amelia.png",
+      "label": "Amelia"
+    },
+    {
+      "id": "andy",
+      "file": "andy.png",
+      "label": "Andy"
+    },
+    {
+      "id": "bob",
+      "file": "bob.png",
+      "label": "Bob"
+    },
+    {
+      "id": "buzz",
+      "file": "buzz.png",
+      "label": "Buzz"
+    },
+    {
+      "id": "carl",
+      "file": "carl.png",
+      "label": "Carl"
+    },
+    {
+      "id": "corbu",
+      "file": "corbu.png",
+      "label": "Corbu"
+    },
+    {
+      "id": "diana",
+      "file": "diana.png",
+      "label": "Diana"
+    },
+    {
+      "id": "elvis",
+      "file": "elvis.png",
+      "label": "Elvis"
+    },
+    {
+      "id": "frida",
+      "file": "frida.png",
+      "label": "Frida"
+    },
+    {
+      "id": "george",
+      "file": "george.png",
+      "label": "George"
+    },
+    {
+      "id": "grace",
+      "file": "grace.png",
+      "label": "Grace"
+    },
+    {
+      "id": "hedy",
+      "file": "hedy.png",
+      "label": "Hedy"
+    },
+    {
+      "id": "hermes",
+      "file": "hermes.png",
+      "label": "Hermes"
+    },
+    {
+      "id": "isaac",
+      "file": "isaac.png",
+      "label": "Isaac"
+    },
+    {
+      "id": "john",
+      "file": "john.png",
+      "label": "John"
+    },
+    {
+      "id": "joni",
+      "file": "joni.png",
+      "label": "Joni"
+    },
+    {
+      "id": "leo",
+      "file": "leo.png",
+      "label": "Leo"
+    },
+    {
+      "id": "louis",
+      "file": "louis.png",
+      "label": "Louis"
+    },
+    {
+      "id": "ludwig",
+      "file": "ludwig.png",
+      "label": "Ludwig"
+    },
+    {
+      "id": "marie",
+      "file": "marie.png",
+      "label": "Marie"
+    },
+    {
+      "id": "marilyn",
+      "file": "marilyn.png",
+      "label": "Marilyn"
+    },
+    {
+      "id": "nikola",
+      "file": "nikola.png",
+      "label": "Nikola"
+    },
+    {
+      "id": "nina",
+      "file": "nina.png",
+      "label": "Nina"
+    },
+    {
+      "id": "paul",
+      "file": "paul.png",
+      "label": "Paul"
+    },
+    {
+      "id": "ringo",
+      "file": "ringo.png",
+      "label": "Ringo"
+    },
+    {
+      "id": "rosie",
+      "file": "rosie.png",
+      "label": "Rosie"
+    },
+    {
+      "id": "steve",
+      "file": "steve.png",
+      "label": "Steve"
+    },
+    {
+      "id": "sun",
+      "file": "sun.png",
+      "label": "Sun"
+    },
+    {
+      "id": "warren",
+      "file": "warren.png",
+      "label": "Warren"
+    },
+    {
+      "id": "woz",
+      "file": "woz.png",
+      "label": "Woz"
+    },
+    {
+      "id": "zaha",
+      "file": "zaha.png",
+      "label": "Zaha"
+    }
+  ]
+}

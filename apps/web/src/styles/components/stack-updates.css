@@ -1,0 +1,56 @@
+/* Admin stack updates (Workframe settings → Updates tab) */
+.wf-stack-updates__card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--wf-border) 80%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--wf-surface) 92%, transparent);
+}
+
+.wf-stack-updates__card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.wf-stack-updates__card-title {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.wf-stack-updates__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wf-stack-updates__action-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+}
+
+.wf-stack-updates__muted {
+  color: var(--wf-muted);
+  font-size: 12px;
+}
+
+.wf-stack-updates__status {
+  font-size: 12px;
+  color: var(--wf-muted);
+  white-space: nowrap;
+}
+
+.wf-stack-updates__reason {
+  color: var(--wf-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}

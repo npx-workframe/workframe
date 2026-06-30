@@ -1,0 +1,126 @@
+name: workframe
+
+services:
+  gateway:
+    image: nousresearch/hermes-agent:latest
+    container_name: workframe-gateway
+    restart: unless-stopped
+    command:
+      [
+        "sh",
+        "-lc",
+        "mkdir -p /opt/data/Avatars; chmod 0777 /opt/data/Avatars 2>/dev/null || true; export HERMES_HOME=/opt/data/profiles/workframe-agent; export HOME=/opt/data/profiles/workframe-agent; cd /opt/data/profiles/workframe-agent; exec /opt/hermes/bin/hermes -p workframe-agent gateway run --replace",
+      ]
+    env_file:
+      - ../Agents/.env
+    environment:
+      - HERMES_DASHBOARD=1
+      - HERMES_DASHBOARD_INSECURE=1
+      - HERMES_DASHBOARD_HOST=0.0.0.0
+      - HERMES_DASHBOARD_PORT=9119
+      - HERMES_DASHBOARD_TUI=1
+      - HERMES_DASHBOARD_PUBLIC_URL=http://127.0.0.1:${WORKFRAME_UI_PORT}/hermes-dashboard
+    labels:
+      com.workframe.project: "Workframe"
+      com.workframe.role: gateway
+    ports:
+      - "127.0.0.1:${WORKFRAME_GATEWAY_PORT}:8642"
+    volumes:
+      - ../Agents:/opt/data
+      - .:/workspace
+      - ./scripts:/opt/install/scripts:ro
+    networks:
+      - workframe-net
+
+  dashboard:
+    image: nginx:alpine
+    container_name: workframe-dashboard
+    restart: unless-stopped
+    command: ["nginx", "-g", "daemon off;"]
+    labels:
+      com.workframe.project: "Workframe"
+      com.workframe.role: dashboard
+    ports:
+      - "127.0.0.1:${WORKFRAME_DASHBOARD_PORT}:9119"
+    volumes:
+      - ./docker/dashboard-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - gateway
+    networks:
+      - workframe-net
+
+  workframe-api:
+    build:
+      context: ./workframe-api
+      dockerfile: Dockerfile
+    container_name: workframe-api
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python3", "server.py"]
+    labels:
+      com.workframe.project: "Workframe"
+      com.workframe.role: workframe-api
+    ports:
+      - "127.0.0.1:${WORKFRAME_MISSION_PORT}:8080"
+    volumes:
+      - ./workframe-api/public:/app/public:ro
+      - ./workframe-api:/app
+      - ./workframe-api/data:/app/data
+      - ../Agents:/opt/data
+      - .:/workspace
+      - ./scripts:/opt/install/scripts:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - HERMES_DATA=/opt/data
+      - WORKSPACE=/workspace
+      - WORKFRAME_API_DATA_DIR=/app/data
+      - BOARD_DB=/app/data/board.db
+      - HOST=0.0.0.0
+      - PORT=8080
+      - WORKFRAME_NATIVE_PROFILE=workframe-agent
+      - WORKFRAME_PROJECT=Workframe
+      - HERMES_DASHBOARD_URL=http://dashboard:9119
+      - HERMES_DASHBOARD_PUBLIC_URL=http://127.0.0.1:${WORKFRAME_UI_PORT}/hermes-dashboard
+      - WORKFRAME_GATEWAY_CONTAINER=workframe-gateway
+      - WORKFRAME_AUTH_PASSWORD=dev
+      # Security mode — set ONE of these, or neither (defaults to secure):
+      - DEV_LOCAL_UNSAFE=true          # development only
+      # - SECURE_MODE=true             # production
+      # Email (SMTP) — from .env file
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - APP_BASE_URL=http://127.0.0.1:${WORKFRAME_UI_PORT}
+    depends_on:
+      - gateway
+    networks:
+      - workframe-net
+
+  workframe:
+    image: nginx:alpine
+    container_name: workframe-workframe
+    restart: unless-stopped
+    labels:
+      com.workframe.project: "Workframe"
+      com.workframe.role: ui
+    ports:
+      - "127.0.0.1:${WORKFRAME_UI_PORT}:80"
+    volumes:
+      - ./packages/workframe-ui/dist:/usr/share/nginx/html:ro
+      - ./packages/workframe-ui/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    environment:
+      - WORKFRAME_GATEWAY_URL=http://gateway:8642
+      - WORKFRAME_PROJECT=Workframe
+    depends_on:
+      - gateway
+      - dashboard
+      - workframe-api
+    networks:
+      - workframe-net
+
+networks:
+  workframe-net:
+    driver: bridge

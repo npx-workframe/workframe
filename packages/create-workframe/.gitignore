@@ -1,0 +1,73 @@
+# Python / Node noise
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+node_modules/
+.npm/
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Runtime state (never in package source)
+Agents/
+**/Agents/
+opt-data/
+
+# Hermes state + logs
+*.db
+*.db-shm
+*.db-wal
+*.log
+logs/
+cache/
+memories/
+sessions/
+kanban/
+state/
+pastes/
+gateway/
+
+# Environment & secrets (all variants)
+.env
+.env.*
+.env.local
+.env.development
+.env.development.local
+.env.dev
+.env.dev.local
+.env.test
+.env.test.local
+.env.staging
+.env.staging.local
+.env.production
+.env.production.local
+.env.prod
+.env.prod.local
+*.env
+!.env.example
+
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+auth.json
+**/auth.json
+
+# Gateway / PII-adjacent instance files
+channel_directory.json
+gateway_state.json
+discord_threads.json
+
+# Pack artifacts
+*.tgz
+
+# Generated mirrors (canonical sources: services/workframe-api, apps/web)
+workframe-api/
+workframe-ui/public/
+workframe-ui/src/

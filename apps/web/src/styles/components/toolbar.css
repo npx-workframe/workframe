@@ -1,0 +1,113 @@
+/* ── Toolbar icon/text controls (browser chrome, composer, etc.) ─────────── */
+
+button.wf-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  height: var(--wf-tool-btn-size);
+  min-height: var(--wf-tool-btn-size);
+  padding-inline: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--wf-tool-btn-radius);
+  background: transparent;
+  color: var(--wf-muted);
+  font-family: var(--wf-font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: none;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    transform 0.12s ease;
+}
+
+button.wf-tool-btn svg {
+  width: var(--wf-tool-btn-icon);
+  height: var(--wf-tool-btn-icon);
+  flex-shrink: 0;
+}
+
+button.wf-tool-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--wf-surface) 72%, transparent);
+  color: var(--wf-text);
+}
+
+button.wf-tool-btn:focus-visible {
+  outline: 2px solid var(--wf-ring);
+  outline-offset: 1px;
+}
+
+button.wf-tool-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+button.wf-tool-btn.wf-tool-btn--icon {
+  width: var(--wf-tool-btn-size);
+  padding-inline: 0;
+}
+
+button.wf-tool-btn.wf-tool-btn--text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.wf-tool-btn.wf-tool-btn--active {
+  color: var(--wf-text);
+  background: color-mix(in srgb, var(--wf-violet-glow) 16%, transparent);
+  border-color: color-mix(in srgb, var(--wf-violet-glow) 22%, transparent);
+}
+
+button.wf-tool-btn.wf-tool-btn--emphasis {
+  color: var(--wf-cyan);
+}
+
+button.wf-tool-btn.wf-tool-btn--emphasis:hover:not(:disabled) {
+  color: var(--wf-cyan);
+  background: color-mix(in srgb, var(--wf-cyan) 12%, transparent);
+}
+
+button.wf-tool-btn.wf-tool-btn--send {
+  background: var(--wf-violet-glow);
+  border-color: color-mix(in srgb, var(--wf-violet-glow) 55%, var(--wf-border-strong));
+  color: #fff;
+}
+
+button.wf-tool-btn.wf-tool-btn--send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--wf-violet-glow) 88%, white);
+  color: #fff;
+}
+
+button.wf-tool-btn.wf-tool-btn--send:disabled {
+  opacity: 1;
+  background: color-mix(in srgb, var(--wf-muted) 22%, transparent);
+  border-color: color-mix(in srgb, var(--wf-border-strong) 70%, transparent);
+  color: color-mix(in srgb, var(--wf-muted) 88%, transparent);
+}
+
+button.wf-tool-btn.wf-tool-btn--send.wf-tool-btn--stop {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--wf-border-strong) 80%, transparent);
+  color: var(--wf-text);
+}
+
+button.wf-tool-btn.wf-tool-btn--send.wf-tool-btn--stop:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--wf-surface) 72%, transparent);
+  border-color: color-mix(in srgb, var(--wf-border-strong) 88%, transparent);
+  color: var(--wf-text);
+}
+
+button.wf-tool-btn.wf-composer__model-trigger--inactive {
+  color: var(--wf-notice-fg);
+  border: 1px dashed color-mix(in srgb, var(--wf-notice-border) 80%, transparent);
+  opacity: 0.92;
+}
+

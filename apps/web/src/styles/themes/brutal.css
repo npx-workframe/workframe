@@ -1,0 +1,51 @@
+[data-theme='brutal'] {
+  color-scheme: light;
+
+  --wf-violet: #e63946;
+  --wf-violet-glow: #d62839;
+  --wf-cyan: #1d3557;
+  --wf-mint: #f4a261;
+  --wf-ring: rgba(230, 57, 70, 0.32);
+
+  --wf-bg: #faedcd;
+  --wf-text: #1a1a1a;
+  --wf-muted: #5a5a5a;
+  --wf-border: #1a1a1a;
+  --wf-border-strong: #1a1a1a;
+  --wf-surface: #ffffff;
+  --wf-surface-soft: #fffcf5;
+  --wf-primary: #1a1a1a;
+  --wf-primary-foreground: #faedcd;
+
+  --wf-bg-gradient:
+    linear-gradient(135deg, #e63946 0%, #e63946 12%, transparent 12%, transparent 100%),
+    linear-gradient(225deg, #1d3557 0%, #1d3557 8%, transparent 8%, transparent 100%),
+    linear-gradient(45deg, #f4a261 0%, #f4a261 6%, transparent 6%, transparent 100%),
+    var(--wf-bg);
+
+  --wf-orb-primary: rgba(230, 57, 70, 0.12);
+  --wf-orb-primary-opacity: 0.6;
+  --wf-orb-secondary: rgba(29, 53, 87, 0.10);
+  --wf-orb-secondary-opacity: 0.5;
+
+  --wf-grid-tile: 10px;
+  --wf-grid-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Crect x='0' y='0' width='10' height='10' fill='none' stroke='%231a1a1a' stroke-width='0.5' stroke-opacity='0.1'/%3E%3C/svg%3E");
+  --wf-grid-mask: linear-gradient(to bottom, rgba(250, 237, 205, 1), rgba(250, 237, 205, 0.96));
+
+  --wf-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22%);
+
+  --wf-notice-fg: var(--wf-text);
+  --wf-notice-muted: var(--wf-muted);
+  --wf-notice-border: var(--wf-border);
+  --wf-notice-bg: #ffffff;
+  --wf-notice-info-bg: #fff9ee;
+  --wf-notice-info-border: var(--wf-cyan);
+  --wf-status-fg: var(--wf-muted);
+
+  --wf-radius: 0;
+  --wf-rail-cell-radius: 0;
+
+  --wf-brutal-stroke: 3px;
+  --wf-brutal-shadow: 6px 6px 0 #1a1a1a;
+  --wf-brutal-offset: 3px;
+}

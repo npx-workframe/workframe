@@ -1,0 +1,43 @@
+[data-theme='mono-dark'] {
+  color-scheme: dark;
+
+  --wf-violet: #b0b0b8;
+  --wf-violet-glow: #94949e;
+  --wf-cyan: #b0b0b8;
+  --wf-mint: #b0b0b8;
+  --wf-ring: rgba(176, 176, 184, 0.24);
+
+  --wf-bg: #141418;
+  --wf-text: #e8e8ec;
+  --wf-muted: #6b6b74;
+  --wf-border: rgba(255, 255, 255, 0.06);
+  --wf-border-strong: rgba(255, 255, 255, 0.10);
+  --wf-surface: rgba(22, 22, 28, 0.72);
+  --wf-surface-soft: rgba(22, 22, 28, 0.52);
+  --wf-primary: rgba(255, 255, 255, 0.88);
+  --wf-primary-foreground: #141418;
+
+  --wf-bg-gradient: var(--wf-bg);
+
+  --wf-orb-primary: rgba(176, 176, 184, 0.04);
+  --wf-orb-primary-opacity: 0.3;
+  --wf-orb-secondary: rgba(176, 176, 184, 0.03);
+  --wf-orb-secondary-opacity: 0.24;
+
+  --wf-grid-tile: 10px;
+  --wf-grid-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23FFFFFF' fill-opacity='0.03' shape-rendering='crispEdges'/%3E%3C/svg%3E");
+  --wf-grid-mask: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.96));
+
+  --wf-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.004), transparent 22%, rgba(0, 0, 0, 0.18));
+
+  --wf-notice-fg: var(--wf-text);
+  --wf-notice-muted: var(--wf-muted);
+  --wf-notice-border: var(--wf-border-strong);
+  --wf-notice-bg: var(--wf-surface-soft);
+  --wf-notice-info-bg: var(--wf-surface-soft);
+  --wf-notice-info-border: var(--wf-border-strong);
+  --wf-status-fg: var(--wf-muted);
+
+  --wf-radius: 0;
+  --wf-rail-cell-radius: 0;
+}

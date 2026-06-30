@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+@import './styles/shadcn-theme.css';
+@import './styles/scroll-area.css';
+@import './styles/highlight-themes.css';
+@import './styles/markdown.css';
+@import './styles/tokens/foundation.css';
+@import './styles/tokens/semantic.css';
+@import './styles/themes/dark.css';
+@import './styles/themes/brutal.css';
+@import './styles/themes/architectonic.css';
+@import './styles/themes/neo.css';
+@import './styles/themes/mono-light.css';
+@import './styles/themes/mono-dark.css';
+@import './styles/themes/light.css';
+@import './styles/components/toolbar.css';
+@import './styles/components/notices.css';
+@import './styles/components/base.css';
+@import './styles/components/atmosphere.css';
+@import './styles/components/shell.css';
+@import './styles/components/dockview.css';
+@import './styles/components/panel.css';
+@import './styles/components/agent-rail.css';
+@import './styles/components/chat-split.css';
+@import './styles/components/message-list.css';
+@import './styles/components/composer.css';
+@import './styles/components/file-tree.css';
+@import './styles/components/browser.css';
+@import './styles/components/activity.css';
+@import './styles/components/placeholder.css';
+@import './styles/components/dialog.css';
+@import './styles/components/auth.css';
+@import './styles/components/onboarding.css';
+@import './styles/components/stack-updates.css';
+
+/* Single-line truncation inside flex/grid rows */
+.wf-truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

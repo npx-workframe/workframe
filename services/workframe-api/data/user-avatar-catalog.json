@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "public_base": "/assets/users",
+  "avatars": [
+    { "id": "m1", "file": "m1.png", "label": "M1" },
+    { "id": "m2", "file": "m2.png", "label": "M2" },
+    { "id": "m3", "file": "m3.png", "label": "M3" },
+    { "id": "m4", "file": "m4.png", "label": "M4" },
+    { "id": "m5", "file": "m5.png", "label": "M5" },
+    { "id": "m6", "file": "m6.png", "label": "M6" },
+    { "id": "f1", "file": "f1.png", "label": "F1" },
+    { "id": "f2", "file": "f2.png", "label": "F2" },
+    { "id": "f3", "file": "f3.png", "label": "F3" },
+    { "id": "f4", "file": "f4.png", "label": "F4" },
+    { "id": "f5", "file": "f5.png", "label": "F5" },
+    { "id": "f6", "file": "f6.png", "label": "F6" }
+  ]
+}

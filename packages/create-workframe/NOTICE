@@ -1,0 +1,12 @@
+Workframe
+Copyright 2026 Workframe contributors
+
+This product includes software developed as part of the Workframe project
+(https://github.com/npx-workframe/workframe).
+
+Third-party runtimes and dependencies bundled or integrated at install time
+may use other licenses (for example, Hermes Agent by Nous Research under MIT,
+NVIDIA NemoClaw under Apache License 2.0). See each upstream project for terms.
+
+The Workframe name and logo are trademarks of their respective owners.
+This NOTICE file does not grant trademark rights.

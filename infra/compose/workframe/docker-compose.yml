@@ -1,0 +1,182 @@
+name: workframe
+
+services:
+  gateway:
+    image: nousresearch/hermes-agent:latest
+    container_name: workframe-gateway
+    restart: unless-stopped
+    command:
+      [
+        "sh",
+        "-lc",
+        "if [ -z \"$WORKFRAME_PROXY_TOKEN\" ] && [ -f /run/workframe-proxy/token ]; then export WORKFRAME_PROXY_TOKEN=\"$(tr -d '\\r\\n' < /run/workframe-proxy/token)\"; fi; mkdir -p /opt/data/Avatars; chmod 0777 /opt/data/Avatars 2>/dev/null || true; export HERMES_HOME=/opt/data/profiles/workframe-agent; export HOME=/opt/data/profiles/workframe-agent; cd /opt/data/profiles/workframe-agent; exec /opt/hermes/bin/hermes -p workframe-agent gateway run --replace",
+      ]
+    environment:
+      - HERMES_DASHBOARD=1
+      - HERMES_DASHBOARD_HOST=0.0.0.0
+      - HERMES_DASHBOARD_PORT=9119
+      - HERMES_DASHBOARD_TUI=1
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_BASIC_AUTH_USERNAME:-workframe}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:-dogfood-local}
+      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${HERMES_DASHBOARD_BASIC_AUTH_SECRET:-workframe-dogfood-dashboard-secret}
+      - HERMES_DASHBOARD_PUBLIC_URL=${APP_BASE_URL:-http://127.0.0.1:${WORKFRAME_UI_PORT:-18644}}/hermes-dashboard
+      - WORKFRAME_PROXY_TOKEN=${WORKFRAME_PROXY_TOKEN:-}
+    labels:
+      com.workframe.project: "${WORKFRAME_PROJECT:-Workframe}"
+      com.workframe.role: gateway
+    ports:
+      - "127.0.0.1:${WORKFRAME_GATEWAY_PORT:-18642}:8642"
+    volumes:
+      - ../../../runtime/Agents:/opt/data
+      - ../../../runtime/Files:/opt/data/workspace
+      - workframe-proxy-token:/run/workframe-proxy:ro
+      - ../../../scripts/workframe:/opt/install/scripts:ro
+      - ./docker/cont-init-workspace-link.sh:/etc/cont-init.d/03-workspace-link:ro
+    networks:
+      - workframe-net
+
+  dashboard:
+    image: nginx:alpine
+    container_name: workframe-dashboard
+    restart: unless-stopped
+    command: ["nginx", "-g", "daemon off;"]
+    labels:
+      com.workframe.project: "${WORKFRAME_PROJECT:-Workframe}"
+      com.workframe.role: dashboard
+    ports:
+      - "127.0.0.1:${WORKFRAME_DASHBOARD_PORT:-19119}:9119"
+    volumes:
+      - ./docker/dashboard-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - gateway
+    networks:
+      - workframe-net
+
+  workframe-api:
+    build:
+      context: ../../../services/workframe-api
+      dockerfile: Dockerfile
+    container_name: workframe-api
+    restart: unless-stopped
+    working_dir: /app
+    command: ["sh", "-lc", ". /opt/install/scripts/bootstrap-workspace-link.sh; exec python3 server.py"]
+    labels:
+      com.workframe.project: "${WORKFRAME_PROJECT:-Workframe}"
+      com.workframe.role: workframe-api
+    ports:
+      - "127.0.0.1:${WORKFRAME_API_PORT:-19120}:8080"
+    volumes:
+      - ../../../services/workframe-api/public:/app/public:ro
+      - ../../../services/workframe-api:/app
+      - ../../../runtime/workframe-api-data:/app/data
+      - ../../../runtime/Agents:/opt/data
+      - ../../../runtime/Files:/opt/data/workspace
+      - ../../../scripts/workframe:/opt/install/scripts:ro
+      - workframe-proxy-token:/run/workframe-proxy
+    env_file:
+      - ./.env
+    environment:
+      - HERMES_DATA=/opt/data
+      - WORKSPACE=/workspace
+      - WORKFRAME_API_DATA_DIR=/app/data
+      - BOARD_DB=/app/data/board.db
+      - HOST=0.0.0.0
+      - PORT=8080
+      - WORKFRAME_NATIVE_PROFILE=${WORKFRAME_NATIVE_PROFILE:-workframe-agent}
+      - WORKFRAME_PROJECT=${WORKFRAME_PROJECT:-Workframe}
+      - WORKFRAME_INSTALL_ID=${WORKFRAME_INSTALL_ID:-wf_local_slot1}
+      - WORKFRAME_SLOT=${WORKFRAME_SLOT:-1}
+      - HERMES_DASHBOARD_URL=http://dashboard:9119
+      - HERMES_DASHBOARD_PUBLIC_URL=${APP_BASE_URL:-http://127.0.0.1:${WORKFRAME_UI_PORT:-18644}}/hermes-dashboard
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_BASIC_AUTH_USERNAME:-workframe}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:-dogfood-local}
+      - WORKFRAME_GATEWAY_CONTAINER=workframe-gateway
+      - WORKFRAME_COMPOSE_DIR=/compose
+      - WORKFRAME_PROJECT_ROOT=/project
+      - WORKFRAME_HOST_COMPOSE_DIR=${WORKFRAME_HOST_COMPOSE_DIR:-}
+      - WORKFRAME_HOST_PROJECT_ROOT=${WORKFRAME_HOST_PROJECT_ROOT:-}
+      - WORKFRAME_UI_PORT=${WORKFRAME_UI_PORT:-18644}
+      - WORKFRAME_UPDATE_SKIP_NPM=1
+      - WORKFRAME_API_VERSION=0.1.0
+      - WORKFRAME_SUPERVISOR_URL=http://workframe-supervisor:8090
+      - WORKFRAME_SUPERVISOR_TOKEN=${WORKFRAME_SUPERVISOR_TOKEN}
+      - WORKFRAME_DEPLOYMENT_MODE=${WORKFRAME_DEPLOYMENT_MODE:-trusted_team}
+      - WORKFRAME_PROXY_TOKEN=${WORKFRAME_PROXY_TOKEN:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - APP_BASE_URL=${APP_BASE_URL:-http://127.0.0.1:${WORKFRAME_UI_PORT:-18644}}
+    depends_on:
+      - gateway
+      - workframe-supervisor
+    networks:
+      - workframe-net
+      - control-net
+
+  workframe-supervisor:
+    build:
+      context: ../../../services/workframe-supervisor
+      dockerfile: Dockerfile
+    container_name: workframe-supervisor
+    restart: unless-stopped
+    labels:
+      com.workframe.project: "${WORKFRAME_PROJECT:-Workframe}"
+      com.workframe.role: supervisor
+    ports:
+      - "127.0.0.1:${WORKFRAME_SUPERVISOR_PORT:-18090}:8090"
+    volumes:
+      - ../../../runtime/Agents:/opt/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../../../scripts/workframe:/opt/install/scripts:ro
+      - .:/compose
+    env_file:
+      - ./.env
+    environment:
+      - HERMES_DATA=/opt/data
+      - WORKFRAME_NATIVE_PROFILE=${WORKFRAME_NATIVE_PROFILE:-workframe-agent}
+      - WORKFRAME_GATEWAY_CONTAINER=workframe-gateway
+      - HOST=0.0.0.0
+      - PORT=8090
+      - WORKFRAME_SUPERVISOR_TOKEN=${WORKFRAME_SUPERVISOR_TOKEN}
+      - WORKFRAME_DEPLOYMENT_MODE=${WORKFRAME_DEPLOYMENT_MODE:-trusted_team}
+      - WORKFRAME_SCRIPTS_DIR=/opt/install/scripts
+      - WORKFRAME_COMPOSE_DIR=/compose
+      - WORKFRAME_PROJECT_ROOT=/compose
+      - WORKFRAME_HOST_PROJECT_ROOT=${WORKFRAME_HOST_PROJECT_ROOT:-}
+      - WORKFRAME_UI_PORT=${WORKFRAME_UI_PORT:-18644}
+    depends_on:
+      - gateway
+    networks:
+      - control-net
+
+  workframe-ui:
+    image: nginx:alpine
+    container_name: workframe-ui
+    restart: unless-stopped
+    labels:
+      com.workframe.project: "${WORKFRAME_PROJECT:-Workframe}"
+      com.workframe.role: ui
+    ports:
+      - "127.0.0.1:${WORKFRAME_UI_PORT:-18644}:80"
+    volumes:
+      - ${WORKFRAME_UI_STATIC_DIR:-../../../apps/web/dist}:/usr/share/nginx/html:ro
+      - ../../../apps/web/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - gateway
+      - dashboard
+      - workframe-api
+    networks:
+      - workframe-net
+
+networks:
+  workframe-net:
+    driver: bridge
+  control-net:
+    driver: bridge
+    internal: true
+
+volumes:
+  workframe-proxy-token:

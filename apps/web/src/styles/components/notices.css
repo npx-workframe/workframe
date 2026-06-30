@@ -1,0 +1,57 @@
+/* ── Notices (neutral; not red/green alert chrome) ───────────────────────── */
+
+.wf-notice {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--wf-radius);
+  border: 1px solid var(--wf-notice-border);
+  background: var(--wf-notice-bg);
+  color: var(--wf-notice-fg);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wf-notice__message {
+  margin: 0;
+}
+
+.wf-notice__hint {
+  margin: 4px 0 0;
+  color: var(--wf-notice-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.wf-notice__actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.wf-notice__code {
+  margin: 6px 0 0;
+  color: var(--wf-notice-muted);
+  font-family: var(--wf-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.wf-notice--info {
+  border-color: var(--wf-notice-info-border);
+  background: var(--wf-notice-info-bg);
+}
+
+.wf-notice--neutral {
+  border-color: color-mix(in srgb, var(--wf-border) 90%, transparent);
+  background: color-mix(in srgb, var(--wf-surface-soft) 88%, transparent);
+}
+
+.wf-notice--status {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--wf-status-fg);
+  font-size: 12px;
+}
+

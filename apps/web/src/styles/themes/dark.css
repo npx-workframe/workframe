@@ -1,0 +1,46 @@
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --wf-violet: #6d28d9;
+  --wf-violet-glow: #7c3aed;
+  --wf-cyan: #0e7490;
+  --wf-mint: #047857;
+  --wf-ring: rgba(109, 40, 217, 0.38);
+
+  --wf-bg: #0a0a0f;
+  --wf-text: #e8e8ee;
+  --wf-muted: #727280;
+  --wf-border: rgba(255, 255, 255, 0.07);
+  --wf-border-strong: rgba(255, 255, 255, 0.11);
+  --wf-surface: rgba(18, 18, 26, 0.58);
+  --wf-surface-soft: rgba(18, 18, 26, 0.38);
+  --wf-primary: rgba(255, 255, 255, 0.9);
+  --wf-primary-foreground: #0a0a0f;
+
+  --wf-bg-gradient:
+    radial-gradient(ellipse 46% 62% at 10% 13%, rgba(109, 40, 217, 0.16), rgba(109, 40, 217, 0.05) 34%, rgba(10, 10, 15, 0) 67%),
+    radial-gradient(ellipse 34% 44% at 92% 62%, rgba(8, 145, 178, 0.13), rgba(8, 145, 178, 0.04) 37%, rgba(10, 10, 15, 0) 72%),
+    linear-gradient(120deg, rgba(76, 29, 149, 0.1) 0%, rgba(10, 10, 15, 0) 28%, rgba(10, 10, 15, 0) 74%, rgba(14, 116, 144, 0.08) 100%),
+    var(--wf-bg);
+
+  --wf-orb-primary: rgba(109, 40, 217, 0.18);
+  --wf-orb-primary-opacity: 0.5;
+  --wf-orb-secondary: rgba(8, 145, 178, 0.15);
+  --wf-orb-secondary-opacity: 0.44;
+
+  --wf-grid-tile: 10px;
+  --wf-grid-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23FFFFFF' fill-opacity='0.05' shape-rendering='crispEdges'/%3E%3C/svg%3E");
+  --wf-grid-mask: linear-gradient(to bottom, rgba(0, 0, 0, 1), rgba(0, 0, 0, 0.96));
+
+  --wf-overlay:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.008), transparent 22%, rgba(0, 0, 0, 0.24)),
+    radial-gradient(ellipse 76% 58% at 50% 54%, rgba(10, 10, 15, 0), rgba(4, 4, 8, 0.34) 100%);
+
+  --wf-notice-fg: color-mix(in srgb, var(--wf-text) 88%, white);
+  --wf-notice-muted: var(--wf-muted);
+  --wf-notice-border: color-mix(in srgb, var(--wf-violet-glow) 22%, var(--wf-border));
+  --wf-notice-bg: color-mix(in srgb, var(--wf-violet) 10%, var(--wf-surface-soft));
+  --wf-notice-info-bg: color-mix(in srgb, var(--wf-cyan) 10%, var(--wf-surface-soft));
+  --wf-notice-info-border: color-mix(in srgb, var(--wf-cyan) 24%, var(--wf-border));
+  --wf-status-fg: color-mix(in srgb, var(--wf-text) 72%, var(--wf-muted));
+}

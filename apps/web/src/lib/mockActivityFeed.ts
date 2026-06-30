@@ -1,0 +1,236 @@
+import type { ActivityNode } from '@/lib/activityTypes'
+import { buildMockCrew, findAgentByProfile } from '@/lib/hermesProfile'
+
+function crewColor(slug: string, projectName: string) {
+  return findAgentByProfile(buildMockCrew(projectName), slug)?.color ?? 'var(--wf-muted)'
+}
+
+function crewName(slug: string, projectName: string) {
+  return findAgentByProfile(buildMockCrew(projectName), slug)?.display_name ?? slug
+}
+
+/** Dogfood feed — mirrors backend activity rows + kanban run log line shapes. */
+export function buildMockActivityFeed(projectName: string): ActivityNode[] {
+  const now = Date.now()
+  const ago = (minutes: number) => new Date(now - minutes * 60_000).toISOString()
+  const nativeSlug = `${projectName.toLowerCase().replace(/\s+/g, '')}-agent`
+
+  return [
+    {
+      id: 'run-arch-projectplan',
+      ts: ago(1),
+      source: 'kanban_run',
+      kind: 'kanban_run',
+      profile: 'architect',
+      agentName: crewName('architect', projectName),
+      agentColor: crewColor('architect', projectName),
+      label: 'Kanban · PROJECTPLAN.md',
+      status: 'active',
+      refs: {
+        profile: 'architect',
+        taskId: 't_a1b2c3d4',
+        runId: 'run_018f',
+        model: 'claude-sonnet-4',
+      },
+      children: [
+        {
+          id: 'run-arch-step-edit',
+          ts: ago(1),
+          source: 'kanban_run',
+          kind: 'file_edit',
+          profile: 'architect',
+          agentName: crewName('architect', projectName),
+          agentColor: crewColor('architect', projectName),
+          label: 'Editing PROJECTPLAN.md',
+          status: 'active',
+          refs: {
+            taskId: 't_a1b2c3d4',
+            runId: 'run_018f',
+            toolName: 'write_file',
+            filePath: '/workspace/docs/PROJECTPLAN.md',
+          },
+        },
+        {
+          id: 'run-arch-step-read',
+          ts: ago(2),
+          source: 'kanban_run',
+          kind: 'file_read',
+          profile: 'architect',
+          agentName: crewName('architect', projectName),
+          agentColor: crewColor('architect', projectName),
+          label: 'read /workspace/docs/PROJECTPLAN.md',
+          status: 'completed',
+          refs: {
+            taskId: 't_a1b2c3d4',
+            runId: 'run_018f',
+            toolName: 'read_file',
+            filePath: '/workspace/docs/PROJECTPLAN.md',
+          },
+        },
+        {
+          id: 'run-arch-step-plan',
+          ts: ago(3),
+          source: 'kanban_run',
+          kind: 'plan',
+          profile: 'architect',
+          agentName: crewName('architect', projectName),
+          agentColor: crewColor('architect', projectName),
+          label: 'plan · 3 task(s)',
+          status: 'completed',
+          refs: { taskId: 't_a1b2c3d4', runId: 'run_018f', toolName: 'plan' },
+        },
+      ],
+    },
+    {
+      id: 'designer-index-html',
+      ts: ago(4),
+      source: 'kanban_run',
+      kind: 'file_write',
+      profile: 'designer',
+      agentName: crewName('designer', projectName),
+      agentColor: crewColor('designer', projectName),
+      label: 'Edited index.html',
+      status: 'completed',
+      refs: {
+        profile: 'designer',
+        taskId: 't_e5f6a7b8',
+        runId: 'run_019a',
+        toolName: 'write_file',
+        filePath: '/workspace/website/index.html',
+      },
+    },
+    {
+      id: 'visionary-memory',
+      ts: ago(6),
+      source: 'message',
+      kind: 'tool_call',
+      profile: 'visionary',
+      agentName: crewName('visionary', projectName),
+      agentColor: crewColor('visionary', projectName),
+      label: 'Running tool: memory_update',
+      status: 'active',
+      refs: {
+        profile: 'visionary',
+        sessionId: 'sess_7c21',
+        messageId: 'msg_8842',
+        toolName: 'memory_update',
+        model: 'claude-sonnet-4',
+        platform: 'telegram',
+      },
+    },
+    {
+      id: 'dev-compose-read',
+      ts: ago(9),
+      source: 'kanban_run',
+      kind: 'file_read',
+      profile: 'dev',
+      agentName: crewName('dev', projectName),
+      agentColor: crewColor('dev', projectName),
+      label: 'read /workspace/docker-compose.yml',
+      status: 'completed',
+      refs: {
+        taskId: 't_c9d0e1f2',
+        runId: 'run_017b',
+        toolName: 'read_file',
+        filePath: '/workspace/docker-compose.yml',
+      },
+    },
+    {
+      id: 'kanban-browser-task',
+      ts: ago(12),
+      source: 'kanban_event',
+      kind: 'kanban_status',
+      profile: nativeSlug,
+      agentName: crewName(nativeSlug, projectName),
+      agentColor: crewColor(nativeSlug, projectName),
+      label: 'Scaffold browser panel · status_changed → in_progress',
+      status: 'completed',
+      refs: {
+        profile: nativeSlug,
+        taskId: 't_86a60e95',
+        eventId: 'ev_2201',
+      },
+    },
+    {
+      id: 'architect-session-discord',
+      ts: ago(18),
+      source: 'session',
+      kind: 'session_start',
+      profile: 'architect',
+      agentName: crewName('architect', projectName),
+      agentColor: crewColor('architect', projectName),
+      label: 'Session · discord · 12 messages',
+      status: 'completed',
+      refs: {
+        profile: 'architect',
+        sessionId: 'sess_41aa',
+        model: 'claude-sonnet-4',
+        platform: 'discord',
+      },
+    },
+    {
+      id: 'docs-readme-write',
+      ts: ago(22),
+      source: 'kanban_run',
+      kind: 'file_write',
+      profile: 'docs',
+      agentName: crewName('docs', projectName),
+      agentColor: crewColor('docs', projectName),
+      label: 'write /workspace/readme.md',
+      status: 'completed',
+      refs: {
+        taskId: 't_f3a4b5c6',
+        toolName: 'write_file',
+        filePath: '/workspace/readme.md',
+      },
+    },
+    {
+      id: 'research-delegate',
+      ts: ago(28),
+      source: 'message',
+      kind: 'delegate',
+      profile: 'research',
+      agentName: crewName('research', projectName),
+      agentColor: crewColor('research', projectName),
+      label: 'Running tool: delegate_task → architect',
+      status: 'completed',
+      refs: {
+        sessionId: 'sess_9910',
+        messageId: 'msg_4410',
+        toolName: 'delegate_task',
+        platform: 'cli',
+      },
+    },
+    {
+      id: 'kanban-task-created',
+      ts: ago(35),
+      source: 'kanban_event',
+      kind: 'kanban_task',
+      profile: nativeSlug,
+      agentName: crewName(nativeSlug, projectName),
+      agentColor: crewColor(nativeSlug, projectName),
+      label: 'Markdown style pass · created',
+      status: 'completed',
+      refs: {
+        taskId: 't_d7e8f901',
+        eventId: 'ev_1100',
+      },
+    },
+    {
+      id: 'dev-find-agents',
+      ts: ago(41),
+      source: 'kanban_run',
+      kind: 'search',
+      profile: 'dev',
+      agentName: crewName('dev', projectName),
+      agentColor: crewColor('dev', projectName),
+      label: 'find AGENTS.md',
+      status: 'completed',
+      refs: {
+        taskId: 't_86a60e95',
+        toolName: 'find',
+        filePath: '/workspace/AGENTS.md',
+      },
+    },
+  ]
+}

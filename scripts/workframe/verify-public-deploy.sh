@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Fail-closed preflight for WORKFRAME_DEPLOYMENT_MODE=public_multi_user.
+# Usage: bash scripts/workframe/verify-public-deploy.sh [compose-dir]
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+COMPOSE_DIR="${1:-$ROOT/infra/compose/workframe}"
+ENV_FILE="$COMPOSE_DIR/.env"
+COMPOSE_FILE="$COMPOSE_DIR/docker-compose.yml"
+
+fail() { echo "FAIL: $*" >&2; exit 1; }
+warn() { echo "WARN: $*" >&2; }
+ok() { echo "OK: $*"; }
+
+[[ -f "$ENV_FILE" ]] || fail "missing $ENV_FILE"
+[[ -f "$COMPOSE_FILE" ]] || fail "missing $COMPOSE_FILE"
+
+env_val() {
+  local key="$1"
+  grep -E "^${key}=" "$ENV_FILE" | tail -n1 | cut -d= -f2- | tr -d '\r' || true
+}
+
+MODE="$(env_val WORKFRAME_DEPLOYMENT_MODE)"
+MODE="${MODE:-trusted_team}"
+if [[ "$MODE" != "public_multi_user" ]]; then
+  ok "WORKFRAME_DEPLOYMENT_MODE=$MODE (skipping public checks; pass nothing to force public)"
+  exit 0
+fi
+
+ok "checking public_multi_user preflight"
+
+if [[ "$(env_val DEV_LOCAL_UNSAFE)" =~ ^(1|true|yes|on)$ ]]; then
+  fail "DEV_LOCAL_UNSAFE must be off for public_multi_user"
+fi
+if [[ "$(env_val SECURE_MODE)" != "true" ]]; then
+  fail "SECURE_MODE=true required"
+fi
+
+for key in WORKFRAME_SUPERVISOR_TOKEN WORKFRAME_API_TOKEN WORKFRAME_PROXY_TOKEN WORKFRAME_VAULT_KEK \
+  ZK_AUTH_HMAC_KEY ZK_AUTH_ENCRYPTION_KEY ZK_AUTH_SESSION_SECRET \
+  SMTP_HOST SMTP_USER SMTP_PASS EMAIL_FROM; do
+  [[ -n "$(env_val "$key")" ]] || fail "$key is empty"
+done
+
+APP_URL="$(env_val APP_BASE_URL)"
+[[ "$APP_URL" == https://* ]] || fail "APP_BASE_URL must be https:// (got ${APP_URL:-<empty>})"
+
+enc_key="$(env_val ZK_AUTH_ENCRYPTION_KEY)"
+if [[ -n "$enc_key" ]]; then
+  python3 - "$enc_key" <<'PY' || fail "ZK_AUTH_ENCRYPTION_KEY must be base64-encoded 32 bytes (not hex)"
+import base64, sys
+raw = base64.b64decode(sys.argv[1].strip())
+assert len(raw) == 32
+PY
+  ok "ZK_AUTH_ENCRYPTION_KEY format"
+fi
+
+if [[ "$(env_val WORKFRAME_E2E)" =~ ^(1|true|yes|on)$ ]] && [[ "$APP_URL" == https://* ]]; then
+  fail "WORKFRAME_E2E must be off for public HTTPS deploy"
+fi
+
+if grep -A40 '^  gateway:' "$COMPOSE_FILE" | grep -q 'env_file:'; then
+  fail "gateway must not use env_file in docker-compose.yml"
+fi
+if ! grep -q 'control-net' "$COMPOSE_FILE"; then
+  fail "control-net missing from docker-compose.yml"
+fi
+
+UI_PORT="$(env_val WORKFRAME_UI_PORT)"
+UI_PORT="${UI_PORT:-18644}"
+API_PORT="$(env_val WORKFRAME_API_PORT)"
+API_PORT="${API_PORT:-19120}"
+
+if command -v curl >/dev/null 2>&1; then
+  health="$(curl -fsS "http://127.0.0.1:${API_PORT}/api/health" 2>/dev/null || true)"
+  if [[ -z "$health" ]]; then
+    warn "API health unreachable on 127.0.0.1:${API_PORT} (stack down?)"
+  else
+    echo "$health" | grep -q 'public_multi_user' || fail "API health missing deployment_mode public_multi_user"
+    echo "$health" | grep -q '"mode": "secure"' || fail "API not in secure mode"
+    echo "$health" | grep -q '"proxy_token_configured": true' || fail "API proxy_token_configured is false"
+    echo "$health" | grep -q '"vault_envelope": true' || fail "API vault_envelope is false"
+    echo "$health" | grep -q '"docker_sock_on_api": false' || fail "API still has docker.sock mounted"
+    echo "$health" | grep -q 'install_window_open' || warn "API health missing install_window_open"
+    echo "$health" | grep -q 'workframe_e2e' || warn "API health missing workframe_e2e"
+    echo "$health" | grep -q 'dev_local_unsafe' || warn "API health missing dev_local_unsafe"
+    ok "API health"
+  fi
+  dash_code="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${UI_PORT}/hermes-dashboard/" || true)"
+  [[ "$dash_code" == "403" ]] || warn "hermes-dashboard without session returned $dash_code (expected 403)"
+else
+  warn "curl not found — skipping HTTP checks"
+fi
+
+if command -v docker >/dev/null 2>&1 && docker inspect workframe-gateway >/dev/null 2>&1; then
+  gw_env="$(docker inspect workframe-gateway --format '{{range .Config.Env}}{{println .}}{{end}}')"
+  for marker in WORKFRAME_SUPERVISOR_TOKEN ZK_AUTH_ SMTP_PASS; do
+    echo "$gw_env" | grep -q "$marker" && fail "gateway env contains $marker"
+  done
+  ok "gateway env allowlist"
+else
+  warn "workframe-gateway not running — skipping docker inspect"
+fi
+
+ok "public_multi_user preflight passed"

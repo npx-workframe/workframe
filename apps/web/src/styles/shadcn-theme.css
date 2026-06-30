@@ -1,0 +1,130 @@
+/**
+ * shadcn/ui CSS variable bridge — aliases Workframe --wf-* tokens so CLI
+ * components theme automatically. Add new shadcn components without rewiring.
+ */
+
+[data-theme='dark'],
+[data-theme='light'],
+[data-theme='brutal'],
+[data-theme='neo'],
+[data-theme='architectonic'],
+[data-theme='mono-light'],
+[data-theme='mono-dark'] {
+  --radius: 0.5rem;
+  --border-width: 1px;
+
+  --background: var(--wf-bg);
+  --foreground: var(--wf-text);
+
+  --card: var(--wf-surface);
+  --card-foreground: var(--wf-text);
+
+  --popover: var(--wf-surface);
+  --popover-foreground: var(--wf-text);
+
+  --primary: var(--wf-primary);
+  --primary-foreground: var(--wf-primary-foreground);
+
+  --secondary: var(--wf-surface-soft);
+  --secondary-foreground: var(--wf-text);
+
+  --muted: var(--wf-surface-soft);
+  --muted-foreground: var(--wf-muted);
+
+  --accent: color-mix(in srgb, var(--wf-primary) 10%, transparent);
+  --accent-foreground: var(--wf-primary);
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: var(--wf-border);
+  --input: var(--wf-border-strong);
+  --ring: var(--wf-ring);
+  
+  --shadow-sm: var(--wf-shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+  --shadow-md: var(--wf-shadow-md, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
+  --shadow-lg: var(--wf-shadow-lg, 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05));
+  --shadow-xl: var(--wf-shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04));
+}
+
+[data-theme='dark'] {
+  --wf-dialog-accent-hover-bg: color-mix(in srgb, var(--wf-cyan) 24%, transparent);
+  --wf-dialog-accent-hover-text: #99f6e4;
+  --wf-dialog-accent-hover-border: color-mix(in srgb, var(--wf-cyan) 52%, transparent);
+  --wf-dialog-warn-hover-bg: color-mix(in srgb, #f59e0b 22%, transparent);
+  --wf-dialog-warn-hover-text: #fde68a;
+  --wf-dialog-warn-hover-border: color-mix(in srgb, #f59e0b 48%, transparent);
+}
+
+[data-theme='light'] {
+  --wf-dialog-accent-hover-bg: color-mix(in srgb, var(--wf-cyan) 14%, white);
+  --wf-dialog-accent-hover-text: #0f766e;
+  --wf-dialog-accent-hover-border: color-mix(in srgb, var(--wf-cyan) 38%, transparent);
+  --wf-dialog-warn-hover-bg: color-mix(in srgb, #c2410c 12%, white);
+  --wf-dialog-warn-hover-text: #9a3412;
+  --wf-dialog-warn-hover-border: color-mix(in srgb, #ea580c 34%, transparent);
+}
+
+[data-theme='brutal'] {
+  --radius: 0px;
+  --border-width: 3px;
+  --shadow-sm: 4px 4px 0px #1a1a1a;
+  --shadow-md: 6px 6px 0px #1a1a1a;
+  --shadow-lg: 8px 8px 0px #1a1a1a;
+  --shadow-xl: 12px 12px 0px #1a1a1a;
+  --border: #1a1a1a;
+  --input: #1a1a1a;
+  --ring: #1a1a1a;
+}
+
+[data-theme='neo'] {
+  --radius: 12px;
+  --border-width: 0px;
+  --border: transparent;
+  --input: transparent;
+  --shadow-sm: 4px 4px 8px rgba(163, 163, 176, 0.4), -4px -4px 8px rgba(255, 255, 255, 0.8);
+  --shadow-md: 6px 6px 12px rgba(163, 163, 176, 0.5), -6px -6px 12px rgba(255, 255, 255, 0.9);
+  --shadow-lg: 8px 8px 16px rgba(163, 163, 176, 0.5), -8px -8px 16px rgba(255, 255, 255, 0.9);
+  --shadow-xl: 12px 12px 24px rgba(163, 163, 176, 0.6), -12px -12px 24px rgba(255, 255, 255, 0.9);
+}
+
+[data-theme='architectonic'] {
+  --radius: 0px;
+  --border-width: 1px;
+  --border: rgba(255, 255, 255, 0.15);
+  --shadow-sm: 0 0 0 1px var(--border);
+  --shadow-md: 0 0 0 1px var(--border), 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 0 0 1px var(--border), 0 12px 24px rgba(0,0,0,0.5);
+  --shadow-xl: 0 0 0 1px var(--border), 0 24px 48px rgba(0,0,0,0.5);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+}

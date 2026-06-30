@@ -1,0 +1,35 @@
+# Public / VPS overlay — removes host authority from workframe-api.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.public.yml up -d
+#
+# ponytail: volumes list replaces base — no docker.sock, /project, or /compose on API.
+# Stack updates and gateway lifecycle go through workframe-supervisor only.
+name: workframe
+
+services:
+  workframe-api:
+    volumes:
+      - ../../../services/workframe-api/public:/app/public:ro
+      - ../../../services/workframe-api:/app:ro
+      - ../../../runtime/workframe-api-data:/app/data
+      - ../../../runtime/Agents:/opt/data
+      - ../../../runtime/Files:/workspace
+      - ../../../scripts/workframe:/opt/install/scripts:ro
+      - workframe-proxy-token:/run/workframe-proxy
+    environment:
+      - WORKFRAME_COMPOSE_DIR=/compose
+      - WORKFRAME_PROJECT_ROOT=/compose
+      # ponytail: stack updates run via supervisor, not API host docker access
+
+  workframe-supervisor:
+    volumes:
+      - ../../../runtime/Agents:/opt/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../../../scripts/workframe:/opt/install/scripts:ro
+      - .:/compose
+    environment:
+      - WORKFRAME_SCRIPTS_DIR=/opt/install/scripts
+      - WORKFRAME_COMPOSE_DIR=/compose
+      - WORKFRAME_PROJECT_ROOT=/compose
+      - WORKFRAME_HOST_PROJECT_ROOT=${WORKFRAME_HOST_PROJECT_ROOT:-}
+      - WORKFRAME_UI_PORT=${WORKFRAME_UI_PORT:-18644}
+      - WORKFRAME_SUPERVISOR_ALLOW_RAW_EXEC=0

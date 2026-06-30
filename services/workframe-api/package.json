@@ -1,0 +1,12 @@
+{
+  "name": "@workframe/workframe-api",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 server.py",
+    "start": "python3 server.py",
+    "typecheck": "python3 -m py_compile server.py zk_auth.py email_sender.py",
+    "build": "python3 -m py_compile server.py zk_auth.py email_sender.py"
+  }
+}
