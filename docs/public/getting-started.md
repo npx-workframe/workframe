@@ -12,15 +12,24 @@ Generated layout:
 
 ```text
 MyProject/
-├── Agents/           Hermes profiles and runtime state
-├── Files/            Project workspace (/workspace in containers)
+├── Agents/                 Hermes profiles and runtime state
+├── Files/                  Project workspace (/workspace in containers)
+├── scripts/                Bootstrap, lifecycle, `workframe.mjs` CLI
 ├── docker-compose.yml
 ├── workframe-api/
 ├── workframe-ui/
+├── workframe-supervisor/
 └── workframe-manifest.json
 ```
 
-Lifecycle CLI inside a generated project:
+Project management (from generated project root):
+
+```bash
+node scripts/workframe.mjs doctor
+node scripts/workframe.mjs setup
+```
+
+Or, if the `workframe` npm package is installed globally:
 
 ```bash
 npx workframe doctor

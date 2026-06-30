@@ -44,8 +44,8 @@ sequenceDiagram
 Template profiles (e.g. `{slug}-agent`) clone to per-user runtime homes:
 
 ```text
-Agents/profiles/workframe-agent/     template SOUL + skills
-Agents/profiles/u-{user}-workframe-agent/   runtime copy + vault overlay
+Agents/profiles/{slug}-agent/          template SOUL + skills
+Agents/profiles/u-{user}-{slug}-agent/ runtime copy + vault overlay
 ```
 
 Bootstrap paths:

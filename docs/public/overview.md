@@ -17,7 +17,7 @@ npx create-workframe@0.1.2 MyProject
 - File-based project truth under `/workspace` (generated `Files/`)
 - Hermes Kanban for execution state and handoffs
 - Optional Telegram and Discord surfaces (configured per install)
-- Docker compose stack: Hermes gateway, dashboard, Workframe API (BFF), UI, and optional supervisor
+- Docker compose stack: gateway, dashboard, workframe-api, workframe-supervisor, and UI (`workframe` service)
 
 ## Core ontology
 

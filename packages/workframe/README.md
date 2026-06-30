@@ -15,8 +15,8 @@ npx workframe setup
 
 | Command | Purpose |
 |---------|---------|
-| `doctor` | Validate native-first layout, 4-service compose topology, manifest, and Docker runtime |
-| `setup` | Print onboarding steps from `Workframe/SETUP.md` |
+| `doctor` | Validate project layout, compose file, manifest, Docker runtime, and native bootstrap |
+| `setup` | Open Hermes setup flow for credentials |
 
 `doctor` is bootstrap-aware:
 

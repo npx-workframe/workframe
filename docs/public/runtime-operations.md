@@ -92,19 +92,17 @@ Agent DM session detail: [Session architecture](./session-architecture.md).
 - `watchWorkspaceEvents` — workspace SSE (ignores heartbeat keepalives)
 - UI serves `apps/web/dist` — rebuild after UI changes; restart `workframe-ui` if nginx cached stale API IP
 
-## Verification commands
+## Verification
 
-```bash
-cd services/workframe-api
-python -m pytest tests/test_provider_bootstrap.py tests/test_supervisor_lifecycle.py tests/test_ensure_profile_api.py tests/test_room_tenancy.py -q
-```
+From repository root after changes:
 
 ```bash
 pnpm build:web
 docker compose -f infra/compose/workframe/docker-compose.yml restart workframe-api workframe-ui
+bash scripts/workframe/verify-public-deploy.sh
 ```
 
-Public deploy preflight: `bash scripts/workframe/verify-public-deploy.sh`
+Contributor regression scripts: [contributing.md](./contributing.md).
 
 ## Related
 

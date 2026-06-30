@@ -43,7 +43,7 @@ When `WORKFRAME_DEPLOYMENT_MODE=public_multi_user`:
 | Auth | Invite-only after install; no anonymous stack config reads |
 | Dashboard | nginx `auth_request`; owner/admin only |
 | Runtime RBAC | Members exec/chat only on their own `u-{user}-*` profiles |
-| Gateway env | Allowlist only — no SMTP2 auth secrets in gateway container |
+| Gateway env | Allowlist only — no SMTP auth secrets in gateway container |
 | Supervisor | Blocks shell paths to `profiles/u-*/.env` and `auth.json` |
 
 Full checklist: [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md).
