@@ -54,7 +54,7 @@ export function CopyCommand() {
   }, []);
 
   return (
-    <div className="neo-inset flex w-full max-w-md items-center gap-3 px-4 py-3.5">
+    <div className="neo-inset flex w-full max-w-md items-center gap-3 rounded-full py-2.5 pl-6 pr-2.5">
       <code className="min-w-0 flex-1 truncate font-[family-name:var(--wf-font-mono)] text-[13px] leading-none text-[var(--wf-text)]">
         {INSTALL_COMMAND}
       </code>
@@ -62,7 +62,7 @@ export function CopyCommand() {
         type="button"
         onClick={copy}
         aria-label={copied ? "Copied" : "Copy install command"}
-        className="neo-raised flex h-8 w-8 shrink-0 items-center justify-center text-[var(--wf-muted)] transition-colors hover:text-[var(--wf-text)] active:shadow-none"
+        className="neo-raised flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 text-[var(--wf-muted)] transition-colors hover:text-[var(--wf-text)] active:shadow-none"
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
       </button>

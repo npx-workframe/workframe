@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 
 import { PwaRegister } from "@/components/pwa-register";
+import { SiteScrollRoot } from "@/components/site-scroll-root";
 import "./globals.css";
 
 const interTight = Inter_Tight({
@@ -64,11 +65,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${interTight.variable} ${jetbrainsMono.variable} h-full`}
+      className={`${interTight.variable} ${jetbrainsMono.variable} h-full overflow-hidden`}
     >
-      <body className="min-h-full flex flex-col font-[family-name:var(--wf-font-sans)]">
-        <PwaRegister />
-        {children}
+      <body className="flex h-full min-h-0 flex-col overflow-hidden font-[family-name:var(--wf-font-sans)]">
+        <SiteScrollRoot>
+          <PwaRegister />
+          {children}
+        </SiteScrollRoot>
       </body>
     </html>
   );
