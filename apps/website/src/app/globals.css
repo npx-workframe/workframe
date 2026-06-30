@@ -35,10 +35,15 @@
   background-image: var(--wf-page-bg-image);
 }
 
+/* Lock bg to viewport — sticky chrome matches the page instead of repainting */
+.wf-page-bg--viewport {
+  background-attachment: fixed;
+}
+
 html {
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(145deg, #d8d8de, #e8e8ee);
+  background-color: var(--wf-bg);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -56,6 +61,15 @@ body {
   overscroll-behavior: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  background: transparent;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-color: var(--wf-bg);
   background-image: var(--wf-page-bg-image);
 }

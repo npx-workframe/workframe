@@ -14,7 +14,7 @@ export function DocsShell({
 }) {
   return (
     <div className="wf-docs-layout flex min-h-dvh flex-col">
-      <div className="wf-docs-header wf-page-bg sticky top-0 z-10">
+      <div className="wf-docs-header wf-page-bg wf-page-bg--viewport sticky top-0 z-10">
         <SiteNavbar wide docsActive />
       </div>
 

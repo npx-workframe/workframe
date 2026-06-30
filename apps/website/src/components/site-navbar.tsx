@@ -21,7 +21,7 @@ export function SiteNavbar({
   docsActive?: boolean;
 }) {
   return (
-    <header className="wf-page-bg safe-top w-full">
+    <header className="safe-top w-full">
       <nav
         className={`mx-auto flex w-full items-center justify-between px-6 py-5 sm:px-10 ${
           wide ? "max-w-6xl" : "max-w-3xl"
