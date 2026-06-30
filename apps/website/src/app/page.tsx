@@ -1,28 +1,11 @@
-import Image from "next/image";
-import Link from "next/link";
-
 import { CopyCommand } from "@/components/copy-command";
 import { DemoVideo } from "@/components/demo-video";
+import { SiteNavbar } from "@/components/site-navbar";
 
 export default function Home() {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="safe-top flex items-center justify-between px-6 py-5 sm:px-10">
-        <Image
-          src="/wordmark.svg"
-          alt="Workframe"
-          width={132}
-          height={18}
-          priority
-          className="h-[18px] w-auto"
-        />
-        <Link
-          href="https://github.com/npx-workframe/workframe"
-          className="text-[13px] font-medium text-[var(--wf-muted)] transition-colors hover:text-[var(--wf-text)]"
-        >
-          GitHub
-        </Link>
-      </header>
+      <SiteNavbar />
 
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-14 px-6 pb-16 pt-10 sm:gap-16 sm:px-10 sm:pt-14">
         <section className="flex w-full flex-col items-center gap-5 text-center">
@@ -42,8 +25,8 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="safe-bottom px-6 py-6 text-center text-[12px] text-[var(--wf-muted)] sm:px-10">
-        Developed by Softsupply
+      <footer className="safe-bottom mb-2.5 px-6 pb-12 pt-8 text-center font-[family-name:var(--wf-font-mono)] text-[11px] uppercase tracking-[0.12em] text-[var(--wf-muted)] sm:px-10 sm:pb-14">
+        © 2026 Workfra.me
       </footer>
     </div>
   );

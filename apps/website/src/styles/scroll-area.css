@@ -1,0 +1,87 @@
+/**
+ * Scroll regions — top/left flush with siblings; gutter on inline-end + block-end
+ * so content does not crowd the scrollbar or the scroll bottom edge.
+ *
+ * Vertical: 8px inline-end, 16px block-end
+ * Horizontal: 16px inline-end, 8px block-end
+ * Both axes: 16px inline-end, 16px block-end
+ */
+
+:root {
+  --wf-scroll-gutter-inline: 8px;
+  --wf-scroll-gutter-block: 16px;
+  --wf-scroll-gutter-inline-h: 16px;
+  --wf-scroll-gutter-block-h: 8px;
+  --wf-scroll-thumb: #ffffff;
+  --wf-scroll-thumb-hover: #ffffff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--wf-scroll-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--wf-scroll-thumb);
+  border-radius: 999px;
+  box-shadow: var(--wf-neo-flat);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--wf-scroll-thumb-hover);
+  box-shadow: var(--wf-neo-elevated);
+}
+
+*::-webkit-scrollbar-button {
+  background: var(--wf-scroll-thumb);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.wf-scroll.wf-scroll--horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-inline-end: var(--wf-scroll-gutter-inline-h);
+  padding-block-end: var(--wf-scroll-gutter-block-h);
+}
+
+.wf-scroll.wf-scroll--vertical {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-inline-end: var(--wf-scroll-gutter-inline);
+  padding-block-end: var(--wf-scroll-gutter-block);
+}
+
+.wf-scroll.wf-scroll--both {
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-inline-end: var(--wf-scroll-gutter-inline-h);
+  padding-block-end: var(--wf-scroll-gutter-block);
+}
+
+/* Root page scroller — same thumb chrome, no inset gutter padding */
+.wf-scroll.wf-scroll--viewport {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-inline-end: 0;
+  padding-block-end: 0;
+}
+
+.wf-scroll-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
