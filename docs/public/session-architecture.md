@@ -1,80 +1,51 @@
-# Session architecture
+# Sessions and chat
 
-Canonical reference for room binding, agent DMs, and lane registry behavior.  
-Sources: `services/workframe-api/server.py`, `apps/web/src/contexts/HermesSessionContext.tsx`.
+How Workframe binds browser chat to Hermes sessions.
 
-## Sources of truth
+## Data stores
 
-| Layer | Store | Owns |
-|-------|--------|------|
-| **Room binding** | `workframe.db` → `room_sessions` | Hermes `session_id` for `(room_id, agent_profile_id)` |
-| **Message content** | Hermes `state.db` per profile | User/assistant/tool rows |
-| **Runtime profile** | `Agents/profiles/u-{user}-{template}/` | SOUL, skills, config, credential overlay |
-| **Lane registry** | `lane-registry.json` | Derived cache for `(profile, source_id:client_id)` |
-
-**Rule:** When `room_id` is present, `room_sessions` wins. Lane registry is mirrored after bind/stream — never authoritative over `room_sessions`.
+| Store | Holds |
+|-------|--------|
+| `workframe.db` → `room_sessions` | Active Hermes session per room + agent |
+| Hermes `state.db` | Message history per profile/session |
+| `Agents/profiles/u-{user}-{template}/` | Per-user runtime (SOUL, skills, credentials) |
+| `lane-registry.json` | UI tab hint cache (derived; room binding wins when `room_id` is set) |
 
 ## Agent DM flow
 
 ```mermaid
 sequenceDiagram
-  participant UI as HermesSessionContext
+  participant UI as Workframe UI
   participant BFF as workframe-api
   participant RS as room_sessions
   participant H as Hermes state.db
   participant GW as Hermes gateway
 
-  UI->>BFF: POST /profiles/{template}/bind room_id, client_id
-  BFF->>RS: _resolve_latest_room_session
-  alt existing valid session
-    RS-->>BFF: session_id
-  else none
-    BFF->>GW: POST /api/sessions (new)
-    BFF->>RS: _upsert_room_session
-  end
-  BFF->>H: chat_messages(runtime, session_id)
-  BFF-->>UI: session_id + messages
-  UI->>BFF: POST /messages/stream
-  BFF->>GW: chat/stream
-  BFF->>RS: touch updated_at
+  UI->>BFF: bind (room, profile, client_id)
+  BFF->>RS: resolve or create session
+  BFF->>H: load history
+  BFF-->>UI: session + messages
+  UI->>BFF: stream message
+  BFF->>GW: Hermes chat/stream
 ```
 
-## Runtime profile identity
+## Per-user runtime profiles
 
-Template profiles (e.g. `{slug}-agent`) clone to per-user runtime homes:
+Template agents (e.g. `{slug}-agent`) clone to `u-{user}-{slug}-agent` so each member's keys and chat history stay isolated. Credentials are vault-managed; the gateway uses short-lived lease tokens rather than raw secrets on shared mounts.
 
-```text
-Agents/profiles/{slug}-agent/          template SOUL + skills
-Agents/profiles/u-{user}-{slug}-agent/ runtime copy + vault overlay
-```
+## Binding keys
 
-Bootstrap paths:
+| Context | Meaning |
+|---------|---------|
+| Browser agent DM | `source_id=ui`, `client_id=ui-{tab}` — one session per tab |
+| Space @mention | `source_id=room`, `client_id=room_id` — shared room session for that agent |
 
-- **create-workframe** — full seed at install from `packages/create-workframe/profiles/`
-- **BFF** — `ensure_runtime_profile()` backfills missing identity on touch
+## User actions
 
-Credential vault strips raw keys from runtime `.env`; per-turn leases proxy LLM calls.
-
-## UI operations map
-
-| User action | API | Session resolver |
-|-------------|-----|------------------|
-| Open agent DM | `POST .../bind` | `room_sessions` |
-| Send message | `POST .../messages/stream` | `stateDbSidRef` from bind |
-| New session | `POST .../bind` + `new_session: true` | archives prior, creates new |
-| Space @mention | server dispatch | `room_sessions` + template profile |
-| Steer / stop | `POST /api/chat/steer` \| `stop` | active run on runtime profile |
-
-## Binding dimensions
-
-| Context | `source_id` | `client_id` | `binding_version` |
-|---------|-------------|-------------|-------------------|
-| Browser agent DM | `ui` | `ui-{tab}` (localStorage) | `2` for native template |
-| Space agent turn | `room` | `room_id` | omitted |
-
-## Deprecated paths (do not extend)
-
-- `GET /api/chat/resolve` — lane-registry read without `room_id`
-- UI calling `POST .../sessions` as a second resolver
-- `dispatchLaneTurn` after stream (stream `finally` already syncs)
-- Install `profile_chat_session` without `room_id`
+| Action | Behavior |
+|--------|----------|
+| Open agent DM | Bind or resume session for that room + profile |
+| Send message | Stream to bound Hermes session |
+| New session | Archive prior binding, create fresh session |
+| Space @mention | Server invokes agent; live SSE to all room members |
+| Stop / steer | Halt or redirect the active run |

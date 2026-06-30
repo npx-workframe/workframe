@@ -1,41 +1,35 @@
 # Workframe documentation
 
-Public, code-grounded docs for [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe).
-
-Polished copies may also publish at [docs.workfra.me](https://docs.workfra.me).
+Public docs for [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe).  
+Also published at [docs.workfra.me](https://docs.workfra.me).
 
 ## Start here
 
-| Doc | Audience |
-|-----|----------|
+| Doc | For |
+|-----|-----|
 | [public/overview.md](public/overview.md) | What Workframe is |
-| [public/getting-started.md](public/getting-started.md) | Install and local dev |
-| [public/contributing.md](public/contributing.md) | Smoke tests and release checks |
-| [public/architecture.md](public/architecture.md) | Stack and boundaries |
-| [public/security.md](public/security.md) | Modes, supervisor, public deploy posture |
+| [public/getting-started.md](public/getting-started.md) | Install and first run |
+| [public/using-workframe.md](public/using-workframe.md) | Product surfaces |
+| [public/architecture.md](public/architecture.md) | System design |
+| [public/security.md](public/security.md) | Security posture |
+| [../infra/compose/workframe/PUBLIC_DEPLOY.md](../infra/compose/workframe/PUBLIC_DEPLOY.md) | Public VPS deploy |
 | [../SECURITY.md](../SECURITY.md) | Vulnerability reporting |
-| [../infra/compose/workframe/PUBLIC_DEPLOY.md](../infra/compose/workframe/PUBLIC_DEPLOY.md) | Public multi-user VPS checklist |
 
-## Operations and implementation
+## Technical reference
 
-| Doc | Purpose |
-|-----|---------|
-| [public/runtime-operations.md](public/runtime-operations.md) | Compose services, providers, chat surfaces |
-| [public/session-architecture.md](public/session-architecture.md) | Room binding and agent DMs |
-| [public/bff-route-map.md](public/bff-route-map.md) | UI → BFF endpoint matrix |
-| [public/hermes-ui-parity.md](public/hermes-ui-parity.md) | Hermes capability coverage in UI |
-| [public/contributing.md](public/contributing.md) | Smoke tests and contributor workflow |
-| [public/schema.sql](public/schema.sql) | Workframe DB tables (reference) |
+| Doc | For |
+|-----|-----|
+| [public/runtime-operations.md](public/runtime-operations.md) | Compose services and ops |
+| [public/session-architecture.md](public/session-architecture.md) | Chat and session binding |
+| [public/api-reference.md](public/api-reference.md) | Shipped BFF routes |
+| [public/schema.sql](public/schema.sql) | Database schema reference |
 
-## Release and legal
+## Maintainers
 
-| Doc | Purpose |
-|-----|---------|
-| [VERSION.md](VERSION.md) | Release version map |
-| [LICENSING.md](LICENSING.md) | License and third-party notices |
+| Doc | For |
+|-----|-----|
+| [public/contributing.md](public/contributing.md) | Build, smoke, release checks |
+| [MAINTAINER.md](MAINTAINER.md) | Private/archive doc layout |
+| [VERSION.md](VERSION.md) · [LICENSING.md](LICENSING.md) | Release and legal |
 
-## Maintainer layout
-
-See [MAINTAINER.md](MAINTAINER.md) for `docs/public`, `docs/private`, and `docs/archive` conventions.
-
-Generated-project docs shipped by the installer live in `packages/create-workframe/docs/workspace-instructions/`.
+Installer docs shipped to generated projects: `packages/create-workframe/docs/workspace-instructions/`.

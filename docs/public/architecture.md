@@ -1,84 +1,66 @@
 # Architecture
 
-Source of truth: `services/workframe-api/server.py`, `services/workframe-supervisor/server.py`, `apps/web/src/`, `infra/compose/workframe/`.
+Workframe is a multi-user shell around Hermes: web UI, auth, rooms, credential vault, and Docker compose packaging.
 
 ## Layers
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│  Workframe UI (apps/web) — chat, files, browser, activity │
+│  Workframe UI — chat, files, browser, activity         │
 └───────────────────────────┬─────────────────────────────┘
                             │ /api/* (same origin)
 ┌───────────────────────────▼─────────────────────────────┐
-│  workframe-api (BFF) — auth, rooms, vault, chat proxy    │
+│  workframe-api — auth, rooms, vault, chat proxy         │
 └───────┬───────────────────────────────┬─────────────────┘
         │ HTTP + token (SECURE_MODE)     │ Hermes HTTP API
 ┌───────▼──────────┐            ┌────────▼────────────────┐
-│ workframe-       │  docker    │ workframe-gateway       │
-│ supervisor       │  exec      │ Hermes profiles + gateway│
+│ workframe-       │            │ workframe-gateway       │
+│ supervisor       │            │ Hermes profiles         │
 └──────────────────┘            └─────────────────────────┘
 ```
 
-### Hermes (engine)
+### Hermes
 
-Provides profiles, sessions, memory, skills, Kanban, and gateway APIs. Workframe does not replace Hermes internals.
+Agent runtime: profiles, sessions, skills, Kanban, gateway. Workframe does not fork or replace Hermes.
 
-### Workframe API (BFF)
+### Workframe API
 
-Internal UI backend — **not** a stable public API contract. Responsibilities include:
-
-- Route and lane discovery
-- Profile lifecycle and runtime profile provisioning
-- Session binding (`room_sessions`, lane registry cache)
-- File tree access to `/workspace`
-- Provider connect catalog and credential vault
-- Room/space chat, SSE fanout, activity aggregation
+Backend for the UI. Handles authentication, workspace/room state, file access, provider connect, session binding, and Hermes proxy routes.
 
 ### Workframe UI
 
-Vite/React SPA served by nginx. Proxies `/api/*` and `/hermes-dashboard/*` to backend services.
+Vite/React SPA. Nginx serves static assets and proxies `/api/*` and `/hermes-dashboard/*`.
 
 ### workframe-supervisor
 
-Security boundary when `SECURE_MODE=true`. Holds the Docker socket; the BFF calls it over HTTP with `WORKFRAME_SUPERVISOR_TOKEN`. See [Security](./security.md).
+When `SECURE_MODE=true`, holds the Docker socket; the API delegates profile lifecycle through a token-authenticated HTTP service. See [Security](./security.md).
 
-## Volume model (generated install)
+## Volumes (generated install)
 
-| Host path | Container mount | Purpose |
-|-----------|-----------------|---------|
-| `Agents/` | `/opt/data` | Hermes profiles, state.db, kanban.db |
-| `Files/` | `/workspace` | User project files (canonical truth) |
+| Host | Mount | Purpose |
+|------|-------|---------|
+| `Agents/` | `/opt/data` | Hermes profiles and state |
+| `Files/` | `/workspace` | Project files (canonical truth) |
 
-## Session model (summary)
+## Truth model
 
-| Store | Owns |
-|-------|------|
-| `workframe.db` → `room_sessions` | Active Hermes `session_id` per `(room_id, agent_profile_id)` |
-| Hermes `state.db` | Message rows per profile/session |
-| `lane-registry.json` | Derived cache for UI tab hints — not authoritative when `room_id` is set |
+```text
+Files  >  Kanban  >  Chat
+```
 
-Full detail: [Session architecture](./session-architecture.md).
+Files hold durable project truth. Kanban tracks execution. Chat coordinates intent.
 
-## Credential model
+## Credentials
 
-- **Default:** BYOK — each user connects OAuth or API keys via the UI
-- **`user_only` providers** (GitHub, Vercel, Netlify): no workspace fallback
-- **Company-pays:** explicit admin opt-in; stack keys on primary profile `.env`
-- **Vault:** envelope-encrypted secrets in API data dir; per-turn lease tokens for gateway proxy
+- **BYOK default** — each user connects providers in the UI
+- **`user_only` providers** (GitHub, Vercel, Netlify) — no workspace fallback
+- **Company-pays** — admin opt-in; stack keys on the native profile
+- **Vault** — encrypted at rest; gateway uses per-turn lease tokens
 
-## Deployment surfaces
+## Where to read next
 
-| Surface | Path |
-|---------|------|
-| Reference compose | `infra/compose/workframe/` |
-| Installer | `packages/create-workframe/` → npm `create-workframe` |
-| VPS notes | `infra/vps/README.md` |
-| Public multi-user | `infra/compose/workframe/PUBLIC_DEPLOY.md` |
-
-## UI ↔ BFF coverage
-
-See [BFF route map](./bff-route-map.md) for endpoint-level status (real, deferred, planned).
-
-## Runtime note
-
-All agent chat today routes through the shared `workframe-gateway` container (`compose_hermes`). External runtime adapters are not merged in core yet; profiles resolve via `_profile_api_port` to `http://gateway:{port}`.
+- [Using Workframe](./using-workframe.md) — product surfaces
+- [Session architecture](./session-architecture.md) — chat binding
+- [API reference](./api-reference.md) — shipped BFF routes
+- [Runtime operations](./runtime-operations.md) — compose and operations
+- [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) — multi-user VPS
