@@ -5,6 +5,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const videoSrc =
   process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ?? "/Workframe_DemoVideos.mp4";
 
+type WebkitVideo = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void;
+  webkitExitFullscreen?: () => void;
+  webkitDisplayingFullscreen?: boolean;
+};
+
+function isIosNativeFullscreen(video: HTMLVideoElement | null) {
+  return !!(video as WebkitVideo | null)?.webkitDisplayingFullscreen;
+}
+
+function isFullscreen(video: HTMLVideoElement | null) {
+  return !!document.fullscreenElement || isIosNativeFullscreen(video);
+}
+
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -125,7 +139,7 @@ export function DemoVideo() {
   const bumpControls = useCallback(() => {
     setShowControls(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    if (document.fullscreenElement) return;
+    if (isFullscreen(videoRef.current)) return;
     hideTimerRef.current = setTimeout(() => setShowControls(false), 2800);
   }, []);
 
@@ -181,23 +195,60 @@ export function DemoVideo() {
   };
 
   const toggleFullscreen = async () => {
-    const el = containerRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await el.requestFullscreen();
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
+    const webkitVideo = video as WebkitVideo;
+
+    try {
+      if (isFullscreen(video)) {
+        if (webkitVideo.webkitDisplayingFullscreen && webkitVideo.webkitExitFullscreen) {
+          webkitVideo.webkitExitFullscreen();
+        } else if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+        return;
+      }
+
+      // iOS Safari — only the video element can enter native fullscreen
+      if (webkitVideo.webkitEnterFullscreen) {
+        webkitVideo.webkitEnterFullscreen();
+        return;
+      }
+
+      if (container.requestFullscreen) {
+        await container.requestFullscreen();
+        return;
+      }
+
+      await video.requestFullscreen?.();
+    } catch {
+      /* denied or unsupported */
+    }
   };
 
   useEffect(() => {
-    const onFullscreenChange = () => {
-      const isFs = !!document.fullscreenElement;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const syncFullscreen = () => {
+      const isFs = isFullscreen(video);
       setFullscreen(isFs);
       if (isFs) {
         setShowControls(true);
         if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       }
     };
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    video.addEventListener("webkitbeginfullscreen", syncFullscreen);
+    video.addEventListener("webkitendfullscreen", syncFullscreen);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreen);
+      video.removeEventListener("webkitbeginfullscreen", syncFullscreen);
+      video.removeEventListener("webkitendfullscreen", syncFullscreen);
+    };
   }, []);
 
   useEffect(() => {
