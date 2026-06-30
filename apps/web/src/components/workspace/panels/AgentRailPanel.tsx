@@ -74,7 +74,7 @@ export function AgentRailPanel({ api }: IDockviewPanelProps) {
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   const { crew, error, reload: reloadCrew } = useCrew(projectName)
   const { activeProfile, setActiveRoute } = useAgentRoute()
-  const { activeRoom, closedPanelIds, openPanel, railExpanded, setRailExpanded, setActiveRoom, userSettingsOpen, userSettingsTab, openUserSettings, closeUserSettings, registerOpenAgentSettings, openChatSettings } = useWorkspacePanels()
+  const { activeRoom, closedPanelIds, openPanel, railExpanded, setRailExpanded, setActiveRoom, userSettingsOpen, userSettingsTab, userSettingsConnectTab, openUserSettings, closeUserSettings, registerOpenAgentSettings, openChatSettings } = useWorkspacePanels()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [createAgentOpen, setCreateAgentOpen] = useState(false)
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -520,8 +520,9 @@ export function AgentRailPanel({ api }: IDockviewPanelProps) {
 
         <UserProfileSheet
           open={userSettingsOpen}
-          onOpenChange={(next) => (next ? openUserSettings(userSettingsTab) : closeUserSettings())}
+          onOpenChange={(next) => (next ? openUserSettings(userSettingsTab, userSettingsConnectTab) : closeUserSettings())}
           initialTab={userSettingsTab}
+          initialConnectTab={userSettingsConnectTab}
         />
       </PanelShell>
 

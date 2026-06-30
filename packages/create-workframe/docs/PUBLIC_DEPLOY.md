@@ -9,7 +9,7 @@ For a small trusted team on Docker/LAN, use `trusted_team`. For solo local use, 
 | Mode | After install completes | Boot fail-closed |
 |------|-------------------------|------------------|
 | `single_user_local` | No email sign-in gate | No |
-| `trusted_team` | Invite-only (members + pending inviteees) | No — suitable for loopback/LAN team installs |
+| `trusted_team` | Invite-only (members + pending invitees) | No — suitable for loopback/LAN team installs |
 | `public_multi_user` | Invite-only (same login policy) | Yes — HTTPS `APP_BASE_URL`, vault, SMTP, proxy token, … |
 
 **Config precedence:** `WORKFRAME_DEPLOYMENT_MODE` in `.env` wins over `stack_config.json` in runtime data. The install wizard may persist a mode to the file; restart applies the env value. Do not run `public_multi_user` on `http://127.0.0.1` — boot will refuse (HTTPS required).

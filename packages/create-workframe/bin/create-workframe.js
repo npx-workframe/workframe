@@ -2014,15 +2014,15 @@ function nativeConfigYaml(projectName, agentName, personality) {
   const personalityLine = personality ? `# Personality: ${personality}
 ` : "";
   return `${personalityLine}model:
-  default: openrouter/owl-alpha
+  default: google/gemini-2.5-flash
   provider: openrouter
   base_url: https://openrouter.ai/api/v1
   api_mode: chat_completions
 fallback_providers:
 - provider: openrouter
-  model: openrouter/nex-agi
+  model: anthropic/claude-sonnet-4.5
 - provider: openrouter
-  model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+  model: meta-llama/llama-3.3-70b-instruct:free
 providers: {}
 credential_pool_strategies: {}
 toolsets:

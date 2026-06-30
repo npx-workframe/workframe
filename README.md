@@ -2,7 +2,7 @@
 
 **Repository:** [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe)
 
-**Install:** `npx create-workframe@0.1.2 MyProject`
+**Install:** `npx create-workframe@0.1.3 MyProject`
 
 Multi-user web shell around [Hermes Agent](https://github.com/NousResearch/hermes-agent) — UI, API, installer, and Docker Compose.
 
@@ -32,7 +32,7 @@ UI: `http://127.0.0.1:18644/`
 ## End users
 
 ```bash
-npx create-workframe@0.1.2 MyProject
+npx create-workframe@0.1.3 MyProject
 ```
 
 ## Layout
