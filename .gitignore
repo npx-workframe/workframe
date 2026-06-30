@@ -46,6 +46,13 @@ apps/web/e2e/.cache/
 demo-video/
 apps/website/public/*.mp4
 
+# Adobe Premiere Pro (local editing — never commit)
+New folder/
+*.prproj
+*.prin
+*.cfa
+*.pek
+
 # maintainer-only documentation (never push)
 docs/private/
 docs/archive/
