@@ -25,9 +25,7 @@ We aim to acknowledge reports within a few business days.
 
 ## Scope notes
 
-- **Host Hermes** (`%LOCALAPPDATA%\hermes` on Windows) is personal runtime state and is
-  out of scope for Workframe product security reports unless the issue is in shared
-  Workframe source code that affects all installs.
+- Personal Hermes installs outside a Workframe compose stack are out of scope unless the issue is in shared Workframe source that affects all installs.
 - Production deployments should run with `WORKFRAME_MODE=team`, invite-only access, and
   without `DEV_LOCAL_UNSAFE`.
 - BYOK (bring-your-own-key) is the default credential mode; workspace company-pays is an

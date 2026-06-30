@@ -39,7 +39,7 @@ npx create-workframe@0.1.1 MyProject
 
 ## Docs
 
-[`docs/README.md`](docs/README.md) · [`docs/workframe/RUNTIME_OPERATIONS.md`](docs/workframe/RUNTIME_OPERATIONS.md)
+[`docs/README.md`](docs/README.md) · [`docs/public/runtime-operations.md`](docs/public/runtime-operations.md)
 
 ## License
 

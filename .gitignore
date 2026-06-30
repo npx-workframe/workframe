@@ -45,6 +45,10 @@ apps/web/e2e/.cache/
 # local demo video assets (host on X; do not commit large mp4)
 demo-video/
 
+# maintainer-only documentation (never push)
+docs/private/
+docs/archive/
+
 # tests / operator-only — never in public repo
 **/tests/
 **/*.test.ts
@@ -55,16 +59,13 @@ packages/workframe-integrations/
 docs/integrations/
 docs/decisions/
 docs/architecture/
-
 docs/internal/
 docs/draft-long-term/
 docs/publishing-guide.md
 docs/00*.md
 docs/001*.md
 docs/002*.md
-docs/workframe/operator-handoff.md
-docs/workframe/CHANGES-*.md
-docs/workframe/gpt_architectural_review*.md
+docs/workframe/
 # internal operator shortcut — not for public repo
 scripts/workframe/isolate-local-runtime.ps1
 

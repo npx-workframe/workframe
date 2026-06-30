@@ -1,8 +1,8 @@
 # VPS Deployment
 
-**Target product version:** `v0.1.0` (`docs/VERSION.md`). npm: `create-workframe@0.1.0`. Deploy from git clone + `pnpm build:web` (or `npx create-workframe` on the host).
+**Target product version:** see [docs/VERSION.md](../docs/VERSION.md). Deploy from git clone + `pnpm build:web` (or `npx create-workframe` on the host).
 
-Production host: set `WORKFRAME_VPS_HOST` (e.g. `root@YOUR_VPS_HOST`) — slot **2** (`28644` UI, `29120` API). Local tunnel: `scripts/workframe/open-vps-tunnel.ps1`.
+Set `WORKFRAME_VPS_HOST` (e.g. `root@YOUR_VPS_HOST`) for remote deploy scripts. Optional local tunnel: `scripts/workframe/open-vps-tunnel.ps1`.
 
 ```text
 /opt/workframe/repo
@@ -87,7 +87,7 @@ cd /opt/workframe/repo/infra/compose/workframe
 cp .env.example .env   # first time only
 # SECURE_MODE=true, WORKFRAME_SUPERVISOR_TOKEN, ZK_AUTH_*, SMTP_* — edit before production
 # Public URL with untrusted users: WORKFRAME_DEPLOYMENT_MODE=public_multi_user — see PUBLIC_DEPLOY.md
-# See docs/workframe/RUNTIME_OPERATIONS.md
+# See docs/public/runtime-operations.md
 bash ../../../scripts/workframe/vps-deploy.sh
 ```
 
