@@ -10,6 +10,7 @@ Polished copies may also publish at [docs.workfra.me](https://docs.workfra.me).
 |-----|----------|
 | [public/overview.md](public/overview.md) | What Workframe is |
 | [public/getting-started.md](public/getting-started.md) | Install and local dev |
+| [public/contributing.md](public/contributing.md) | Smoke tests and release checks |
 | [public/architecture.md](public/architecture.md) | Stack and boundaries |
 | [public/security.md](public/security.md) | Modes, supervisor, public deploy posture |
 | [../SECURITY.md](../SECURITY.md) | Vulnerability reporting |

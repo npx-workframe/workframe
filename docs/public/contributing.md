@@ -4,12 +4,13 @@ For reviewers validating changes before release.
 
 ## Prerequisites
 
-- Node ≥ 20, pnpm, Docker
-- Python 3 for `services/workframe-api` tests
+- Node ≥ 20, pnpm, Docker, Python 3 (for local API development)
 
-## Build and run locally
+## Build and run locally (monorepo)
 
 ```bash
+git clone https://github.com/npx-workframe/workframe.git
+cd workframe
 pnpm install
 pnpm build:web
 cd infra/compose/workframe
@@ -19,35 +20,39 @@ docker compose up -d --build
 
 UI: `http://127.0.0.1:18644/`
 
-## Scaffold smoke test
+Reference stack services: `gateway`, `dashboard`, `workframe-api`, `workframe-supervisor`, `workframe-ui`.
 
-Generate a fresh project:
+## Scaffold smoke test (monorepo)
+
+Generate a scratch project without publishing:
 
 ```bash
 node packages/create-workframe/scripts/new-project.mjs SmokeDemo --out /tmp --force
+cd /tmp/SmokeDemo
 ```
 
 Expected:
 
 - `workframe-manifest.json`: `"pack": "native"`, one bootstrap profile `{slug}-agent`
-- `docker-compose.yml`: exactly `gateway`, `dashboard`, `workframe-api`, `workframe` (no per-profile dashboard services)
+- `docker-compose.yml`: five services — `gateway`, `dashboard`, `workframe-api`, `workframe-supervisor`, `workframe`
 
-Bootstrap after Hermes setup:
+After Hermes setup in the generated project:
 
 ```bash
-./Workframe/scripts/bootstrap-native.sh
+./scripts/bootstrap-native.sh
+./scripts/verify-bootstrap.sh
 ```
 
 Expected: `Agents/SOUL.md`, `Agents/profiles/{slug}-agent/SOUL.md`, `terminal.cwd` → `/workspace`.
 
-## Runtime checks
+## Runtime checks (generated project)
 
 ```bash
 docker compose up -d
-npx workframe doctor
+node scripts/workframe.mjs doctor
 ```
 
-Expected: UI loads, `/hermes-dashboard/` loads, API health OK.
+Expected: UI loads, `/hermes-dashboard/` loads, API health OK, native SOUL present.
 
 ## Session routing
 
@@ -59,32 +64,31 @@ Via BFF:
 ## Specialist lifecycle
 
 ```bash
-node Workframe/scripts/agent-lifecycle.mjs create --slug qa-proof --display-name "QA Proof" --role "Smoke-test child"
-node Workframe/scripts/agent-lifecycle.mjs delete --slug qa-proof
+node scripts/agent-lifecycle.mjs create --slug qa-proof --display-name "QA Proof" --role "Smoke-test child"
+node scripts/agent-lifecycle.mjs delete --slug qa-proof
 ```
 
-## API tests
+## Monorepo regression scripts
+
+From repository root:
 
 ```bash
-cd services/workframe-api
-python -m pytest tests/test_provider_bootstrap.py tests/test_supervisor_lifecycle.py tests/test_ensure_profile_api.py tests/test_room_tenancy.py -q
+node packages/create-workframe/scripts/test-scaffold.mjs
+bash scripts/workframe/verify-public-deploy.sh
+bash scripts/workframe/install-gate.sh   # or install-gate.ps1 on Windows
 ```
 
+Expected: scaffold tests pass for `native`, `core`, `product`, `engineering`, and `vanilla` packs.
+
 ## Public deploy preflight
+
+With a configured public overlay:
 
 ```bash
 bash scripts/workframe/verify-public-deploy.sh
 ```
 
 See [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) for multi-user VPS requirements.
-
-## Scaffold regression
-
-```bash
-node packages/create-workframe/scripts/test-scaffold.mjs
-```
-
-Expected: passes for `native`, `core`, `product`, `engineering`, and `vanilla` packs.
 
 ## Canonical edit order (UI + API changes)
 
