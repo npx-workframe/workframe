@@ -42,9 +42,10 @@ apps/web/e2e/.auth/
 apps/web/test-results/
 apps/web/e2e/.cache/
 
-# local demo video assets (host on X; do not commit large mp4)
+# local demo video assets — one published hero file is tracked; other mp4 stay local
 demo-video/
 apps/website/public/*.mp4
+!apps/website/public/Workframe_DemoVideos.mp4
 
 # Adobe Premiere Pro (local editing — never commit)
 New folder/
