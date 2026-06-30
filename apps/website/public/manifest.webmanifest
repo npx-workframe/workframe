@@ -1,7 +1,7 @@
 {
   "name": "Workframe",
   "short_name": "Workframe",
-  "description": "The Social OS for Autonomous Businesses.",
+  "description": "Install a private workspace where humans and agents collaborate through chat, boards, and files.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#e0e0e6",
