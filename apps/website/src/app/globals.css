@@ -1,15 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
-  --wf-bg: #0a0a0f;
+  color-scheme: light;
+
+  --wf-font-sans: var(--font-sans), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --wf-font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --wf-bg: #e0e0e6;
+  --wf-text: #2a2a32;
+  --wf-muted: #7a7a86;
+  --wf-border: rgba(255, 255, 255, 0.6);
+  --wf-border-strong: rgba(0, 0, 0, 0.08);
+  --wf-surface: #e0e0e6;
+  --wf-radius: 12px;
+
+  --wf-neo-shadow-light: 6px 6px 12px rgba(163, 163, 176, 0.6);
+  --wf-neo-shadow-dark: -6px -6px 12px rgba(255, 255, 255, 0.9);
+  --wf-neo-shadow-inset-light: inset 3px 3px 6px rgba(163, 163, 176, 0.4);
+  --wf-neo-shadow-inset-dark: inset -3px -3px 6px rgba(255, 255, 255, 0.7);
+  --wf-neo-flat: 3px 3px 6px rgba(163, 163, 176, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.8);
+  --wf-neo-elevated: var(--wf-neo-shadow-light), var(--wf-neo-shadow-dark);
+  --wf-neo-inset: var(--wf-neo-shadow-inset-light), var(--wf-neo-shadow-inset-dark);
+
   --wf-safe-top: env(safe-area-inset-top, 0px);
   --wf-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 html {
   height: 100%;
-  background: var(--wf-bg);
+  background: linear-gradient(145deg, #d8d8de, #e8e8ee);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -18,17 +37,17 @@ body {
   min-height: 100%;
   min-height: 100dvh;
   margin: 0;
-  background: var(--wf-bg);
-  color: #fff;
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  color: var(--wf-text);
+  font-family: var(--wf-font-sans);
+  font-feature-settings: "ss01", "cv01";
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  background-color: var(--wf-bg);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000000' fill-opacity='0.02' shape-rendering='crispEdges'/%3E%3C/svg%3E"),
+    linear-gradient(145deg, #d8d8de, #e8e8ee);
 }
 
 * {
@@ -44,5 +63,24 @@ body {
 }
 
 a {
+  color: inherit;
   text-decoration: none;
+}
+
+.neo-raised {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-flat);
+}
+
+.neo-inset {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-inset);
+}
+
+.neo-elevated {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-elevated);
 }
