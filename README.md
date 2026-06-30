@@ -2,7 +2,7 @@
 
 **Repository:** [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe)
 
-**Install:** `npx create-workframe@0.1.1 MyProject`
+**Install:** `npx create-workframe@0.1.2 MyProject`
 
 Monorepo for Workframe — UI, API, installer, and Docker compose.
 
@@ -34,7 +34,7 @@ UI: `http://127.0.0.1:18644/`
 ## End users
 
 ```bash
-npx create-workframe@0.1.1 MyProject
+npx create-workframe@0.1.2 MyProject
 ```
 
 ## Docs

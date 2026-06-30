@@ -38,7 +38,10 @@ PACK_TGZ="$(npm pack "$PKG" --pack-destination "$ROOT/.install-gate" 2>/dev/null
 for path in package/scripts/lib/install-identity.mjs package/scripts/bootstrap-workspace-link.sh; do
   tar -tzf "$ROOT/.install-gate/$PACK_TGZ" | grep -q "$path" || fail "pack missing $path"
 done
-ok "pack contains installer scripts"
+if tar -xOf "$ROOT/.install-gate/$PACK_TGZ" package/scripts/bootstrap-workspace-link.sh | grep -q $'\r'; then
+  fail "pack bootstrap-workspace-link.sh has CRLF (Alpine sh will fail)"
+fi
+ok "pack contains installer scripts (LF shell scripts)"
 
 if [[ "$QUICK" -eq 0 ]] && [[ -f "$ROOT/infra/compose/workframe/.env" ]]; then
   if bash "$ROOT/scripts/workframe/verify-public-deploy.sh" "$ROOT/infra/compose/workframe"; then

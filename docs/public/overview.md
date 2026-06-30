@@ -7,7 +7,7 @@ Repository: [github.com/npx-workframe/workframe](https://github.com/npx-workfram
 Install for end users:
 
 ```bash
-npx create-workframe@0.1.1 MyProject
+npx create-workframe@0.1.2 MyProject
 ```
 
 ## What it provides

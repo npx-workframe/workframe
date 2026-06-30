@@ -3,7 +3,7 @@
 ## For end users (generated project)
 
 ```bash
-npx create-workframe@0.1.1 MyProject
+npx create-workframe@0.1.2 MyProject
 cd MyProject
 # Follow the install wizard, then open the Workframe UI URL shown at the end.
 ```

@@ -7,7 +7,7 @@ For full contributor smoke tests (monorepo, pytest, public deploy preflight), se
 ## 1. Scaffold
 
 ```bash
-npx create-workframe@0.1.1 SmokeDemo
+npx create-workframe@0.1.2 SmokeDemo
 cd SmokeDemo
 ```
 
