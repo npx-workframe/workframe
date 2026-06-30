@@ -1,35 +1,58 @@
 import type { Metadata, Viewport } from "next";
+import { Inter_Tight, JetBrains_Mono } from "next/font/google";
+
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
+
+const interTight = Inter_Tight({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://workfra.me";
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  minimumScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-  themeColor: "#0A0A0F",
+  themeColor: "#e0e0e6",
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Workframe",
-  description: "Multi-user agent cockpit for technical teams.",
+  description:
+    "The Social OS for Autonomous Businesses. Install a private workspace where humans and agents collaborate.",
   applicationName: "Workframe",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
   },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName: "Workframe",
     title: "Workframe",
+    description:
+      "The Social OS for Autonomous Businesses. Install a private workspace where humans and agents collaborate.",
+    images: [{ url: "/demo-poster.png", width: 1200, height: 630, alt: "Workframe" }],
   },
-  formatDetection: {
-    telephone: false,
-    email: false,
-    address: false,
+  twitter: {
+    card: "summary_large_image",
+    title: "Workframe",
+    description:
+      "The Social OS for Autonomous Businesses. Install a private workspace where humans and agents collaborate.",
+    images: ["/demo-poster.png"],
+  },
+  alternates: {
+    canonical: siteUrl,
   },
 };
 
@@ -39,8 +62,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full flex flex-col">
+    <html
+      lang="en"
+      className={`${interTight.variable} ${jetbrainsMono.variable} h-full`}
+    >
+      <body className="min-h-full flex flex-col font-[family-name:var(--wf-font-sans)]">
         <PwaRegister />
         {children}
       </body>
