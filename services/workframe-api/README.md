@@ -1,28 +1,26 @@
 # Workframe API Service
 
-**Version:** `0.1.0` (`workframe-api-0.1.0`). See `docs/VERSION.md`.
+Python BFF for the Workframe UI. See [docs/VERSION.md](../../docs/VERSION.md) for release version.
 
-Active backend service for the transplanted Workframe vertical slice.
+Canonical implementation — not rewritten into a separate `apps/api` service.
 
-This is intentionally preserved as the current Python BFF instead of being rewritten into `apps/api`.
-
-## Local
+## Local (outside Docker)
 
 ```bash
 cd services/workframe-api
 python3 -m venv .venv
-. .venv/bin/activate
+. .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 HOST=0.0.0.0 PORT=8080 HERMES_DATA=/opt/data WORKSPACE=/workspace python3 server.py
 ```
 
-## Runtime state
+## Runtime state (not committed)
 
-Runtime files are intentionally not committed:
+- `data/*.db`, vault files under `WORKFRAME_API_DATA_DIR`
+- Hermes `Agents/` tree on mounted volume
 
-- `data/*.db`
-- `data/.auth_keys`
-- Hermes `Agents/`
-- workspace `Files/`
+## Docs
 
-For VPS deployment, mount clean persistent volumes into `/opt/data` and `/workspace`.
+- [Runtime operations](../../docs/public/runtime-operations.md)
+- [Security](../../docs/public/security.md)
+- [BFF route map](../../docs/public/bff-route-map.md)

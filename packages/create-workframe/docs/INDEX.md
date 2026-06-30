@@ -1,24 +1,33 @@
 # Workframe Docs Index
 
-## Public-facing
-- public/WORKFRAME_OVERVIEW.md
-- public/WORKFRAME_END_TO_END_SMOKE.md
+## Shipped to generated projects (npm pack)
 
-## Workspace instructions (shipped to generated projects)
-- workspace-instructions/WORKFRAME_ONBOARDING.md
-- workspace-instructions/WORKFRAME_ROUTING.md
-- workspace-instructions/WORKFRAME_KANBAN.md
-- workspace-instructions/WORKFRAME_TELEGRAM.md
-- workspace-instructions/WORKFRAME_DISCORD.md
-- workspace-instructions/WORKFRAME_DOCUMENTS_AND_ARTIFACTS.md
+These paths are included in the `create-workframe` tarball (`files` in `package.json`):
 
-## Shared knowledge (trimmed subset copied to generated docs/)
-- ../shared/WORKFRAME_AGENT_LIBRARY.md
-- ../shared/WORKFRAME_HANDOFF_SCHEMA.md
-- ../shared/WORKFRAME_AGENT_PACKS.json
-- ../shared/WORKFRAME_AGENT_OPERATIONS.md
+- `workspace-instructions/WORKFRAME_ONBOARDING.md`
+- `workspace-instructions/WORKFRAME_ROUTING.md`
+- `workspace-instructions/WORKFRAME_KANBAN.md`
+- `workspace-instructions/WORKFRAME_TELEGRAM.md`
+- `workspace-instructions/WORKFRAME_DISCORD.md`
+- `workspace-instructions/WORKFRAME_DOCUMENTS_AND_ARTIFACTS.md`
 
-## Maintainer docs
-- handoffs/frontend-workframe-ui.md — canonical Workframe UI handoff and current code-grounded status
-- handoffs/frontend-workframe-ui-chat-wiring.md — historical pointer only; kept to avoid duplicate narratives
-- Moved to repo `archive/building/` (not in npm package)
+## End-user product overview (also in pack source tree)
+
+- `public/WORKFRAME_OVERVIEW.md`
+
+## Repository documentation (GitHub / docs.workfra.me)
+
+Full public docs live at the monorepo root:
+
+- [docs/README.md](../../../docs/README.md)
+- [docs/public/getting-started.md](../../../docs/public/getting-started.md)
+- [docs/public/contributing.md](../../../docs/public/contributing.md)
+- [infra/compose/workframe/PUBLIC_DEPLOY.md](../../../infra/compose/workframe/PUBLIC_DEPLOY.md)
+
+Contributor smoke checklist: see `docs/public/contributing.md` in the repository — not duplicated here.
+
+## Shared knowledge copied into generated `docs/`
+
+- `../shared/WORKFRAME_AGENT_LIBRARY.md`
+- `../shared/WORKFRAME_HANDOFF_SCHEMA.md`
+- `../shared/WORKFRAME_AGENT_OPERATIONS.md`
