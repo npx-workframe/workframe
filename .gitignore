@@ -44,6 +44,7 @@ apps/web/e2e/.cache/
 
 # local demo video assets (host on X; do not commit large mp4)
 demo-video/
+apps/website/public/*.mp4
 
 # maintainer-only documentation (never push)
 docs/private/

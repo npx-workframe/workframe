@@ -30,7 +30,9 @@ foreach ($path in @('package/scripts/lib/install-identity.mjs', 'package/scripts
     $hit = tar -tzf $archive | Select-String -SimpleMatch $path
     if (-not $hit) { throw "pack missing $path" }
 }
-Write-Host 'OK: pack contains installer scripts'
+$bootstrap = tar -xOf $archive package/scripts/bootstrap-workspace-link.sh
+if ($bootstrap -match "`r") { throw 'pack bootstrap-workspace-link.sh has CRLF (Alpine sh will fail)' }
+Write-Host 'OK: pack contains installer scripts (LF shell scripts)'
 
 if (-not $Quick -and (Test-Path (Join-Path $Root 'infra\compose\workframe\.env'))) {
     & bash (Join-Path $Root 'scripts\workframe\verify-public-deploy.sh') (Join-Path $Root 'infra\compose\workframe')
