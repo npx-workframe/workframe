@@ -1,6 +1,6 @@
 // ponytail: minimal installable-shell cache; upgrade to Serwist when offline routes matter
-const CACHE = "workframe-website-v1";
-const PRECACHE = ["/", "/icon.svg", "/manifest.webmanifest"];
+const CACHE = "workframe-website-v2";
+const PRECACHE = ["/", "/favicon.svg", "/manifest.webmanifest", "/wordmark.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
