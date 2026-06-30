@@ -60,9 +60,10 @@ UI or API changes that ship to end users must follow the canonical sync steps in
 Minimum for most changes:
 
 ```bash
-pnpm build:web
-node packages/create-workframe/scripts/test-scaffold.mjs
+pnpm test:ci
 ```
+
+This runs public-repo verification, API `py_compile` typecheck, web build, UI bundle copy, and scaffold smoke tests for all packs.
 
 For API, security, or installer changes, also run checks in [Release verification](./release.md).
 

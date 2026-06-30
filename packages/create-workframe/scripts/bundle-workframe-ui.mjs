@@ -31,18 +31,24 @@ function copyTree(src, dst) {
   }
 }
 
+const skipBuild = process.argv.includes('--skip-build');
+
 if (!fs.existsSync(UI_SRC)) {
   console.error(`apps/web source not found: ${UI_SRC}`);
   process.exit(1);
 }
 
-console.log('Building @workframe/web...');
-const build = spawnSync(npmCmd(), ['run', 'build'], {
-  cwd: UI_SRC,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-});
-if (build.status !== 0) process.exit(build.status ?? 1);
+if (!skipBuild) {
+  console.log('Building @workframe/web...');
+  const build = spawnSync(npmCmd(), ['run', 'build'], {
+    cwd: UI_SRC,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+  if (build.status !== 0) process.exit(build.status ?? 1);
+} else {
+  console.log('Skipping @workframe/web build (--skip-build)');
+}
 
 const dist = path.join(UI_SRC, 'dist');
 if (!fs.existsSync(path.join(dist, 'index.html'))) {

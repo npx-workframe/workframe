@@ -2,6 +2,16 @@
 
 Scripts and checks run before publishing a new `create-workframe` version or signing off an install. For day-to-day development, see [Develop](./develop.md).
 
+## CI parity (monorepo)
+
+From repository root:
+
+```bash
+pnpm test:ci
+```
+
+This matches GitHub Actions: public-repo verify, API `py_compile` typecheck, web build, UI bundle copy, and scaffold smoke tests.
+
 ## Scaffold regression
 
 From repository root:

@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -24,5 +25,18 @@ jobs:
       - name: Public repo verify
         run: pnpm verify:public
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: API typecheck
+        run: pnpm --filter @workframe/workframe-api typecheck
+
       - name: Build web
         run: pnpm build:web
+
+      - name: Bundle UI for scaffold package
+        run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build
+
+      - name: Scaffold smoke test
+        run: pnpm test:scaffold
