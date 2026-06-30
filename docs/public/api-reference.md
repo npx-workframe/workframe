@@ -1,8 +1,8 @@
-# API reference (shipped)
+# API reference
 
-Workframe exposes a same-origin BFF at `/api/*` for the web UI. These endpoints are **internal to the product** — not a semver-stable public API.
+The Workframe UI talks to the server over `/api/*` on the same origin as the web app.
 
-For operators reviewing the implementation, primary handlers live in `services/workframe-api/server.py`.
+These routes power the product UI. They may change between releases.
 
 ## Auth and profile
 
@@ -23,16 +23,16 @@ For operators reviewing the implementation, primary handlers live in `services/w
 | `GET` | `/api/rooms/:id/members` | Space members |
 | `GET` | `/api/rooms/:id/messages` | Message history |
 | `POST` | `/api/rooms/:id/messages/send` | Post message (supports @agent invoke) |
-| `GET` | `/api/rooms/:id/live` | SSE live agent turns |
-| `GET` | `/api/workspace/:wid/events` | Workspace revision SSE |
+| `GET` | `/api/rooms/:id/live` | Live agent turns (SSE) |
+| `GET` | `/api/workspace/:wid/events` | Workspace updates (SSE) |
 
-## Hermes profiles and chat
+## Agents and chat
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/api/hermes/profiles/{profile}/bind` | Bind session for agent DM |
 | `POST` | `/api/hermes/profiles/{profile}/messages/stream` | Stream chat |
-| `GET` | `/api/hermes/models` | Model catalog (filtered by connected providers) |
+| `GET` | `/api/hermes/models` | Model catalog |
 | `POST` | `/api/hermes/model` | Set active model |
 | `GET` | `/api/hermes/skills` | List skills |
 | `GET` | `/api/hermes/commands` | Slash command catalog |
@@ -56,6 +56,6 @@ For operators reviewing the implementation, primary handlers live in `services/w
 |--------|------|---------|
 | `GET` | `/api/health` | Stack health and deployment mode |
 
-Install-window endpoints (`/api/install/*`, `/api/auth/*`) gate first-run setup; see [Security](./security.md).
+First-run setup uses `/api/install/*` and `/api/auth/*`. See [Security](./security.md).
 
-Hermes upstream: https://hermes-agent.nousresearch.com/docs/
+Hermes documentation: https://hermes-agent.nousresearch.com/docs/

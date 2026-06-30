@@ -16,17 +16,17 @@ How Workframe binds browser chat to Hermes sessions.
 ```mermaid
 sequenceDiagram
   participant UI as Workframe UI
-  participant BFF as workframe-api
+  participant API as workframe-api
   participant RS as room_sessions
   participant H as Hermes state.db
   participant GW as Hermes gateway
 
-  UI->>BFF: bind (room, profile, client_id)
-  BFF->>RS: resolve or create session
-  BFF->>H: load history
-  BFF-->>UI: session + messages
-  UI->>BFF: stream message
-  BFF->>GW: Hermes chat/stream
+  UI->>API: bind (room, profile, client_id)
+  API->>RS: resolve or create session
+  API->>H: load history
+  API-->>UI: session + messages
+  UI->>API: stream message
+  API->>GW: Hermes chat/stream
 ```
 
 ## Per-user runtime profiles

@@ -4,20 +4,18 @@
 
 **Install:** `npx create-workframe@0.1.2 MyProject`
 
-Monorepo for Workframe — UI, API, installer, and Docker compose.
+Multi-user web shell around [Hermes Agent](https://github.com/NousResearch/hermes-agent) — UI, API, installer, and Docker Compose.
 
-## Layout
+## New here?
 
-```text
-apps/web                  Product UI (Vite/React)
-services/workframe-api    Python BFF
-services/workframe-supervisor  Secure-mode exec broker
-packages/create-workframe npm installer
-packages/workframe        lifecycle CLI
-infra/compose/workframe   Docker stack
-```
+| Goal | Start |
+|------|--------|
+| Learn what it is | [What is Workframe?](docs/public/what-is-workframe.md) |
+| Install for your team | [Install guide](docs/public/install.md) |
+| Review before deploy | [Audit guide](docs/public/audit.md) |
+| Contribute code | [Develop](docs/public/develop.md) |
 
-## Quick start
+## Quick start (developers)
 
 ```bash
 git clone https://github.com/npx-workframe/workframe.git
@@ -37,13 +35,20 @@ UI: `http://127.0.0.1:18644/`
 npx create-workframe@0.1.2 MyProject
 ```
 
+## Layout
+
+```text
+apps/web                  Product UI (Vite/React)
+services/workframe-api    API server
+services/workframe-supervisor  Secure-mode exec broker
+packages/create-workframe npm installer
+packages/workframe        lifecycle CLI
+infra/compose/workframe   Docker stack
+```
+
 ## Docs
 
-- [Documentation index](docs/README.md)
-- [Getting started](docs/public/getting-started.md)
-- [Architecture](docs/public/architecture.md)
-- [Security](docs/public/security.md)
-- [Runtime operations](docs/public/runtime-operations.md)
+Full index: [docs/README.md](docs/README.md)
 
 ## License
 
