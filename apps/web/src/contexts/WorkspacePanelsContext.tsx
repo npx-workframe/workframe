@@ -24,9 +24,13 @@ type WorkspacePanelsContextValue = {
   activeRoom: WorkspaceRoom | null
   userSettingsOpen: boolean
   userSettingsTab: 'profile' | 'connect' | 'agents' | 'appearance'
+  userSettingsConnectTab: 'providers' | 'models' | 'messaging'
   onLogout?: () => void | Promise<void>
   openPanel: (panelId: string) => void
-  openUserSettings: (tab?: 'profile' | 'connect' | 'agents' | 'appearance') => void
+  openUserSettings: (
+    tab?: 'profile' | 'connect' | 'agents' | 'appearance',
+    connectTab?: 'providers' | 'models' | 'messaging',
+  ) => void
   closeUserSettings: () => void
   openAgentSettings: (profile: string, displayName: string) => void
   registerOpenAgentSettings: (fn: ((profile: string, displayName: string) => void | Promise<void>) | null) => void
@@ -58,6 +62,7 @@ export function WorkspacePanelsProvider({
   const [activeRoom, setActiveRoomState] = useState<WorkspaceRoom | null>(null)
   const [userSettingsOpen, setUserSettingsOpen] = useState(false)
   const [userSettingsTab, setUserSettingsTab] = useState<'profile' | 'connect' | 'agents' | 'appearance'>('profile')
+  const [userSettingsConnectTab, setUserSettingsConnectTab] = useState<'providers' | 'models' | 'messaging'>('providers')
   const openAgentSettingsRef = useRef<((profile: string, displayName: string) => void | Promise<void>) | null>(null)
   const openChatSettingsRef = useRef<(() => void) | null>(null)
 
@@ -80,8 +85,12 @@ export function WorkspacePanelsProvider({
     openChatSettingsRef.current?.()
   }, [])
 
-  const openUserSettings = useCallback((tab: 'profile' | 'connect' | 'agents' | 'appearance' = 'profile') => {
+  const openUserSettings = useCallback((
+    tab: 'profile' | 'connect' | 'agents' | 'appearance' = 'profile',
+    connectTab: 'providers' | 'models' | 'messaging' = 'providers',
+  ) => {
     setUserSettingsTab(tab)
+    if (tab === 'connect') setUserSettingsConnectTab(connectTab)
     setUserSettingsOpen(true)
   }, [])
 
@@ -158,6 +167,7 @@ export function WorkspacePanelsProvider({
       activeRoom,
       userSettingsOpen,
       userSettingsTab,
+      userSettingsConnectTab,
       onLogout,
       openPanel,
       openUserSettings,
@@ -171,7 +181,7 @@ export function WorkspacePanelsProvider({
       setActiveRoom,
       registerWorkspaceApi,
     }),
-    [closedPanelIds, railExpanded, activeRoom, userSettingsOpen, userSettingsTab, onLogout, openPanel, openUserSettings, closeUserSettings, openAgentSettings, registerOpenAgentSettings, registerOpenChatSettings, openChatSettings, rebalanceLayout, registerWorkspaceApi, setActiveRoom, setRailExpanded],
+    [closedPanelIds, railExpanded, activeRoom, userSettingsOpen, userSettingsTab, userSettingsConnectTab, onLogout, openPanel, openUserSettings, closeUserSettings, openAgentSettings, registerOpenAgentSettings, registerOpenChatSettings, openChatSettings, rebalanceLayout, registerWorkspaceApi, setActiveRoom, setRailExpanded],
   )
 
   return (

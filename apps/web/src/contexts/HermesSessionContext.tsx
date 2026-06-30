@@ -45,7 +45,7 @@ import {
   eventToolName,
   type HermesEventFrame,
 } from '@/lib/hermesEvents'
-import { formatWorkframeError, formatWorkframeErrorMessage, noticeMessage, emptyAgentReplyText, streamErrorText } from '@/lib/workframeErrors'
+import { formatWorkframeError, formatWorkframeErrorMessage, noticeMessage, emptyAgentReplyText, streamErrorText, noticeFromStreamPayload, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { loadWorkframeRuntimeConfig, nativeProfileSlug } from '@/lib/workframeProfile'
 import { findAgentByProfile } from '@/lib/hermesProfile'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -512,6 +512,7 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
         const sid = requireBoundSessionId()
         let finalText = ''
         let streamError = ''
+        let conciergeNotice: WorkframeNoticeInfo | null = null
 
         await streamProfileMessage({
           profile: prof,
@@ -523,11 +524,16 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
           text: outbound,
         }, (evt) => {
           applyStreamEvent(evt)
+          if (evt.event === 'concierge') {
+            conciergeNotice = noticeFromStreamPayload(evt.data)
+            finalText = noticeMessage(conciergeNotice)
+          }
           if (evt.event === 'assistant.delta' || evt.event === 'message.delta') {
             finalText += String(evt.data.delta ?? evt.data.text ?? '')
           }
           if (evt.event === 'error' || evt.event === 'run.failed') {
-            streamError = streamErrorText(evt.data)
+            conciergeNotice = noticeFromStreamPayload(evt.data)
+            streamError = noticeMessage(conciergeNotice)
             finalText = streamError
           }
           if (evt.event === 'assistant.completed' || evt.event === 'message.complete') {
@@ -540,10 +546,18 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
 
         finalizeTurn(assistantId, finalText)
 
-        if (!finalText.trim()) {
+        if (conciergeNotice || !finalText.trim()) {
           setMessages((prev) =>
             prev.map((m) => {
-              if (m.id !== assistantId || m.segments.length > 0) return m
+              if (m.id !== assistantId) return m
+              if (conciergeNotice) {
+                return {
+                  ...m,
+                  ephemeral: false,
+                  segments: [{ kind: 'concierge', notice: conciergeNotice }],
+                }
+              }
+              if (m.segments.length > 0) return m
               return {
                 ...m,
                 segments: [{

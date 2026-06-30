@@ -3,7 +3,11 @@ import { ThinkingBlock } from '@/components/chat/ThinkingBlock'
 import { ToolRunCard } from '@/components/chat/ToolRunCard'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { AgentAvatar } from '@/components/ui/AgentAvatar'
+import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
+import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import type { WorkframeNoticeAction } from '@/lib/workframeErrors'
 import { cn } from '@/lib/utils'
 
 type MessageRowProps = {
@@ -20,7 +24,28 @@ function MarkdownBody({ text }: { text: string }) {
   )
 }
 
-function SegmentBlock({ segment, live }: { segment: ChatSegment; live?: boolean }) {
+function SegmentBlock({
+  segment,
+  live,
+  onNoticeAction,
+}: {
+  segment: ChatSegment
+  live?: boolean
+  onNoticeAction?: (action: WorkframeNoticeAction) => void
+}) {
+  if (segment.kind === 'concierge') {
+    return (
+      <WorkframeNotice
+        info={segment.notice}
+        onAction={
+          segment.notice.action && onNoticeAction
+            ? () => onNoticeAction(segment.notice.action!)
+            : undefined
+        }
+        actionLabel={segment.notice.actionLabel}
+      />
+    )
+  }
   if (segment.kind === 'thinking') {
     return <ThinkingBlock text={segment.text} defaultOpen={Boolean(live)} live={live} />
   }
@@ -48,7 +73,23 @@ function SegmentBlock({ segment, live }: { segment: ChatSegment; live?: boolean 
 
 export function MessageRow({ message, onReplyToAgent }: MessageRowProps) {
   const isUser = message.role === 'user'
+  const { openModelPicker } = useCommandDialogs()
+  const { openUserSettings } = useWorkspacePanels()
   const canReply = !isUser && Boolean(onReplyToAgent && message.authorId && message.authorId !== 'system')
+
+  const handleNoticeAction = (action: WorkframeNoticeAction) => {
+    if (action.type === 'open_settings') {
+      if (action.tab === 'model') {
+        openModelPicker()
+        return
+      }
+      openUserSettings('connect', action.tab === 'providers' ? 'providers' : undefined)
+      return
+    }
+    if (action.type === 'external_link') {
+      window.open(action.url, '_blank', 'noopener,noreferrer')
+    }
+  }
 
   return (
     <article
@@ -88,7 +129,12 @@ export function MessageRow({ message, onReplyToAgent }: MessageRowProps) {
           <p className="wf-message__live-hint">Waiting for agent…</p>
         ) : null}
         {message.segments.map((segment, index) => (
-          <SegmentBlock key={`${message.id}-${index}`} segment={segment} live={message.ephemeral} />
+          <SegmentBlock
+            key={`${message.id}-${index}`}
+            segment={segment}
+            live={message.ephemeral}
+            onNoticeAction={handleNoticeAction}
+          />
         ))}
       </div>
 

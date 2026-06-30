@@ -144,6 +144,9 @@ def _build_upstream_request(
         }
     }
     upstream_headers.update(upstream_auth_header(provider, secret))
+    if provider == "openrouter":
+        upstream_headers.setdefault("HTTP-Referer", "https://workfra.me")
+        upstream_headers.setdefault("X-Title", "Workframe")
 
     req = urllib.request.Request(url, data=body, headers=upstream_headers, method=method.upper())
     return req, None
