@@ -23,9 +23,15 @@ type UserProfileSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialTab?: ProfileTab
+  initialConnectTab?: ConnectTab
 }
 
-export function UserProfileSheet({ open, onOpenChange, initialTab = 'profile' }: UserProfileSheetProps) {
+export function UserProfileSheet({
+  open,
+  onOpenChange,
+  initialTab = 'profile',
+  initialConnectTab = 'providers',
+}: UserProfileSheetProps) {
   const { onLogout } = useWorkspacePanels()
   const [tab, setTab] = useState<ProfileTab>('profile')
   const [connectTab, setConnectTab] = useState<ConnectTab>('providers')
@@ -51,7 +57,7 @@ export function UserProfileSheet({ open, onOpenChange, initialTab = 'profile' }:
       setError('')
       setStatus('')
       setTab(initialTab)
-      if (initialTab === 'connect') setConnectTab('providers')
+      if (initialTab === 'connect') setConnectTab(initialConnectTab)
       try {
         const me = await workframeAuthApi.getMe()
         if (cancelled) return
@@ -84,7 +90,7 @@ export function UserProfileSheet({ open, onOpenChange, initialTab = 'profile' }:
     return () => {
       cancelled = true
     }
-  }, [open, initialTab])
+  }, [open, initialTab, initialConnectTab])
 
   const summary = useMemo(() => {
     if (!profile) return ''

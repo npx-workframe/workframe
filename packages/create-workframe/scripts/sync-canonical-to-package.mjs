@@ -57,6 +57,17 @@ function removeIfExists(p) {
   if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true });
 }
 
+/** Alpine sh breaks on CRLF (then\r). Normalize at pack time — Windows checkout is CRLF. */
+function copyIntoPackage(src, dst) {
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
+  if (dst.endsWith('.sh')) {
+    const text = fs.readFileSync(src, 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    fs.writeFileSync(dst, text, 'utf8');
+  } else {
+    fs.copyFileSync(src, dst);
+  }
+}
+
 console.log(`Sync canonical BFF: ${CANONICAL_API} -> ${PKG_API}`);
 copyTree(CANONICAL_API, PKG_API);
 
@@ -107,9 +118,15 @@ for (const name of applyScripts) {
   const src = path.join(REPO_ROOT, 'scripts/workframe', name);
   const dst = path.join(PKG_ROOT, 'scripts', name);
   if (!fs.existsSync(src)) throw new Error(`Missing apply script: ${src}`);
-  fs.mkdirSync(path.dirname(dst), { recursive: true });
-  fs.copyFileSync(src, dst);
+  copyIntoPackage(src, dst);
   console.log(`Synced ${name} -> package/scripts/`);
+}
+
+for (const sh of fs.readdirSync(path.join(PKG_ROOT, 'scripts')).filter((n) => n.endsWith('.sh'))) {
+  const p = path.join(PKG_ROOT, 'scripts', sh);
+  if (fs.readFileSync(p).includes(0x0d)) {
+    throw new Error(`CRLF remains in package script after sync: ${sh}`);
+  }
 }
 
 const publicDeploySrc = path.join(REPO_ROOT, 'infra/compose/workframe/PUBLIC_DEPLOY.md');

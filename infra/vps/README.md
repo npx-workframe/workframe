@@ -87,7 +87,7 @@ cd /opt/workframe/repo/infra/compose/workframe
 cp .env.example .env   # first time only
 # SECURE_MODE=true, WORKFRAME_SUPERVISOR_TOKEN, ZK_AUTH_*, SMTP_* — edit before production
 # Public URL with untrusted users: WORKFRAME_DEPLOYMENT_MODE=public_multi_user — see PUBLIC_DEPLOY.md
-# See docs/public/runtime-operations.md
+# See docs/public/operations.md
 bash ../../../scripts/workframe/vps-deploy.sh
 ```
 

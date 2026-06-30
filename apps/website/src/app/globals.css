@@ -1,34 +1,77 @@
 @import "tailwindcss";
+@import "../styles/scroll-area.css";
 
 :root {
-  color-scheme: dark;
-  --wf-bg: #0a0a0f;
+  color-scheme: light;
+
+  --wf-font-sans: var(--font-sans), "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --wf-font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --wf-bg: #e0e0e6;
+  --wf-text: #2a2a32;
+  --wf-muted: #7a7a86;
+  --wf-border: rgba(255, 255, 255, 0.6);
+  --wf-border-strong: rgba(0, 0, 0, 0.08);
+  --wf-surface: #e0e0e6;
+  --wf-radius: 12px;
+
+  --wf-neo-shadow-light: 6px 6px 12px rgba(163, 163, 176, 0.6);
+  --wf-neo-shadow-dark: -6px -6px 12px rgba(255, 255, 255, 0.9);
+  --wf-neo-shadow-inset-light: inset 3px 3px 6px rgba(163, 163, 176, 0.4);
+  --wf-neo-shadow-inset-dark: inset -3px -3px 6px rgba(255, 255, 255, 0.7);
+  --wf-neo-flat: 3px 3px 6px rgba(163, 163, 176, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.8);
+  --wf-neo-elevated: var(--wf-neo-shadow-light), var(--wf-neo-shadow-dark);
+  --wf-neo-inset: var(--wf-neo-shadow-inset-light), var(--wf-neo-shadow-inset-dark);
+
   --wf-safe-top: env(safe-area-inset-top, 0px);
   --wf-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --wf-page-bg-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Crect x='0' y='0' width='1' height='1' fill='%23000000' fill-opacity='0.02' shape-rendering='crispEdges'/%3E%3C/svg%3E"),
+    linear-gradient(145deg, #d8d8de, #e8e8ee);
+}
+
+.wf-page-bg {
+  background-color: var(--wf-bg);
+  background-image: var(--wf-page-bg-image);
+}
+
+/* Lock bg to viewport — sticky chrome matches the page instead of repainting */
+.wf-page-bg--viewport {
+  background-attachment: fixed;
 }
 
 html {
   height: 100%;
-  background: var(--wf-bg);
+  overflow: hidden;
+  background-color: var(--wf-bg);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
+  height: 100%;
   min-height: 100%;
   min-height: 100dvh;
   margin: 0;
-  background: var(--wf-bg);
-  color: #fff;
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  overflow: hidden;
+  color: var(--wf-text);
+  font-family: var(--wf-font-sans);
+  font-feature-settings: "ss01", "cv01";
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  background: transparent;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--wf-bg);
+  background-image: var(--wf-page-bg-image);
 }
 
 * {
@@ -44,5 +87,246 @@ body {
 }
 
 a {
+  color: inherit;
   text-decoration: none;
+}
+
+.neo-raised {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-flat);
+}
+
+.neo-raised.rounded-full,
+.neo-inset.rounded-full {
+  border-radius: 9999px;
+}
+
+.neo-inset {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-inset);
+}
+
+.neo-elevated {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-elevated);
+}
+
+/* Recessed island tray — same relief language as the npx command bar */
+.wf-video-shell {
+  background: var(--wf-surface);
+  border-radius: var(--wf-radius);
+  box-shadow: var(--wf-neo-inset);
+}
+
+.wf-video-stage:fullscreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  box-shadow: none;
+  background: #0a0a0f;
+}
+
+.wf-video-stage:fullscreen .wf-video-el {
+  aspect-ratio: auto;
+  max-height: 100vh;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.wf-video-stage:fullscreen .wf-video-controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2147483646;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+.wf-video-stage:fullscreen .wf-video-controls-bar {
+  max-width: min(48rem, calc(100vw - 24px));
+  margin-inline: auto;
+}
+
+.wf-video-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--wf-surface);
+  box-shadow: var(--wf-neo-inset);
+  cursor: pointer;
+}
+
+.wf-video-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--wf-surface);
+  box-shadow: var(--wf-neo-flat);
+  cursor: pointer;
+}
+
+.wf-video-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--wf-surface);
+  box-shadow: var(--wf-neo-flat);
+  cursor: pointer;
+}
+
+.wf-docs-layout {
+  --wf-docs-sticky-top: calc(4.75rem + var(--wf-safe-top));
+}
+
+.wf-docs-sidebar {
+  top: var(--wf-docs-sticky-top);
+  max-height: calc(100dvh - var(--wf-docs-sticky-top) - 2rem);
+}
+
+.wf-docs-sidebar-nav {
+  box-sizing: border-box;
+}
+
+.wf-docs-rail-link {
+  transition:
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.wf-docs-rail-link:not(.wf-docs-rail-link--active):hover {
+  background: var(--wf-surface);
+  box-shadow: var(--wf-neo-flat);
+  color: var(--wf-text);
+  transform: translateY(-1px);
+}
+
+.wf-doc-prose {
+  color: var(--wf-text);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.wf-doc-prose > :first-child {
+  margin-top: 0;
+}
+
+.wf-doc-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.wf-doc-prose h2,
+.wf-doc-prose h3,
+.wf-doc-prose h4 {
+  color: var(--wf-text);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  scroll-margin-top: 6rem;
+}
+
+.wf-doc-prose h2 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.35rem;
+}
+
+.wf-doc-prose h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.wf-doc-prose p,
+.wf-doc-prose ul,
+.wf-doc-prose ol {
+  margin: 0.85rem 0;
+  color: var(--wf-text);
+}
+
+.wf-doc-prose ul,
+.wf-doc-prose ol {
+  padding-left: 1.25rem;
+}
+
+.wf-doc-prose li {
+  margin: 0.35rem 0;
+}
+
+.wf-doc-prose a {
+  color: #5f4f82;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.wf-doc-prose a:hover {
+  color: var(--wf-text);
+}
+
+.wf-doc-prose code {
+  font-family: var(--wf-font-mono);
+  font-size: 0.88em;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px dashed rgba(121, 104, 157, 0.38);
+  padding: 0.1em 0.35em;
+  cursor: pointer;
+}
+
+.wf-doc-prose pre {
+  margin: 1rem 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  border-radius: var(--wf-radius);
+  background: var(--wf-surface);
+  box-shadow: var(--wf-neo-inset);
+  padding: 1rem 1.1rem;
+}
+
+.wf-doc-prose pre code {
+  display: block;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre;
+  overflow-wrap: normal;
+  cursor: pointer;
+}
+
+.wf-doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.wf-doc-prose thead th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--wf-muted);
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--wf-border-strong);
+}
+
+.wf-doc-prose tbody td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  vertical-align: top;
+}
+
+.wf-doc-prose blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--wf-radius);
+  background: rgba(121, 104, 157, 0.08);
+  color: var(--wf-muted);
 }

@@ -2,6 +2,11 @@
 
 export type WorkframeNoticeTone = 'neutral' | 'info' | 'caution'
 
+export type WorkframeNoticeAction =
+  | { type: 'open_settings'; tab: 'providers' | 'model' | 'profile' | 'agents' | 'appearance' | 'connect' }
+  | { type: 'external_link'; url: string; label?: string }
+  | { type: 'retry' }
+
 export type WorkframeNoticeInfo = {
   message: string
   hint?: string
@@ -9,6 +14,9 @@ export type WorkframeNoticeInfo = {
   status?: number
   tone: WorkframeNoticeTone
   actionLabel?: string
+  action?: WorkframeNoticeAction
+  secondary_action_label?: string
+  secondary_action?: WorkframeNoticeAction
 }
 
 export const AVATAR_MAX_FILE_BYTES = 256 * 1024
@@ -47,6 +55,46 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
     message: 'Avatar image is too large.',
     hint: 'Use a square image under 256 KB (JPEG or PNG).',
   },
+  provider_empty_reply: {
+    message: 'The model provider returned no reply.',
+    hint: 'Check your API key, credits, and model selection in Settings.',
+    actionLabel: 'Choose model',
+  },
+  model_unavailable: {
+    message: 'The selected model is not available on your provider right now.',
+    hint: 'Pick a different model — free models on OpenRouter rotate often.',
+    actionLabel: 'Choose model',
+  },
+  model_invalid_id: {
+    message: 'That model ID is not valid for your provider.',
+    hint: 'Open the model picker and select a listed model.',
+    actionLabel: 'Choose model',
+  },
+  provider_invalid_key: {
+    message: 'Your API key was rejected by the provider.',
+    hint: 'Reset the key at your provider and paste it again under Connected accounts.',
+    actionLabel: 'Update API key',
+  },
+  provider_no_credits: {
+    message: 'Your provider account has no credits remaining.',
+    hint: 'Add credits at your provider billing page, then try again.',
+    actionLabel: 'Add credits',
+  },
+  invalid_lease: {
+    message: 'Your session credential expired before the model replied.',
+    hint: 'Send the message again.',
+    actionLabel: 'Try again',
+  },
+  concierge_add_keys: {
+    message: 'Connect an LLM provider to enable chat.',
+    hint: 'OpenRouter is the fastest path — paste your API key under Connected accounts.',
+    actionLabel: 'Add API key',
+  },
+  concierge_change_model: {
+    message: 'Choose which model this agent uses.',
+    hint: 'Open the model picker and select a model your provider supports.',
+    actionLabel: 'Choose model',
+  },
   no_llm_provider_for_user: {
     message: 'No model provider is connected for your account.',
     hint: 'Add an OpenRouter or other LLM key under Connect accounts.',
@@ -75,6 +123,62 @@ function humanizeCode(code: string): string {
 
 function hintForCode(code: string): string | undefined {
   return CODE_COPY[code.trim()]?.hint
+}
+
+const DEFAULT_ACTIONS: Record<string, WorkframeNoticeAction> = {
+  no_llm_provider_for_user: { type: 'open_settings', tab: 'providers' },
+  no_llm_provider: { type: 'open_settings', tab: 'providers' },
+  provider_invalid_key: { type: 'open_settings', tab: 'providers' },
+  provider_no_credits: { type: 'external_link', url: 'https://openrouter.ai/credits', label: 'Add credits' },
+  model_unavailable: { type: 'open_settings', tab: 'model' },
+  model_invalid_id: { type: 'open_settings', tab: 'model' },
+  provider_rate_limited: { type: 'open_settings', tab: 'model' },
+  provider_empty_reply: { type: 'open_settings', tab: 'model' },
+  invalid_lease: { type: 'retry' },
+  concierge_add_keys: { type: 'open_settings', tab: 'providers' },
+  concierge_change_model: { type: 'open_settings', tab: 'model' },
+  concierge_getting_started: { type: 'open_settings', tab: 'providers' },
+  concierge_diagnose: { type: 'open_settings', tab: 'providers' },
+}
+
+function parseNoticeAction(raw: unknown): WorkframeNoticeAction | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const row = raw as Record<string, unknown>
+  const type = String(row.type || '').trim()
+  if (type === 'open_settings') {
+    const tab = String(row.tab || 'providers').trim() as WorkframeNoticeAction & { type: 'open_settings' } extends never ? string : 'providers' | 'model' | 'profile' | 'agents' | 'appearance' | 'connect'
+    if (tab === 'model') return { type: 'open_settings', tab: 'model' }
+    if (tab === 'profile' || tab === 'agents' || tab === 'appearance') {
+      return { type: 'open_settings', tab }
+    }
+    return { type: 'open_settings', tab: 'providers' }
+  }
+  if (type === 'external_link') {
+    const url = String(row.url || '').trim()
+    if (!url) return undefined
+    return { type: 'external_link', url, label: String(row.label || '').trim() || undefined }
+  }
+  if (type === 'retry') return { type: 'retry' }
+  return undefined
+}
+
+export function noticeFromStreamPayload(data: Record<string, unknown>): WorkframeNoticeInfo {
+  const code = String(data.code || '').trim()
+  const copy = code ? CODE_COPY[code] : undefined
+  const message = String(data.message || data.text || data.error || copy?.message || '').trim()
+  const hint = String(data.hint || copy?.hint || '').trim() || undefined
+  const action = parseNoticeAction(data.action) || (code ? DEFAULT_ACTIONS[code] : undefined)
+  const secondary_action = parseNoticeAction(data.secondary_action)
+  return {
+    tone: 'caution',
+    code: code || undefined,
+    message: message || 'Something went wrong.',
+    hint,
+    actionLabel: String(data.action_label || copy?.actionLabel || '').trim() || undefined,
+    action,
+    secondary_action_label: String(data.secondary_action_label || '').trim() || undefined,
+    secondary_action,
+  }
 }
 
 function parseJsonBody(text: string): Record<string, unknown> | null {
@@ -275,6 +379,9 @@ export function formatWorkframeErrorMessage(err: unknown, context?: string): str
 }
 
 export function streamErrorText(payload: Record<string, unknown>): string {
+  if (payload.code || payload.action) {
+    return noticeMessage(noticeFromStreamPayload(payload))
+  }
   const raw = String(payload.text ?? payload.content ?? payload.message ?? payload.error ?? '').trim()
   if (raw) {
     const provider = providerFailureNotice(raw)
