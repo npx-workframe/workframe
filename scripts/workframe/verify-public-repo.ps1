@@ -5,7 +5,8 @@ $patterns = @(
   '[redacted]', '[redacted]', 'click\.blue',
   'd:\\ab', '[redacted]', 'D:\\ab', '[redacted]',
   '[redacted]', '[redacted]', '[redacted]',
-  '[redacted]', '95\.216\.136'
+  '[redacted]', '95\.216\.136',
+  'workframe\.io'
 )
 $forbiddenPaths = @(
   'services/workframe-api/tests', 'services/workframe-supervisor/tests',
