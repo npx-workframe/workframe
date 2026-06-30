@@ -2,26 +2,27 @@
 
 Use this checklist inside a **generated project** after scaffold or transport changes.
 
-For full contributor smoke tests (monorepo, pytest, public deploy preflight), see the repository [contributing guide](https://github.com/npx-workframe/workframe/blob/main/docs/public/contributing.md).
+For monorepo contributor checks (scaffold regression, install gate, public deploy preflight), see the repository [contributing guide](https://github.com/npx-workframe/workframe/blob/main/docs/public/contributing.md).
 
 ## 1. Scaffold
 
 ```bash
-npx create-workframe@0.1.1 SmokeDemo
+npx create-workframe@0.1.3 SmokeDemo
 cd SmokeDemo
 ```
 
 Expected:
 
 - `workframe-manifest.json`: `"pack": "native"`, one bootstrap profile `{slug}-agent`
-- Four compose services: `gateway`, `dashboard`, `workframe-api`, `workframe`
+- `docker-compose.yml`: five services — `gateway`, `dashboard`, `workframe-api`, `workframe-supervisor`, `workframe`
 
 ## 2. Native bootstrap
 
 After Hermes setup:
 
 ```bash
-./Workframe/scripts/bootstrap-native.sh
+./scripts/bootstrap-native.sh
+./scripts/verify-bootstrap.sh
 ```
 
 Expected: `Agents/SOUL.md`, `Agents/profiles/{slug}-agent/SOUL.md`, `terminal.cwd` → `/workspace`.
@@ -30,7 +31,7 @@ Expected: `Agents/SOUL.md`, `Agents/profiles/{slug}-agent/SOUL.md`, `terminal.cw
 
 ```bash
 docker compose up -d
-npx workframe doctor
+node scripts/workframe.mjs doctor
 ```
 
 Expected: UI loads, dashboard loads, API health OK.
@@ -42,14 +43,14 @@ Same profile + different browser tab (`client_id`) → different sessions. Same 
 ## 5. Specialist lifecycle
 
 ```bash
-node Workframe/scripts/agent-lifecycle.mjs create --slug qa-proof --display-name "QA Proof" --role "Smoke-test child"
-node Workframe/scripts/agent-lifecycle.mjs delete --slug qa-proof
+node scripts/agent-lifecycle.mjs create --slug qa-proof --display-name "QA Proof" --role "Smoke-test child"
+node scripts/agent-lifecycle.mjs delete --slug qa-proof
 ```
 
 ## 6. Final pass
 
 ```bash
-npx workframe doctor
+node scripts/workframe.mjs doctor
 ```
 
 Expected: native-first layout and compose topology validate.

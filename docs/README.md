@@ -1,40 +1,68 @@
 # Workframe documentation
 
-Public, code-grounded docs for [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe).
-
-Polished copies may also publish at [docs.workfra.me](https://docs.workfra.me).
+Documentation for [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe).  
+Also published at [docs.workfra.me](https://docs.workfra.me).
 
 ## Start here
 
-| Doc | Audience |
-|-----|----------|
-| [public/overview.md](public/overview.md) | What Workframe is |
-| [public/getting-started.md](public/getting-started.md) | Install and local dev |
-| [public/architecture.md](public/architecture.md) | Stack and boundaries |
-| [public/security.md](public/security.md) | Modes, supervisor, public deploy posture |
-| [../SECURITY.md](../SECURITY.md) | Vulnerability reporting |
-| [../infra/compose/workframe/PUBLIC_DEPLOY.md](../infra/compose/workframe/PUBLIC_DEPLOY.md) | Public multi-user VPS checklist |
+| I want to… | Read |
+|------------|------|
+| **Understand what this is** | [What is Workframe?](public/what-is-workframe.md) |
+| **Install for my team** | [Prerequisites](public/prerequisites.md) → [Install](public/install.md) |
+| **Review security before deploy** | [Security](public/security.md) → [Audit guide](public/audit.md) |
+| **Hack on the product** | [Develop](public/develop.md) → [Contributing](public/contributing.md) |
+| **Run a public VPS** | [PUBLIC_DEPLOY.md](../infra/compose/workframe/PUBLIC_DEPLOY.md) |
 
-## Operations and implementation
+## Product
 
-| Doc | Purpose |
-|-----|---------|
-| [public/runtime-operations.md](public/runtime-operations.md) | Compose services, providers, chat surfaces |
-| [public/session-architecture.md](public/session-architecture.md) | Room binding and agent DMs |
-| [public/bff-route-map.md](public/bff-route-map.md) | UI → BFF endpoint matrix |
-| [public/hermes-ui-parity.md](public/hermes-ui-parity.md) | Hermes capability coverage in UI |
-| [public/contributing.md](public/contributing.md) | Smoke tests and contributor workflow |
-| [public/schema.sql](public/schema.sql) | Workframe DB tables (reference) |
+| Doc | |
+|-----|---|
+| [What is Workframe?](public/what-is-workframe.md) | Audience, concepts, Hermes relationship |
+| [Prerequisites](public/prerequisites.md) | Docker, SMTP, keys, deployment modes |
+| [Install](public/install.md) | `npx create-workframe`, wizard, generated layout |
+| [Using Workframe](public/using-workframe.md) | Features in the UI |
+| [Operations](public/operations.md) | Services, updates, backup, troubleshooting |
 
-## Release and legal
+## Design and trust
 
-| Doc | Purpose |
-|-----|---------|
-| [VERSION.md](VERSION.md) | Release version map |
-| [LICENSING.md](LICENSING.md) | License and third-party notices |
+| Doc | |
+|-----|---|
+| [Architecture](public/architecture.md) | Components, volumes, credentials |
+| [Security](public/security.md) | Modes, vault, multi-user controls |
+| [Audit guide](public/audit.md) | Code review path for evaluators |
+| [Deploy on a VPS](../infra/compose/workframe/PUBLIC_DEPLOY.md) | HTTPS multi-user checklist |
+| [Report a vulnerability](../SECURITY.md) | Responsible disclosure |
 
-## Maintainer layout
+## Reference
 
-See [MAINTAINER.md](MAINTAINER.md) for `docs/public`, `docs/private`, and `docs/archive` conventions.
+| Doc | |
+|-----|---|
+| [Sessions and chat](public/session-architecture.md) | How chat sessions bind to Hermes |
+| [API reference](public/api-reference.md) | HTTP routes used by the UI |
+| [Database schema](public/schema.sql) | SQL schema |
 
-Generated-project docs shipped by the installer live in `packages/create-workframe/docs/workspace-instructions/`.
+## Contributors
+
+| Doc | |
+|-----|---|
+| [Develop](public/develop.md) | Monorepo setup |
+| [Contributing](public/contributing.md) | Issues, PRs, code areas |
+| [Release verification](public/release.md) | Pre-publish regression scripts |
+| [Version map](VERSION.md) · [Licensing](LICENSING.md) | Releases and legal |
+
+## Workspace guides (installer)
+
+Copied into generated projects via `create-workframe`:
+
+- [Onboarding](../packages/create-workframe/docs/workspace-instructions/WORKFRAME_ONBOARDING.md)
+- [Kanban](../packages/create-workframe/docs/workspace-instructions/WORKFRAME_KANBAN.md)
+- [Routing](../packages/create-workframe/docs/workspace-instructions/WORKFRAME_ROUTING.md)
+- [Documents & artifacts](../packages/create-workframe/docs/workspace-instructions/WORKFRAME_DOCUMENTS_AND_ARTIFACTS.md)
+- [Telegram](../packages/create-workframe/docs/workspace-instructions/WORKFRAME_TELEGRAM.md)
+- [Discord](../packages/create-workframe/docs/workspace-instructions/WORKFRAME_DISCORD.md)
+
+## Legacy paths
+
+- [Overview](public/overview.md) → [What is Workframe?](public/what-is-workframe.md)
+- [Getting started](public/getting-started.md) → [Install](public/install.md) / [Develop](public/develop.md)
+- [Runtime operations](public/runtime-operations.md) → [Operations](public/operations.md)

@@ -1,6 +1,9 @@
+import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
+
 export type ChatSegment =
   | { kind: 'text'; text: string }
   | { kind: 'thinking'; text: string }
+  | { kind: 'concierge'; notice: WorkframeNoticeInfo }
   | { kind: 'image'; path: string; name?: string; alt?: string }
   | {
       kind: 'tool'

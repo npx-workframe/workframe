@@ -46,6 +46,9 @@ import turn_credentials
 import llm_proxy
 import action_proxy
 import internal_proxy_auth
+import concierge
+import llm_error_glossary
+import openrouter_catalog
 import updates as stack_updates
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
@@ -12302,8 +12305,9 @@ def _provider_pool_entry(provider: str, env_var: str, *, base_url: str = "") -> 
 
 
 def _runtime_provider_pool_entry(provider: str, env_var: str) -> dict[str, Any]:
-    """Credential pool row for u-* profiles — keys live in .env leases, upstream via API proxy."""
-    return _provider_pool_entry(provider, env_var, base_url=_llm_proxy_base_url(provider))
+    """Credential pool row for u-* profiles — lease token lives in OPENAI_API_KEY."""
+    lease_env = "OPENAI_API_KEY"
+    return _provider_pool_entry(provider, lease_env, base_url=_llm_proxy_base_url(provider))
 
 
 def _provider_pool_has_entries(auth: dict[str, Any], provider: str) -> bool:
@@ -13313,21 +13317,73 @@ def _enrich_room_chat_payload(payload: dict[str, Any], user_id: str) -> dict[str
     return body
 
 
-def _emit_stream_chat_error(handler: BaseHTTPRequestHandler, message: str) -> None:
-    """SSE error frame — keeps UI stream parser on the happy path."""
-    text = str(message or "").strip() or "Chat failed."
-    payload = json.dumps({"error": text, "text": text, "message": text})
+def _emit_stream_chat_error(
+    handler: BaseHTTPRequestHandler,
+    message: str = "",
+    *,
+    entry: dict[str, Any] | None = None,
+) -> None:
+    """SSE error frame — structured playbook when entry supplied."""
+    payload = llm_error_glossary.notice_payload(entry) if entry else {}
+    if not payload:
+        text = str(message or "").strip() or "Chat failed."
+        payload = {"error": text, "text": text, "message": text}
     try:
         handler.send_response(200)
         handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
         handler.send_header("Cache-Control", "no-cache")
         handler.send_header("Connection", "keep-alive")
         handler.end_headers()
-        handler.wfile.write(f"event: error\ndata: {payload}\n\n".encode("utf-8"))
+        body = json.dumps(payload)
+        handler.wfile.write(f"event: error\ndata: {body}\n\n".encode("utf-8"))
         handler.wfile.write(b"event: done\ndata: {}\n\n")
         handler.wfile.flush()
     except (BrokenPipeError, ConnectionResetError, OSError):
         return
+
+
+def _emit_stream_concierge(handler: BaseHTTPRequestHandler, entry: dict[str, Any]) -> None:
+    """Deterministic assistant reply when LLM path is unavailable."""
+    payload = llm_error_glossary.notice_payload(entry)
+    text = str(payload.get("message") or "")
+    hint = str(payload.get("hint") or "").strip()
+    if hint:
+        text = f"{text}\n\n{hint}"
+    try:
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        handler.send_header("Cache-Control", "no-cache")
+        handler.send_header("Connection", "keep-alive")
+        handler.end_headers()
+        handler.wfile.write(
+            f"event: concierge\ndata: {json.dumps(payload)}\n\n".encode("utf-8"),
+        )
+        handler.wfile.write(
+            f"event: message.complete\ndata: {json.dumps({'content': text, 'text': text})}\n\n".encode(
+                "utf-8",
+            ),
+        )
+        handler.wfile.write(b"event: done\ndata: {}\n\n")
+        handler.wfile.flush()
+    except (BrokenPipeError, ConnectionResetError, OSError):
+        return
+
+
+def _log_llm_failure(
+    handler: BaseHTTPRequestHandler,
+    code: str,
+    *,
+    provider: str = "",
+    model: str = "",
+    profile: str = "",
+) -> None:
+    if hasattr(handler, "_log_audit"):
+        handler._log_audit(  # type: ignore[attr-defined]
+            "llm_failure",
+            "llm",
+            profile or provider or "unknown",
+            f"code={code} provider={provider} model={model}",
+        )
 
 
 def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: dict[str, Any]) -> None:
@@ -13345,6 +13401,15 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
     if not text:
         raise ValueError("text required")
     llm_provider = _llm_billing_provider(prof)
+    llm_ready = bool(
+        _triggering_user
+        and _user_can_use_llm(_triggering_user, _workspace_id, llm_provider)
+    )
+    if _triggering_user and not llm_ready:
+        entry = concierge.respond(text, situation="no_provider")
+        _log_llm_failure(handler, str(entry.get("code") or "no_llm_provider"), provider=llm_provider, profile=prof)
+        _emit_stream_concierge(handler, entry)
+        return
     try:
         lifecycle = ensure_profile_api(
             prof,
@@ -13358,7 +13423,15 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
             )
             _overlay_turn_user_env(prof, _triggering_user, _workspace_id, _turn_run_id)
     except ValueError as exc:
-        _emit_stream_chat_error(handler, str(exc))
+        err_text = str(exc)
+        if "no_llm_provider_for_user" in err_text:
+            entry = concierge.respond(text, situation="no_provider")
+            _log_llm_failure(handler, "no_llm_provider", provider=llm_provider, profile=prof)
+            _emit_stream_concierge(handler, entry)
+            return
+        entry = llm_error_glossary.classify_exception_text(err_text)
+        _log_llm_failure(handler, str(entry.get("code") or ""), provider=llm_provider, profile=prof)
+        _emit_stream_chat_error(handler, entry=entry)
         return
     upstream_body = json.dumps(_profile_turn_payload(prof, text, _room_id)).encode("utf-8")
 
@@ -13487,34 +13560,21 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
                 handler.wfile.flush()
         if not saw_complete or not complete_text:
             config_key = _read_config_model_api_key(prof)
+            _, model_name = _read_model_from_config(prof)
             if config_key.startswith(turn_credentials.LEASE_PREFIX) and not turn_credentials.validate_lease(
                 config_key,
             ):
-                err_text = (
-                    "Turn credential expired before the model replied. "
-                    "Send the message again."
-                )
-                err_code = "invalid_lease"
-            elif not saw_complete:
-                err_text = (
-                    "Model provider returned no reply. "
-                    "The request may have failed at the gateway or provider."
-                )
-                err_code = "provider_empty_reply"
+                entry = llm_error_glossary.playbook_entry("invalid_lease")
             else:
-                err_text = (
-                    "Model provider returned an empty reply. "
-                    "Check the model name in Settings or try again."
-                )
-                err_code = "provider_empty_reply"
-            err_payload = json.dumps(
-                {
-                    "error": err_text,
-                    "text": err_text,
-                    "message": err_text,
-                    "code": err_code,
-                },
+                entry = llm_error_glossary.playbook_entry("provider_empty_reply")
+            _log_llm_failure(
+                handler,
+                str(entry.get("code") or "provider_empty_reply"),
+                provider=llm_provider,
+                model=str(model_name or ""),
+                profile=prof,
             )
+            err_payload = json.dumps(llm_error_glossary.notice_payload(entry))
             handler.wfile.write(f"event: error\ndata: {err_payload}\n\n".encode("utf-8"))
             handler.wfile.flush()
         handler.wfile.write(b"event: done\ndata: {}\n\n")
@@ -14252,16 +14312,16 @@ def _resolve_command(token: str) -> dict[str, Any] | None:
 # overrides live in the profile's config.yaml under `model.default` and
 # `fallback_providers`; this constant is the install-wide default the
 # migration writes when a profile is missing either field.
-HERMES_DEFAULT_PRIMARY = "openrouter/owl-alpha"
+HERMES_DEFAULT_PRIMARY = "google/gemini-2.5-flash"
 HERMES_DEFAULT_FALLBACK_CHAIN: list[dict[str, str]] = [
-    {"provider": "openrouter", "model": "openrouter/nex-agi"},
-    {"provider": "openrouter", "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"},
+    {"provider": "openrouter", "model": "anthropic/claude-sonnet-4.5"},
+    {"provider": "openrouter", "model": "meta-llama/llama-3.3-70b-instruct:free"},
 ]
 
 # ponytail: minimum-viable agentic models per LLM provider; user can escalate in settings.
 PROVIDER_MVP_MODELS: dict[str, dict[str, Any]] = {
     "openrouter": {
-        "primary": "openrouter/owl-alpha",
+        "primary": "google/gemini-2.5-flash",
         "fallbacks": list(HERMES_DEFAULT_FALLBACK_CHAIN),
     },
     "openai": {
@@ -14273,8 +14333,8 @@ PROVIDER_MVP_MODELS: dict[str, dict[str, Any]] = {
         "fallbacks": [{"provider": "anthropic", "model": "claude-3-5-haiku-20241022"}],
     },
     "google": {
-        "primary": "gemini-2.0-flash",
-        "fallbacks": [{"provider": "google", "model": "gemini-2.0-flash"}],
+        "primary": "gemini-2.5-flash",
+        "fallbacks": [{"provider": "google", "model": "gemini-2.5-flash-lite"}],
     },
     "deepseek": {
         "primary": "deepseek-chat",
@@ -14285,8 +14345,8 @@ PROVIDER_MVP_MODELS: dict[str, dict[str, Any]] = {
         "fallbacks": [{"provider": "openai-codex", "model": "gpt-5.4-medium"}],
     },
     "nous": {
-        "primary": "openrouter/owl-alpha",
-        "fallbacks": [{"provider": "nous", "model": "openrouter/owl-alpha"}],
+        "primary": "nousresearch/hermes-4-70b",
+        "fallbacks": [{"provider": "nous", "model": "nousresearch/hermes-4-70b"}],
     },
 }
 
@@ -14394,15 +14454,21 @@ HERMES_MODEL_CATALOG: list[dict[str, str]] = [
     {"provider": "OpenRouter", "model": "openrouter/auto",
      "label": "OpenRouter Auto",
      "description": "OpenRouter picks the best model per prompt."},
-    {"provider": "OpenRouter", "model": "openrouter/owl-alpha",
-     "label": "Owl Alpha",
-     "description": "Workframe default primary — strong general agent."},
-    {"provider": "OpenRouter", "model": "openrouter/nex-agi",
-     "label": "Nex AGI",
-     "description": "Fallback-tier reasoning model on OpenRouter."},
-    {"provider": "OpenRouter", "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
-     "label": "Nemotron 3 Ultra (free)",
-     "description": "OpenRouter free tier — long-context agentic fallback."},
+    {"provider": "OpenRouter", "model": "google/gemini-2.5-flash",
+     "label": "Gemini 2.5 Flash",
+     "description": "Fast, capable default for OpenRouter BYOK."},
+    {"provider": "OpenRouter", "model": "anthropic/claude-sonnet-4.5",
+     "label": "Claude Sonnet 4.5 (via OR)",
+     "description": "Strong agentic fallback on OpenRouter."},
+    {"provider": "OpenRouter", "model": "meta-llama/llama-3.3-70b-instruct:free",
+     "label": "Llama 3.3 70B (free)",
+     "description": "Free-tier OpenRouter fallback when available."},
+    {"provider": "OpenRouter", "model": "z-ai/glm-5.1",
+     "label": "GLM 5.1",
+     "description": "High-availability model on OpenRouter."},
+    {"provider": "OpenRouter", "model": "nousresearch/hermes-4-70b",
+     "label": "Hermes 4 70B",
+     "description": "Agent-tuned model on OpenRouter."},
     {"provider": "OpenRouter", "model": "openrouter/nvidia/llama-3.1-nemotron-70b-instruct",
      "label": "Nemotron 70B Instruct",
      "description": "NVIDIA Nemotron via OpenRouter."},
@@ -14780,6 +14846,17 @@ def hermes_models(profile: str = "", user_id: str = "", workspace_id: str = "") 
         ] if (picker_llm or connected) else [],
         block,
     )
+    if user_id and "openrouter" in {n.lower() for n in (picker_llm or connected)}:
+        resolved = _resolve_credential(user_id, workspace_id, "openrouter", user_only=True)
+        secret = _credential_secret(resolved or {}, user_id) if resolved else ""
+        live = openrouter_catalog.live_suggestions(secret, limit=30)
+        if live:
+            seen = {str(r.get("model") or "") for r in suggestions}
+            suggestions = [
+                {**row, "label": f"Live · {row.get('label', row.get('model', ''))}"}
+                for row in live
+                if str(row.get("model") or "") not in seen
+            ] + suggestions
     return {
         "ok": True,
         "profile": primary_profile,
@@ -17391,11 +17468,29 @@ class Handler(BaseHTTPRequestHandler):
                                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (cred_id, None, user_id, None, provider, credential_type, cred_ref, label, 1, user_id, now, now),
                         )
+                    conn.execute(
+                        """UPDATE credential_bindings
+                           SET is_active = 0, deleted_at = ?, updated_at = ?
+                           WHERE user_id = ? AND provider = ? AND deleted_at IS NULL AND id != ?""",
+                        (now, now, user_id, provider, cred_id),
+                    )
                     conn.commit()
                     conn.close()
                 except sqlite3.Error as exc:
                     return self._json(500, {"ok": False, "error": f"db_error: {exc}"})
                 self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
+                health: dict[str, Any] = {}
+                if provider == "openrouter":
+                    secret_probe = _credential_secret(
+                        {
+                            "credential_ref": cred_ref,
+                            "scope": "user",
+                            "user_id": user_id,
+                        },
+                        user_id,
+                    )
+                    if secret_probe:
+                        health = openrouter_catalog.probe_account(secret_probe)
                 _bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
                 return self._json(200, {
                     "ok": True,
@@ -17407,6 +17502,7 @@ class Handler(BaseHTTPRequestHandler):
                     "user_id": user_id,
                     "created_at": now,
                     "updated_at": now,
+                    "health": health,
                     **payload,
                 })
 

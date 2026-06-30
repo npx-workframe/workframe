@@ -2,7 +2,7 @@
 
 Product shell SPA — chat, files, browser, activity. Built to `dist/` and served by nginx in the `{slug}-workframe` compose service.
 
-Docs: [docs/public/architecture.md](../../docs/public/architecture.md), [docs/public/bff-route-map.md](../../docs/public/bff-route-map.md)
+Docs: [docs/public/architecture.md](../../docs/public/architecture.md), [docs/public/api-reference.md](../../docs/public/api-reference.md)
 
 ## Stack
 

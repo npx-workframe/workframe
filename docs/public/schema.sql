@@ -394,7 +394,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_runs_started_at
 -- =============================================================================
 -- 10. provider_runtime_tokens
 -- =============================================================================
--- Short-lived bearer tokens issued by the BFF for Hermes provider/runtime
+-- Short-lived bearer tokens issued by workframe-api for Hermes provider/runtime
 -- integrations. The raw token is returned once to the caller and never stored;
 -- only a SHA-256 hash is persisted for validation and one-time redemption.
 
@@ -418,7 +418,7 @@ CREATE INDEX IF NOT EXISTS idx_provider_runtime_tokens_expiry
 -- 11. audit_events
 -- =============================================================================
 -- Append-only audit log for all security-relevant and operational events
--- across the platform. Read-only for humans; written by BFF and agent tools.
+-- across the platform. Read-only for humans; written by workframe-api and agent tools.
 
 CREATE TABLE IF NOT EXISTS audit_events (
     id              TEXT PRIMARY KEY,                       -- UUIDv4

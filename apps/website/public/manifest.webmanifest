@@ -1,25 +1,18 @@
 {
   "name": "Workframe",
   "short_name": "Workframe",
-  "description": "Multi-user agent cockpit for technical teams.",
+  "description": "Install a private workspace where humans and agents collaborate through chat, boards, and files.",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
+  "background_color": "#e0e0e6",
+  "theme_color": "#e0e0e6",
   "orientation": "portrait-primary",
-  "background_color": "#0A0A0F",
-  "theme_color": "#0A0A0F",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "/icon.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
     }
   ]
 }

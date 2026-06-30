@@ -1,56 +1,32 @@
-import Image from "next/image";
-import Link from "next/link";
-
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.workfra.me";
+import { CopyCommand } from "@/components/copy-command";
+import { DemoVideo } from "@/components/demo-video";
+import { SiteNavbar } from "@/components/site-navbar";
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col bg-[#0A0A0F] text-white">
-      <header className="safe-top flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-3">
-          <Image src="/icon.svg" alt="" width={28} height={28} priority />
-          <span className="text-sm font-semibold tracking-wide">Workframe</span>
-        </div>
-        <Link
-          href={appUrl}
-          className="rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/90"
-        >
-          Open app
-        </Link>
-      </header>
+    <div className="flex min-h-dvh flex-col">
+      <SiteNavbar />
 
-      <main className="flex flex-1 flex-col justify-center gap-8 px-5 pb-10">
-        <div className="space-y-4">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-violet-300/80">
-            Agent cockpit for teams
-          </p>
-          <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-            Run agents together. Ship from files, not transcripts.
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-14 px-6 pb-16 pt-10 sm:gap-16 sm:px-10 sm:pt-14">
+        <section className="flex w-full flex-col items-center gap-5 text-center">
+          <h1 className="max-w-xl text-[2rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--wf-text)] sm:text-[2.75rem]">
+            The Social OS for Autonomous Businesses
           </h1>
-          <p className="max-w-lg text-base leading-7 text-white/65">
-            Workframe is the multi-user Hermes cockpit — rooms, vault, delegation,
-            and durable handoffs for technical teams.
+          <p className="max-w-md text-[17px] leading-7 text-[var(--wf-muted)] sm:text-[18px]">
+            A private workspace where humans and agents collaborate through chat,
+            boards, and files.
           </p>
-        </div>
+        </section>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link
-            href={appUrl}
-            className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-[#0A0A0F]"
-          >
-            Get started
-          </Link>
-          <Link
-            href="https://github.com/npx-workframe/workframe"
-            className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-medium text-white/90"
-          >
-            View on GitHub
-          </Link>
-        </div>
+        <CopyCommand />
+
+        <section className="w-full">
+          <DemoVideo />
+        </section>
       </main>
 
-      <footer className="safe-bottom border-t border-white/10 px-5 py-4 text-xs text-white/45">
-        Public marketing surface · product app lives at app.workfra.me
+      <footer className="safe-bottom mb-2.5 px-6 pb-12 pt-8 text-center font-[family-name:var(--wf-font-mono)] text-[11px] uppercase tracking-[0.12em] text-[var(--wf-muted)] sm:px-10 sm:pb-14">
+        © 2026 Workfra.me
       </footer>
     </div>
   );
