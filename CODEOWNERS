@@ -1,0 +1,10 @@
+# Boundary ownership starts explicit, even when the repo has one maintainer.
+
+* @architectonic
+
+/apps/ @architectonic
+/packages/ @architectonic
+/tooling/ @architectonic
+/infra/ @architectonic
+/docs/ @architectonic
+/.github/ @architectonic

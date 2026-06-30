@@ -1,0 +1,40 @@
+# ponytail: use with docker compose -f docker-compose.yml -f docker-compose.host-bindings.yml
+# when apply/restart runs via docker.sock from the API container (/compose cwd).
+# Rewrites relative bind mounts to WORKFRAME_HOST_* paths the Docker daemon can resolve.
+services:
+  gateway:
+    volumes:
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/Agents:/opt/data
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/Files:/opt/data/workspace
+      - workframe-proxy-token:/run/workframe-proxy:ro
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/scripts/workframe:/opt/install/scripts:ro
+      - ${WORKFRAME_HOST_COMPOSE_DIR}/docker/cont-init-workspace-link.sh:/etc/cont-init.d/03-workspace-link:ro
+
+  dashboard:
+    volumes:
+      - ${WORKFRAME_HOST_COMPOSE_DIR}/docker/dashboard-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+
+  workframe-api:
+    build:
+      context: ${WORKFRAME_HOST_PROJECT_ROOT}/services/workframe-api
+    volumes:
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/services/workframe-api/public:/app/public:ro
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/services/workframe-api:/app
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/workframe-api-data:/app/data
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/Agents:/opt/data
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/Files:/opt/data/workspace
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/scripts/workframe:/opt/install/scripts:ro
+      - workframe-proxy-token:/run/workframe-proxy
+      - ${WORKFRAME_HOST_PROJECT_ROOT}:/project
+      - ${WORKFRAME_HOST_COMPOSE_DIR}:/compose
+
+  workframe-ui:
+    volumes:
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/apps/web/dist:/usr/share/nginx/html:ro
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/apps/web/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+  workframe-supervisor:
+    build:
+      context: ${WORKFRAME_HOST_PROJECT_ROOT}/services/workframe-supervisor
+    volumes:
+      - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/Agents:/opt/data

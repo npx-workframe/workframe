@@ -1,0 +1,22 @@
+title = "Workframe gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local runtime, gitignored env, build cache, and doc examples"
+paths = [
+  '''(?:^|/)infra/compose/workframe/\.env(?:\..*)?$''',
+  '''(?:^|/)runtime/''',
+  '''(?:^|/)demo-video/''',
+  '''(?:^|/)apps/website/\.next/''',
+  '''(?:^|/)\.install-gate/''',
+  '''(?:^|/)\.gitleaks-.*\.json$''',
+  '''(?:^|/)docs/audit-implementation-plan\.md$''',
+  '''(?:^|/)docs/0013audit-implementation-plan\.md$''',
+]
+regexes = [
+  '''wrong-token''',
+  '''Discord/Telegram bot tokens''',
+  '''Bearer\s+\$\{?INVALID''',
+]

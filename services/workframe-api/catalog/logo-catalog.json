@@ -1,0 +1,86 @@
+{
+  "version": 2,
+  "public_base": "/assets/project-logos",
+  "logos": [
+    {
+      "id": "1",
+      "file": "1.png",
+      "label": "Logo 1"
+    },
+    {
+      "id": "2",
+      "file": "2.png",
+      "label": "Logo 2"
+    },
+    {
+      "id": "3",
+      "file": "3.png",
+      "label": "Logo 3"
+    },
+    {
+      "id": "4",
+      "file": "4.png",
+      "label": "Logo 4"
+    },
+    {
+      "id": "5",
+      "file": "5.png",
+      "label": "Logo 5"
+    },
+    {
+      "id": "6",
+      "file": "6.png",
+      "label": "Logo 6"
+    },
+    {
+      "id": "7",
+      "file": "7.png",
+      "label": "Logo 7"
+    },
+    {
+      "id": "8",
+      "file": "8.png",
+      "label": "Logo 8"
+    },
+    {
+      "id": "9",
+      "file": "9.png",
+      "label": "Logo 9"
+    },
+    {
+      "id": "10",
+      "file": "10.png",
+      "label": "Logo 10"
+    },
+    {
+      "id": "11",
+      "file": "11.png",
+      "label": "Logo 11"
+    },
+    {
+      "id": "12",
+      "file": "12.png",
+      "label": "Logo 12"
+    },
+    {
+      "id": "13",
+      "file": "13.png",
+      "label": "Logo 13"
+    },
+    {
+      "id": "14",
+      "file": "14.png",
+      "label": "Logo 14"
+    },
+    {
+      "id": "15",
+      "file": "15.png",
+      "label": "Logo 15"
+    },
+    {
+      "id": "16",
+      "file": "16.png",
+      "label": "Logo 16"
+    }
+  ]
+}

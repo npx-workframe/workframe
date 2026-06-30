@@ -1,0 +1,52 @@
+/* ── Atmosphere (mission-control grid + gradient orbs) ───────────────────── */
+
+.wf-atmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.wf-atmosphere__orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(130px);
+  transform: translateZ(0);
+}
+
+.wf-atmosphere__orb--primary {
+  width: min(62vw, 920px);
+  height: min(78vh, 860px);
+  left: -260px;
+  top: -150px;
+  background: var(--wf-orb-primary);
+  opacity: var(--wf-orb-primary-opacity);
+}
+
+.wf-atmosphere__orb--secondary {
+  width: min(46vw, 760px);
+  height: min(56vh, 680px);
+  right: -240px;
+  top: 46vh;
+  background: var(--wf-orb-secondary);
+  opacity: var(--wf-orb-secondary-opacity);
+}
+
+.wf-atmosphere__grid {
+  position: absolute;
+  inset: 0;
+  background-image: var(--wf-grid-image);
+  background-size: var(--wf-grid-tile) var(--wf-grid-tile);
+  background-position: 0 0;
+  image-rendering: pixelated;
+  mask-image: var(--wf-grid-mask);
+  -webkit-mask-image: var(--wf-grid-mask);
+}
+
+.wf-atmosphere__overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--wf-overlay);
+}
+

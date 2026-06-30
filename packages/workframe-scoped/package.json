@@ -1,0 +1,29 @@
+{
+  "name": "@workframe/workframe",
+  "version": "0.1.1",
+  "description": "Scoped mirror of the Workframe lifecycle CLI.",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "workframe": "bin/workframe.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/npx-workframe/workframe.git"
+  },
+  "keywords": [
+    "workframe",
+    "workspace",
+    "agents",
+    "cli",
+    "mirror"
+  ]
+}

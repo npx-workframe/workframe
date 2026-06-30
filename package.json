@@ -1,0 +1,25 @@
+{
+  "name": "workframe-monorepo",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "pnpm dev:web",
+    "build": "pnpm build:web && pnpm --filter @workframe/workframe-api build && pnpm --filter @workframe/desktop build",
+    "lint": "pnpm --filter @workframe/web lint",
+    "typecheck": "pnpm --filter @workframe/web build && pnpm --filter @workframe/workframe-api typecheck && pnpm --filter @workframe/desktop typecheck",
+    "clean": "node scripts/clean.ts",
+    "dev:web": "pnpm --filter @workframe/web dev",
+    "build:web": "pnpm --filter @workframe/web build",
+    "dev:api": "pnpm --filter @workframe/workframe-api dev",
+    "desktop:dev": "pnpm --filter @workframe/desktop dev",
+    "desktop:package": "pnpm --filter @workframe/desktop build && pnpm --filter @workframe/desktop package:win",
+    "verify:public": "powershell -File scripts/workframe/verify-public-repo.ps1"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "typescript": "latest"
+  }
+}

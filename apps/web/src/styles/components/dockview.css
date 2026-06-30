@@ -1,0 +1,289 @@
+/* ── Dockview workspace ──────────────────────────────────────────────────── */
+
+.wf-workspace-shell {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.wf-workspace-shell > .wf-workspace {
+  flex: 1;
+  min-width: 0;
+}
+
+.wf-rail-fallback {
+  flex: 0 0 var(--wf-rail-width-collapsed);
+  width: var(--wf-rail-width-collapsed);
+  height: 100%;
+  min-height: 0;
+  border-right: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  background: color-mix(in srgb, var(--wf-surface) 35%, transparent);
+  overflow: hidden;
+}
+
+.wf-rail-fallback .wf-agent-rail {
+  padding-top: var(--wf-space-2);
+}
+
+.wf-workspace {
+  height: 100%;
+  min-height: 0;
+  --dv-tabs-and-actions-container-height: 0px;
+  --dv-tabs-and-actions-container-background-color: transparent;
+  --dv-group-view-background-color: transparent;
+  --dv-paneview-background-color: transparent;
+  --dv-separator-border: transparent;
+  --dv-activegroup-visiblepanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-sash-color: transparent;
+  --dv-active-sash-color: transparent;
+  --dv-active-sash-transition-duration: 0.12s;
+  --dv-active-sash-transition-delay: 0.08s;
+  --dv-activegroup-visiblepanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-drag-over-background-color: color-mix(in srgb, var(--wf-text) 14%, transparent);
+  --dv-drag-over-border-color: color-mix(in srgb, var(--wf-border-strong) 82%, transparent);
+  --dv-drag-over-border: none;
+}
+
+.wf-workspace.dockview-theme-dark,
+.wf-workspace.dockview-theme-light {
+  --dv-group-view-background-color: transparent;
+  --dv-tabs-and-actions-container-background-color: transparent;
+}
+
+.wf-workspace .dv-groupview {
+  position: relative;
+}
+
+.wf-workspace .dv-tabs-and-actions-container {
+  display: flex !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.wf-workspace .dv-groupview:has(.wf-panel--rail) .dv-tabs-and-actions-container {
+  display: none !important;
+}
+
+.wf-workspace .dv-tabs-container {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  overflow: visible;
+}
+
+.wf-workspace .dv-tab {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.wf-workspace .dv-groupview.dv-active-group > .dv-tabs-and-actions-container .dv-tabs-container > .dv-tab,
+.wf-workspace .dv-groupview.dv-inactive-group > .dv-tabs-and-actions-container .dv-tabs-container > .dv-tab,
+.wf-workspace .dv-tab.dv-active-tab,
+.wf-workspace .dv-tab.dv-inactive-tab,
+.wf-workspace .dv-tab.dv-tab-dragging,
+.wf-workspace .dv-groupview.dv-active-group .dv-tab,
+.wf-workspace .dv-groupview.dv-inactive-group .dv-tab {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.wf-workspace .dv-tab::after,
+.wf-workspace .dv-tab:focus::after,
+.wf-workspace .dv-tab:focus-within::after {
+  content: none !important;
+  outline: none !important;
+}
+
+.wf-workspace .dv-tab:focus-visible {
+  outline: 2px solid var(--wf-ring);
+  outline-offset: 1px;
+}
+
+.wf-workspace .dv-sash {
+  background-color: transparent !important;
+}
+
+.wf-workspace .dv-sash.dv-sash-vertical {
+  width: 6px !important;
+  margin: 0 -1px;
+  cursor: col-resize;
+}
+
+.wf-workspace .dv-sash.dv-sash-vertical:hover,
+.wf-workspace .dv-sash.dv-sash-vertical:active {
+  background-color: color-mix(in srgb, var(--wf-text) 18%, transparent) !important;
+}
+
+.wf-workspace .dv-tab.dv-tab--dragging,
+.wf-workspace .dv-tab:active {
+  cursor: grabbing;
+}
+
+.wf-workspace .dv-drop-target-dropzone {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: none;
+}
+
+.wf-workspace .dv-drop-target-selection,
+.wf-workspace .dv-drop-target-anchor {
+  background: color-mix(in srgb, var(--wf-text) 14%, transparent) !important;
+  border: none !important;
+  border-radius: 1px;
+  box-sizing: border-box;
+}
+
+.wf-workspace .dv-drop-target-small-vertical .dv-drop-target-selection {
+  border-top: 2px solid var(--dv-drag-over-border-color) !important;
+  border-bottom: 2px solid var(--dv-drag-over-border-color) !important;
+  background: color-mix(in srgb, var(--wf-text) 12%, transparent) !important;
+}
+
+.wf-workspace .dv-drop-target-small-horizontal .dv-drop-target-selection {
+  border-left: 2px solid var(--dv-drag-over-border-color) !important;
+  border-right: 2px solid var(--dv-drag-over-border-color) !important;
+  background: color-mix(in srgb, var(--wf-text) 12%, transparent) !important;
+}
+
+.wf-workspace .dv-drop-target-selection-line,
+.wf-workspace .dv-drop-target-anchor-line {
+  background: color-mix(in srgb, var(--wf-text) 18%, transparent) !important;
+  border: none !important;
+  border-radius: 1px;
+}
+
+.wf-workspace .dv-drop-target-selection.dv-drop-target-selection-line.dv-drop-target-left,
+.wf-workspace .dv-drop-target-selection.dv-drop-target-selection-line.dv-drop-target-right,
+.wf-workspace .dv-drop-target-anchor.dv-drop-target-anchor-line.dv-drop-target-left,
+.wf-workspace .dv-drop-target-anchor.dv-drop-target-anchor-line.dv-drop-target-right {
+  width: var(--wf-dnd-strip-thickness) !important;
+}
+
+.wf-workspace .dv-drop-target-selection.dv-drop-target-selection-line.dv-drop-target-top,
+.wf-workspace .dv-drop-target-selection.dv-drop-target-selection-line.dv-drop-target-bottom,
+.wf-workspace .dv-drop-target-anchor.dv-drop-target-anchor-line.dv-drop-target-top,
+.wf-workspace .dv-drop-target-anchor.dv-drop-target-anchor-line.dv-drop-target-bottom {
+  height: var(--wf-dnd-strip-thickness) !important;
+}
+
+.wf-workspace .dv-drop-target-selection.dv-drop-target-top.dv-drop-target-small-vertical {
+  border-top: 2px solid var(--dv-drag-over-border-color) !important;
+  border-bottom: none !important;
+}
+
+.wf-workspace .dv-drop-target-selection.dv-drop-target-bottom.dv-drop-target-small-vertical {
+  border-bottom: 2px solid var(--dv-drag-over-border-color) !important;
+  border-top: none !important;
+}
+
+.wf-workspace .dv-drop-target-selection.dv-drop-target-left.dv-drop-target-small-horizontal {
+  border-left: 2px solid var(--dv-drag-over-border-color) !important;
+  border-right: none !important;
+}
+
+.wf-workspace .dv-drop-target-selection.dv-drop-target-right.dv-drop-target-small-horizontal {
+  border-right: 2px solid var(--dv-drag-over-border-color) !important;
+  border-left: none !important;
+}
+
+.wf-workspace .dv-drop-target-center,
+.wf-workspace .dv-drop-target-center .dv-drop-target-selection {
+  display: none !important;
+}
+
+/* Strip-only fallback: hide half-pane overlays if overlay model is ever missed */
+.wf-workspace .dv-drop-target-dropzone > .dv-drop-target-selection:not(.dv-drop-target-selection-line),
+.wf-workspace .dv-drop-target-anchor:not(.dv-drop-target-anchor-line) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.wf-panel-drag-tab {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-right: 1px solid color-mix(in srgb, var(--wf-border) 72%, transparent);
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--wf-muted);
+  cursor: grab;
+}
+
+.wf-panel-drag-tab--active,
+.wf-panel-drag-tab:hover {
+  color: var(--wf-muted);
+  background: transparent !important;
+}
+
+.wf-panel-drag-tab:active {
+  cursor: grabbing;
+}
+
+.wf-panel-drag-tab--hidden {
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  border: none;
+  pointer-events: none;
+}
+
+.wf-panel-drag-tab__icon {
+  width: 15px;
+  height: 15px;
+}
+
+.wf-panel--dockable .wf-panel__header {
+  padding-left: 40px;
+}
+
+.wf-workspace__dock {
+  height: 100%;
+}
+
+.wf-workspace .dv-groupview,
+.wf-workspace .dv-content-container,
+.wf-workspace .dv-pane-container,
+.wf-workspace .dv-grid-view,
+.wf-workspace .dv-root-wrapper {
+  background: transparent !important;
+}
+
+/* ponytail: panels own scroll via ScrollArea — dockview .dv-view defaults to overflow:auto */
+.wf-workspace .dv-split-view-container .dv-view-container .dv-view {
+  overflow: hidden !important;
+}
+

@@ -1,0 +1,154 @@
+/* ── Agent rail ───────────────────────────────────────────────────────────── */
+
+.wf-agent-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wf-space-1);
+  padding: var(--wf-space-2);
+  min-height: min-content;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.wf-agent-rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-2);
+  width: 100%;
+  min-width: 0;
+  min-height: var(--wf-control);
+  padding: var(--wf-space-1);
+  border: 1px solid transparent;
+  border-radius: var(--wf-radius);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.wf-agent-rail__item:hover {
+  background: color-mix(in srgb, var(--wf-surface) 45%, transparent);
+  border-color: color-mix(in srgb, var(--wf-border) 80%, transparent);
+}
+
+.wf-agent-rail__item--active {
+  background: color-mix(in srgb, var(--wf-violet-glow) 12%, transparent);
+  border-color: color-mix(in srgb, var(--wf-violet-glow) 45%, var(--wf-border));
+}
+
+.wf-agent-rail--collapsed {
+  align-items: center;
+}
+
+.wf-agent-rail__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--wf-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.wf-panel--rail-expanded .wf-agent-rail__toggle {
+  width: 22px;
+  height: 22px;
+}
+
+.wf-panel--rail-expanded .wf-agent-rail__toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.wf-agent-rail__toggle:hover {
+  background: color-mix(in srgb, var(--wf-surface) 55%, transparent);
+  color: var(--wf-text);
+}
+
+.wf-agent-rail__toggle:focus-visible {
+  outline: 2px solid var(--wf-ring);
+  outline-offset: 1px;
+}
+
+.wf-agent-rail__avatar {
+  flex: 0 0 auto;
+}
+
+.wf-agent-rail__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  min-height: calc(var(--wf-control) - var(--wf-space-1) * 2);
+}
+
+.wf-agent-rail__name {
+  font-size: var(--wf-type-ui);
+  font-weight: 600;
+  line-height: var(--wf-leading-ui);
+}
+
+.wf-agent-rail__role {
+  font-size: var(--wf-type-caption);
+  font-weight: 500;
+  line-height: var(--wf-leading-caption);
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--wf-muted);
+}
+
+.wf-agent-rail__name,
+.wf-agent-rail__role,
+.wf-agent-rail__shortcut-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-agent-rail__shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.wf-agent-rail__shortcuts-divider {
+  margin: 6px 0 2px;
+}
+
+.wf-agent-rail__item--shortcut {
+  color: var(--wf-muted);
+}
+
+.wf-agent-rail__shortcut-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--wf-radius);
+  background: color-mix(in srgb, var(--wf-surface) 55%, transparent);
+  color: var(--wf-muted);
+}
+
+.wf-agent-rail__shortcut-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wf-agent-rail__item--shortcut:hover .wf-agent-rail__shortcut-icon {
+  color: var(--wf-text);
+}
+

@@ -1,0 +1,82 @@
+/* ── Brutalist surface overrides ──────────────────────────────────────────── */
+
+[data-theme='brutal'] .wf-shell {
+  background: var(--wf-bg);
+}
+
+[data-theme='brutal'] .wf-shell__header {
+  background: var(--wf-surface);
+  border-bottom: var(--wf-brutal-stroke) solid var(--wf-border);
+  box-shadow: none;
+}
+
+[data-theme='brutal'] .wf-shell__main {
+  background: var(--wf-bg);
+}
+
+[data-theme='brutal'] .wf-shell__actions {
+  background: var(--wf-surface);
+  border: var(--wf-brutal-stroke) solid var(--wf-border);
+  box-shadow: var(--wf-brutal-shadow);
+  padding: 4px 8px;
+}
+
+[data-theme='brutal'] .wf-theme-switcher__menu {
+  background: var(--wf-surface);
+  border: var(--wf-brutal-stroke) solid var(--wf-border);
+  box-shadow: var(--wf-brutal-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='brutal'] .wf-theme-switcher__trigger {
+  border: var(--wf-brutal-stroke) solid var(--wf-border);
+  box-shadow: 4px 4px 0 var(--wf-border);
+  background: var(--wf-error);
+  color: var(--wf-surface);
+}
+
+[data-theme='brutal'] .wf-theme-switcher__trigger:hover {
+  box-shadow: 2px 2px 0 var(--wf-border);
+  transform: translate(2px, 2px);
+}
+
+[data-theme='brutal'] .wf-theme-switcher__item {
+  border-bottom: 1px solid var(--wf-border);
+  font-weight: 700;
+}
+
+[data-theme='brutal'] .wf-theme-switcher__item:hover {
+  background: var(--wf-warning);
+  color: var(--wf-text);
+}
+
+[data-theme='brutal'] .wf-shell-footer {
+  background: var(--wf-surface);
+  border-top: var(--wf-brutal-stroke) solid var(--wf-border);
+  box-shadow: none;
+}
+
+[data-theme='brutal'] button.wf-tool-btn.wf-tool-btn--icon,
+[data-theme='brutal'] button.wf-tool-btn.wf-tool-btn--text {
+  border: 2px solid var(--wf-border);
+}
+
+[data-theme='brutal'] button.wf-tool-btn:hover:not(:disabled) {
+  box-shadow: var(--wf-brutal-shadow);
+  transform: translate(var(--wf-brutal-offset), var(--wf-brutal-offset));
+}
+
+[data-theme='brutal'] button.wf-tool-btn.wf-tool-btn--send:not(:disabled) {
+  background: var(--wf-violet);
+  color: var(--wf-primary-foreground);
+}
+
+[data-theme='brutal'] button.wf-tool-btn.wf-tool-btn--send.wf-tool-btn--stop:not(:disabled) {
+  background: var(--wf-bg);
+  color: var(--wf-text);
+}
+
+[data-theme='brutal'] .wf-brand-img--mono {
+  filter: none;
+}

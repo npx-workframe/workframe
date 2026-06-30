@@ -1,0 +1,20 @@
+version: 2
+packs:
+  native:
+    description: One native project agent only. Spawn specialists later through Workframe botfather flows.
+    profiles: [project-agent]
+  vanilla:
+    description: Reference default crew pack (native project agent + all core specialists)
+    profiles: [project-agent, visionary, architect, docs, dev, research, designer]
+  core:
+    description: Minimal operational baseline
+    profiles: [project-agent, docs, dev]
+  product:
+    description: Product discovery and direction
+    profiles: [project-agent, docs, dev, visionary, research, designer]
+  engineering:
+    description: Technical planning and delivery
+    profiles: [project-agent, docs, dev, architect, research]
+  full:
+    description: Alias of vanilla for compatibility
+    profiles: [project-agent, visionary, architect, docs, dev, research, designer]

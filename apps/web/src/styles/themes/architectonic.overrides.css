@@ -1,0 +1,57 @@
+/* ── Architectonic surface overrides ──────────────────────────────────────── */
+
+[data-theme='architectonic'] .wf-shell {
+  background: var(--wf-bg);
+}
+
+[data-theme='architectonic'] .wf-shell__header {
+  background: var(--wf-surface);
+  border-bottom: 1px solid var(--wf-arch-accent);
+  box-shadow: 0 1px 0 var(--wf-arch-accent-glow);
+}
+
+[data-theme='architectonic'] .wf-shell__main {
+  background: var(--wf-bg);
+}
+
+[data-theme='architectonic'] .wf-shell__actions {
+  background: var(--wf-surface-soft);
+  border: 1px solid var(--wf-arch-stroke);
+  padding: 4px 8px;
+}
+
+[data-theme='architectonic'] .wf-theme-switcher__menu {
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-arch-accent);
+  box-shadow: 0 0 0 1px var(--wf-arch-accent-glow), 0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='architectonic'] .wf-theme-switcher__trigger {
+  border: 1px solid var(--wf-arch-stroke);
+  color: var(--wf-text);
+}
+
+[data-theme='architectonic'] .wf-theme-switcher__trigger:hover {
+  border-color: var(--wf-arch-accent);
+  box-shadow: 0 0 0 1px var(--wf-arch-accent-glow);
+}
+
+[data-theme='architectonic'] .wf-theme-switcher__item {
+  border-bottom: 1px solid var(--wf-arch-stroke);
+}
+
+[data-theme='architectonic'] .wf-theme-switcher__item:hover {
+  background: color-mix(in srgb, var(--wf-accent) 12%, transparent);
+  color: var(--wf-accent-glow);
+}
+
+[data-theme='architectonic'] .wf-shell-footer {
+  background: var(--wf-surface);
+  border-top: 1px solid var(--wf-arch-stroke);
+}
+
+[data-theme='architectonic'] .wf-theme-switcher__check {
+  color: var(--wf-accent-glow);
+}

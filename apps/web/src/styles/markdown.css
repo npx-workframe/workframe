@@ -1,0 +1,572 @@
+/* ── Markdown preview typography (GFM + common extensions) ─────────────── */
+
+.wf-markdown {
+  --wf-md-pad-x: clamp(28px, 5vw, 64px);
+  --wf-md-pad-y: clamp(36px, 6vw, 72px);
+  --wf-md-max: 52rem;
+  --wf-md-gap: 1.25rem;
+  --wf-md-heading-gap: 0.55em;
+  --wf-md-body: color-mix(in srgb, var(--wf-text) 92%, transparent);
+  --wf-md-muted: var(--wf-muted);
+  --wf-md-link: var(--wf-violet-glow);
+  --wf-md-link-hover: var(--wf-cyan);
+  --wf-md-code-bg: color-mix(in srgb, var(--wf-surface) 78%, transparent);
+  --wf-md-pre-bg: color-mix(in srgb, var(--wf-surface) 62%, transparent);
+  --wf-md-pre-border: color-mix(in srgb, var(--wf-border) 90%, transparent);
+  --wf-md-quote-border: var(--wf-violet-glow);
+  --wf-md-quote-bg: color-mix(in srgb, var(--wf-violet) 8%, transparent);
+  --wf-md-table-stripe: color-mix(in srgb, var(--wf-surface) 42%, transparent);
+  --wf-md-hr: color-mix(in srgb, var(--wf-border) 85%, transparent);
+  --wf-md-mark-bg: color-mix(in srgb, var(--wf-mint) 22%, transparent);
+  --wf-md-kbd-bg: color-mix(in srgb, var(--wf-surface) 88%, transparent);
+  --wf-md-kbd-border: color-mix(in srgb, var(--wf-border-strong) 80%, transparent);
+
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--wf-md-max);
+  margin: 0 auto;
+  padding: var(--wf-md-pad-y) var(--wf-md-pad-x) calc(var(--wf-md-pad-y) + 12px);
+  color: var(--wf-md-body);
+  font-size: 15px;
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.wf-markdown > :first-child {
+  margin-top: 0;
+}
+
+.wf-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+/* Headings ─────────────────────────────────────────────────────────────── */
+
+.wf-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: calc(var(--wf-md-gap) * 1.35) 0 var(--wf-md-heading-gap);
+  color: var(--wf-text);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.18;
+}
+
+.wf-markdown h1 {
+  margin-top: 0;
+  font-size: clamp(2rem, 4.2vw, 2.65rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+
+.wf-markdown h2 {
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--wf-md-hr);
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+}
+
+.wf-markdown h3 {
+  font-size: clamp(1.2rem, 2.4vw, 1.4rem);
+}
+
+.wf-markdown h4 {
+  font-size: 1.08rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--wf-md-muted);
+}
+
+.wf-markdown h5 {
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: var(--wf-md-muted);
+}
+
+.wf-markdown h6 {
+  font-size: 0.88rem;
+  font-family: var(--wf-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--wf-md-muted) 88%, transparent);
+}
+
+/* Body copy ────────────────────────────────────────────────────────────── */
+
+.wf-markdown p {
+  margin: 0 0 var(--wf-md-gap);
+}
+
+.wf-markdown :is(strong, b) {
+  color: var(--wf-text);
+  font-weight: 650;
+}
+
+.wf-markdown :is(em, i) {
+  font-style: italic;
+}
+
+.wf-markdown :is(del, s, strike) {
+  color: var(--wf-md-muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--wf-md-muted) 55%, transparent);
+}
+
+.wf-markdown :is(ins, u) {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--wf-cyan) 55%, transparent);
+  text-underline-offset: 0.14em;
+}
+
+.wf-markdown mark {
+  padding: 0.08em 0.28em;
+  border-radius: 4px;
+  color: inherit;
+  background: var(--wf-md-mark-bg);
+}
+
+.wf-markdown sub,
+.wf-markdown sup {
+  font-size: 0.72em;
+  line-height: 0;
+}
+
+.wf-markdown abbr[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.18em;
+  cursor: help;
+}
+
+.wf-markdown small {
+  font-size: 0.88em;
+  color: var(--wf-md-muted);
+}
+
+.wf-markdown address {
+  margin: 0 0 var(--wf-md-gap);
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-style: normal;
+  line-height: 1.55;
+  background: var(--wf-md-quote-bg);
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 70%, transparent);
+}
+
+/* Links ────────────────────────────────────────────────────────────────── */
+
+.wf-markdown a {
+  color: var(--wf-md-link);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--wf-md-link) 42%, transparent);
+  text-underline-offset: 0.18em;
+  transition: color 120ms ease, text-decoration-color 120ms ease;
+}
+
+.wf-markdown a:hover {
+  color: var(--wf-md-link-hover);
+  text-decoration-color: color-mix(in srgb, var(--wf-md-link-hover) 55%, transparent);
+}
+
+.wf-markdown a:visited {
+  color: color-mix(in srgb, var(--wf-md-link) 82%, var(--wf-md-muted));
+}
+
+/* Lists ──────────────────────────────────────────────────────────────────── */
+
+.wf-markdown :is(ul, ol) {
+  margin: 0 0 var(--wf-md-gap);
+  padding-left: 1.55em;
+}
+
+.wf-markdown li {
+  margin: 0.35em 0;
+}
+
+.wf-markdown li > :is(p, ul, ol, blockquote, pre, table) {
+  margin-top: 0.45em;
+  margin-bottom: 0.45em;
+}
+
+.wf-markdown li > p:last-child {
+  margin-bottom: 0;
+}
+
+.wf-markdown ul {
+  list-style-type: disc;
+}
+
+.wf-markdown ul ul {
+  list-style-type: circle;
+}
+
+.wf-markdown ul ul ul {
+  list-style-type: square;
+}
+
+.wf-markdown ol {
+  list-style-type: decimal;
+}
+
+.wf-markdown ol ol {
+  list-style-type: lower-alpha;
+}
+
+.wf-markdown ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.wf-markdown :is(ul, ol) :is(ul, ol) {
+  margin-top: 0.35em;
+  margin-bottom: 0.35em;
+}
+
+/* GFM task lists ───────────────────────────────────────────────────────── */
+
+.wf-markdown li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -1.55em;
+  padding-left: 0.15em;
+}
+
+.wf-markdown li > input[type='checkbox'] {
+  margin: 0 0.55em 0 0;
+  accent-color: var(--wf-violet-glow);
+  vertical-align: middle;
+  transform: translateY(-0.05em);
+}
+
+.wf-markdown li:has(> input[type='checkbox']:checked) {
+  color: color-mix(in srgb, var(--wf-md-body) 72%, var(--wf-md-muted));
+}
+
+/* Definition lists ───────────────────────────────────────────────────────── */
+
+.wf-markdown dl {
+  margin: 0 0 var(--wf-md-gap);
+  padding: 18px 22px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 75%, transparent);
+  background: color-mix(in srgb, var(--wf-md-pre-bg) 55%, transparent);
+}
+
+.wf-markdown dt {
+  margin-top: 0.85em;
+  font-weight: 650;
+  color: var(--wf-text);
+}
+
+.wf-markdown dt:first-child {
+  margin-top: 0;
+}
+
+.wf-markdown dd {
+  margin: 0.25em 0 0 1.1em;
+  color: var(--wf-md-muted);
+}
+
+/* Blockquotes ────────────────────────────────────────────────────────────── */
+
+.wf-markdown blockquote {
+  margin: 0 0 var(--wf-md-gap);
+  padding: 14px 18px 14px 20px;
+  border-left: 3px solid var(--wf-md-quote-border);
+  border-radius: 0 12px 12px 0;
+  color: var(--wf-md-muted);
+  background: var(--wf-md-quote-bg);
+}
+
+.wf-markdown blockquote > :first-child {
+  margin-top: 0;
+}
+
+.wf-markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.wf-markdown blockquote blockquote {
+  margin-top: 0.85em;
+  border-left-color: var(--wf-cyan);
+  background: color-mix(in srgb, var(--wf-cyan) 6%, transparent);
+}
+
+.wf-markdown blockquote cite {
+  display: block;
+  margin-top: 0.65em;
+  font-size: 0.88em;
+  font-style: normal;
+  color: color-mix(in srgb, var(--wf-md-muted) 85%, transparent);
+}
+
+/* Horizontal rule ────────────────────────────────────────────────────────── */
+
+.wf-markdown hr {
+  margin: calc(var(--wf-md-gap) * 1.6) 0;
+  border: none;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--wf-md-hr) 12%,
+    var(--wf-md-hr) 88%,
+    transparent
+  );
+}
+
+/* Inline code ────────────────────────────────────────────────────────────── */
+
+.wf-markdown :not(pre) > code {
+  font-family: var(--wf-font-mono);
+  font-size: 0.88em;
+  padding: 0.14em 0.42em;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 65%, transparent);
+  background: var(--wf-md-code-bg);
+  color: color-mix(in srgb, var(--wf-text) 94%, var(--wf-violet-glow));
+  word-break: break-word;
+}
+
+.wf-markdown kbd {
+  display: inline-block;
+  padding: 0.12em 0.45em;
+  border-radius: 6px;
+  border: 1px solid var(--wf-md-kbd-border);
+  background: var(--wf-md-kbd-bg);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--wf-md-kbd-border) 70%, transparent);
+  font-family: var(--wf-font-mono);
+  font-size: 0.82em;
+  line-height: 1.35;
+  color: var(--wf-text);
+}
+
+/* Fenced / indented code blocks ──────────────────────────────────────────── */
+
+.wf-markdown pre {
+  margin: 0 0 var(--wf-md-gap);
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--wf-md-pre-border);
+  background: var(--wf-md-pre-bg);
+}
+
+.wf-markdown pre code,
+.wf-markdown .wf-markdown__pre code {
+  display: block;
+  padding: 18px 22px;
+  font-family: var(--wf-font-mono);
+  font-size: 12.5px;
+  line-height: 1.58;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: inherit;
+  white-space: pre;
+}
+
+.wf-markdown pre:not(:has(.hljs)) code {
+  color: var(--wf-text);
+}
+
+/* Mermaid diagrams (hydrated client-side) ─────────────────────────────── */
+
+.wf-mermaid {
+  display: block;
+  width: 100%;
+  min-height: min-content;
+  margin: 0 0 var(--wf-md-gap);
+  padding: 16px 0 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--wf-md-pre-border);
+  background: var(--wf-md-pre-bg);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.wf-mermaid--pending {
+  min-height: 48px;
+}
+
+.wf-mermaid__source {
+  display: none;
+}
+
+.wf-mermaid svg {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+  height: auto !important;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.wf-mermaid__error {
+  margin: 0;
+  padding: 8px;
+  font-family: var(--wf-font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: left;
+  white-space: pre-wrap;
+  color: var(--wf-notice-fg);
+}
+
+/* Tables ─────────────────────────────────────────────────────────────────── */
+
+.wf-markdown table {
+  width: 100%;
+  margin: 0 0 var(--wf-md-gap);
+  border-collapse: collapse;
+  font-size: 0.94em;
+  line-height: 1.5;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 85%, transparent);
+}
+
+.wf-markdown thead {
+  background: color-mix(in srgb, var(--wf-md-table-stripe) 95%, transparent);
+}
+
+.wf-markdown :is(th, td) {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 70%, transparent);
+}
+
+.wf-markdown th {
+  font-family: var(--wf-font-mono);
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--wf-md-muted);
+}
+
+.wf-markdown tbody tr:nth-child(even) {
+  background: var(--wf-md-table-stripe);
+}
+
+.wf-markdown tbody tr:last-child :is(th, td) {
+  border-bottom: none;
+}
+
+.wf-markdown tfoot td {
+  font-size: 0.88em;
+  color: var(--wf-md-muted);
+  background: color-mix(in srgb, var(--wf-md-table-stripe) 80%, transparent);
+}
+
+/* Media ──────────────────────────────────────────────────────────────────── */
+
+.wf-markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.35em 0 var(--wf-md-gap);
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 75%, transparent);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--wf-bg) 35%, transparent);
+}
+
+.wf-markdown figure {
+  margin: 0 0 var(--wf-md-gap);
+}
+
+.wf-markdown figure img {
+  margin-bottom: 0.65em;
+}
+
+.wf-markdown figcaption {
+  font-size: 0.88em;
+  color: var(--wf-md-muted);
+  text-align: center;
+}
+
+.wf-markdown video,
+.wf-markdown audio {
+  display: block;
+  max-width: 100%;
+  margin: 0 0 var(--wf-md-gap);
+  border-radius: 12px;
+}
+
+/* Details / summary ──────────────────────────────────────────────────────── */
+
+.wf-markdown details {
+  margin: 0 0 var(--wf-md-gap);
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 80%, transparent);
+  background: color-mix(in srgb, var(--wf-md-pre-bg) 50%, transparent);
+}
+
+.wf-markdown summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--wf-text);
+  list-style-position: outside;
+}
+
+.wf-markdown summary::marker {
+  color: var(--wf-violet-glow);
+}
+
+.wf-markdown details[open] summary {
+  margin-bottom: 0.65em;
+}
+
+.wf-markdown details > :last-child {
+  margin-bottom: 0;
+}
+
+/* Footnotes (HTML / extensions) ──────────────────────────────────────────── */
+
+.wf-markdown .footnotes {
+  margin-top: calc(var(--wf-md-gap) * 1.5);
+  padding-top: var(--wf-md-gap);
+  border-top: 1px solid var(--wf-md-hr);
+  font-size: 0.9em;
+  color: var(--wf-md-muted);
+}
+
+.wf-markdown .footnotes ol {
+  padding-left: 1.35em;
+}
+
+.wf-markdown sup a,
+.wf-markdown a[data-footnote-ref] {
+  text-decoration: none;
+  font-size: 0.78em;
+  font-weight: 700;
+}
+
+/* Embedded HTML sections ─────────────────────────────────────────────────── */
+
+.wf-markdown .wf-md-callout {
+  margin: 0 0 var(--wf-md-gap);
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 75%, transparent);
+  background: color-mix(in srgb, var(--wf-cyan) 8%, transparent);
+}
+
+.wf-markdown .wf-md-callout--note {
+  border-left: 3px solid var(--wf-cyan);
+}
+
+.wf-markdown .wf-md-callout--warn {
+  border-left: 3px solid #d97706;
+  background: color-mix(in srgb, #d97706 10%, transparent);
+}
+
+.wf-markdown .wf-md-callout__title {
+  margin: 0 0 0.35em;
+  font-family: var(--wf-font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--wf-cyan);
+}
+
+.wf-markdown .wf-md-callout--warn .wf-md-callout__title {
+  color: #d97706;
+}
