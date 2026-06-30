@@ -52,6 +52,7 @@ infra/compose/workframe   Reference Docker stack
 
 ## Related docs
 
+- [Using Workframe](./using-workframe.md)
 - [Getting started](./getting-started.md)
 - [Architecture](./architecture.md)
 - [Runtime operations](./runtime-operations.md)

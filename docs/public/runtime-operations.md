@@ -1,111 +1,65 @@
 # Runtime operations
 
-Grounded in `services/workframe-api/server.py`, `services/workframe-supervisor/server.py`, `apps/web/`, and `infra/compose/workframe/`.
+Reference stack: `infra/compose/workframe/docker-compose.yml`.
 
-## Compose services (reference stack)
+## Services
 
-| Service | Role | Notes |
-|---------|------|--------|
-| `workframe-gateway` | Hermes native profile | `gateway run --replace`; host `18642` → container `8642` |
-| `workframe-dashboard` | Nginx → Hermes dashboard | `19119` |
-| `workframe-api` | Python BFF | `19120`; auth, rooms, chat proxy, provider catalog |
-| `workframe-supervisor` | Token-gated Docker exec | `18090`; **required when `SECURE_MODE=true`** |
-| `workframe-ui` | Static UI (nginx) | `18644`; build with `pnpm build:web` |
+| Service | Default port | Role |
+|---------|--------------|------|
+| `workframe-ui` | 18644 | Web UI (nginx + static `apps/web/dist`) |
+| `workframe-api` | 19120 | BFF |
+| `workframe-gateway` | 18642 | Hermes native profile |
+| `workframe-dashboard` | 19119 | Hermes dashboard proxy |
+| `workframe-supervisor` | 18090 | Secure-mode Docker exec broker |
 
-Browser: `http://127.0.0.1:18644` (prefer `127.0.0.1` over `localhost` for cookie stability).
+Open the UI at `http://127.0.0.1:18644` (use `127.0.0.1`, not `localhost`, for stable cookies).
 
 ## Security modes
 
 Set in `infra/compose/workframe/.env`:
 
-| Mode | Env | Docker socket on API | Specialist gateway lifecycle |
-|------|-----|----------------------|------------------------------|
-| Production-style | `SECURE_MODE=true` | Blocked (`_docker_request` raises) | Via supervisor HTTP + token |
-| Local dev shortcut | `DEV_LOCAL_UNSAFE=true` | API uses socket directly | `_gateway_exec` in API container |
-| Default (neither set) | — | Same as secure | Same as secure |
-
-Mutually exclusive: `SECURE_MODE=true` + `DEV_LOCAL_UNSAFE=true` → process refuses to start.
+| Mode | Setting | Use |
+|------|---------|-----|
+| Production | `SECURE_MODE=true` | Default; supervisor holds Docker socket |
+| Local dev only | `DEV_LOCAL_UNSAFE=true` | Never on a public URL |
 
 Detail: [Security](./security.md).
 
-## Supervisor endpoints
-
-Implemented in `services/workframe-supervisor/server.py`:
+## Supervisor (secure mode)
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/health` | Unauthenticated health |
-| `GET` | `/v1/profile.status?profile=` | Gateway state for one profile |
-| `GET` | `/v1/stack.status` | All routed profiles |
-| `POST` | `/v1/profile.start` | Start gateway for profile |
-| `POST` | `/v1/profile.stop` | Stop gateway |
-| `POST` | `/v1/profile.disable` | Stop + disable platforms in config |
+| `GET` | `/health` | Health check |
+| `POST` | `/v1/profile.start` | Start profile gateway |
+| `POST` | `/v1/profile.stop` | Stop profile gateway |
 | `POST` | `/v1/gateway.exec` | Hermes CLI in gateway container |
 | `POST` | `/v1/hermes.user_exec` | Hermes CLI in user runtime home |
 
-Token: `WORKFRAME_SUPERVISOR_TOKEN` in `.env`.
+Requires `WORKFRAME_SUPERVISOR_TOKEN` in `.env`.
 
-## Profile API lifecycle
+## Providers
 
-Specialist profiles expose HTTP on a port inside `workframe-gateway`.
-
-Current behavior:
-
-1. `_bootstrap_profile_providers` — seed specialist auth; sync user `.env`
-2. If health check passes → return immediately (no gateway restart)
-3. If down → start via supervisor (secure mode), wait for health
-
-Per-turn payer keys: `_overlay_turn_provider_env` writes the triggering user's LLM secret into the specialist `.env` before each chat turn. Concurrent users on the same shared specialist profile can race — known ceiling.
-
-## Provider connect
-
-Policy: deny-by-default. Admin configures OAuth app ids; each user connects their own tokens.
-
-- Catalog: `PROVIDER_CONNECT_CATALOG` in `server.py`
-- UI: Profile sheet → **Connect accounts** (`ProviderConnectPanel.tsx`)
-- Keys land in `Agents/profiles/{user_slug}/.env`
-- `user_only` providers: `_resolve_credential(..., user_only=True)` — no workspace fallback
-
-Gating: agent chat and space `@mentions` require the triggering user to have an LLM provider.
+- Admin configures OAuth app ids during install
+- Each user connects LLM and integration keys via **Connect accounts**
+- Agent chat and space @mentions require the acting user to have an LLM provider connected
 
 ## Chat surfaces
 
-| Surface | Storage | Hermes profile | Session |
-|---------|---------|----------------|---------|
-| Agent DM | BFF → Hermes SSE | `u-{user}-{agent}` | `profile_chat_bind` + `room_id` |
-| Human DM | SQLite `messages` | — | Room membership |
-| Space | SQLite + server stream | Template agent slug | `room_sessions` |
+| Surface | Transport |
+|---------|-----------|
+| Agent DM | Hermes stream via BFF; per-user runtime profile |
+| Human DM | SQLite messages |
+| Space | SQLite + server-side @mention invoke; live SSE for agent turns |
 
-### Space `@mentions`
+Session binding: [Session architecture](./session-architecture.md).
 
-1. `POST /api/rooms/:id/messages/send` inserts user message
-2. `_process_space_message_mentions` → `_invoke_room_agent_mention`
-3. Room-scoped Hermes stream with payer env overlay
-4. `GET /api/rooms/:id/live` SSE: `turn.started` / `turn.update` / `turn.complete`
-5. Final reply persisted; workspace SSE bumps revision
-
-Agent DM session detail: [Session architecture](./session-architecture.md).
-
-## Frontend refresh
-
-- `watchRoomLive` — room SSE for live agent turns
-- `watchWorkspaceEvents` — workspace SSE (ignores heartbeat keepalives)
-- UI serves `apps/web/dist` — rebuild after UI changes; restart `workframe-ui` if nginx cached stale API IP
-
-## Verification
-
-From repository root after changes:
+## After code changes
 
 ```bash
 pnpm build:web
 docker compose -f infra/compose/workframe/docker-compose.yml restart workframe-api workframe-ui
-bash scripts/workframe/verify-public-deploy.sh
 ```
 
-Contributor regression scripts: [contributing.md](./contributing.md).
+Public deploy verification: `bash scripts/workframe/verify-public-deploy.sh`
 
-## Related
-
-- [BFF route map](./bff-route-map.md)
-- [Security](./security.md)
-- [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md)
+Maintainer regression: [contributing.md](./contributing.md).
