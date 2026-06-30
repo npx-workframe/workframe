@@ -20,11 +20,13 @@ These paths are included in the `create-workframe` tarball (`files` in `package.
 Full public docs live at the monorepo root:
 
 - [docs/README.md](../../../docs/README.md)
-- [docs/public/getting-started.md](../../../docs/public/getting-started.md)
+- [docs/public/what-is-workframe.md](../../../docs/public/what-is-workframe.md)
+- [docs/public/install.md](../../../docs/public/install.md)
+- [docs/public/develop.md](../../../docs/public/develop.md)
 - [docs/public/contributing.md](../../../docs/public/contributing.md)
 - [infra/compose/workframe/PUBLIC_DEPLOY.md](../../../infra/compose/workframe/PUBLIC_DEPLOY.md)
 
-Contributor smoke checklist: see `docs/public/contributing.md` in the repository — not duplicated here.
+Contributor and release checks: [docs/public/release.md](../../../docs/public/release.md)
 
 ## Shared knowledge copied into generated `docs/`
 

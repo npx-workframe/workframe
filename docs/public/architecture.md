@@ -35,6 +35,22 @@ Vite/React SPA. Nginx serves static assets and proxies `/api/*` and `/hermes-das
 
 When `SECURE_MODE=true`, holds the Docker socket; the API delegates profile lifecycle through a token-authenticated HTTP service. See [Security](./security.md).
 
+## Source map (monorepo)
+
+| Component | Repository path |
+|-----------|-----------------|
+| UI | `apps/web/src/` |
+| API | `services/workframe-api/server.py` |
+| Supervisor | `services/workframe-supervisor/server.py` |
+| Reference compose | `infra/compose/workframe/` |
+| Installer | `packages/create-workframe/` |
+
+Generated installs receive built copies of API, UI, and supervisor from the npm package.
+
+## Multi-user isolation
+
+The Hermes gateway container mounts the shared `Agents/` tree. User isolation relies on per-user runtime profiles (`u-{user}-*`), role checks in the API, supervisor guards on sensitive profile paths, and encrypted credentials — not on disabling the terminal tool. See [Security](./security.md) and [Audit guide](./audit.md).
+
 ## Volumes (generated install)
 
 | Host | Mount | Purpose |
@@ -61,6 +77,6 @@ Files hold durable project truth. Kanban tracks execution. Chat coordinates inte
 
 - [Using Workframe](./using-workframe.md) — product surfaces
 - [Session architecture](./session-architecture.md) — chat binding
-- [API reference](./api-reference.md) — shipped BFF routes
-- [Runtime operations](./runtime-operations.md) — compose and operations
+- [API reference](./api-reference.md) — HTTP routes used by the UI
+- [Operations](./operations.md) — compose and day-to-day ops
 - [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) — multi-user VPS

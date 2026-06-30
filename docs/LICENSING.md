@@ -6,7 +6,7 @@ Workframe open-source components ship under **Apache License 2.0**.
 
 ```text
 apps/web/                      Product UI
-services/workframe-api/        BFF
+services/workframe-api/        API server
 services/workframe-supervisor/ Secure-mode host actions
 packages/create-workframe/     npx installer
 infra/compose/workframe/       Reference Docker stack

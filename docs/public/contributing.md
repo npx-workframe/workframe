@@ -1,12 +1,34 @@
 # Contributing
 
-For reviewers validating changes before release.
+Thank you for considering a contribution to [Workframe](https://github.com/npx-workframe/workframe).
 
-## Prerequisites
+## Before you start
 
-- Node ≥ 20, pnpm, Docker, Python 3 (for local API development)
+1. Read [What is Workframe?](./what-is-workframe.md) and [Develop](./develop.md)
+2. Set up the reference stack locally
+3. For security findings, use [SECURITY.md](../../SECURITY.md) — not public issues
 
-## Build and run locally (monorepo)
+## How to contribute
+
+### Bug reports
+
+Open a [GitHub issue](https://github.com/npx-workframe/workframe/issues) with:
+
+- What you expected vs what happened
+- Deployment mode (`single_user_local`, `trusted_team`, `public_multi_user`)
+- Steps to reproduce
+- Relevant logs (redact secrets)
+
+### Pull requests
+
+1. Fork and branch from `main`
+2. Make focused changes; match existing code style
+3. Run local verification (below)
+4. Open a PR with a clear description and test notes
+
+We do not require a CLA. Contributions are under the project [LICENSE](../../LICENSE) (Apache-2.0).
+
+## Local development
 
 ```bash
 git clone https://github.com/npx-workframe/workframe.git
@@ -18,84 +40,44 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-UI: `http://127.0.0.1:18644/`
+Full setup: [Develop](./develop.md)
 
-Reference stack services: `gateway`, `dashboard`, `workframe-api`, `workframe-supervisor`, `workframe-ui`.
+## Where to work
 
-## Scaffold smoke test (monorepo)
+| Area | Path |
+|------|------|
+| Product UI | `apps/web/src/` |
+| API | `services/workframe-api/` |
+| Supervisor | `services/workframe-supervisor/` |
+| Installer | `packages/create-workframe/` |
+| Reference compose | `infra/compose/workframe/` |
+| Ops scripts | `scripts/workframe/` |
 
-Generate a scratch project without publishing:
+UI or API changes that ship to end users must follow the canonical sync steps in [Release verification](./release.md) before npm publish.
 
-```bash
-node packages/create-workframe/scripts/new-project.mjs SmokeDemo --out /tmp --force
-cd /tmp/SmokeDemo
-```
+## Verification before PR
 
-Expected:
-
-- `workframe-manifest.json`: `"pack": "native"`, one bootstrap profile `{slug}-agent`
-- `docker-compose.yml`: five services — `gateway`, `dashboard`, `workframe-api`, `workframe-supervisor`, `workframe`
-
-After Hermes setup in the generated project:
-
-```bash
-./scripts/bootstrap-native.sh
-./scripts/verify-bootstrap.sh
-```
-
-Expected: `Agents/SOUL.md`, `Agents/profiles/{slug}-agent/SOUL.md`, `terminal.cwd` → `/workspace`.
-
-## Runtime checks (generated project)
+Minimum for most changes:
 
 ```bash
-docker compose up -d
-node scripts/workframe.mjs doctor
-```
-
-Expected: UI loads, `/hermes-dashboard/` loads, API health OK, native SOUL present.
-
-## Session routing
-
-Via BFF:
-
-- same profile + different `client_id` → different sessions
-- same profile + same `client_id` → same persisted session
-
-## Specialist lifecycle
-
-```bash
-node scripts/agent-lifecycle.mjs create --slug qa-proof --display-name "QA Proof" --role "Smoke-test child"
-node scripts/agent-lifecycle.mjs delete --slug qa-proof
-```
-
-## Monorepo regression scripts
-
-From repository root:
-
-```bash
+pnpm build:web
 node packages/create-workframe/scripts/test-scaffold.mjs
-bash scripts/workframe/verify-public-deploy.sh
-bash scripts/workframe/install-gate.sh   # or install-gate.ps1 on Windows
 ```
 
-Expected: scaffold tests pass for `native`, `core`, `product`, `engineering`, and `vanilla` packs.
+For API, security, or installer changes, also run checks in [Release verification](./release.md).
 
-## Public deploy preflight
+## Documentation
 
-With a configured public overlay:
+Public docs live in `docs/public/`. Update docs when behavior changes. Verify against source (`server.py`, compose files, UI onboarding flow).
 
-```bash
-bash scripts/workframe/verify-public-deploy.sh
-```
+Sanitization rules for public docs: [MAINTAINER.md](../MAINTAINER.md)
 
-See [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) for multi-user VPS requirements.
+## Code of conduct
 
-## Canonical edit order (UI + API changes)
+Be respectful and constructive. Security issues deserve responsible disclosure via [SECURITY.md](../../SECURITY.md).
 
-1. Edit `apps/web/src/` and/or `services/workframe-api/`
-2. `pnpm build:web` if UI touched
-3. `node packages/create-workframe/scripts/sync-canonical-to-package.mjs` if API/supervisor touched
-4. `node packages/create-workframe/scripts/bundle-workframe-ui.mjs` if UI touched
-5. Rebuild Docker API/supervisor images for dogfood if BFF changed
+## Related
 
-If docs disagree with code, code wins.
+- [Release verification](./release.md) — pre-publish gate
+- [Audit](./audit.md) — security review map
+- [Operations](./operations.md) — running stacks

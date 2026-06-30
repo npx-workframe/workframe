@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const videoSrc =
-  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ?? "/Workframe_VideoDemo.mp4";
+  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ?? "/Workframe_DemoVideos.mp4";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";

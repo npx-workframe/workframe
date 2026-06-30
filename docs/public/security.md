@@ -42,14 +42,4 @@ Full checklist: [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.m
 
 ## Multi-user filesystem model
 
-The Hermes gateway container mounts the shared `Agents/` tree. Isolation relies on per-user runtime profiles, RBAC in the BFF, supervisor exec guards, and vault/lease credentials — not on separate mount namespaces per user. Review [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) before exposing a stack to untrusted users.
-
-## Install-window test flags (maintainers only)
-
-| Flag | Safe when |
-|------|-----------|
-| `WORKFRAME_E2E=1` | Loopback, install window only |
-| `WORKFRAME_E2E_UNSAFE=1` | CI/local test stacks |
-| `DEV_LOCAL_UNSAFE=true` | Trusted local operators only |
-
-OTP-in-JSON exposure stops after install completes.
+The Hermes gateway container mounts the shared `Agents/` tree. User isolation uses per-user runtime profiles, role checks in the API, supervisor guards, and encrypted credentials. Read [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) before running a public multi-user install.

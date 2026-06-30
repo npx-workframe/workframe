@@ -2,14 +2,14 @@
 
 Use when `WORKFRAME_DEPLOYMENT_MODE=public_multi_user` — a VPS or cloud URL with **untrusted** sign-ups (e.g. `https://your.public.host`).
 
-For trusted dogfood (1–2 operators), keep `trusted_team`. For solo local Hermes on one machine, use `single_user_local`.
+For a small trusted team on Docker/LAN, use `trusted_team`. For solo local use, `single_user_local`.
 
 ## Deployment modes (login + config)
 
 | Mode | After install completes | Boot fail-closed |
 |------|-------------------------|------------------|
 | `single_user_local` | No email sign-in gate | No |
-| `trusted_team` | Invite-only (members + pending invitees) | No — use on loopback/LAN dogfood |
+| `trusted_team` | Invite-only (members + pending invitees) | No — suitable for loopback/LAN team installs |
 | `public_multi_user` | Invite-only (same login policy) | Yes — HTTPS `APP_BASE_URL`, vault, SMTP, proxy token, … |
 
 **Config precedence:** `WORKFRAME_DEPLOYMENT_MODE` in `.env` wins over `stack_config.json` in runtime data. The install wizard may persist a mode to the file; restart applies the env value. Do not run `public_multi_user` on `http://127.0.0.1` — boot will refuse (HTTPS required).
@@ -75,7 +75,7 @@ cd infra/compose/workframe
 docker compose -f docker-compose.yml -f docker-compose.public.yml up -d --build
 ```
 
-**Local dogfood (admin updates from API):**
+**Local development (admin updates from API):**
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev-authority.yml up -d --build
@@ -113,9 +113,9 @@ Manual smoke:
 | Agent toolsets | **Full** (`hermes-cli` + `terminal`) on `/workspace` — credential isolation via vault + proxy token, not disabled shell |
 | Kanban delegation | Assignee **owner** pays (not initiator) |
 
-## Known ceiling
+## Multi-user isolation
 
-Hermes still mounts the full `runtime/Agents` tree in the gateway container. Multi-user safety relies on **runtime profile RBAC**, **supervisor/BFF exec blocks** on `profiles/u-*/.env` and `auth.json`, and **per-user runtime profiles** for BYOK — not on removing terminal. A future step is per-user mount namespaces or Hermes credential channels for defense in depth.
+The Hermes gateway container mounts the shared `runtime/Agents` tree. User isolation relies on per-user runtime profiles, role checks in the API, supervisor guards on sensitive profile paths (`profiles/u-*/.env`, `auth.json`), and encrypted credentials — not on disabling the terminal tool.
 
 ## Rollback
 

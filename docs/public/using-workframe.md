@@ -39,4 +39,4 @@ What you can do in the Workframe UI after install.
 
 Advanced Hermes settings (MCP, cron, full config editor) are available in the **Hermes dashboard** for owner/admin.
 
-See [Getting started](./getting-started.md), [Security](./security.md), and [Session architecture](./session-architecture.md).
+See [Install](./install.md), [Security](./security.md), and [Session architecture](./session-architecture.md).

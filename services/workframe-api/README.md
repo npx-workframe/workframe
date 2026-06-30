@@ -1,8 +1,6 @@
 # Workframe API Service
 
-Python BFF for the Workframe UI. See [docs/VERSION.md](../../docs/VERSION.md) for release version.
-
-Canonical implementation — not rewritten into a separate `apps/api` service.
+HTTP API for the Workframe UI. See [docs/VERSION.md](../../docs/VERSION.md) for release version.
 
 ## Local (outside Docker)
 
@@ -21,6 +19,6 @@ HOST=0.0.0.0 PORT=8080 HERMES_DATA=/opt/data WORKSPACE=/workspace python3 server
 
 ## Docs
 
-- [Runtime operations](../../docs/public/runtime-operations.md)
+- [Operations](../../docs/public/operations.md)
 - [Security](../../docs/public/security.md)
-- [BFF route map](../../docs/public/bff-route-map.md)
+- [API reference](../../docs/public/api-reference.md)

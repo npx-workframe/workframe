@@ -16,7 +16,7 @@ direct contact with the repository owner).
 
 Include:
 
-- Affected component (BFF, supervisor, installer, UI, compose)
+- Affected component (workframe-api, supervisor, installer, UI, compose)
 - Steps to reproduce
 - Impact assessment (data exposure, auth bypass, RCE, etc.)
 - Suggested fix if you have one
@@ -26,8 +26,8 @@ We aim to acknowledge reports within a few business days.
 ## Scope notes
 
 - Personal Hermes installs outside a Workframe compose stack are out of scope unless the issue is in shared Workframe source that affects all installs.
-- Production deployments should run with `WORKFRAME_MODE=team`, invite-only access, and
-  without `DEV_LOCAL_UNSAFE`.
+- Production deployments should use `WORKFRAME_DEPLOYMENT_MODE=trusted_team` or
+  `public_multi_user`, invite-only access, and without `DEV_LOCAL_UNSAFE`.
 - BYOK (bring-your-own-key) is the default credential mode; workspace company-pays is an
   explicit admin opt-in.
 
