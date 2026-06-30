@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.workframe.io";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.workfra.me";
 
 export default function Home() {
   return (
@@ -50,7 +50,7 @@ export default function Home() {
       </main>
 
       <footer className="safe-bottom border-t border-white/10 px-5 py-4 text-xs text-white/45">
-        Public marketing surface · product app lives at app.workframe.io
+        Public marketing surface · product app lives at app.workfra.me
       </footer>
     </div>
   );
