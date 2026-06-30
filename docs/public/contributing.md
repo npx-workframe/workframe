@@ -5,7 +5,7 @@ For reviewers validating changes before release.
 ## Prerequisites
 
 - Node ≥ 20, pnpm, Docker
-- Python 3 for `services/workframe-api` tests
+- Python 3 for API `py_compile` typecheck in CI
 
 ## Build and run locally
 
@@ -63,12 +63,16 @@ node Workframe/scripts/agent-lifecycle.mjs create --slug qa-proof --display-name
 node Workframe/scripts/agent-lifecycle.mjs delete --slug qa-proof
 ```
 
-## API tests
+## CI checks
+
+From the repository root:
 
 ```bash
-cd services/workframe-api
-python -m pytest tests/test_provider_bootstrap.py tests/test_supervisor_lifecycle.py tests/test_ensure_profile_api.py tests/test_room_tenancy.py -q
+pnpm install
+pnpm test:ci
 ```
+
+This runs public-repo verification, API `py_compile` typecheck, web build, UI bundle copy, and scaffold smoke tests for all packs.
 
 ## Public deploy preflight
 
@@ -80,9 +84,7 @@ See [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) for multi
 
 ## Scaffold regression
 
-```bash
-node packages/create-workframe/scripts/test-scaffold.mjs
-```
+Covered by `pnpm test:ci` (or `node packages/create-workframe/scripts/test-scaffold.mjs` after `pnpm build:web` and bundling UI into the package).
 
 Expected: passes for `native`, `core`, `product`, `engineering`, and `vanilla` packs.
 
