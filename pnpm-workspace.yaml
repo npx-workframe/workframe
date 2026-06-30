@@ -5,6 +5,4 @@ packages:
   - "packages/create-workframe"
   - "packages/workframe"
   - "packages/workframe-scoped"
-  - "packages/workframe-core"
   - "services/workframe-api"
-  - "services/workframe-supervisor"

@@ -95,8 +95,7 @@ Agent DM session detail: [Session architecture](./session-architecture.md).
 ## Verification commands
 
 ```bash
-cd services/workframe-api
-python -m pytest tests/test_provider_bootstrap.py tests/test_supervisor_lifecycle.py tests/test_ensure_profile_api.py tests/test_room_tenancy.py -q
+pnpm test:ci
 ```
 
 ```bash
