@@ -3,6 +3,15 @@ import { Inter_Tight, JetBrains_Mono } from "next/font/google";
 
 import { PwaRegister } from "@/components/pwa-register";
 import { SiteScrollRoot } from "@/components/site-scroll-root";
+import {
+  ogImage,
+  openGraphDefaults,
+  siteDescription,
+  siteName,
+  siteTitle,
+  siteUrl,
+  twitterDefaults,
+} from "@/lib/site-metadata";
 import "./globals.css";
 
 const interTight = Inter_Tight({
@@ -17,8 +26,6 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://workfra.me";
-
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -27,30 +34,54 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Workframe",
-  description:
-    "The Social OS for Autonomous Businesses. Install a private workspace where humans and agents collaborate.",
-  applicationName: "Workframe",
+  title: {
+    default: siteTitle,
+    template: `%s · ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [
+    "Workframe",
+    "Hermes",
+    "AI agents",
+    "autonomous business",
+    "multi-agent",
+    "self-hosted",
+    "BYOK",
+    "agent workspace",
+    "create-workframe",
+  ],
+  authors: [{ name: siteName, url: siteUrl }],
+  creator: siteName,
+  publisher: siteName,
+  category: "technology",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",
     apple: "/favicon.svg",
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
-    type: "website",
+    ...openGraphDefaults,
     url: siteUrl,
-    siteName: "Workframe",
-    title: "Workframe",
-    description:
-      "The Social OS for Autonomous Businesses. Install a private workspace where humans and agents collaborate.",
-    images: [{ url: "/demo-poster.png", width: 1200, height: 630, alt: "Workframe" }],
+    title: siteTitle,
+    description: siteDescription,
+    images: [ogImage],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Workframe",
-    description:
-      "The Social OS for Autonomous Businesses. Install a private workspace where humans and agents collaborate.",
-    images: ["/demo-poster.png"],
+    ...twitterDefaults,
+    title: siteTitle,
+    description: siteDescription,
+    images: [ogImage.url],
   },
   alternates: {
     canonical: siteUrl,
