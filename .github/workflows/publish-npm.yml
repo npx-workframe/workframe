@@ -1,0 +1,103 @@
+# Publish workframe, create-workframe, and @workframe/workframe via npm trusted publishing (OIDC).
+# npm: each package → Settings → Trusted publishing → GitHub Actions →
+#   repo npx-workframe/workframe, workflow publish-npm.yml
+# GitHub: secret VERIFY_PUBLIC_PATTERNS_JSON = contents of verify-public-patterns.local.json
+name: Publish npm
+
+# Only explicit version tags publish — pushes to main run CI only (ci.yml).
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # OIDC for npm trusted publishing
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches package versions
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          for pkg in packages/workframe packages/create-workframe packages/workframe-scoped; do
+            VER="$(node -p "require('./$pkg/package.json').version")"
+            if [ "$VER" != "$TAG" ]; then
+              echo "version mismatch: $pkg is $VER but tag is v$TAG"
+              exit 1
+            fi
+          done
+          echo "OK: all packages at $TAG"
+
+      - name: Operator denylist
+        env:
+          PATTERNS: ${{ secrets.VERIFY_PUBLIC_PATTERNS_JSON }}
+        run: |
+          if [ -z "$PATTERNS" ]; then
+            echo 'missing GitHub secret VERIFY_PUBLIC_PATTERNS_JSON'
+            echo 'paste scripts/workframe/verify-public-patterns.local.json (gitignored)'
+            exit 1
+          fi
+          printf '%s\n' "$PATTERNS" > scripts/workframe/verify-public-patterns.local.json
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: npm CLI (trusted publishing needs >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Public repo verify
+        env:
+          VERIFY_PUBLIC_STRICT: '1'
+        run: pnpm verify:public
+
+      - name: Install gate (quick — no live stack)
+        run: bash scripts/workframe/install-gate.sh --quick
+
+      - name: Publish workframe
+        working-directory: packages/workframe
+        run: npm publish --access public
+
+      - name: Publish create-workframe
+        working-directory: packages/create-workframe
+        run: npm publish --access public
+
+      - name: Publish @workframe/workframe
+        working-directory: packages/workframe-scoped
+        run: npm publish --access public
+
+      - name: Verify registry
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          for pkg in workframe create-workframe @workframe/workframe; do
+            for i in $(seq 1 12); do
+              v="$(npm view "$pkg" version 2>/dev/null || true)"
+              if [ "$v" = "$TAG" ]; then
+                echo "OK: $pkg@$v"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "npm view $pkg did not show $TAG (last: $v)"
+                exit 1
+              fi
+              sleep 5
+            done
+          done

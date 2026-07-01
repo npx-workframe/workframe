@@ -72,6 +72,39 @@ Full sign-off before npm publish:
 bash scripts/workframe/install-gate.sh   # Windows: install-gate.ps1
 ```
 
+## GitHub → npm (trusted publishing)
+
+No laptop OTP after one-time setup.
+
+### npm (each package)
+
+On [npmjs.com](https://www.npmjs.com), for **workframe**, **create-workframe**, and **@workframe/workframe**:
+
+1. Package → **Settings** → **Trusted publishing**
+2. **GitHub Actions** → repository `npx-workframe/workframe`, workflow filename `publish-npm.yml`
+3. Save (repeat per package; same workflow name)
+
+Optional hardening after first green CI publish: **Publishing access** → require 2FA and disallow tokens.
+
+### GitHub
+
+1. Repo **Settings** → **Secrets and variables** → **Actions**
+2. Secret `VERIFY_PUBLIC_PATTERNS_JSON` = full JSON from `scripts/workframe/verify-public-patterns.local.json` (gitignored operator denylist)
+
+### Release
+
+Bump versions in all three publish `package.json` files, commit, tag, push:
+
+```bash
+git tag v0.1.7
+git push origin main
+git push origin v0.1.7
+```
+
+Workflow `.github/workflows/publish-npm.yml` runs install-gate (quick), then `npm publish` via OIDC.
+
+Local publish (OTP or granular bypass token) remains: `.\scripts\workframe\publish-npm.ps1`
+
 ## Install-window test flags
 
 Use only on loopback or dedicated test stacks — never on a public URL.

@@ -17,6 +17,7 @@
     "desktop:dev": "pnpm --filter @workframe/desktop dev",
     "desktop:package": "pnpm --filter @workframe/desktop build && pnpm --filter @workframe/desktop package:win",
     "verify:public": "node scripts/workframe/verify-public-repo.mjs",
+    "test:api": "pnpm --filter @workframe/workframe-api typecheck",
     "test:scaffold": "node packages/create-workframe/scripts/test-scaffold.mjs",
     "test:ci": "pnpm verify:public && pnpm --filter @workframe/workframe-api typecheck && pnpm build:web && node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build && pnpm test:scaffold"
   },
