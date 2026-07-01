@@ -38,3 +38,4 @@ services:
       context: ${WORKFRAME_HOST_PROJECT_ROOT}/services/workframe-supervisor
     volumes:
       - ${WORKFRAME_HOST_PROJECT_ROOT}/runtime/Agents:/opt/data
+      - ${WORKFRAME_HOST_PROJECT_ROOT}:${WORKFRAME_HOST_PROJECT_ROOT}

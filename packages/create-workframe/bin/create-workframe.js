@@ -245,6 +245,7 @@ services:
       - WORKFRAME_SCRIPTS_DIR=/opt/install/scripts
       - WORKFRAME_COMPOSE_DIR=/compose
       - WORKFRAME_PROJECT_ROOT=/compose
+      - WORKFRAME_HOST_PROJECT_ROOT=/compose
       - WORKFRAME_SUPERVISOR_ALLOW_RAW_EXEC=0
 `;
 }
@@ -534,6 +535,7 @@ services:
       context: \${WORKFRAME_HOST_PROJECT_ROOT}/workframe-supervisor
     volumes:
       - \${WORKFRAME_HOST_PROJECT_ROOT}/Agents:/opt/data
+      - \${WORKFRAME_HOST_PROJECT_ROOT}:\${WORKFRAME_HOST_PROJECT_ROOT}
 
   workframe:
     volumes:
