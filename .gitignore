@@ -88,6 +88,7 @@ scripts/workframe/isolate-local-runtime.ps1
 
 # operator scripts with tenant-specific debug (use verify-public-deploy.sh)
 scripts/workframe/vps-*-chat*.py
+scripts/workframe/verify-public-patterns.local.json
 
 # OS/editor
 .DS_Store

@@ -1,0 +1,12 @@
+{
+  "patterns": [
+    "your-github-username",
+    "you@example.com",
+    "example.com",
+    "d:/your-workspace",
+    "YourInternalProjectName",
+    "your-org/your-private-fork",
+    "0.0.0.0",
+    "your-private-domain.example"
+  ]
+}

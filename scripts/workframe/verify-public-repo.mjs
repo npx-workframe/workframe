@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Fail if tracked public repo contains private/operator patterns.
- * Cross-platform counterpart to verify-public-repo.ps1.
+ * Fail if tracked public repo contains private paths or operator-defined patterns.
+ * Operator patterns live in verify-public-patterns.local.json (gitignored) — never in this file.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -10,22 +10,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '../..');
-
-const patterns = [
-  /[redacted]/i,
-  /[redacted]/i,
-  /click\.blue/i,
-  /d:\\ab/i,
-  /d:\/ab/i,
-  /D:\\ab/i,
-  /D:\/ab/i,
-  /[redacted]/i,
-  /[redacted]/i,
-  /[redacted]/i,
-  /architectonic\/workframe/i,
-  /95\.216\.136/,
-  /workframe\.io/i,
-];
+const localPatternsPath = path.join(__dirname, 'verify-public-patterns.local.json');
+const strict = process.env.VERIFY_PUBLIC_STRICT === '1';
 
 const forbiddenPaths = [
   'services/workframe-api/tests',
@@ -36,9 +22,12 @@ const forbiddenPaths = [
   'docs/integrations',
 ];
 
+const skipScan = new Set([
+  'scripts/workframe/verify-public-patterns.local.json',
+  'scripts/workframe/verify-public-patterns.example.json',
+]);
+
 const testPathPattern = /(^|\/)(tests|e2e)(\/|$)|\.test\.(ts|js)$|\.spec\.(ts|js)$/;
-const selfName = 'scripts/workframe/verify-public-repo.mjs';
-const selfNamePs1 = 'scripts/workframe/verify-public-repo.ps1';
 
 function gitLsFiles(target) {
   try {
@@ -60,6 +49,32 @@ function gitLsAllFiles() {
     .filter(Boolean);
 }
 
+function loadOperatorPatterns() {
+  if (!fs.existsSync(localPatternsPath)) {
+    if (strict) {
+      console.error(
+        'PUBLIC REPO VERIFY FAILED: missing scripts/workframe/verify-public-patterns.local.json',
+      );
+      console.error('  Copy verify-public-patterns.example.json → verify-public-patterns.local.json');
+      console.error('  and fill in your operator denylist (local file is gitignored).');
+      process.exit(1);
+    }
+    return [];
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(localPatternsPath, 'utf8'));
+  } catch (err) {
+    console.error(`PUBLIC REPO VERIFY FAILED: invalid ${localPatternsPath}: ${err.message}`);
+    process.exit(1);
+  }
+  const rows = Array.isArray(parsed?.patterns) ? parsed.patterns : [];
+  return rows
+    .map((row) => String(row ?? '').trim())
+    .filter(Boolean)
+    .map((literal) => new RegExp(literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+}
+
 for (const forbidden of forbiddenPaths) {
   const tracked = gitLsFiles(forbidden);
   if (tracked.length > 0) {
@@ -68,20 +83,19 @@ for (const forbidden of forbiddenPaths) {
   }
 }
 
+const patterns = loadOperatorPatterns();
 const hits = [];
+
 for (const rel of gitLsAllFiles()) {
-  if (rel === selfName || rel === selfNamePs1) {
-    continue;
-  }
+  if (skipScan.has(rel)) continue;
   if (testPathPattern.test(rel)) {
     hits.push(`forbidden path: ${rel}`);
     continue;
   }
+  if (!patterns.length) continue;
 
   const full = path.join(root, rel);
-  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
-    continue;
-  }
+  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) continue;
 
   let text;
   try {
@@ -106,4 +120,8 @@ if (hits.length > 0) {
   process.exit(1);
 }
 
-console.log('OK: public repo verify passed');
+if (patterns.length) {
+  console.log(`OK: public repo verify passed (${patterns.length} operator patterns)`);
+} else {
+  console.log('OK: public repo verify passed (structural checks only; no local patterns file)');
+}
