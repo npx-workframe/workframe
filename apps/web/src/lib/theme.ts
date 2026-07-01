@@ -16,12 +16,8 @@ function readStoredTheme(): Theme | null {
   }
 }
 
-function readSystemTheme(): Theme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
 export function getInitialTheme(): Theme {
-  return readStoredTheme() ?? readSystemTheme()
+  return readStoredTheme() ?? 'neo'
 }
 
 export function applyTheme(theme: Theme) {

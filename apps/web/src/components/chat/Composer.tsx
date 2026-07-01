@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Paperclip, Send, Square } from 'lucide-react'
 
-import { CommandDialogsProvider, useCommandDialogs } from '@/contexts/CommandDialogsContext'
+import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
 import { DebugDialog } from '@/components/chat/DebugDialog'
 import { GquotaDialog } from '@/components/chat/GquotaDialog'
@@ -447,9 +447,5 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
 })
 
 export const Composer = forwardRef<ComposerHandle, ComposerProps>(function Composer(props, ref) {
-  return (
-    <CommandDialogsProvider>
-      <ComposerInner {...props} ref={ref} />
-    </CommandDialogsProvider>
-  )
+  return <ComposerInner {...props} ref={ref} />
 })

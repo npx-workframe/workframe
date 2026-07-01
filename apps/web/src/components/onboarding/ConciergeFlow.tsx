@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import {
   authStartNotice,
@@ -15,6 +15,8 @@ import {
 } from '@/components/onboarding/OnboardingLaunchScreen'
 import { buildWizardSteps, enrichWizardSteps, railStepToConciergeStep, stepMeta, wizardRailStep, type ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
 import { OnboardingWizardShell } from '@/components/onboarding/OnboardingWizardShell'
+import { DialogFrame } from '@/components/dialogs/DialogFrame'
+import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { PublicUrlWizardStep } from '@/components/onboarding/PublicUrlWizardStep'
 import { WorkframeIntegrationsStep } from '@/components/onboarding/WorkframeIntegrationsStep'
@@ -38,6 +40,7 @@ import {
   type WorkspaceDetail,
 } from '@/lib/workframeAuthApi'
 import { fetchWorkframeMeta } from '@/lib/workframeMetaApi'
+import { isElectronRuntime } from '@/lib/runtime'
 import { syncSessionInstallScope } from '@/lib/workframeSession'
 
 export type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
@@ -64,6 +67,35 @@ function normalizePublicUrl(url: string): string {
 
 function defaultAgentSoul(name: string, project: string) {
   return `You are ${name}, the Workframe Manager for ${project}. You help the owner run rooms, agents, and day-to-day work.`
+}
+
+function OnboardingAuthGate({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <div className="wf-onboarding-page wf-onboarding-page--gate">
+      <div className="wf-onboarding-page__theme">
+        <ThemeSwitcher />
+      </div>
+      <DialogFrame
+        open
+        modal={!isElectronRuntime()}
+        onOpenChange={() => {}}
+        title={title}
+        description={description}
+        showClose={false}
+        contentClassName="wf-auth-dialog"
+      >
+        {children}
+      </DialogFrame>
+    </div>
+  )
 }
 
 type SmtpProgressPhase = 'setup' | 'smtp' | 'test-email' | 'verify'
@@ -1088,24 +1120,20 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
 
   if (ownerSignInRequired) {
     return (
-      <div className="wf-auth-dialog wf-onboarding-form">
-        <h2 className="wf-dialog-title">Sign in to continue setup</h2>
-        <p className="wf-dialog-field__hint">Sign in as the workspace owner.</p>
+      <OnboardingAuthGate title="Sign in to continue setup" description="Sign in as the workspace owner.">
         <EmailOtpVerification
           initialEmail={adminEmail}
           startStep="email"
           purpose="signin"
           onVerified={handleOwnerSignedIn}
         />
-      </div>
+      </OnboardingAuthGate>
     )
   }
 
   if (isInvitee && !inviteeAuthed) {
     return (
-      <div className="wf-auth-dialog wf-onboarding-form">
-        <h2 className="wf-dialog-title">Join {projectName}</h2>
-        <p className="wf-dialog-field__hint">Verify your invite email to continue.</p>
+      <OnboardingAuthGate title={`Join ${projectName}`} description="Verify your invite email to continue.">
         <EmailOtpVerification
           initialEmail={inviteEmail}
           startStep="email"
@@ -1113,7 +1141,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           purpose="signin"
           onVerified={handleInviteeVerified}
         />
-      </div>
+      </OnboardingAuthGate>
     )
   }
 

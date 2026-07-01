@@ -15,6 +15,7 @@ import { resolveUserAvatarUrl } from '@/lib/avatarResolve'
 import { userAvatarPersistPayload, userAvatarPickerValue } from '@/lib/presetAssets'
 import { workframeAuthApi, type SessionProfile, type WorkspaceMember } from '@/lib/workframeAuthApi'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
+import { cn } from '@/lib/utils'
 
 type ProfileTab = 'profile' | 'connect' | 'agents' | 'appearance'
 type ConnectTab = 'providers' | 'models' | 'messaging'
@@ -145,6 +146,7 @@ export function UserProfileSheet({
       summary={summary || undefined}
       titleId="wf-user-profile-title"
       loading={loading}
+      contentFill={tab === 'connect' && connectTab === 'models'}
       tabs={[
         { id: 'profile', label: 'Identity & Bio' },
         { id: 'connect', label: 'Connected Accounts' },
@@ -168,7 +170,12 @@ export function UserProfileSheet({
         ) : null
       }
     >
-      <div className="space-y-6">
+      <div
+        className={cn(
+          'space-y-6',
+          tab === 'connect' && connectTab === 'models' && 'wf-settings-fill-stack',
+        )}
+      >
         {tab === 'agents' && error ? <WorkframeNotice message={error} /> : null}
         {tab === 'agents' && status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -222,7 +229,12 @@ export function UserProfileSheet({
             {error ? <WorkframeNotice message={error} /> : null}
             {status ? <WorkframeStatusNotice message={status} /> : null}
 
-            <div className="wf-wizard-panel wf-onboarding-form">
+            <div
+              className={cn(
+                'wf-wizard-panel wf-onboarding-form',
+                connectTab === 'models' && 'wf-wizard-panel--model-fill',
+              )}
+            >
               <div className="wf-wizard-subtabs" role="tablist" aria-label="Connected account sections">
                 {(
                   [

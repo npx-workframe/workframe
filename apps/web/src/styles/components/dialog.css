@@ -818,7 +818,8 @@ textarea.wf-dialog-input {
 }
 
 .wf-llm-models--embedded {
-  min-height: min(520px, 62vh);
+  flex: 1;
+  min-height: 0;
 }
 
 .wf-llm-models--embedded .wf-llm-models__body {

@@ -99,7 +99,10 @@ export function ModelPickerPanel({
 
   const grouped = useMemo(() => {
     const map = new Map<string, HermesModelRow[]>()
+    const seenModels = new Set<string>()
     for (const row of data?.suggestions ?? []) {
+      if (seenModels.has(row.model)) continue
+      seenModels.add(row.model)
       const bucket = map.get(row.provider) ?? []
       bucket.push(row)
       map.set(row.provider, bucket)
@@ -129,6 +132,7 @@ export function ModelPickerPanel({
       }
       setData({ ...data, fallback_chain: res.fallback_chain ?? next })
       invalidateWorkframeMetaCache()
+      await refreshModels()
     } catch (err) {
       onError?.(err instanceof Error ? err.message : 'set failed')
     } finally {
@@ -140,6 +144,15 @@ export function ModelPickerPanel({
   function updateDraftFallbacks(next: [FallbackEntry | null, FallbackEntry | null]) {
     setDraftFallbacks(next)
     onFallbacksDraftChange?.(next.filter((entry): entry is FallbackEntry => Boolean(entry?.provider && entry?.model)))
+  }
+
+  async function refreshModels() {
+    try {
+      const res = await fetchHermesModels(selectionOnly ? undefined : profile, workspaceId)
+      if (res.ok) setData(res)
+    } catch {
+      /* ponytail: best-effort resync after save */
+    }
   }
 
   async function pickModel(model: string) {
@@ -166,7 +179,10 @@ export function ModelPickerPanel({
     }
 
     if (activeSlot === 'primary') {
-      if (trimmed === data.primary) return
+      if (trimmed === data.primary) {
+        onChanged?.(trimmed)
+        return
+      }
       setBusy(true)
       setPending(trimmed)
       try {
@@ -175,9 +191,11 @@ export function ModelPickerPanel({
           onError?.(res.error ?? 'Failed to set model')
           return
         }
-        setData({ ...data, primary: res.model ?? trimmed })
-        onChanged?.(res.model ?? trimmed)
+        const saved = res.model ?? trimmed
+        setData({ ...data, primary: saved })
+        onChanged?.(saved)
         invalidateWorkframeMetaCache()
+        await refreshModels()
       } catch (err) {
         onError?.(err instanceof Error ? err.message : 'set failed')
       } finally {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Composer, type ComposerHandle } from '@/components/chat/Composer'
+import { CommandDialogsProvider } from '@/contexts/CommandDialogsContext'
 import type { MentionAgent } from '@/components/chat/MentionPalette'
 import { MessageList } from '@/components/chat/MessageList'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
@@ -344,6 +345,7 @@ export function ChatSplit() {
 
   if (humanRoom) {
     return (
+      <CommandDialogsProvider>
       <div className="wf-chat-split">
         {roomError ? (
           <div className="wf-chat-split__error-banner">
@@ -398,10 +400,12 @@ export function ChatSplit() {
           />
         </div>
       </div>
+      </CommandDialogsProvider>
     )
   }
 
   return (
+    <CommandDialogsProvider>
     <div className="wf-chat-split">
       {connectError ? (
         <div className="wf-chat-split__error-banner">
@@ -449,5 +453,6 @@ export function ChatSplit() {
         />
       </div>
     </div>
+    </CommandDialogsProvider>
   )
 }

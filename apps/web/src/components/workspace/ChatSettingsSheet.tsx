@@ -31,6 +31,7 @@ import {
 } from '@/lib/hermesCatalogApi'
 import { resolveHermesProfileSlug } from '@/lib/agentProfile'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
+import { cn } from '@/lib/utils'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
 import {
   workframeAuthApi,
@@ -398,8 +399,14 @@ export function ChatSettingsSheet({ open, onClose }: ChatSettingsSheetProps) {
               : undefined
         }
         loading={loading}
+        contentFill={mode === 'agent' && agentTab === 'models'}
       >
-        <div className="space-y-6">
+        <div
+          className={cn(
+            'space-y-6',
+            mode === 'agent' && agentTab === 'models' && 'wf-settings-fill-stack',
+          )}
+        >
           {mode === 'dm' && error ? <WorkframeNotice message={error} /> : null}
           {mode === 'dm' && status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -494,15 +501,13 @@ export function ChatSettingsSheet({ open, onClose }: ChatSettingsSheetProps) {
                 {status ? <WorkframeStatusNotice message={status} /> : null}
 
                 {canManageWorkspace ? (
-                  <div className="wf-wizard-panel wf-onboarding-form">
-                    <ModelPickerPanel
-                      profile={agentProfile}
-                      workspaceId={me?.workspace_id}
-                      embedded
-                      onError={setError}
-                      onChanged={() => void load()}
-                    />
-                  </div>
+                  <ModelPickerPanel
+                    profile={agentProfile}
+                    workspaceId={me?.workspace_id}
+                    embedded
+                    onError={setError}
+                    onChanged={() => void load()}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">You do not have permission to change models.</p>
                 )}

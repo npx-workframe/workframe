@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="neo">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -29,15 +29,12 @@
     <script>
       ;(() => {
         try {
+          const valid = ['light', 'dark', 'mono-light', 'mono-dark', 'neo', 'brutal', 'architectonic']
           const stored = localStorage.getItem('wf-theme')
-          const theme =
-            stored === 'light' || stored === 'dark'
-              ? stored
-              : window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light'
+          const theme = valid.includes(stored) ? stored : 'neo'
           document.documentElement.dataset.theme = theme
-          document.documentElement.style.colorScheme = theme
+          document.documentElement.style.colorScheme =
+            theme === 'light' || theme === 'neo' || theme === 'mono-light' ? 'light' : 'dark'
         } catch (_) {}
       })()
     </script>

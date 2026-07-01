@@ -12434,7 +12434,9 @@ def _overlay_chat_llm_env(
     user = str(user_id or "").strip()
     if not user:
         return False
-    prov = _llm_billing_provider(hermes_prof, provider)
+    prov = _llm_billing_provider(hermes_prof, provider, user_id=user, workspace_id=workspace_id)
+    if not _profile_llm_proxy_matches_billing(hermes_prof, prov):
+        _ensure_profile_llm_proxy(hermes_prof, prov)
     slug = safe_profile_slug(hermes_prof)
     turn_run = str(uuid.uuid4())
     ready = _try_overlay_turn_provider_env(hermes_prof, user, workspace_id, prov, turn_run)
@@ -12513,19 +12515,89 @@ def _augment_model_suggestions(
     return extra + suggestions
 
 
-def _llm_billing_provider(profile: str, provider_hint: str = "") -> str:
-    """Map Hermes routing provider (often custom for proxy) to vault/billing provider id."""
-    hint = str(provider_hint or "").strip().lower()
-    if hint and hint not in {"custom", "auto"}:
-        return hint
-    cfg_provider, model = _read_model_from_config(profile)
-    cfg_provider = str(cfg_provider or "").strip().lower()
-    if cfg_provider and cfg_provider not in {"custom", "auto"}:
-        return cfg_provider
-    model_id = str(model or "").strip()
-    if "/" in model_id:
-        return model_id.split("/", 1)[0].strip().lower() or "openrouter"
+_INTERNAL_LLM_PROXY_RE = re.compile(r"/internal/llm/([a-z0-9_-]+)/v1", re.I)
+
+
+def _billing_provider_from_block(base_url: str, cfg_provider: str, hint: str) -> str:
+    """Pure resolver: the billing provider is the proxy URL segment (the stored fact).
+
+    Order: explicit hint > proxy URL segment > cfg_provider > "openrouter".
+    The model-id prefix (e.g. ``google/`` in ``google/gemini-2.5-flash``) is an
+    OpenRouter vendor namespace, NOT a billing provider, so it is never used here.
+    ponytail: removing model-prefix inference is the root-cause fix for the
+    "provider not recognized" bug where an OpenRouter-only user was billed to google.
+    """
+    h = str(hint or "").strip().lower()
+    if h and h not in {"custom", "auto"}:
+        return h
+    m = _INTERNAL_LLM_PROXY_RE.search(str(base_url or ""))
+    if m:
+        return m.group(1).lower()
+    cfg = str(cfg_provider or "").strip().lower()
+    if cfg and cfg not in {"custom", "auto"}:
+        return cfg
     return "openrouter"
+
+
+def _llm_billing_provider(
+    profile: str,
+    provider_hint: str = "",
+    *,
+    user_id: str = "",
+    workspace_id: str = "",
+) -> str:
+    """Map Hermes routing provider (often custom for proxy) to vault/billing provider id."""
+    prof = resolve_hermes_profile(profile)
+    block = _read_model_block(prof)
+    cfg_provider = str(block.get("provider") or "").strip().lower()
+    if not cfg_provider:
+        cfg_provider = str(_read_model_from_config(prof)[0] or "").strip().lower()
+    candidate = _billing_provider_from_block(
+        str(block.get("base_url") or ""), cfg_provider, provider_hint,
+    )
+    user = str(user_id or "").strip()
+    ws = str(workspace_id or "").strip()
+    if user and not _user_can_use_llm(user, ws, candidate):
+        connected = sorted(_user_llm_providers_for_picker(user))
+        if connected:
+            return connected[0]
+    return candidate or "openrouter"
+
+
+def _profile_llm_proxy_matches_billing(profile: str, billing_provider: str) -> bool:
+    prof = resolve_hermes_profile(profile)
+    base = str(_read_model_block(prof).get("base_url") or "").strip()
+    return bool(base) and base == _llm_proxy_base_url(billing_provider)
+
+
+def _reconcile_profile_llm_for_user(
+    profile: str,
+    user_id: str,
+    workspace_id: str,
+    *,
+    prefer_provider: str = "",
+) -> bool:
+    """Point proxy + MVP model at a provider the acting user can bill."""
+    user = str(user_id or "").strip()
+    if not user:
+        return False
+    prof = resolve_hermes_profile(profile)
+    billing = _llm_billing_provider(prof, user_id=user, workspace_id=workspace_id)
+    prefer = str(prefer_provider or "").strip().lower()
+    if prefer and _user_can_use_llm(user, workspace_id, prefer):
+        billing = prefer
+    elif not _user_can_use_llm(user, workspace_id, billing):
+        connected = sorted(_user_llm_providers_for_picker(user))
+        if not connected:
+            return False
+        billing = connected[0]
+    if _user_can_use_llm(user, workspace_id, billing) and _profile_llm_proxy_matches_billing(prof, billing):
+        return False
+    changed = _apply_mvp_model_for_provider(prof, billing)
+    block = _read_model_block(prof)
+    if _is_runtime_profile_slug(prof) or str(block.get("provider") or "").strip().lower() == "custom":
+        _ensure_profile_llm_proxy(prof, billing)
+    return changed
 
 
 def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: str = "") -> bool:
@@ -12756,7 +12828,9 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
             profile, user_id, "", workspace_id,
         )
     payer = user_id
-    llm_provider = _llm_billing_provider(hermes_prof)
+    if payer:
+        _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
+    llm_provider = _llm_billing_provider(hermes_prof, user_id=payer, workspace_id=workspace_id)
     lifecycle = ensure_profile_api(hermes_prof, user_id, workspace_id)
     llm_ready = _user_can_use_llm(payer, workspace_id, llm_provider) if payer else False
     session_extra = {"llm_ready": llm_ready, "has_llm_provider": llm_ready}
@@ -13064,7 +13138,9 @@ def profile_chat_activate_room_session(
         gateway_sid,
     )
 
-    llm_provider = _llm_billing_provider(hermes_prof)
+    if payer:
+        _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
+    llm_provider = _llm_billing_provider(hermes_prof, user_id=payer, workspace_id=workspace_id)
     llm_ready = _overlay_chat_llm_env(hermes_prof, user_id, workspace_id, llm_provider)
 
     history = chat_messages(hermes_prof, session_id)
@@ -13277,7 +13353,9 @@ def profile_chat_message(profile: str, payload: dict[str, Any]) -> dict[str, Any
     hermes_prof, _template_prof = _resolve_bind_profile_arg(
         profile, payer, room_id, workspace_id,
     )
-    llm_provider = _llm_billing_provider(hermes_prof)
+    if payer:
+        _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
+    llm_provider = _llm_billing_provider(hermes_prof, user_id=payer, workspace_id=workspace_id)
     lifecycle = ensure_profile_api(
         hermes_prof,
         payer,
@@ -13432,7 +13510,9 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         raise ValueError("session_id required")
     if not text:
         raise ValueError("text required")
-    llm_provider = _llm_billing_provider(prof)
+    if _triggering_user:
+        _reconcile_profile_llm_for_user(prof, _triggering_user, _workspace_id)
+    llm_provider = _llm_billing_provider(prof, user_id=_triggering_user, workspace_id=_workspace_id)
     llm_ready = bool(
         _triggering_user
         and _user_can_use_llm(_triggering_user, _workspace_id, llm_provider)
@@ -14431,17 +14511,23 @@ def _bootstrap_model_after_llm_connect(
     if not spec or str(spec.get("category") or "") != "llm":
         return
     provider_key = str(provider or "").strip().lower()
+    user = str(user_id or "").strip()
+    ws = str(workspace_id or "").strip()
     primary = _primary_profile()
     if primary:
         _, model = _read_model_from_config(primary)
         if not str(model or "").strip():
             _apply_mvp_model_for_provider(primary, provider_key)
+        elif user:
+            _reconcile_profile_llm_for_user(primary, user, ws, prefer_provider=provider_key)
     template = primary or "workframe-agent"
     runtime = _runtime_profile_slug(user_id, template)
     if _runtime_profile_on_disk(runtime):
         _, model = _read_model_from_config(runtime)
         if not str(model or "").strip():
             _apply_mvp_model_for_provider(runtime, provider_key)
+        elif user:
+            _reconcile_profile_llm_for_user(runtime, user, ws, prefer_provider=provider_key)
 
 
 # Curated snapshot of commonly-used models per provider. Surfaced in the
@@ -14504,9 +14590,6 @@ HERMES_MODEL_CATALOG: list[dict[str, str]] = [
     {"provider": "OpenRouter", "model": "openrouter/nvidia/llama-3.1-nemotron-70b-instruct",
      "label": "Nemotron 70B Instruct",
      "description": "NVIDIA Nemotron via OpenRouter."},
-    {"provider": "OpenRouter", "model": "openrouter/anthropic/claude-sonnet-4-5",
-     "label": "Claude Sonnet 4.5 (via OR)",
-     "description": "Sonnet through OpenRouter."},
     {"provider": "OpenRouter", "model": "openrouter/openai/gpt-4o",
      "label": "GPT-4o (via OR)",
      "description": "GPT-4o through OpenRouter."},
@@ -14889,6 +14972,15 @@ def hermes_models(profile: str = "", user_id: str = "", workspace_id: str = "") 
                 for row in live
                 if str(row.get("model") or "") not in seen
             ] + suggestions
+    seen_models: set[str] = set()
+    deduped: list[dict[str, str]] = []
+    for row in suggestions:
+        mid = str(row.get("model") or "").strip()
+        if not mid or mid in seen_models:
+            continue
+        seen_models.add(mid)
+        deduped.append(row)
+    suggestions = deduped
     return {
         "ok": True,
         "profile": primary_profile,

@@ -55,6 +55,7 @@ export function ModelPickerDialog({
       summary={summary}
       titleId="wf-model-picker-title"
       sheetClassName="wf-dialog-content--settings-compact"
+      contentFill
       loading={loading}
       actions={
         onConnectProvider ? (
@@ -71,28 +72,24 @@ export function ModelPickerDialog({
         )
       }
     >
-      <div className="space-y-4" role="tabpanel">
+      <div className="wf-settings-fill-stack space-y-4" role="tabpanel">
         {error ? <WorkframeNotice message={error} /> : null}
 
         {!loading && data && !data.has_llm_provider ? (
-          <div className="wf-wizard-panel wf-onboarding-form">
-            <p className="text-sm text-muted-foreground">
-              Connect an LLM provider under Settings → Connected Accounts.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Connect an LLM provider under Settings → Connected Accounts.
+          </p>
         ) : (
-          <div className="wf-wizard-panel wf-onboarding-form">
-            <ModelPickerPanel
-              profile={profile}
-              workspaceId={workspaceId}
-              embedded
-              onError={setError}
-              onChanged={(model) => {
-                onChanged?.(model)
-                onOpenChange(false)
-              }}
-            />
-          </div>
+          <ModelPickerPanel
+            profile={profile}
+            workspaceId={workspaceId}
+            embedded
+            onError={setError}
+            onChanged={(model) => {
+              onChanged?.(model)
+              onOpenChange(false)
+            }}
+          />
         )}
       </div>
     </SettingsSheetFrame>

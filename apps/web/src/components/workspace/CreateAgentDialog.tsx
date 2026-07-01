@@ -13,6 +13,7 @@ import { WizardFormActions } from '@/components/workspace/WizardFormActions'
 import { setHermesFallbackChain, type FallbackEntry } from '@/lib/hermesCatalogApi'
 import { agentAvatarPersistPayload, pickRandomPreset } from '@/lib/presetAssets'
 import { workframeAuthApi, type WorkspaceRoom } from '@/lib/workframeAuthApi'
+import { cn } from '@/lib/utils'
 
 const STEP_LABELS: Record<string, string> = {
   hermes_profile_create: 'Create Hermes profile',
@@ -212,6 +213,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
       summary={resolvedSlug ? `Profile slug: ${resolvedSlug}` : 'New Hermes specialist'}
       titleId="wf-create-agent-title"
       sheetClassName="wf-dialog-content--settings-compact"
+      contentFill={tab === 'model'}
       tabs={[
         { id: 'identity', label: 'Identity & Bio' },
         { id: 'instructions', label: 'Instructions' },
@@ -230,7 +232,10 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
         </WizardFormActions>
       }
     >
-      <div className="space-y-4" role="tabpanel">
+      <div
+        className={cn('space-y-4', tab === 'model' && 'wf-settings-fill-stack')}
+        role="tabpanel"
+      >
         {error ? <WorkframeNotice message={error} /> : null}
         {busy ? <OperationProgress steps={steps} title="Creating agent…" /> : null}
 
@@ -308,17 +313,15 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
             </DialogField>
           </div>
         ) : (
-          <div className="wf-wizard-panel wf-onboarding-form">
-            <ModelPickerPanel
-              workspaceId={workspaceId}
-              embedded
-              selectionOnly
-              value={model}
-              onChanged={setModel}
-              onFallbacksDraftChange={setFallbackDraft}
-              onError={setError}
-            />
-          </div>
+          <ModelPickerPanel
+            workspaceId={workspaceId}
+            embedded
+            selectionOnly
+            value={model}
+            onChanged={setModel}
+            onFallbacksDraftChange={setFallbackDraft}
+            onError={setError}
+          />
         )}
       </div>
     </SettingsSheetFrame>

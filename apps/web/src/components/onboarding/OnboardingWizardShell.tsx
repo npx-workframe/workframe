@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
 
+import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { BRAND_ICON } from '@/lib/brandAssets'
 
 export type WizardStepItem = {
@@ -58,6 +59,9 @@ export function OnboardingWizardShell({
 
   return (
     <div className="wf-onboarding-page">
+      <div className="wf-onboarding-page__theme">
+        <ThemeSwitcher />
+      </div>
       <div className="wf-onboarding-wizard">
         <aside className="wf-onboarding-wizard__rail" aria-label="Setup steps">
           <div className="wf-onboarding-wizard__brand">

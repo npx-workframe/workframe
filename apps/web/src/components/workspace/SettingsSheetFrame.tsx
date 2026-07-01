@@ -33,6 +33,8 @@ type SettingsSheetFrameProps = {
   actions?: ReactNode
   /** Indeterminate bar pinned to the bottom of the main (right) column. */
   loading?: boolean
+  /** Single inner scroll region (e.g. embedded model list) — outer shell does not scroll. */
+  contentFill?: boolean
   sheetClassName?: string
   children: ReactNode
 }
@@ -50,6 +52,7 @@ export function SettingsSheetFrame({
   footer,
   actions,
   loading = false,
+  contentFill = false,
   sheetClassName,
   children,
 }: SettingsSheetFrameProps) {
@@ -70,7 +73,11 @@ export function SettingsSheetFrame({
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
       <DialogContent
         showClose
-        className={cn('wf-dialog-content--settings-shell', sheetClassName)}
+        className={cn(
+          'wf-dialog-content--settings-shell',
+          contentFill && 'wf-dialog-content--settings-fill',
+          sheetClassName,
+        )}
       >
         <aside className="wf-settings-shell__rail">
           <div className="wf-settings-shell__rail-head">
@@ -112,8 +119,13 @@ export function SettingsSheetFrame({
             </div>
           </header>
 
-          <ScrollArea axis="vertical" className="wf-settings-shell__scroll">
-            <div className="wf-settings-shell__body">{children}</div>
+          <ScrollArea
+            axis="vertical"
+            className={cn('wf-settings-shell__scroll', contentFill && 'wf-settings-shell__scroll--fill')}
+          >
+            <div className={cn('wf-settings-shell__body', contentFill && 'wf-settings-shell__body--fill')}>
+              {children}
+            </div>
           </ScrollArea>
 
           {actions ? <div className="wf-settings-shell__actions">{actions}</div> : null}

@@ -1,5 +1,6 @@
 /* Onboarding wizard — full-page shell (replaces dialog stack) */
 .wf-onboarding-page {
+  position: relative;
   min-height: 100dvh;
   max-height: 100dvh;
   display: grid;
@@ -12,6 +13,17 @@
     radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--wf-violet-glow) 14%, transparent), transparent),
     radial-gradient(ellipse 60% 50% at 100% 100%, color-mix(in srgb, var(--wf-cyan) 8%, transparent), transparent),
     var(--wf-bg);
+}
+
+.wf-onboarding-page__theme {
+  position: fixed;
+  top: clamp(12px, 2vw, 24px);
+  right: clamp(12px, 2vw, 24px);
+  z-index: 20;
+}
+
+.wf-onboarding-page--gate .wf-onboarding-page__theme {
+  z-index: calc(var(--wf-z-dialog-content) + 1);
 }
 
 .wf-onboarding-wizard {
