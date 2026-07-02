@@ -1,6 +1,6 @@
 {
   "name": "workframe",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Lifecycle CLI for Workframe projects (doctor, setup, up/down)",
   "type": "module",
   "bin": {

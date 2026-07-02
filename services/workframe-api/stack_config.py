@@ -1,4 +1,8 @@
-"""Stack operator config (SMTP, deployment mode, install state). Env wins over file for VPS."""
+"""Stack operator config (SMTP, deployment mode, install state).
+
+During install window: stack file only (clean install — no compose env ghost creds).
+After install_complete: env wins over file for VPS ops overrides.
+"""
 
 from __future__ import annotations
 
@@ -267,15 +271,19 @@ def effective_deployment_mode(env_default: str) -> str:
     return resolve_deployment_mode(env_default)
 
 
+def _install_window_open() -> bool:
+    return not bool(_read_raw().get("install_complete"))
+
+
 def resolved_smtp() -> dict[str, Any]:
-    """Env wins for host; secrets/from fall back to stack file when env omits them."""
+    """Stack file during install; env overrides only after install_complete."""
     stack = _stack_smtp_raw()
     stack_host = str(stack.get("host") or "").strip()
     stack_user = str(stack.get("user") or "").strip()
     stack_pw = str(stack.get("password") or "").strip().replace(" ", "")
     stack_from = str(stack.get("from") or "").strip()
 
-    env_host = os.environ.get("SMTP_HOST", "").strip()
+    env_host = "" if _install_window_open() else os.environ.get("SMTP_HOST", "").strip()
     if env_host:
         port = int(os.environ.get("SMTP_PORT", "587"))
         secure = normalize_smtp_secure(

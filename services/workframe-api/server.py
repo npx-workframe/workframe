@@ -1101,13 +1101,13 @@ def _provider_connected_for_user(
     return False
 
 
-def _profile_slug(user_id: str) -> str:
+def _user_hermes_dir_slug(user_id: str) -> str:
     raw = str(user_id or "").strip()
     return re.sub(r"[^A-Za-z0-9._-]+", "_", raw) or "user"
 
 
 def _user_hermes_home(user_id: str) -> Path:
-    return HERMES_DATA / "profiles" / _profile_slug(user_id)
+    return HERMES_DATA / "profiles" / _user_hermes_dir_slug(user_id)
 
 
 def _user_hermes_env_path(user_id: str) -> Path:
@@ -2239,7 +2239,7 @@ def _remove_auth_metadata(auth_path: Path, credential_ref: str) -> None:
 
 
 def _hermes_user_home_container(user_id: str) -> str:
-    return f"/opt/data/profiles/{_profile_slug(user_id)}"
+    return f"/opt/data/profiles/{_user_hermes_dir_slug(user_id)}"
 
 
 def _hermes_user_exec(user_id: str, args: list[str]) -> tuple[int, str]:
@@ -2274,7 +2274,7 @@ def _hermes_user_exec(user_id: str, args: list[str]) -> tuple[int, str]:
         f"mkdir -p {shlex.quote(home)}; cd {shlex.quote(home)}; "
         f"/opt/hermes/bin/hermes {inner}"
     )
-    return _docker_exec(GATEWAY_CONTAINER_NAME, ["sh", "-lc", shell], acting_profile=_profile_slug(user_id))
+    return _docker_exec(GATEWAY_CONTAINER_NAME, ["sh", "-lc", shell], acting_profile=_user_hermes_dir_slug(user_id))
 
 
 def _user_provider_bindings(user_id: str) -> dict[str, dict[str, Any]]:
@@ -2312,6 +2312,108 @@ def _hermes_auth_id_for_spec(spec: dict[str, Any]) -> str:
     return str(spec.get("hermes_auth_id") or spec.get("id") or "").strip()
 
 
+def _hermes_oauth_auth_keys(hermes_auth_id: str) -> set[str]:
+    raw = str(hermes_auth_id or "").strip().lower()
+    if not raw:
+        return set()
+    keys = {raw, raw.replace("-", ""), raw.replace("-", "_")}
+    if "-" in raw:
+        keys.add(raw.split("-")[-1])
+    return {key for key in keys if key}
+
+
+def _oauth_llm_provider_spec(provider: str) -> dict[str, Any] | None:
+    spec = _catalog_provider_for_llm(provider)
+    if spec and str(spec.get("connect_mode") or "") == "oauth":
+        return spec
+    return None
+
+
+def _auth_json_has_oauth_material(data: dict[str, Any]) -> bool:
+    providers = data.get("providers")
+    if isinstance(providers, dict) and providers:
+        return True
+    pool = data.get("credential_pool")
+    if isinstance(pool, dict) and any(isinstance(entries, list) and entries for entries in pool.values()):
+        return True
+    creds = data.get("credentials")
+    return isinstance(creds, list) and bool(creds)
+
+
+def _extract_oauth_block_from_auth(loaded: dict[str, Any], hermes_auth_id: str) -> dict[str, Any] | None:
+    keys = _hermes_oauth_auth_keys(hermes_auth_id)
+    providers = loaded.get("providers")
+    if isinstance(providers, dict):
+        for key, entry in providers.items():
+            if str(key).lower() in keys and isinstance(entry, dict):
+                tokens = entry.get("tokens")
+                if isinstance(tokens, dict) and any(
+                    str(tokens.get(field) or "").strip()
+                    for field in ("access_token", "refresh_token", "api_key", "id_token")
+                ):
+                    return entry
+                if entry:
+                    return entry
+    creds = loaded.get("credentials")
+    if isinstance(creds, list):
+        for row in creds:
+            if not isinstance(row, dict):
+                continue
+            pid = str(row.get("provider") or row.get("id") or "").lower()
+            if pid in keys:
+                return row
+    return None
+
+
+def _merge_oauth_auth_into_profile(
+    auth: dict[str, Any],
+    user_auth: dict[str, Any],
+    hermes_auth_id: str,
+) -> bool:
+    keys = _hermes_oauth_auth_keys(hermes_auth_id)
+    changed = False
+    block = _extract_oauth_block_from_auth(user_auth, hermes_auth_id)
+    if isinstance(block, dict):
+        merged = auth.get("providers") if isinstance(auth.get("providers"), dict) else {}
+        merged[hermes_auth_id] = block
+        auth["providers"] = merged
+        changed = True
+    user_pool = user_auth.get("credential_pool")
+    if isinstance(user_pool, dict):
+        pool = auth.get("credential_pool")
+        if not isinstance(pool, dict):
+            pool = {}
+            auth["credential_pool"] = pool
+        for key, entries in user_pool.items():
+            if str(key).lower() in keys and isinstance(entries, list) and entries:
+                pool[hermes_auth_id] = entries
+                changed = True
+    return changed
+
+
+def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> bool:
+    spec = _oauth_llm_provider_spec(provider)
+    if not spec:
+        return False
+    hermes_auth_id = _hermes_auth_id_for_spec(spec)
+    if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
+        return False
+    user_auth = _load_user_hermes_auth(user_id)
+    if not isinstance(user_auth, dict):
+        return False
+    prof = resolve_hermes_profile(profile)
+    auth_path = _profile_dir(prof) / "auth.json"
+    auth = _load_profile_auth_json(prof)
+    if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+        return False
+    auth["version"] = 1
+    auth["updated_at"] = _utc_now()
+    auth_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _publish_profile_gateway_secrets(prof)
+    return True
+
+
 def _hermes_oauth_tokens_present(user_id: str, hermes_auth_id: str) -> bool:
     """True when Hermes auth.json has live OAuth tokens for a provider."""
     hermes_auth_id = str(hermes_auth_id or "").strip()
@@ -2320,23 +2422,13 @@ def _hermes_oauth_tokens_present(user_id: str, hermes_auth_id: str) -> bool:
     loaded = _load_user_hermes_auth(user_id)
     if not isinstance(loaded, dict):
         return False
-    providers = loaded.get("providers")
-    if isinstance(providers, dict):
-        for key in {hermes_auth_id, hermes_auth_id.replace("-", "")}:
-            entry = providers.get(key)
-            if not isinstance(entry, dict):
-                continue
-            tokens = entry.get("tokens")
-            if isinstance(tokens, dict) and any(
-                str(tokens.get(field) or "").strip()
-                for field in ("access_token", "refresh_token", "api_key", "id_token")
-            ):
-                return True
+    if _extract_oauth_block_from_auth(loaded, hermes_auth_id):
+        return True
+    keys = _hermes_oauth_auth_keys(hermes_auth_id)
     pool = loaded.get("credential_pool")
     if isinstance(pool, dict):
-        for key in {hermes_auth_id, hermes_auth_id.replace("-", ""), str(hermes_auth_id).split("-")[-1]}:
-            entries = pool.get(key)
-            if isinstance(entries, list) and entries:
+        for key, entries in pool.items():
+            if str(key).lower() in keys and isinstance(entries, list) and entries:
                 return True
     return False
 
@@ -2351,9 +2443,9 @@ def _load_user_hermes_auth(user_id: str) -> dict[str, Any] | None:
                 loaded = data
         except (OSError, json.JSONDecodeError):
             loaded = None
-    if isinstance(loaded, dict) and isinstance(loaded.get("providers"), dict) and loaded["providers"]:
+    if isinstance(loaded, dict) and _auth_json_has_oauth_material(loaded):
         return loaded
-    rel = f"profiles/{_profile_slug(user_id)}/auth.json"
+    rel = f"profiles/{_user_hermes_dir_slug(user_id)}/auth.json"
     text = _read_gateway_data_file(rel)
     if text.strip():
         try:
@@ -2488,7 +2580,7 @@ def _remove_hermes_oauth_provider(user_id: str, hermes_auth_id: str) -> None:
                         pool.pop(key, None)
             loaded["updated_at"] = _utc_now()
             auth_path.write_text(json.dumps(loaded, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    user_part = re.sub(r"[^a-z0-9]+", "-", _profile_slug(user_id).lower()).strip("-")[:20] or "user"
+    user_part = re.sub(r"[^a-z0-9]+", "-", _user_hermes_dir_slug(user_id).lower()).strip("-")[:20] or "user"
     prefix = f"u-{user_part}-"
     profiles_dir = HERMES_DATA / "profiles"
     if profiles_dir.is_dir():
@@ -2594,25 +2686,12 @@ def _parse_device_oauth_log(text: str) -> dict[str, str | None]:
 
 
 def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: str) -> None:
-    src_path = _user_hermes_auth_path(user_id)
-    if not src_path.is_file():
+    if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
         return
-    try:
-        user_auth = json.loads(src_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    user_auth = _load_user_hermes_auth(user_id)
+    if not isinstance(user_auth, dict):
         return
-    providers = user_auth.get("providers") if isinstance(user_auth, dict) else None
-    if not isinstance(providers, dict):
-        return
-    block = None
-    for key in (hermes_auth_id, hermes_auth_id.replace("-", "")):
-        entry = providers.get(key)
-        if isinstance(entry, dict):
-            block = entry
-            break
-    if not block:
-        return
-    user_part = re.sub(r"[^a-z0-9]+", "-", _profile_slug(user_id).lower()).strip("-")[:20] or "user"
+    user_part = re.sub(r"[^a-z0-9]+", "-", _user_hermes_dir_slug(user_id).lower()).strip("-")[:20] or "user"
     prefix = f"u-{user_part}-"
     profiles_dir = HERMES_DATA / "profiles"
     if not profiles_dir.is_dir():
@@ -2622,9 +2701,11 @@ def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: 
             continue
         auth_path = prof_dir / "auth.json"
         auth = _load_profile_auth_json(prof_dir.name)
-        merged = auth.get("providers") if isinstance(auth.get("providers"), dict) else {}
-        merged[hermes_auth_id] = block
-        auth["providers"] = merged
+        user_auth = _load_user_hermes_auth(user_id)
+        if not isinstance(user_auth, dict):
+            continue
+        if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+            continue
         auth["version"] = 1
         auth["updated_at"] = _utc_now()
         auth_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2743,7 +2824,7 @@ def device_oauth_status(user_id: str, provider_id: str, session_id: str) -> dict
         except OSError:
             log_text = ""
     if not log_text.strip() and log_path.name:
-        log_text = _read_gateway_data_file(f"profiles/{_profile_slug(user_id)}/{log_path.name}")
+        log_text = _read_gateway_data_file(f"profiles/{_user_hermes_dir_slug(user_id)}/{log_path.name}")
     parsed = _parse_device_oauth_log(log_text)
     patch: dict[str, Any] = {}
     if parsed.get("verification_uri"):
@@ -4990,6 +5071,8 @@ def bootstrap_agent_dm_lane(
     """Provision u-* runtime, model/proxy, DM room, and optional session bind — install/create-agent parity."""
     user_id = str(user_id or "").strip()
     workspace_id = str(workspace_id or "").strip()
+    if not _native_profile_present():
+        _ensure_native_hermes_profile()
     template = resolve_validated_profile(str(template_slug or "").strip())
     if not user_id or not workspace_id:
         return {"ok": False, "error": "user_id and workspace_id required"}
@@ -5137,7 +5220,7 @@ def bootstrap_agent_dm_lane(
 
 def _runtime_profile_slug(user_id: str, template_slug: str) -> str:
     template_slug = safe_profile_slug(template_slug)
-    user_part = re.sub(r"[^a-z0-9]+", "-", _profile_slug(user_id).lower()).strip("-")[:20] or "user"
+    user_part = re.sub(r"[^a-z0-9]+", "-", _user_hermes_dir_slug(user_id).lower()).strip("-")[:20] or "user"
     slug = f"u-{user_part}-{template_slug}"
     if len(slug) > 64:
         slug = slug[:64].rstrip("-")
@@ -5169,7 +5252,8 @@ def _prepare_runtime_profile_credentials(
         return False
     _strip_profile_llm_env(runtime)
     _strip_profile_action_env(runtime)
-    prov = _llm_billing_provider(runtime)
+    _reconcile_profile_llm_for_user(runtime, user, workspace_id)
+    prov = _llm_billing_provider(runtime, user_id=user, workspace_id=workspace_id)
     _ensure_profile_llm_proxy(runtime, prov)
     return _user_can_use_llm(user, workspace_id, prov)
 
@@ -7601,10 +7685,6 @@ def _bootstrap_after_setup(agent_personality: str = "") -> dict[str, Any]:
     if personality:
         _seed_native_user_overlay(profile, profile, user_soul=personality)
         result["soul_seeded"] = True
-    try:
-        result["gateway"] = profile_gateway_lifecycle(profile, "status")
-    except Exception as exc:
-        result["gateway"] = {"ok": False, "error": str(exc)}
     return result
 
 
@@ -7856,6 +7936,110 @@ def _list_profiles() -> list[str]:
         for p in profiles_dir.iterdir()
         if p.is_dir() and ((p / "profile.yaml").exists() or (p / "config.yaml").exists())
     )
+
+
+def _native_profile_slug() -> str:
+    return str(NATIVE_PROFILE or "workframe-agent").strip() or "workframe-agent"
+
+
+def _native_profile_present() -> bool:
+    slug = _native_profile_slug()
+    prof_dir = _profile_dir(slug)
+    return (prof_dir / "config.yaml").is_file() or (prof_dir / "profile.yaml").is_file()
+
+
+def _hermes_data_uid_gid() -> tuple[int, int]:
+    try:
+        st = HERMES_DATA.stat()
+        return int(st.st_uid), int(st.st_gid)
+    except OSError:
+        return 10000, 10000
+
+
+def _chown_profile_tree(prof_dir: Path) -> None:
+    """Gateway runs as the Agents volume owner — seeded files must match."""
+    uid, gid = _hermes_data_uid_gid()
+    prof_dir.mkdir(parents=True, exist_ok=True)
+    (prof_dir / "logs").mkdir(parents=True, exist_ok=True)
+    for path in [prof_dir, *prof_dir.rglob("*")]:
+        try:
+            os.chown(path, uid, gid)
+        except OSError:
+            pass
+
+
+def _seed_native_profile_on_disk(slug: str) -> bool:
+    """Filesystem fallback when Hermes CLI cannot run (empty / crash-looping gateway)."""
+    slug = safe_profile_slug(slug)
+    prof_dir = _profile_dir(slug)
+    prof_dir.mkdir(parents=True, exist_ok=True)
+    config = prof_dir / "config.yaml"
+    if not config.is_file():
+        proxy = _llm_proxy_base_url("openrouter")
+        config.write_text(
+            "model:\n"
+            "  default: google/gemini-2.5-flash\n"
+            "  provider: custom\n"
+            f"  base_url: {proxy}\n",
+            encoding="utf-8",
+        )
+    soul = prof_dir / "SOUL.md"
+    if not soul.is_file():
+        soul.write_text(
+            f"You are the {PROJECT_NAME} native agent — orchestrator and workspace admin.\n",
+            encoding="utf-8",
+        )
+    _ensure_profile_toolsets(slug)
+    _ensure_profile_terminal_cwd(slug)
+    _register_profile_route(
+        slug,
+        {
+            "display_name": f"{PROJECT_NAME} Agent",
+            "role": f"{PROJECT_NAME} Manager",
+        },
+    )
+    routes_path = ROUTES_JSON
+    if routes_path.is_file():
+        try:
+            data = json.loads(routes_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and not data.get("default_profile"):
+                data["default_profile"] = slug
+                routes_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        except (OSError, json.JSONDecodeError):
+            pass
+    _chown_profile_tree(prof_dir)
+    return _native_profile_present()
+
+
+def _ensure_native_hermes_profile() -> bool:
+    """Idempotent: native workframe-agent must exist before gateway boot or DM bootstrap."""
+    slug = _native_profile_slug()
+    if _native_profile_present():
+        return True
+    shell = (
+        "export HERMES_HOME=/opt/data HOME=/opt/data; "
+        f"/opt/hermes/bin/hermes profile create {shlex.quote(slug)} --clone "
+        f"--description {shlex.quote(f'{PROJECT_NAME} native agent')}"
+    )
+    try:
+        code, out = _gateway_container_exec(["sh", "-lc", shell])
+        if code == 0 and _native_profile_present():
+            _register_profile_route(
+                slug,
+                {"display_name": f"{PROJECT_NAME} Agent", "role": f"{PROJECT_NAME} Manager"},
+            )
+            _chown_profile_tree(_profile_dir(slug))
+            return True
+        if "already exists" in out.lower() and _native_profile_present():
+            _register_profile_route(
+                slug,
+                {"display_name": f"{PROJECT_NAME} Agent", "role": f"{PROJECT_NAME} Manager"},
+            )
+            _chown_profile_tree(_profile_dir(slug))
+            return True
+    except Exception:
+        pass
+    return _seed_native_profile_on_disk(slug)
 
 
 def _primary_profile() -> str:
@@ -11297,6 +11481,10 @@ def _ensure_profile_llm_proxy(profile: str, provider: str) -> None:
     """Point Hermes at the internal LLM proxy (create/lease paths only — skip when ready)."""
     llm_provider = str(provider or "openrouter").strip().lower()
     prof = safe_profile_slug(profile)
+    if _oauth_llm_provider_spec(llm_provider):
+        _normalize_profile_config_yaml(prof)
+        _apply_mvp_model_for_provider(prof, llm_provider)
+        return
     _normalize_profile_config_yaml(prof)
     if _profile_llm_proxy_ready(prof, llm_provider):
         _ensure_profile_proxy_headers(prof)
@@ -11449,6 +11637,16 @@ def _apply_turn_credential_lease(
         resolved = _require_runtime_owner_provider(user_id, workspace_id, provider)
     else:
         resolved = _require_user_provider(user_id, workspace_id, provider)
+    oauth_spec = _oauth_llm_provider_spec(provider)
+    if oauth_spec and str(resolved.get("credential_type") or "") == "oauth":
+        _sync_oauth_llm_to_profile(prof, user_id, provider)
+        current_model = str(_read_model_from_config(prof)[1] or "").strip()
+        if not _resolve_billing_provider_for_model(current_model, {provider}):
+            current_model = str(
+                (PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
+            ).strip()
+        _apply_model_for_billing_provider(prof, provider, current_model, user_id)
+        return ""
     binding_id = str(
         resolved.get("credential_binding_id") or resolved.get("credential_id") or ""
     ).strip()
@@ -11591,6 +11789,26 @@ def _require_user_provider(user_id: str, workspace_id: str, provider: str) -> di
 
 def _require_runtime_owner_provider(user_id: str, workspace_id: str, provider: str) -> dict[str, Any]:
     provider = str(provider or "openrouter").strip().lower()
+    oauth_spec = _oauth_llm_provider_spec(provider)
+    if oauth_spec and _hermes_oauth_tokens_present(user_id, _hermes_auth_id_for_spec(oauth_spec)):
+        hermes_auth_id = _hermes_auth_id_for_spec(oauth_spec)
+        return {
+            "credential_binding_id": None,
+            "credential_id": None,
+            "credential_ref": f"oauth:{hermes_auth_id}",
+            "scope": "user",
+            "provider": provider,
+            "credential_type": "oauth",
+            "label": hermes_auth_id,
+            "env_var": "",
+            "user_id": user_id,
+            "workspace_id": None,
+            "agent_profile_id": None,
+            "created_by": user_id,
+            "created_at": None,
+            "updated_at": None,
+            "expires_at": None,
+        }
     resolved = _resolve_credential(user_id, workspace_id, provider, user_only=True)
     if resolved and _credential_secret(resolved, user_id):
         return resolved
@@ -12346,8 +12564,19 @@ def _provider_pool_has_entries(auth: dict[str, Any], provider: str) -> bool:
     pool = auth.get("credential_pool")
     if not isinstance(pool, dict):
         return False
-    entries = pool.get(provider)
-    return isinstance(entries, list) and len(entries) > 0
+    provider_key = str(provider or "").strip().lower()
+    for key in _hermes_oauth_auth_keys(provider_key) | {provider_key}:
+        entries = pool.get(key)
+        if isinstance(entries, list) and len(entries) > 0:
+            return True
+    spec = _catalog_provider_for_llm(provider_key)
+    if spec:
+        auth_id = str(spec.get("hermes_auth_id") or "").strip().lower()
+        if auth_id:
+            entries = pool.get(auth_id)
+            if isinstance(entries, list) and len(entries) > 0:
+                return True
+    return False
 
 
 def _connected_provider_names(user_id: str = "", workspace_id: str = "") -> set[str]:
@@ -12550,13 +12779,14 @@ def _llm_billing_provider(
     prof = resolve_hermes_profile(profile)
     block = _read_model_block(prof)
     cfg_provider = str(block.get("provider") or "").strip().lower()
-    if not cfg_provider:
-        cfg_provider = str(_read_model_from_config(prof)[0] or "").strip().lower()
+    billing_cfg = _billing_provider_id_from_hermes_config(cfg_provider)
+    user = str(user_id or "").strip()
+    ws = str(workspace_id or "").strip()
+    if billing_cfg and user and _user_can_use_llm(user, ws, billing_cfg):
+        return billing_cfg
     candidate = _billing_provider_from_block(
         str(block.get("base_url") or ""), cfg_provider, provider_hint,
     )
-    user = str(user_id or "").strip()
-    ws = str(workspace_id or "").strip()
     if user and not _user_can_use_llm(user, ws, candidate):
         connected = sorted(_user_llm_providers_for_picker(user))
         if connected:
@@ -12591,6 +12821,12 @@ def _reconcile_profile_llm_for_user(
         if not connected:
             return False
         billing = connected[0]
+    if _oauth_llm_provider_spec(billing) and _user_can_use_llm(user, workspace_id, billing):
+        current = str(_read_model_from_config(prof)[1] or "").strip()
+        if not _resolve_billing_provider_for_model(current, {billing}):
+            current = str((PROVIDER_MVP_MODELS.get(billing) or {}).get("primary") or "")
+        _apply_model_for_billing_provider(prof, billing, current, user_id=user)
+        return True
     if _user_can_use_llm(user, workspace_id, billing) and _profile_llm_proxy_matches_billing(prof, billing):
         return False
     changed = _apply_mvp_model_for_provider(prof, billing)
@@ -12637,26 +12873,9 @@ def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: 
         llm_spec
         and str(llm_spec.get("connect_mode") or "") == "oauth"
         and user
-        and _hermes_oauth_tokens_present(user, _hermes_auth_id_for_spec(llm_spec))
+        and _sync_oauth_llm_to_profile(prof, user, llm_provider)
     ):
-        src_path = _user_hermes_auth_path(user)
-        try:
-            user_auth = json.loads(src_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            user_auth = {}
-        hermes_id = _hermes_auth_id_for_spec(llm_spec)
-        providers = user_auth.get("providers") if isinstance(user_auth, dict) else None
-        block = providers.get(hermes_id) if isinstance(providers, dict) else None
-        if isinstance(block, dict):
-            merged = auth.get("providers") if isinstance(auth.get("providers"), dict) else {}
-            merged[hermes_id] = block
-            auth["providers"] = merged
-            auth["version"] = 1
-            auth["updated_at"] = _utc_now()
-            auth_path.parent.mkdir(parents=True, exist_ok=True)
-            auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-            _publish_profile_gateway_secrets(prof)
-            return True
+        return True
 
     if _is_runtime_profile_slug(prof):
         if not user or not _user_can_use_llm(user, workspace_id, llm_provider):
@@ -14454,13 +14673,195 @@ PROVIDER_MVP_MODELS: dict[str, dict[str, Any]] = {
     },
     "codex": {
         "primary": "gpt-5.4-medium",
-        "fallbacks": [{"provider": "openai-codex", "model": "gpt-5.4-medium"}],
+        "fallbacks": [
+            {"provider": "openai-codex", "model": "gpt-5.4-medium"},
+            {"provider": "openai-codex", "model": "gpt-5.4-mini"},
+        ],
     },
     "nous": {
         "primary": "nousresearch/hermes-4-70b",
         "fallbacks": [{"provider": "nous", "model": "nousresearch/hermes-4-70b"}],
     },
 }
+
+
+# ponytail: billing id (connect catalog) ↔ Hermes config model.provider ↔ picker rows
+_PROVIDER_CATALOG_TAGS: dict[str, frozenset[str]] = {
+    "codex": frozenset({"codex", "openai"}),
+    "openai": frozenset({"openai"}),
+    "openrouter": frozenset({"openrouter"}),
+    "anthropic": frozenset({"anthropic"}),
+    "google": frozenset({"google"}),
+    "deepseek": frozenset({"deepseek"}),
+    "nous": frozenset({"nous"}),
+}
+
+_CODEX_EXTRA_MODELS: tuple[tuple[str, str, str], ...] = (
+    ("gpt-5.4-medium", "GPT-5.4 Medium", "Codex default — agentic, tool-capable."),
+    ("gpt-5.4-mini", "GPT-5.4 Mini", "Faster Codex model on ChatGPT account."),
+)
+
+
+def _billing_provider_id_from_hermes_config(cfg_provider: str) -> str:
+    p = str(cfg_provider or "").strip().lower()
+    if p in {"openai-codex", "openai_codex", "codex"}:
+        return "codex"
+    if p in PROVIDER_MVP_MODELS:
+        return p
+    return ""
+
+
+def _catalog_tags_for_billing_provider(provider_id: str) -> frozenset[str]:
+    return _PROVIDER_CATALOG_TAGS.get(str(provider_id or "").strip().lower(), frozenset())
+
+
+def _catalog_row_for_billing_provider(row: dict[str, str], provider_id: str) -> bool:
+    tags = _catalog_tags_for_billing_provider(provider_id)
+    if not tags:
+        return False
+    row_tag = str(row.get("provider") or "").strip().lower()
+    return row_tag in tags
+
+
+def _provider_display_label(provider_id: str) -> str:
+    spec = _catalog_provider(provider_id) or {}
+    return str(spec.get("label") or provider_id).strip() or provider_id
+
+
+def _model_catalog_rows_for_provider(provider_id: str) -> list[dict[str, str]]:
+    """Curated models a connected billing provider can run."""
+    provider_key = str(provider_id or "").strip().lower()
+    label = _provider_display_label(provider_key)
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def _add(model: str, row_label: str, description: str) -> None:
+        mid = str(model or "").strip()
+        if not mid or mid in seen:
+            return
+        seen.add(mid)
+        rows.append(
+            {
+                "provider": label,
+                "billing_provider": provider_key,
+                "model": mid,
+                "label": row_label,
+                "description": description,
+            }
+        )
+
+    if provider_key == "codex":
+        for model, row_label, description in _CODEX_EXTRA_MODELS:
+            _add(model, row_label, description)
+    mvp = PROVIDER_MVP_MODELS.get(provider_key) or {}
+    primary = str(mvp.get("primary") or "").strip()
+    if primary:
+        _add(primary, primary, f"Default for {label}.")
+    for fb in mvp.get("fallbacks") or []:
+        if isinstance(fb, dict):
+            _add(str(fb.get("model") or ""), str(fb.get("model") or ""), f"Fallback for {label}.")
+    for row in HERMES_MODEL_CATALOG:
+        if _catalog_row_for_billing_provider(row, provider_key):
+            _add(
+                str(row.get("model") or ""),
+                str(row.get("label") or row.get("model") or ""),
+                str(row.get("description") or ""),
+            )
+    return rows
+
+
+def _suggestions_for_connected_llm_providers(connected: set[str]) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for provider_id in sorted(connected):
+        for row in _model_catalog_rows_for_provider(provider_id):
+            mid = str(row.get("model") or "").strip()
+            if not mid or mid in seen:
+                continue
+            seen.add(mid)
+            out.append(row)
+    return out
+
+
+def _resolve_billing_provider_for_model(model_id: str, connected: set[str]) -> str:
+    mid = str(model_id or "").strip()
+    if not mid or not connected:
+        return ""
+    for provider_id in sorted(connected):
+        for row in _model_catalog_rows_for_provider(provider_id):
+            if str(row.get("model") or "").strip() == mid:
+                return provider_id
+    low = mid.lower()
+    if low.startswith("gpt-") and "codex" in connected:
+        return "codex"
+    if low.startswith("gpt-") and "openai" in connected:
+        return "openai"
+    if "/" in mid and "openrouter" in connected:
+        return "openrouter"
+    if low.startswith("claude") and "anthropic" in connected:
+        return "anthropic"
+    if "gemini" in low and "google" in connected:
+        return "google"
+    if "deepseek" in low and "deepseek" in connected:
+        return "deepseek"
+    return ""
+
+
+def _strip_profile_model_proxy_fields(profile: str) -> None:
+    """OAuth/native providers: drop internal proxy base_url + lease api_key from model block."""
+    config_path = _profile_gateway_config_path(profile)
+    if not config_path or not config_path.is_file():
+        return
+    try:
+        lines = config_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    except OSError:
+        return
+    out: list[str] = []
+    in_model = False
+    for line in lines:
+        stripped = line.lstrip()
+        if stripped.startswith("model:") and not line.startswith((" ", "\t")):
+            in_model = True
+            out.append(line)
+            continue
+        if in_model and stripped and not line.startswith((" ", "\t", "#")):
+            in_model = False
+        if in_model and stripped.startswith(("base_url:", "api_key:")):
+            continue
+        out.append(line)
+    try:
+        config_path.write_text("".join(out), encoding="utf-8")
+    except OSError:
+        return
+
+
+def _apply_model_for_billing_provider(
+    profile: str,
+    billing: str,
+    model_id: str,
+    user_id: str = "",
+) -> bool:
+    billing = str(billing or "").strip().lower()
+    ok, _ = _set_profile_model(profile, model_id)
+    if not ok:
+        return False
+    if _oauth_llm_provider_spec(billing):
+        ok_provider, _ = _set_profile_model_provider(profile, _hermes_config_provider_id(billing))
+        if not ok_provider:
+            return False
+        _strip_profile_model_proxy_fields(profile)
+        fallbacks = PROVIDER_MVP_MODELS.get(billing, {}).get("fallbacks") or []
+        if isinstance(fallbacks, list):
+            _write_fallback_chain(profile, fallbacks)
+        user = str(user_id or "").strip()
+        if user:
+            _sync_oauth_llm_to_profile(profile, user, billing)
+        return True
+    ok_provider, _ = _set_profile_model_provider(profile, "custom")
+    if not ok_provider:
+        return False
+    _set_profile_model_base_url(profile, _llm_proxy_base_url(billing))
+    return True
 
 
 def _hermes_config_provider_id(provider_key: str) -> str:
@@ -14515,19 +14916,25 @@ def _bootstrap_model_after_llm_connect(
     ws = str(workspace_id or "").strip()
     primary = _primary_profile()
     if primary:
-        _, model = _read_model_from_config(primary)
-        if not str(model or "").strip():
-            _apply_mvp_model_for_provider(primary, provider_key)
-        elif user:
+        if user and _oauth_llm_provider_spec(provider_key):
             _reconcile_profile_llm_for_user(primary, user, ws, prefer_provider=provider_key)
+        else:
+            _, model = _read_model_from_config(primary)
+            if not str(model or "").strip():
+                _apply_mvp_model_for_provider(primary, provider_key)
+            elif user:
+                _reconcile_profile_llm_for_user(primary, user, ws, prefer_provider=provider_key)
     template = primary or "workframe-agent"
     runtime = _runtime_profile_slug(user_id, template)
     if _runtime_profile_on_disk(runtime):
-        _, model = _read_model_from_config(runtime)
-        if not str(model or "").strip():
-            _apply_mvp_model_for_provider(runtime, provider_key)
-        elif user:
+        if user and _oauth_llm_provider_spec(provider_key):
             _reconcile_profile_llm_for_user(runtime, user, ws, prefer_provider=provider_key)
+        else:
+            _, model = _read_model_from_config(runtime)
+            if not str(model or "").strip():
+                _apply_mvp_model_for_provider(runtime, provider_key)
+            elif user:
+                _reconcile_profile_llm_for_user(runtime, user, ws, prefer_provider=provider_key)
 
 
 # Curated snapshot of commonly-used models per provider. Surfaced in the
@@ -14558,6 +14965,12 @@ HERMES_MODEL_CATALOG: list[dict[str, str]] = [
      "label": "o1", "description": "Reasoning model."},
     {"provider": "OpenAI", "model": "o1-mini",
      "label": "o1 mini", "description": "Cheaper reasoning."},
+    {"provider": "OpenAI", "model": "gpt-5.4-mini",
+     "label": "GPT-5.4 Mini", "description": "Faster Codex / OpenAI model."},
+    {"provider": "Codex", "model": "gpt-5.4-medium",
+     "label": "GPT-5.4 Medium (Codex)", "description": "Codex ChatGPT account default."},
+    {"provider": "Codex", "model": "gpt-5.4-mini",
+     "label": "GPT-5.4 Mini (Codex)", "description": "Faster Codex model."},
     {"provider": "Google", "model": "gemini-2.5-pro",
      "label": "Gemini 2.5 Pro",
      "description": "Long context, strong reasoning."},
@@ -14941,27 +15354,17 @@ def hermes_models(profile: str = "", user_id: str = "", workspace_id: str = "") 
         and str(spec.get("id")).lower() in {n.lower() for n in connected}
         for spec in PROVIDER_CONNECT_CATALOG
     )
-    def _provider_matches(row_provider: str) -> bool:
-        llm_set = picker_llm if user_id else {n.lower() for n in connected}
-        if not llm_set:
-            return False
-        row_key = str(row_provider or "").strip().lower().replace(" ", "")
-        active_key = active_provider.lower().replace(" ", "")
-        if active_key and (row_key == active_key or active_key in row_key or row_key in active_key):
-            return True
-        return any(
-            row_key == name or name in row_key or row_key in name
-            for name in llm_set
-        )
-
+    connected_llm = picker_llm if user_id else {
+        str(spec["id"]).lower()
+        for spec in PROVIDER_CONNECT_CATALOG
+        if str(spec.get("category") or "") == "llm"
+        and str(spec.get("id")).lower() in {n.lower() for n in connected}
+    }
     suggestions = _augment_model_suggestions(
-        [
-            row for row in HERMES_MODEL_CATALOG
-            if _provider_matches(str(row.get("provider") or ""))
-        ] if (picker_llm or connected) else [],
+        _suggestions_for_connected_llm_providers(connected_llm) if connected_llm else [],
         block,
     )
-    if user_id and "openrouter" in {n.lower() for n in (picker_llm or connected)}:
+    if user_id and "openrouter" in connected_llm:
         resolved = _resolve_credential(user_id, workspace_id, "openrouter", user_only=True)
         secret = _credential_secret(resolved or {}, user_id) if resolved else ""
         live = openrouter_catalog.live_suggestions(secret, limit=30)
@@ -15020,20 +15423,39 @@ def hermes_apply_default_model_config() -> dict[str, Any]:
     }
 
 
-def hermes_model_set(profile: str, model_id: str) -> dict[str, Any]:
-    """Set the primary model for a profile. Falls back to the native
-    one if not supplied. The change writes `model.default` only — the
-    fallback chain is preserved.
-    """
+def hermes_model_set(
+    profile: str,
+    model_id: str,
+    user_id: str = "",
+    workspace_id: str = "",
+) -> dict[str, Any]:
+    """Set primary model and align Hermes provider routing to a connected billing provider."""
     target = profile or _primary_profile()
     if not target:
         return {"ok": False, "error": "no profile resolved"}
     if not model_id or " " in model_id or "\n" in model_id:
         return {"ok": False, "error": "invalid model id"}
-    ok, err = _set_profile_model(target, model_id)
-    if not ok:
-        return {"ok": False, "error": err}
-    return {"ok": True, "profile": target, "model": model_id}
+    user = str(user_id or "").strip()
+    ws = str(workspace_id or "").strip()
+    connected = _user_llm_providers_for_picker(user) if user else set()
+    billing = _resolve_billing_provider_for_model(model_id, connected)
+    if billing:
+        if not _apply_model_for_billing_provider(target, billing, model_id, user_id=user):
+            return {"ok": False, "error": "model apply failed"}
+    else:
+        ok, err = _set_profile_model(target, model_id)
+        if not ok:
+            return {"ok": False, "error": err}
+    block = _read_model_block(target)
+    return {
+        "ok": True,
+        "profile": target,
+        "model": model_id,
+        "provider": str(block.get("provider") or ""),
+        "billing_provider": billing or _billing_provider_id_from_hermes_config(
+            str(block.get("provider") or "")
+        ),
+    }
 
 
 def hermes_fallback_chain_set(profile: str, chain: list[Any]) -> dict[str, Any]:
@@ -15844,6 +16266,11 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception:
                     return self._json(200, {"setup_complete": False})
             if path == "/api/install/status":
+                if install_api.install_window_open(str(_workframe_db_path())):
+                    try:
+                        _ensure_native_hermes_profile()
+                    except Exception:
+                        pass
                 payload = install_api.install_status_payload(
                     DEPLOYMENT_MODE,
                     SECURE_MODE,
@@ -16847,6 +17274,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _complete_install(self, user_id: str, body: dict[str, Any]) -> dict[str, Any]:
         global DEPLOYMENT_MODE
+        if not _native_profile_present():
+            _ensure_native_hermes_profile()
         data = body if isinstance(body, dict) else {}
         if not user_id and DEPLOYMENT_MODE == "single_user_local":
             user_id = str(data.get("user_id") or secrets.token_hex(8))
@@ -18536,7 +18965,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(400, {"error": "model required"})
                 if profile:
                     _bootstrap_profile_providers(resolve_validated_profile(profile), user_id, workspace_id)
-                return self._json(200, hermes_model_set(profile, model_id))
+                return self._json(200, hermes_model_set(profile, model_id, user_id, workspace_id))
             if path == "/api/hermes/model/apply-default":
                 if not _check_auth(self):
                     return self._json(401, {"error": "unauthorized"})

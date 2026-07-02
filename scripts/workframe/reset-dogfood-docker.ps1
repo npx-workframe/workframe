@@ -1,9 +1,9 @@
-# Reset DOCKER DOGFOOD only ‚Äî runtime/ + workframe.db. Never touches source or host Hermes.
+# Reset DOCKER DOGFOOD only ù runtime/ + workframe.db. Never touches source or host Hermes.
 #
 # SAFE TO DELETE (this script only):
-#   runtime/Agents/              ‚Üí Docker Hermes /opt/data (dogfood)
-#   runtime/Files/               ‚Üí Docker /workspace (dogfood artifacts)
-#   runtime/workframe-api-data/  ‚Üí auth.db + workframe.db
+#   runtime/Agents/              ? Docker Hermes /opt/data (dogfood)
+#   runtime/Files/               ? Docker /workspace (dogfood artifacts)
+#   runtime/workframe-api-data/  ? auth.db + workframe.db
 #   %LOCALAPPDATA%\hermes  (local AIbert / host Hermes)
 #   projects/Workframe/Workframe/  (frozen meta donor - read-only backup)
 #
@@ -64,6 +64,36 @@ function Assert-DogfoodPath([string]$Path) {
   throw "Refusing to touch path outside runtime/: $Path"
 }
 
+function Clear-DogfoodComposeInstallCreds([string]$EnvPath) {
+  if (-not (Test-Path $EnvPath)) { return }
+  $blank = @{
+    SMTP_HOST = ''
+    SMTP_PORT = '587'
+    SMTP_SECURE = 'false'
+    SMTP_USER = ''
+    SMTP_PASS = ''
+    SMTP_PASSWORD = ''
+    EMAIL_FROM = ''
+    SMTP_FROM = ''
+    WORKFRAME_GITHUB_OAUTH_CLIENT_ID = ''
+    WORKFRAME_GITHUB_OAUTH_CLIENT_SECRET = ''
+    WORKFRAME_E2E = '0'
+  }
+  $out = foreach ($line in (Get-Content -LiteralPath $EnvPath)) {
+    if ($line -match '^\s*#' -or $line -match '^\s*$') { $line; continue }
+    $hit = $false
+    foreach ($key in $blank.Keys) {
+      if ($line -match "^\s*$([regex]::Escape($key))\s*=") {
+        "$key=$($blank[$key])"
+        $hit = $true
+        break
+      }
+    }
+    if (-not $hit) { $line }
+  }
+  Set-Content -LiteralPath $EnvPath -Value $out -Encoding utf8
+}
+
 function Guard-ForbiddenPaths() {
   $forbidden = @($LocalHermes)
   foreach ($f in $forbidden) {
@@ -88,10 +118,11 @@ Dogfood reset requires -Confirm (or -WhatIf to preview).
 
 This deletes ONLY:
   runtime/Agents, runtime/Files, runtime/workframe-api-data
+  compose .env install creds (SMTP, OAuth app, WORKFRAME_E2E)
 
 This does NOT delete:
   repository source (services, apps, packages, infra)
-  %LOCALAPPDATA%\hermes (host Hermes ó off limits)
+  %LOCALAPPDATA%\hermes (host Hermes ù off limits)
   
 '@
   exit 1
@@ -106,6 +137,7 @@ Write-Host '=== Dogfood reset plan ==='
 Write-Host "  DELETE  $Agents"
 Write-Host "  DELETE  $Files"
 Write-Host "  DELETE  $ApiData\*"
+Write-Host "  CLEAR   $(Join-Path $Compose '.env') install creds (SMTP/OAuth/E2E)"
 Write-Host "  KEEP    $Root\services, apps, packages"
 Write-Host "  KEEP    $LocalHermes"
 Write-Host ''
@@ -127,6 +159,9 @@ if ($Prune) {
   docker builder prune -f
 }
 Pop-Location
+
+Write-Host '=== clear compose install creds (clean install ó no env ghosting) ==='
+Clear-DogfoodComposeInstallCreds (Join-Path $Compose '.env')
 
 Write-Host '=== wipe runtime ==='
 if (Test-Path $Agents) {

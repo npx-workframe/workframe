@@ -33,9 +33,11 @@ export function authStartNotice(result: AuthStartResponse, targetEmail: string) 
   if (result.otp_code) {
     return {
       devOtp: result.otp_code,
-      notice: result.email_error
-        ? `Email not sent (${result.email_error}). Use the dev code below.`
-        : 'SMTP is not configured locally — use the dev code below.',
+      notice: result.email_sent
+        ? `We sent a verification code to ${targetEmail}. (Dev harness also shows the code below.)`
+        : result.email_error
+          ? `Email not sent (${result.email_error}). Use the dev code below.`
+          : 'SMTP is not configured locally — use the dev code below.',
     }
   }
   if (result.email_sent) {
@@ -131,9 +133,11 @@ export function EmailOtpVerification({
     if (result.otp_code) {
       setDevOtpHint(result.otp_code)
       setAuthNotice(
-        result.email_error
-          ? `Email not sent (${result.email_error}). Use the dev code below.`
-          : 'SMTP is not configured locally — use the dev code below.',
+        result.email_sent
+          ? `We sent a verification code to ${targetEmail}. (Dev harness also shows the code below.)`
+          : result.email_error
+            ? `Email not sent (${result.email_error}). Use the dev code below.`
+            : 'SMTP is not configured locally — use the dev code below.',
       )
       return
     }

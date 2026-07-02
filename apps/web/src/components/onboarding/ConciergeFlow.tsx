@@ -383,6 +383,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     const steps = buildWizardSteps(deploymentMode, modeChosen, isInvitee)
     if (!steps.length) return 0
     const idx = (id: string) => steps.findIndex((s) => s.id === id)
+    if (isInvitee) {
+      if (inviteeAuthed && workspaceId) return steps.length - 1
+      return Math.max(idx('profile'), 0)
+    }
     let max = 0
     if (modeChosen) max = Math.max(max, idx('welcome'))
     if (deploymentMode === 'single_user_local' && modeChosen && adminVerified) {
@@ -398,7 +402,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       max = steps.length - 1
     }
     return max
-  }, [adminVerified, deploymentMode, isInvitee, modeChosen, smtpReady, workspaceId])
+  }, [adminVerified, deploymentMode, inviteeAuthed, isInvitee, modeChosen, smtpReady, workspaceId])
 
   const maxReachableIndex = Math.max(visitedMaxIndex, unlockedMaxIndex)
 
@@ -447,6 +451,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       } else if (mode === 'public_multi_user') {
         setStep('publish')
       } else {
+        await workframeAuthApi.completeSetup({
+          workframe_name: resolveWorkframeName(),
+          agent_name: agentName,
+        })
         setStep('smtp')
       }
     } catch (err) {
@@ -469,10 +477,6 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
   }, [adminEmail, inviteToken])
 
   async function saveSmtpForInstall(requirePassword = false): Promise<boolean> {
-    await workframeAuthApi.completeSetup({
-      workframe_name: resolveWorkframeName(),
-      agent_name: agentName,
-    })
     const port = Number(smtpPort) || 587
     const from = smtpFrom.trim()
     const password = smtpPass.trim()
@@ -738,7 +742,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       })
       setAgentSteps(AGENT_SAVE_STEP_LABELS.map((entry) => ({ ...entry, status: 'done' })))
       if (isInvitee) {
-        await finishInstall()
+        await finishInviteeOnboarding()
         return
       }
       if (deploymentMode === 'public_multi_user') {
@@ -816,7 +820,54 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     }
   }
 
+  async function finishInviteeOnboarding() {
+    if (!workspaceId) {
+      setLaunchError(formatWorkframeErrorMessage(new Error('workspace_missing'), 'Finish join'))
+      return
+    }
+    setLaunching(true)
+    setLaunchError(null)
+    setLaunchSteps(
+      buildFinishInstallSteps(undefined, 'pending').map((entry, index) => ({
+        ...entry,
+        status: index === 0 ? 'active' : 'pending',
+      })),
+    )
+    setBusy(true)
+    try {
+      const result = await workframeAuthApi.bootstrapAgentFromTemplate('workframe-agent', {
+        workspace_id: workspaceId,
+        display_name: agentName,
+        tagline: agentTagline,
+        soul: agentSoul.trim() || defaultAgentSoul(agentName, resolveWorkframeName()),
+        bind_session: true,
+      })
+      if (!result.ok || !result.room_id) {
+        throw new Error(result.error || 'Agent bootstrap failed')
+      }
+      setLaunchSteps(buildFinishInstallSteps(result.steps as Array<{ step?: string; ok?: boolean; error?: string }>, 'done'))
+      setStep('done')
+      await new Promise((resolve) => window.setTimeout(resolve, 350))
+      onComplete()
+    } catch (err) {
+      const message = formatWorkframeErrorMessage(err, 'Finish join')
+      setLaunchError(message)
+      setLaunchSteps((current) =>
+        current.map((entry) =>
+          entry.status === 'active' ? { ...entry, status: 'error', detail: message } : entry,
+        ),
+      )
+    } finally {
+      setBusy(false)
+      setLaunching(false)
+    }
+  }
+
   async function finishInstall(options?: { alreadyLaunching?: boolean }) {
+    if (isInvitee) {
+      await finishInviteeOnboarding()
+      return
+    }
     if (deploymentMode !== 'single_user_local' && !adminVerified) {
       const message = formatWorkframeErrorMessage(new Error('no_session'), 'Finish setup')
       setLaunchError(message)
@@ -967,6 +1018,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
   }, [step, visitedMaxIndex, wizardSteps])
 
   function goToRailStep(railId: string) {
+    if (isInvitee && railId === 'smtp') return
     if (busy) return
     const targetIdx = wizardSteps.findIndex((s) => s.id === railId)
     if (targetIdx < 0 || targetIdx > maxReachableIndex) return

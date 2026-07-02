@@ -9,8 +9,7 @@ param(
   [string]$OutRoot = '',
   [int]$Slot = 4,
   [string]$PackPath = '',
-  [switch]$SkipGate,
-  [switch]$CopySecretsFromDogfood
+  [switch]$SkipGate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,7 +17,6 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $OutRoot) { $OutRoot = Join-Path $Root 'runtime\pack-install' }
 $GateDir = Join-Path $Root '.install-gate'
 $InstallDir = Join-Path $OutRoot $ProjectName
-$DogfoodEnv = Join-Path $Root 'infra\compose\workframe\.env'
 
 if (-not $SkipGate) {
   Write-Host '=== install gate (source -> pack) ==='
@@ -94,33 +92,6 @@ $map['WORKFRAME_HOST_PROJECT_ROOT'] = $rootEsc
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir 'Agents\profiles') | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir 'Files') | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $InstallDir 'workframe-api\data') | Out-Null
-
-if ($CopySecretsFromDogfood -and (Test-Path $DogfoodEnv)) {
-  Write-Host '=== merge SMTP/ZK secrets from dogfood .env (OTP only; not product code) ==='
-  $installEnv = Join-Path $InstallDir '.env'
-  $carry = @(
-    'WORKFRAME_SUPERVISOR_TOKEN', 'WORKFRAME_API_TOKEN', 'WORKFRAME_PROXY_TOKEN',
-    'WORKFRAME_VAULT_KEK', 'ZK_AUTH_HMAC_KEY', 'ZK_AUTH_ENCRYPTION_KEY',
-    'ZK_AUTH_SESSION_SECRET', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_USER',
-    'SMTP_PASS', 'EMAIL_FROM', 'WORKFRAME_PROJECT'
-  )
-  $dog = Get-Content $DogfoodEnv -Raw
-  $lines = Get-Content $installEnv
-  $map = @{}
-  foreach ($line in $lines) {
-    if ($line -match '^([^#=]+)=(.*)$') { $map[$Matches[1]] = $Matches[2] }
-  }
-  foreach ($key in $carry) {
-    if ($dog -match "(?m)^$([regex]::Escape($key))=(.*)$") {
-      $val = $Matches[1].Trim()
-      if ($val) { $map[$key] = $val }
-    }
-  }
-  $rootEsc = $InstallDir.Replace('\', '/')
-  $map['WORKFRAME_HOST_COMPOSE_DIR'] = $rootEsc
-  $map['WORKFRAME_HOST_PROJECT_ROOT'] = $rootEsc
-  ($map.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) | Set-Content $installEnv -Encoding utf8
-}
 
 Write-Host '=== bootstrap-native.ps1 ==='
 Push-Location $InstallDir

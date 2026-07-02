@@ -55,6 +55,7 @@ function providerLabel(provider: string): string {
   if (key === 'anthropic') return 'Anthropic'
   if (key === 'google') return 'Google Gemini'
   if (key === 'deepseek') return 'DeepSeek'
+  if (key === 'codex') return 'OpenAI Codex'
   if (key === 'nous') return 'Nous Portal'
   return provider
 }

@@ -13,7 +13,6 @@ if [[ -z "$PUBLIC_URL" ]]; then
   exit 1
 fi
 INSTALL_DIR="$OUT_ROOT/$PROJECT_NAME"
-ENV_BACKUP="/tmp/workframe-env-backup-$$.env"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 ok() { echo "OK: $*"; }
@@ -22,17 +21,8 @@ ok() { echo "OK: $*"; }
 command -v node >/dev/null 2>&1 || fail "node required on VPS"
 command -v docker >/dev/null 2>&1 || fail "docker required on VPS"
 
-# Preserve secrets from prior install (SMTP, vault, ZK, tokens).
-REPO_ROOT="${WORKFRAME_REPO_ROOT:-$OUT_ROOT/repo}"
-for candidate in "$INSTALL_DIR/.env" "$REPO_ROOT/infra/compose/workframe/.env"; do
-  if [[ -f "$candidate" ]]; then
-    cp "$candidate" "$ENV_BACKUP"
-    ok "backed up env from $candidate"
-    break
-  fi
-done
-
 # Stop any stack using slot ports or old install dir.
+REPO_ROOT="${WORKFRAME_REPO_ROOT:-$OUT_ROOT/repo}"
 for dir in "$INSTALL_DIR" "$REPO_ROOT"; do
   if [[ -f "$dir/docker-compose.yml" ]]; then
     (cd "$dir" && docker compose down --remove-orphans 2>/dev/null) || true
@@ -71,12 +61,12 @@ mkdir -p "$OUT_ROOT"
 mkdir -p "$INSTALL_DIR/Agents/profiles" "$INSTALL_DIR/Files" "$INSTALL_DIR/workframe-api/data"
 chmod -R a+rwX "$INSTALL_DIR/Agents" "$INSTALL_DIR/Files" "$INSTALL_DIR/workframe-api" 2>/dev/null || true
 
-# Merge prior secrets + public overlay env.
-python3 - "$ENV_BACKUP" "$INSTALL_DIR/.env" "$PUBLIC_URL" <<'PY'
+# Public overlay only — no secret carry from prior installs (sign-off must exercise wizard).
+python3 - "$INSTALL_DIR/.env" "$PUBLIC_URL" <<'PY'
 import re, sys
 from pathlib import Path
 
-backup_path, env_path, public_url = sys.argv[1:4]
+env_path, public_url = sys.argv[1:3]
 env = Path(env_path)
 text = env.read_text(encoding="utf-8")
 
@@ -95,20 +85,6 @@ set_kv("APP_BASE_URL", public_url.rstrip("/"))
 host = public_url.split("://", 1)[-1].split("/")[0]
 set_kv("ALLOWED_HOSTS", host)
 set_kv("CORS_ALLOW_ORIGIN", public_url.rstrip("/"))
-
-if Path(backup_path).is_file():
-    backup = Path(backup_path).read_text(encoding="utf-8")
-    carry = (
-        "WORKFRAME_SUPERVISOR_TOKEN", "WORKFRAME_API_TOKEN", "WORKFRAME_PROXY_TOKEN",
-        "WORKFRAME_VAULT_KEK", "ZK_AUTH_HMAC_KEY", "ZK_AUTH_ENCRYPTION_KEY",
-        "ZK_AUTH_SESSION_SECRET", "SMTP_HOST", "SMTP_PORT", "SMTP_USER",
-        "SMTP_PASS", "EMAIL_FROM", "WORKFRAME_PROJECT",
-    )
-    for key in carry:
-        m = re.search(rf"^{re.escape(key)}=(.*)$", backup, re.M)
-        if m and m.group(1).strip():
-            set_kv(key, m.group(1).strip())
-
 root = str(env.parent).replace("\\", "/")
 set_kv("WORKFRAME_HOST_COMPOSE_DIR", root)
 set_kv("WORKFRAME_HOST_PROJECT_ROOT", root)
