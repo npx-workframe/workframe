@@ -2,6 +2,8 @@
 
 These instructions apply to AI assistants working in this repository.
 
+**Start here:** [START_HERE.md](START_HERE.md) — project map, ledger, pitfalls, cascade read order.
+
 ## Source Hierarchy
 
 1. Primary source artifacts in this repository.
