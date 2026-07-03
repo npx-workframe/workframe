@@ -57,3 +57,14 @@ Before mutating anything:
 Do not place product rules inside UI apps when they belong in `packages/domain`.
 Do not place transport-specific request shapes inside domain entities when they belong in `packages/contracts`.
 Do not duplicate auth/session logic across clients when it belongs in `packages/auth` and `packages/sdk`.
+
+## Harness (Cursor-owned)
+
+Workframe operator loops are **Cursor-owned** (not ChatGPT). Scheduler ownership is documented in ABKB `operations/registry/scheduler-ownership.md`.
+
+- Feature scenarios: `.harness/feature_list.json`
+- Cloud verify: `node .harness/verify.mjs` (also `.cursor/environment.json` start command)
+- Full CI parity: `pnpm test:ci`
+- Install-gate (local): AB workspace `workframe-release` skill
+
+Edit canonical source (`services/workframe-api/`, `apps/web/src/`) — not installer copies alone.

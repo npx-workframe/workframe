@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1",
+  "description": "Workframe harness scenarios — backend/install-gate focus; UI dogfood is local-only.",
+  "updated": "2026-07-03",
+  "scenarios": [
+    {
+      "id": "api-typecheck",
+      "description": "workframe-api TypeScript typecheck passes",
+      "verify": "pnpm --filter @workframe/workframe-api typecheck",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-stack-smtp",
+      "description": "Install window ignores compose SMTP env; wizard persists SMTP",
+      "verify": "python services/workframe-api/test_stack_config_install_smtp.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-oauth-llm",
+      "description": "OAuth/LLM provider surface unit checks",
+      "verify": "python services/workframe-api/test_oauth_llm.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-provider-models",
+      "description": "Provider model surface regression",
+      "verify": "python services/workframe-api/test_provider_model_surface.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "public-repo-verify",
+      "description": "Public repo hygiene script",
+      "verify": "pnpm verify:public",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "web-build",
+      "description": "Web app production build",
+      "verify": "pnpm build:web",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "installer-scaffold",
+      "description": "create-workframe scaffold test",
+      "verify": "node packages/create-workframe/scripts/test-scaffold.mjs",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "installer-ui-bundle",
+      "description": "Installer UI bundle parity",
+      "verify": "node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build",
+      "passes": false,
+      "owner": "cursor-local"
+    },
+    {
+      "id": "dogfood-install-gate",
+      "description": "Full install-gate: wipe dogfood, create-workframe, wizard, chat smoke",
+      "verify": "manual — workframe-release skill install-gate",
+      "passes": false,
+      "owner": "cursor-local"
+    }
+  ]
+}

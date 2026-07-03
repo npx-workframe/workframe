@@ -22,21 +22,14 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Public repo verify
-        run: pnpm verify:public
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: API typecheck
-        run: pnpm --filter @workframe/workframe-api typecheck
+      - name: Harness verify
+        env:
+          HARNESS_CHECK: "1"
+        run: node .harness/verify.mjs
 
-      - name: Build web
-        run: pnpm build:web
-
-      - name: Bundle UI for scaffold package
+      - name: Installer UI bundle
         run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build
-
-      - name: Scaffold smoke test
-        run: pnpm test:scaffold

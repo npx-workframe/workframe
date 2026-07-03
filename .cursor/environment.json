@@ -1,0 +1,5 @@
+{
+  "install": "pnpm install",
+  "start": "node .harness/verify.mjs",
+  "terminals": []
+}
