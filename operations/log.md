@@ -15,3 +15,4 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 2026-07-04T02:45-03:00 | Red Team | created docs/living-audit/red-team-03-agent-runtime-matrix.md challenging premature agent/runtime/provider matrix complexity; no product source code changed.
 2026-07-04T03:15-03:00 | Planning Rail | created docs/living-audit/refactor-map.md mapping Hermes-centered seams to adapter-first cell boundaries; no product source code changed.
 2026-07-04T03:45-03:00 | Red Team | created docs/living-audit/red-team-04-refactor-seam-risk.md challenging adapter seam, profile identity, and admin/runtime boundary assumptions; no product source code changed.
+2026-07-04T04:15-03:00 | Planning Rail | created docs/living-audit/release-readiness.md with next-release blockers and adapter-first deferrals; no product source code changed.
