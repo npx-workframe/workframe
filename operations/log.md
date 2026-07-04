@@ -23,3 +23,4 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 2026-07-04T06:45-03:00 | Red Team | created docs/living-audit/red-team-07-open-update-connect-risk.md challenging open/update/connect hidden-installer risk; no product source code changed.
 2026-07-04T07:15-03:00 | Planning Rail | created docs/living-audit/existing-runtime-adoption-policy.md with non-destructive host/runtime adoption boundaries; no product source code changed.
 2026-07-04T07:45-03:00 | Red Team | created docs/living-audit/red-team-08-manifest-authority-risk.md challenging manifest/provenance authority, default destructive create, and false-safe adoption assumptions; no product source code changed.
+2026-07-04T08:15-03:00 | Planning Rail | created docs/living-audit/workframe-surface-baseline.md defining minimum surface contract; no product source code changed.
