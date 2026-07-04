@@ -11,3 +11,4 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 2026-07-04T00:45-03:00 | Red Team | created docs/living-audit/red-team-01-adoption-risk.md challenging non-destructive runtime adoption assumptions; no product source code changed.
 2026-07-04T01:15-03:00 | Planning Rail | created docs/living-audit/runtime-detection-map.md with mutation-free detection schema and probe boundaries; no product source code changed.
 2026-07-04T01:45-03:00 | Red Team | created docs/living-audit/red-team-02-detection-privacy.md challenging detection privacy, false confidence, and public launch-gate drift; no product source code changed.
+2026-07-04T02:15-03:00 | Planning Rail | created docs/living-audit/agent-runtime-config.md with agent/runtime/provider/funding config model; no product source code changed.
