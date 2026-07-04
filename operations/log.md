@@ -30,3 +30,4 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 2026-07-04T10:15-03:00 | Planning Rail | created docs/living-audit/final-convergence-synthesis.md with v0.1.x package-truth to v0.2 adapter-first roadmap; no product source code changed.
 2026-07-04T10:45-03:00 | Red Team | created docs/living-audit/red-team-11-gate-theater-risk.md challenging named gates without owners, evidence schemas, and negative tests; no product source code changed.
 2026-07-04T11:15-03:00 | Planning Rail | created docs/living-audit/package-truth-gate.md with v0.1.x release decision memo and evidence schema; no product source code changed.
+2026-07-04T11:45-03:00 | Red Team | created docs/living-audit/red-team-12-evidence-authority-collapse.md challenging overloaded PackageTruthGate evidence and release-claim scope; no product source code changed.
