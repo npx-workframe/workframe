@@ -8,3 +8,4 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 2026-07-04T00:00-03:00 | Planning Rail | created docs/living-audit/README.md with installer decision-tree convergence map.
 2026-07-04T00:04-03:00 | Red Team Smoke Test | verified docs/living-audit write path with red-team-smoke-test-2026-07-04.md; no product source code changed.
 2026-07-04T00:15-03:00 | Planning Rail | created docs/living-audit/first-run-wizard.md with cell-first first-run wizard convergence map; no product source code changed.
+2026-07-04T00:45-03:00 | Red Team | created docs/living-audit/red-team-01-adoption-risk.md challenging non-destructive runtime adoption assumptions; no product source code changed.
