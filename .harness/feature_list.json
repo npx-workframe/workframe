@@ -6,7 +6,7 @@
     {
       "id": "api-typecheck",
       "description": "workframe-api TypeScript typecheck passes",
-      "verify": "bash services/workframe-api/run-typecheck.sh",
+      "verify": "node services/workframe-api/run-typecheck.mjs",
       "passes": true,
       "owner": "cursor-cloud"
     },

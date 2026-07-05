@@ -23,6 +23,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: "3.12"
 
@@ -38,6 +39,7 @@ jobs:
       - name: Harness verify
         env:
           HARNESS_CHECK: "1"
+          PYTHON: ${{ steps.setup-python.outputs.python-path }}
         run: node .harness/verify.mjs
 
       - name: Installer UI bundle

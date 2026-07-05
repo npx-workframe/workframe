@@ -66,6 +66,7 @@ jobs:
         run: pnpm verify:public
 
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: '3.12'
 
@@ -74,7 +75,9 @@ jobs:
 
       # Same gate as ci.yml — publish runs prepack on npm publish.
       - name: API typecheck
-        run: bash services/workframe-api/run-typecheck.sh
+        env:
+          PYTHON: ${{ steps.setup-python.outputs.python-path }}
+        run: node services/workframe-api/run-typecheck.mjs
 
       - name: Build web
         run: pnpm build:web
