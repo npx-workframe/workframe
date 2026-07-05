@@ -73,11 +73,10 @@ jobs:
       - name: API Python deps
         run: ${{ steps.setup-python.outputs.python-path }} -m pip install -r services/workframe-api/requirements.txt
 
-      # Same gate as ci.yml — publish runs prepack on npm publish.
+      # ponytail: publish gate = compile-only; full self-checks run via harness (run-typecheck.mjs).
       - name: API typecheck
-        env:
-          PYTHON: ${{ steps.setup-python.outputs.python-path }}
-        run: node services/workframe-api/run-typecheck.mjs
+        working-directory: services/workframe-api
+        run: ${{ steps.setup-python.outputs.python-path }} -m py_compile server.py zk_auth.py email_sender.py profile_config_yaml.py route_registry.py
 
       - name: Build web
         run: pnpm build:web
