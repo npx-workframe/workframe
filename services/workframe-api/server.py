@@ -5107,12 +5107,32 @@ def bootstrap_agent_dm_lane(
     model_id = str(model or "").strip()
     if model_id:
         try:
-            code, out = _gateway_exec(runtime, ["model", model_id])
+            applied = hermes_model_set(runtime, model_id, user_id, workspace_id)
             steps.append(
-                {"step": "set_runtime_model", "ok": code == 0, "model": model_id, "output": out.strip()},
+                {
+                    "step": "set_runtime_model",
+                    "ok": bool(applied.get("ok")),
+                    "model": model_id,
+                    **({"error": applied.get("error")} if not applied.get("ok") else {}),
+                },
             )
+            if not applied.get("ok"):
+                return {
+                    "ok": False,
+                    "template": template,
+                    "runtime": runtime,
+                    "steps": steps,
+                    "error": str(applied.get("error") or "set_runtime_model_failed"),
+                }
         except Exception as exc:
             steps.append({"step": "set_runtime_model", "ok": False, "error": str(exc)})
+            return {
+                "ok": False,
+                "template": template,
+                "runtime": runtime,
+                "steps": steps,
+                "error": str(exc),
+            }
     else:
         try:
             _bootstrap_profile_providers(runtime, user_id, workspace_id)
@@ -11457,7 +11477,21 @@ def _coalesce_profile_model_yaml(profile: str) -> None:
     model_headers = sum(
         1 for line in lines if line.lstrip().startswith("model:") and not line.startswith((" ", "\t"))
     )
-    if model_headers <= 1:
+    needs_coalesce = model_headers > 1
+    if not needs_coalesce:
+        in_model = False
+        for line in lines:
+            stripped = line.lstrip()
+            indent = len(line) - len(stripped)
+            if indent == 0 and stripped.startswith("model:"):
+                in_model = True
+                continue
+            if indent == 0 and stripped:
+                in_model = False
+            if in_model and indent == 2 and stripped.startswith("- "):
+                needs_coalesce = True
+                break
+    if not needs_coalesce:
         return
     block = _read_model_block(profile)
     api_key_line = ""
@@ -12119,6 +12153,8 @@ def profile_gateway_lifecycle(profile: str, action: str, *, bootstrap_providers:
         raise ValueError("invalid action")
     port = _profile_api_port(prof)
     if SECURE_MODE and prof != _primary_profile() and action in {"start", "stop", "disable"}:
+        if action == "start":
+            _normalize_profile_config_yaml(prof)
         return _supervisor_profile_lifecycle(prof, action)
     if prof == _primary_profile():
         if action == "disable":
@@ -15121,6 +15157,8 @@ def _set_profile_model(profile: str, model_id: str) -> tuple[bool, str]:
             out.append(f"{indent}default: {model_id}\n")
             wrote_default = True
             continue
+        if in_model_block and stripped.startswith("- "):
+            continue
         out.append(line)
 
     if not wrote_default:
@@ -15175,6 +15213,8 @@ def _set_profile_model_provider(profile: str, provider: str) -> tuple[bool, str]
             indent = line[: len(line) - len(stripped)]
             out.append(f"{indent}provider: {provider}\n")
             wrote_provider = True
+            continue
+        if in_model_block and stripped.startswith("- "):
             continue
         out.append(line)
 
@@ -15359,6 +15399,7 @@ def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bo
     position (right after the `model:` section, before the next
     top-level key).
     """
+    _normalize_profile_config_yaml(profile)
     config_path = _profile_gateway_config_path(profile)
     if not config_path or not config_path.is_file():
         try:
@@ -15448,6 +15489,7 @@ def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bo
         config_path.write_text("".join(out), encoding="utf-8")
     except OSError as exc:
         return False, f"write failed: {exc}"
+    _normalize_profile_config_yaml(profile)
     return True, ""
 
 
