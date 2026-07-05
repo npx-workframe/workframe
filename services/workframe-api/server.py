@@ -52,6 +52,7 @@ import concierge
 import llm_error_glossary
 import openrouter_catalog
 import updates as stack_updates
+import install_api
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
 WORKSPACE = Path(os.environ.get("WORKSPACE", "/workspace"))
