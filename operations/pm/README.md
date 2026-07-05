@@ -31,6 +31,7 @@ docs/ledger/backlog.json     program queue (WF-*)     ← PM owns priority
 .harness/feature_list.json   verify scenarios         ← tests role
 operations/pm/queues.json    this-session handoffs    ← PM → worker
 operations/log.md            narrative                ← append-only
+operations/release-evidence/ maintainer sign-off JSON schemas (WF-003)
 abkb/.../queues.json         cross-portfolio assign   ← optional sync
 ```
 

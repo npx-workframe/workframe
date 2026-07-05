@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workfra.me/schemas/evidence-common.schema.json",
+  "title": "WorkframeReleaseEvidenceCommon",
+  "description": "Shared fields for maintainer release evidence artifacts.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "evidence_type",
+    "gate_name",
+    "scenario_id",
+    "git_ref",
+    "package_name",
+    "package_version",
+    "target_mode",
+    "decision",
+    "decision_reason",
+    "timestamp",
+    "step_assertions"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+    "evidence_type": {
+      "type": "string",
+      "enum": ["package_install", "first_run", "negative_install"]
+    },
+    "gate_name": { "type": "string" },
+    "scenario_id": { "type": "string" },
+    "git_ref": { "type": "string", "minLength": 7 },
+    "package_name": { "type": "string", "const": "create-workframe" },
+    "package_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+" },
+    "packed_artifact_digest": {
+      "type": "string",
+      "description": "sha512 or npm integrity; redacted path optional"
+    },
+    "target_mode": {
+      "type": "string",
+      "enum": [
+        "single_user_local",
+        "trusted_team",
+        "public_multi_user",
+        "negative_test"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny", "needs_user_action"]
+    },
+    "decision_reason": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "commands_redacted": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "observed_outputs_redacted": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "step_assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/step_assertion" }
+    },
+    "negative_cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/negative_case_summary" }
+    },
+    "artifact_paths_redacted": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "step_assertion": {
+      "type": "object",
+      "required": ["id", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["asserted", "not_asserted", "failed"]
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "negative_case_summary": {
+      "type": "object",
+      "required": ["id", "decision"],
+      "properties": {
+        "id": { "type": "string" },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny", "needs_user_action", "detected_only"]
+        },
+        "mutation_observed": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -29,6 +29,9 @@ jobs:
       - name: Version agreement
         run: node scripts/workframe/verify-version-agreement.mjs
 
+      - name: Release evidence fixtures
+        run: node scripts/workframe/validate-release-evidence.mjs
+
       - name: Harness verify
         env:
           HARNESS_CHECK: "1"

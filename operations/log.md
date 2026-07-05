@@ -4,7 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
-2026-07-05T03:45-03:00 | pm-workframe | WF-001 + WF-022 done — public docs @0.1.11, verify-version-agreement.mjs in CI and test:ci.
+2026-07-05T03:50-03:00 | pm-workframe | WF-003 + WF-018 done — release evidence schemas, examples, validate-release-evidence.mjs in CI.
 
 2026-07-03T21:00-03:00 | Scaffold | operations rail + START_HERE.md + harness README added for agent entry cascade.
 2026-07-04T00:00-03:00 | Planning Rail | created docs/living-audit/README.md with installer decision-tree convergence map.

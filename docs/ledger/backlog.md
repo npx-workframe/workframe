@@ -23,7 +23,7 @@ This file is the human map. Agents and CI should read/write `backlog.json`; huma
 |----|---------|---------|--------|
 | P0-1 | Version agreement | WF-001, WF-022 | **done** |
 | P0-2 | PackageTruthGate | WF-002, WF-021 | todo |
-| P0-3 | Split evidence model | WF-003, WF-018 | todo |
+| P0-3 | Split evidence model | WF-003, WF-018 | **done** |
 | P0-4 | Empty-target-only claim | WF-004 | partial |
 | P0-5 | Local gates not silent | WF-005 | todo |
 | P0-6 | Docs-claim gate | WF-006 | todo |

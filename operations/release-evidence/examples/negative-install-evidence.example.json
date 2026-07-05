@@ -1,0 +1,41 @@
+{
+  "schema_version": "0.1",
+  "evidence_type": "negative_install",
+  "gate_name": "NegativeInstallGate",
+  "scenario_id": "install-deny-matrix",
+  "git_ref": "9198820",
+  "package_name": "create-workframe",
+  "package_version": "0.1.11",
+  "target_mode": "negative_test",
+  "decision": "allow",
+  "decision_reason": "Example fixture — all cases deny or needs_user_action with mutation_observed false.",
+  "timestamp": "2026-07-05T06:45:00Z",
+  "commands_redacted": ["create-workframe ../escape", "create-workframe ExistingDir"],
+  "step_assertions": [
+    { "id": "matrix_executed", "status": "not_asserted", "note": "WF-019 runner pending" }
+  ],
+  "cases": [
+    {
+      "id": "non_empty_target",
+      "decision": "deny",
+      "mutation_observed": false,
+      "before_hash": "sha256:example-before",
+      "after_hash": "sha256:example-before",
+      "note": "Directory hash unchanged"
+    },
+    {
+      "id": "unsafe_project_name",
+      "decision": "deny",
+      "mutation_observed": false,
+      "before_hash": "sha256:example-before",
+      "after_hash": "sha256:example-before"
+    },
+    {
+      "id": "missing_docker",
+      "decision": "needs_user_action",
+      "mutation_observed": false,
+      "before_hash": "sha256:example-before",
+      "after_hash": "sha256:example-before"
+    }
+  ]
+}

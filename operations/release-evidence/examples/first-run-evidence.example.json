@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1",
+  "evidence_type": "first_run",
+  "gate_name": "FirstRunGate",
+  "scenario_id": "single-user-local-first-chat",
+  "git_ref": "9198820",
+  "package_name": "create-workframe",
+  "package_version": "0.1.11",
+  "packed_artifact_digest": "sha512-EXAMPLE-REDACTED",
+  "target_mode": "single_user_local",
+  "decision": "needs_user_action",
+  "decision_reason": "Example fixture only — runner WF-020 not wired yet.",
+  "timestamp": "2026-07-05T06:45:00Z",
+  "commands_redacted": [
+    "docker compose up -d --build",
+    "curl -fsS http://127.0.0.1:19120/api/health"
+  ],
+  "observed_outputs_redacted": {
+    "credential_source_class": "byok_user",
+    "ui_loaded": false,
+    "api_health_ok": false,
+    "supervisor_health_ok": false,
+    "managed_hermes_health_ok": false,
+    "wizard_completed": false,
+    "first_chat_stream_ok": false
+  },
+  "step_assertions": [
+    { "id": "docker_compose_up", "status": "not_asserted" },
+    { "id": "api_health", "status": "not_asserted" },
+    { "id": "supervisor_health", "status": "not_asserted" },
+    { "id": "hermes_health", "status": "not_asserted" },
+    { "id": "wizard_completed", "status": "not_asserted" },
+    { "id": "first_chat_stream", "status": "not_asserted" },
+    { "id": "session_receipt_minimal", "status": "not_asserted" }
+  ]
+}

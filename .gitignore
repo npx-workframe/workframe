@@ -1,5 +1,6 @@
 # deps/build
 node_modules/
+operations/release-evidence/runs/
 .pnpm-store/
 .turbo/
 .next/

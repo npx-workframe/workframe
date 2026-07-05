@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workfra.me/schemas/first-run-evidence.schema.json",
+  "title": "FirstRunEvidence",
+  "description": "Evidence after Docker boot, wizard, and first managed-Hermes chat.",
+  "allOf": [
+    { "$ref": "evidence-common.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "evidence_type": { "const": "first_run" },
+        "gate_name": { "const": "FirstRunGate" }
+      }
+    }
+  ]
+}

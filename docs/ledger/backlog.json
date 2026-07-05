@@ -53,7 +53,7 @@
       "summary": "PackageInstallEvidence, FirstRunEvidence, NegativeInstallEvidence — no overloaded first_chat_ok boolean.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P0-3", "25-audit:ticket-1"],
       "acceptance": [
         "JSON schema committed under operations/release-evidence/",
@@ -61,8 +61,14 @@
         "Docs state evidence is maintainer-release artifact"
       ],
       "depends_on": [],
+      "evidence": [
+        "operations/release-evidence/schema/",
+        "operations/release-evidence/examples/",
+        "docs/public/release.md",
+        "scripts/workframe/validate-release-evidence.mjs"
+      ],
       "owner_role": "design",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": [] }
     },
     {
       "id": "WF-004",
@@ -298,15 +304,16 @@
     {
       "id": "WF-018",
       "title": "Release evidence JSON schema",
-      "summary": "package-truth-gate.schema.json + example fixture.",
+      "summary": "Three evidence schemas + common envelope + example fixtures.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:ticket-1"],
       "acceptance": ["Schema and example committed under operations/release-evidence/"],
       "depends_on": [],
+      "evidence": ["operations/release-evidence/"],
       "owner_role": "design",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": [] }
     },
     {
       "id": "WF-019",

@@ -88,6 +88,24 @@ Then complete the **wizard in the browser** and send a test chat. CI green alone
 
 DevOps map: [scripts/workframe/README.md](../../scripts/workframe/README.md)
 
+## Release evidence (maintainer)
+
+Machine-readable sign-off artifacts — **not** the public security audit. Three types:
+
+| Type | Purpose |
+|------|---------|
+| `PackageInstallEvidence` | Pack → clean install, file parity |
+| `FirstRunEvidence` | Docker boot, wizard, first chat |
+| `NegativeInstallEvidence` | Deny paths, no filesystem mutation |
+
+Schemas and examples: [operations/release-evidence/README.md](../../operations/release-evidence/README.md)
+
+```bash
+node scripts/workframe/validate-release-evidence.mjs
+```
+
+Runners that emit live JSON (WF-019–WF-021) are not wired yet; examples document the contract.
+
 ## GitHub → npm (trusted publishing)
 
 No laptop OTP after one-time setup.

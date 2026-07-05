@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workfra.me/schemas/package-install-evidence.schema.json",
+  "title": "PackageInstallEvidence",
+  "description": "Evidence from npm pack → clean install without live model keys.",
+  "allOf": [
+    { "$ref": "evidence-common.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "evidence_type": { "const": "package_install" },
+        "gate_name": { "const": "PackageInstallGate" }
+      },
+      "required": ["packed_artifact_digest"]
+    }
+  ]
+}

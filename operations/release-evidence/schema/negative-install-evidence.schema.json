@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workfra.me/schemas/negative-install-evidence.schema.json",
+  "title": "NegativeInstallEvidence",
+  "description": "Evidence that deny paths do not mutate the filesystem.",
+  "allOf": [
+    { "$ref": "evidence-common.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "evidence_type": { "const": "negative_install" },
+        "gate_name": { "const": "NegativeInstallGate" },
+        "target_mode": { "const": "negative_test" },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/negative_case_detail" }
+        }
+      },
+      "required": ["cases"]
+    }
+  ],
+  "$defs": {
+    "negative_case_detail": {
+      "type": "object",
+      "required": ["id", "decision", "mutation_observed"],
+      "properties": {
+        "id": { "type": "string" },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny", "needs_user_action"]
+        },
+        "mutation_observed": { "type": "boolean", "const": false },
+        "before_hash": { "type": "string" },
+        "after_hash": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}
