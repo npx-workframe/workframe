@@ -2355,12 +2355,15 @@ def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> boo
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
     if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
         return False
+    prof = resolve_hermes_profile(profile)
+    auth = _load_profile_auth_json(prof)
+    if _extract_oauth_block_from_auth(auth, hermes_auth_id):
+        # ponytail: steady-state turns — skip user auth read when profile already has oauth
+        return False
     user_auth = _load_user_hermes_auth(user_id)
     if not isinstance(user_auth, dict):
         return False
-    prof = resolve_hermes_profile(profile)
     auth_path = _profile_dir(prof) / "auth.json"
-    auth = _load_profile_auth_json(prof)
     if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
         return False
     auth["version"] = 1
@@ -13154,22 +13157,13 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
         )
     payer = user_id
     model_block = _read_model_block(hermes_prof) if hermes_prof else {}
-    lifecycle = ensure_profile_api(hermes_prof, user_id, workspace_id)
-    if payer and hermes_prof:
-        cfg = str(model_block.get("provider") or "").strip().lower()
-        quick_billing = _billing_provider_id_from_hermes_config(cfg)
-        need_reconcile = not (
-            quick_billing
-            and cfg != "custom"
-            and _profile_routing_matches_billing(hermes_prof, quick_billing, block=model_block)
-        )
-        if need_reconcile:
-            _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
-            model_block = _read_model_block(hermes_prof)
     llm_provider = _llm_billing_provider(
         hermes_prof, user_id=payer, workspace_id=workspace_id, block=model_block,
     )
     llm_ready = _user_can_use_llm(payer, workspace_id, llm_provider) if payer else False
+    # ponytail: bind = session lookup only; gateway + billing reconcile happen on send/model-save.
+    api_port = _profile_api_port(hermes_prof) if hermes_prof else 0
+    lifecycle = {"ok": True, "profile": hermes_prof, "api_port": api_port, "started": False}
     session_extra = {"llm_ready": llm_ready, "has_llm_provider": llm_ready}
 
     if room_id:
@@ -13799,6 +13793,51 @@ def _emit_stream_chat_error(
         return
 
 
+def _open_profile_stream(
+    handler: BaseHTTPRequestHandler,
+    prof: str,
+    *,
+    model_used: str,
+    llm_provider: str,
+    api_port: int,
+) -> None:
+    """Flush SSE headers + run.started before blocking on gateway/model."""
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
+    handler.send_header("Cache-Control", "no-cache")
+    handler.send_header("Connection", "keep-alive")
+    handler.send_header("X-Workframe-Profile", prof)
+    handler.send_header("X-Workframe-Api-Port", str(api_port))
+    handler.end_headers()
+    handler.wfile.write(
+        (
+            "event: run.started\n"
+            f"data: {json.dumps({'text': 'Contacting model...', 'model': model_used, 'llm_provider': llm_provider})}\n\n"
+        ).encode("utf-8"),
+    )
+    handler.wfile.flush()
+
+
+def _emit_stream_error_body(
+    handler: BaseHTTPRequestHandler,
+    *,
+    entry: dict[str, Any] | None = None,
+    message: str = "",
+) -> None:
+    """Error/done frames when SSE headers were already sent."""
+    payload = llm_error_glossary.notice_payload(entry) if entry else {}
+    if not payload:
+        text = str(message or "").strip() or "Chat failed."
+        payload = {"error": text, "text": text, "message": text}
+    try:
+        body = json.dumps(payload)
+        handler.wfile.write(f"event: error\ndata: {body}\n\n".encode("utf-8"))
+        handler.wfile.write(b"event: done\ndata: {}\n\n")
+        handler.wfile.flush()
+    except (BrokenPipeError, ConnectionResetError, OSError):
+        return
+
+
 def _emit_stream_concierge(handler: BaseHTTPRequestHandler, entry: dict[str, Any]) -> None:
     """Deterministic assistant reply when LLM path is unavailable."""
     payload = llm_error_glossary.notice_payload(entry)
@@ -13871,8 +13910,16 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         _log_llm_failure(handler, str(entry.get("code") or "no_llm_provider"), provider=llm_provider, profile=prof)
         _emit_stream_concierge(handler, entry)
         return
+    api_port = _profile_api_port(prof)
+    _open_profile_stream(
+        handler,
+        prof,
+        model_used=model_used,
+        llm_provider=llm_provider,
+        api_port=api_port,
+    )
     try:
-        lifecycle = ensure_profile_api(
+        ensure_profile_api(
             prof,
             _triggering_user,
             _workspace_id,
@@ -13888,11 +13935,11 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         if "no_llm_provider_for_user" in err_text:
             entry = concierge.respond(text, situation="no_provider")
             _log_llm_failure(handler, "no_llm_provider", provider=llm_provider, profile=prof)
-            _emit_stream_concierge(handler, entry)
+            _emit_stream_error_body(handler, entry=entry)
             return
         entry = llm_error_glossary.classify_exception_text(err_text)
         _log_llm_failure(handler, str(entry.get("code") or ""), provider=llm_provider, profile=prof)
-        _emit_stream_chat_error(handler, entry=entry)
+        _emit_stream_error_body(handler, entry=entry)
         return
     upstream_body = json.dumps(_profile_turn_payload(prof, text, _room_id)).encode("utf-8")
 
@@ -13912,8 +13959,7 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
             except Exception:
                 pass
 
-    port = _profile_api_port(prof)
-    url = f"http://gateway:{port}/api/sessions/{urllib.parse.quote(session_id, safe='')}/chat/stream"
+    url = f"http://gateway:{api_port}/api/sessions/{urllib.parse.quote(session_id, safe='')}/chat/stream"
     headers = {
         "Authorization": f"Bearer {_profile_api_key(prof)}",
         "Content-Type": "application/json",
@@ -13927,25 +13973,15 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
             data = json.loads(raw)
         except Exception:  # noqa: BLE001
             data = {"error": raw or f"upstream stream failed: {exc.code}"}
-        raise ValueError(f"session chat stream failed: {data}") from exc
+        entry = llm_error_glossary.classify_exception_text(str(data))
+        _emit_stream_error_body(handler, entry=entry)
+        return
     except OSError as exc:
-        raise ValueError(f"session chat stream failed: {exc}") from exc
+        entry = llm_error_glossary.classify_exception_text(str(exc))
+        _emit_stream_error_body(handler, entry=entry)
+        return
 
     try:
-        handler.send_response(200)
-        handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
-        handler.send_header("Cache-Control", "no-cache")
-        handler.send_header("Connection", "keep-alive")
-        handler.send_header("X-Workframe-Profile", prof)
-        handler.send_header("X-Workframe-Api-Port", str(lifecycle["api_port"]))
-        handler.end_headers()
-        handler.wfile.write(
-            (
-                "event: run.started\n"
-                f"data: {json.dumps({'text': 'Contacting model...', 'model': model_used, 'llm_provider': llm_provider})}\n\n"
-            ).encode("utf-8")
-        )
-        handler.wfile.flush()
         buffer = b""
         saw_complete = False
         complete_text = ""

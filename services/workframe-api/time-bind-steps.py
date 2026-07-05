@@ -65,7 +65,7 @@ def main() -> int:
 
     for i in range(3):
         t = time.perf_counter()
-        server.profile_chat_session("", payload, user_id=uid)
+        server.profile_chat_bind("", payload, user_id=uid)
         print(f"bind_{i}_ms={ms(t)}")
 
     return 0
