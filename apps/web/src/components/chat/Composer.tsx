@@ -120,7 +120,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   const { rootRef, toolbarRef, textareaRef } = useComposerMinHeight(onMinHeightChange)
   const { dispatch, lastResult, busy } = useSlashDispatcher()
   const dialogs = useCommandDialogs()
-  const { profile: runtimeProfile, sessionReady } = useHermesSession()
+  const { profile: runtimeProfile } = useHermesSession()
   const { activeProfile } = useAgentRoute()
   const { activeRoom, openUserSettings, openChatSettings } = useWorkspacePanels()
   const modelsProfile = useMemo(
@@ -132,7 +132,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   const [billingProvider, setBillingProvider] = useState('')
 
   const refreshComposerModels = useCallback(() => {
-    if (!showModelPicker || !modelsProfile || !sessionReady) return
+    if (!showModelPicker || !modelsProfile) return
     void fetchHermesModels(modelsProfile, workspaceId)
       .then((res) => {
         if (!res.ok) {
@@ -150,7 +150,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         setHasLlmProvider(false)
         setBillingProvider('')
       })
-  }, [modelsProfile, workspaceId, showModelPicker, sessionReady])
+  }, [modelsProfile, workspaceId, showModelPicker])
 
   useEffect(() => {
     if (!showModelPicker) {
@@ -158,15 +158,14 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
       setBillingProvider('')
       return
     }
-    if (!modelsProfile || !sessionReady) {
-      if (!sessionReady) return
+    if (!modelsProfile) {
       setModelId('')
       setHasLlmProvider(false)
       setBillingProvider('')
       return
     }
     refreshComposerModels()
-  }, [modelsProfile, sessionReady, showModelPicker, refreshComposerModels])
+  }, [modelsProfile, showModelPicker, refreshComposerModels])
 
   useEffect(() => {
     const onModelsChanged = (event: Event) => {

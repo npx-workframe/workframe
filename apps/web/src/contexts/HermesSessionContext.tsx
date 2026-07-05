@@ -46,6 +46,7 @@ import {
   type HermesEventFrame,
 } from '@/lib/hermesEvents'
 import { formatWorkframeError, formatWorkframeErrorMessage, noticeMessage, emptyAgentReplyText, streamErrorText, noticeFromStreamPayload, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
+import { notifyHermesModelsChanged } from '@/lib/hermesCatalogApi'
 import { loadWorkframeRuntimeConfig, nativeProfileSlug } from '@/lib/workframeProfile'
 import { findAgentByProfile } from '@/lib/hermesProfile'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -209,6 +210,7 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
       writeCachedMessages(roomId, bound.sessionId, bound.messages)
       setConnectError(null)
       setSessionReady(true)
+      notifyHermesModelsChanged(runtimeProf)
     },
     [],
   )
@@ -687,23 +689,29 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     const roomId = roomIdRef.current
     if (!roomId) throw new Error('No agent room selected')
     const gen = ++bindGenRef.current
-    prevRoomKeyRef.current = ''
     clearCachedMessages(roomId)
+    setConnectError(null)
 
-    const bound = await bindRoomSession(roomId, true)
-    if (gen !== bindGenRef.current) return
-    if (!bound.sessionId) throw new Error('Session creation failed')
-    llmReadyRef.current = bound.llmReady
-    const templateProf = bound.templateProfile || bound.profile || templateProfileRef.current
-    applyBoundSession(roomId, templateProf, {
-      sessionId: bound.sessionId,
-      profile: bound.profile || templateProf,
-      templateProfile: templateProf,
-      agentDisplayName: bound.agentDisplayName,
-      messages: bound.messages,
-    })
-    prevRoomKeyRef.current = roomId
-  }, [agentDisplayName, applyBoundSession, bindRoomSession, completeTurn])
+    try {
+      const bound = await bindRoomSession(roomId, true)
+      if (gen !== bindGenRef.current) return
+      if (!bound.sessionId) throw new Error('Session creation failed')
+      llmReadyRef.current = bound.llmReady
+      const templateProf = bound.templateProfile || bound.profile || templateProfileRef.current
+      applyBoundSession(roomId, templateProf, {
+        sessionId: bound.sessionId,
+        profile: bound.profile || templateProf,
+        templateProfile: templateProf,
+        agentDisplayName: bound.agentDisplayName,
+        messages: bound.messages,
+      })
+      prevRoomKeyRef.current = roomId
+    } catch (err) {
+      if (gen !== bindGenRef.current) return
+      setConnectError(formatWorkframeErrorMessage(err, 'New session'))
+      throw err
+    }
+  }, [applyBoundSession, bindRoomSession, completeTurn])
 
   const resumeSession = useCallback(async (sessionId: string) => {
     if (turnActiveRef.current) completeTurn()
