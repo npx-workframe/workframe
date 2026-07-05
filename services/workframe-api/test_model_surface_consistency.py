@@ -93,4 +93,24 @@ block = server._read_model_block(runtime_prof)
 assert block.get("default") == "gpt-5.4-mini", block
 assert block.get("provider") == "openai-codex", block
 
+# G: template model save mirrors to runtime (same model id, not stale template re-read)
+runtime_prof = "u-test-user2-surface-test-agent"
+runtime_dir = server._profile_dir(runtime_prof)
+runtime_dir.mkdir(parents=True, exist_ok=True)
+(runtime_dir / "config.yaml").write_text(
+    "model:\n  default: gpt-5.4-medium\n  provider: openai-codex\n",
+    encoding="utf-8",
+)
+_orig_restart = server._restart_runtime_profile_gateway
+server._restart_runtime_profile_gateway = lambda *a, **k: None
+try:
+    applied = server.hermes_model_set(
+        PROF, "gpt-5.4-mini", user_id="test-user2", workspace_id="", billing_provider="codex",
+    )
+finally:
+    server._restart_runtime_profile_gateway = _orig_restart
+assert applied.get("ok"), applied
+runtime_block = server._parse_model_block_from_disk(runtime_prof)
+assert runtime_block.get("default") == "gpt-5.4-mini", runtime_block
+
 print("model surface consistency self-check ok")

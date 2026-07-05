@@ -71,6 +71,8 @@ export function resolveAgentModelsProfile(
   if (!isAgentChatRoom(room)) return ''
   const runtime = runtimeProfile.trim()
   if (runtime && /^u-[a-z0-9]/i.test(runtime)) return runtime
+  const active = activeProfile.trim()
+  if (active && /^u-[a-z0-9]/i.test(active)) return active
   return resolveAgentTemplateProfile(room, activeProfile)
 }
 

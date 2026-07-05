@@ -14797,6 +14797,58 @@ def _model_id_vendor_and_bare(model_id: str) -> tuple[str, str]:
     return billing, bare.strip()
 
 
+def _persisted_model_id(model_id: str, billing: str) -> str:
+    billing = str(billing or "").strip().lower()
+    _, bare = _model_id_vendor_and_bare(model_id)
+    if _oauth_llm_provider_spec(billing) and bare:
+        return bare
+    return str(model_id or "").strip()
+
+
+def _apply_model_persisted(
+    profile: str,
+    billing: str,
+    model_id: str,
+    user_id: str = "",
+    *,
+    restart_gateway: bool = True,
+) -> tuple[bool, str]:
+    """Write model surface and verify default landed on disk before returning ok."""
+    prof = resolve_hermes_profile(profile)
+    billing = str(billing or "").strip().lower()
+    if billing:
+        if not _apply_model_for_billing_provider(prof, billing, model_id, user_id=user_id):
+            return False, "model apply failed"
+    else:
+        ok, err = _set_profile_model(prof, model_id)
+        if not ok:
+            return False, err or "model apply failed"
+    expected = _persisted_model_id(model_id, billing)
+    got = str(_parse_model_block_from_disk(prof).get("default") or "").strip()
+    if expected and got != expected:
+        return False, f"model not persisted (expected {expected}, got {got or 'empty'})"
+    if restart_gateway and _is_runtime_profile_slug(prof):
+        _restart_runtime_profile_gateway(prof)
+    return True, ""
+
+
+def _mirror_template_model_to_runtime(
+    user_id: str,
+    template_slug: str,
+    billing: str,
+    model_id: str,
+) -> tuple[bool, str]:
+    """After a template model save, apply the same pick to the user's runtime profile."""
+    user = str(user_id or "").strip()
+    template = safe_profile_slug(template_slug)
+    if not user or _is_runtime_profile_slug(template):
+        return True, ""
+    runtime = _runtime_profile_slug(user, template)
+    if not _runtime_profile_on_disk(runtime):
+        return True, ""
+    return _apply_model_persisted(runtime, billing, model_id, user_id=user)
+
+
 def _resolve_billing_provider_for_model(
     model_id: str,
     connected: set[str],
@@ -15457,27 +15509,30 @@ def hermes_model_set(
         prefer = _llm_billing_provider(target, user_id=user, workspace_id=ws) if target else ""
         billing = _resolve_billing_provider_for_model(model_id, connected, prefer=prefer)
     if billing:
-        if not _apply_model_for_billing_provider(target, billing, model_id, user_id=user):
-            return {"ok": False, "error": "model apply failed"}
-        if _is_runtime_profile_slug(target):
-            _restart_runtime_profile_gateway(target)
+        ok, err = _apply_model_persisted(
+            target, billing, model_id, user, restart_gateway=_is_runtime_profile_slug(target),
+        )
+        if not ok:
+            return {"ok": False, "error": err}
     else:
-        ok, err = _set_profile_model(target, model_id)
+        ok, err = _apply_model_persisted(
+            target, "", model_id, user, restart_gateway=_is_runtime_profile_slug(target),
+        )
         if not ok:
             return {"ok": False, "error": err}
     tpl = safe_profile_slug(target)
-    if user and not _is_runtime_profile_slug(tpl):
-        runtime = _runtime_profile_slug(user, tpl)
-        if _runtime_profile_on_disk(runtime):
-            _sync_runtime_model_from_template(runtime, tpl)
+    ok, err = _mirror_template_model_to_runtime(user, tpl, billing, model_id)
+    if not ok:
+        return {"ok": False, "error": err}
     block = _read_model_block(target)
     resolved_billing = billing or _billing_provider_id_from_hermes_config(
         str(block.get("provider") or "")
     ) or _llm_billing_provider(target, user_id=user, workspace_id=ws)
+    persisted = _persisted_model_id(model_id, billing or resolved_billing)
     return {
         "ok": True,
         "profile": target,
-        "model": model_id,
+        "model": persisted,
         "provider": resolved_billing,
         "billing_provider": resolved_billing,
     }
@@ -15523,7 +15578,10 @@ def hermes_fallback_chain_set(
     if user and not _is_runtime_profile_slug(tpl):
         runtime = _runtime_profile_slug(user, tpl)
         if _runtime_profile_on_disk(runtime):
-            _sync_runtime_model_from_template(runtime, tpl)
+            ok, err = _write_fallback_chain(runtime, normalized)
+            if not ok:
+                return {"ok": False, "error": err or "runtime fallback apply failed"}
+            _restart_runtime_profile_gateway(runtime)
     return {"ok": True, "profile": target, "fallback_chain": normalized}
 
 
