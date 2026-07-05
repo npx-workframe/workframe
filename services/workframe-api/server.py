@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import json
 import mimetypes
 import os
@@ -36,7 +37,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from email_sender import APP_BASE_URL, send_branded_invite_email, send_email, send_verification_email
-import install_api
+import profile_config_yaml
 import stack_config
 import site_meta
 import google_auth
@@ -443,7 +444,7 @@ def _check_auth(request_handler) -> bool:
     auth_header = request_handler.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = _get_auth_token()
-        if auth_header[7:].strip() == token:
+        if token and hmac.compare_digest(auth_header[7:].strip(), token):
             request_handler.auth_user = "service"
             request_handler.auth_role = "owner"  # type: ignore[attr-defined]
             return True
@@ -782,8 +783,20 @@ _gateway_lifecycle_lock = threading.Lock()
 # Auth session helpers
 # ---------------------------------------------------------------------------
 
-# Routes that are public only for GET (POST still needs session)
-GET_PUBLIC_ROUTES = {
+# Routes readable without a session on every deployment mode.
+GET_ALWAYS_PUBLIC_ROUTES = frozenset({
+    "/api/meta",
+    "/api/health",
+    "/api/setup/status",
+    "/api/install/status",
+    "/api/public/site-meta",
+    "/api/public/link-preview",
+    "/api/public/manifest.webmanifest",
+    "/api/auth/google/callback",
+})
+
+# Data surfaces — session-less GET only for single-user local or DEV_LOCAL_UNSAFE.
+GET_SINGLE_USER_PUBLIC_ROUTES = frozenset({
     "/api/files/read",
     "/api/files/raw",
     "/api/files/tree",
@@ -792,10 +805,8 @@ GET_PUBLIC_ROUTES = {
     "/api/board",
     "/api/content",
     "/api/content/get",
-    "/api/meta",
     "/api/agents",
     "/api/snapshot",
-    "/api/health",
     "/api/hermes/usage",
     "/api/hermes/profile",
     "/api/hermes/debug",
@@ -809,13 +820,36 @@ GET_PUBLIC_ROUTES = {
     "/api/chat/resolve",
     "/api/chat/messages",
     "/api/profiles",
-    "/api/setup/status",
-    "/api/install/status",
-    "/api/public/site-meta",
-    "/api/public/link-preview",
-    "/api/public/manifest.webmanifest",
-    "/api/auth/google/callback",
-}
+})
+
+
+def _deployment_allows_sessionless_data_get(
+    *,
+    deployment_mode: str | None = None,
+    dev_local_unsafe: bool | None = None,
+) -> bool:
+    mode = deployment_mode if deployment_mode is not None else _resolve_deployment_mode()
+    dev = DEV_LOCAL_UNSAFE if dev_local_unsafe is None else dev_local_unsafe
+    return mode == "single_user_local" or dev
+
+
+def _sessionless_get_allowed(
+    path: str,
+    *,
+    deployment_mode: str | None = None,
+    dev_local_unsafe: bool | None = None,
+) -> bool:
+    if path in GET_ALWAYS_PUBLIC_ROUTES:
+        return True
+    if path.startswith("/api/public/branding/"):
+        return True
+    if path in GET_SINGLE_USER_PUBLIC_ROUTES:
+        return _deployment_allows_sessionless_data_get(
+            deployment_mode=deployment_mode,
+            dev_local_unsafe=dev_local_unsafe,
+        )
+    return False
+
 
 def _is_public_get(path: str) -> bool:
     """Return True if this GET path is public (no session needed)."""
@@ -823,9 +857,7 @@ def _is_public_get(path: str) -> bool:
         return True
     if path.startswith("/static/") or path.startswith("/assets/"):
         return True
-    if path.startswith("/api/public/branding/"):
-        return True
-    return path in GET_PUBLIC_ROUTES
+    return _sessionless_get_allowed(path)
 
 
 def _cookie_session_id(handler: BaseHTTPRequestHandler) -> str:
@@ -12783,11 +12815,13 @@ def _overlay_chat_llm_env(
 
 
 def _resolve_models_profile(profile: str) -> str:
-    """Template profile slug for model picker reads — never per-user runtime u-*."""
+    """Hermes profile slug for model picker reads. Use runtime u-* when it exists on disk."""
     raw = str(profile or "").strip()
     if not raw:
         return _primary_profile()
     slug = safe_profile_slug(raw)
+    if _is_runtime_profile_slug(slug) and _runtime_profile_on_disk(slug):
+        return slug
     if _is_runtime_profile_slug(slug):
         return resolve_validated_profile(_runtime_template_slug(slug))
     return resolve_validated_profile(slug)
@@ -12909,6 +12943,23 @@ def _profile_llm_proxy_matches_billing(profile: str, billing_provider: str) -> b
     return bool(base) and base == _llm_proxy_base_url(billing_provider)
 
 
+def _profile_routing_matches_billing(prof: str, billing: str) -> bool:
+    """True when config.yaml already routes through the requested billing provider."""
+    billing = str(billing or "").strip().lower()
+    if not billing:
+        return False
+    block = _read_model_block(prof)
+    model = str(block.get("default") or "").strip()
+    if not model:
+        return False
+    cfg = str(block.get("provider") or "").strip().lower()
+    if _oauth_llm_provider_spec(billing):
+        return cfg == _hermes_config_provider_id(billing).lower()
+    if cfg != "custom":
+        return False
+    return _profile_llm_proxy_matches_billing(prof, billing)
+
+
 def _reconcile_profile_llm_for_user(
     profile: str,
     user_id: str,
@@ -12930,9 +12981,11 @@ def _reconcile_profile_llm_for_user(
         if not connected:
             return False
         billing = connected[0]
+    if _profile_routing_matches_billing(prof, billing):
+        return False
     if _oauth_llm_provider_spec(billing) and _user_can_use_llm(user, workspace_id, billing):
         current = str(_read_model_from_config(prof)[1] or "").strip()
-        if not _resolve_billing_provider_for_model(current, {billing}):
+        if not _resolve_billing_provider_for_model(current, {billing}, prefer=billing):
             current = str((PROVIDER_MVP_MODELS.get(billing) or {}).get("primary") or "")
         _apply_model_for_billing_provider(prof, billing, current, user_id=user)
         return True
@@ -12945,36 +12998,24 @@ def _reconcile_profile_llm_for_user(
     return changed
 
 
-def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: str = "") -> bool:
-    """Seed profile auth + MVP model config from user, workspace, or primary stack."""
+def _ensure_profile_auth_pool(profile: str, user_id: str = "", workspace_id: str = "") -> bool:
+    """Sync auth.json credential pool — does not mutate model yaml (safe on GET /models)."""
     prof = resolve_hermes_profile(profile)
     if prof == _primary_profile():
         return False
-
-    changed = False
     if _is_runtime_profile_slug(prof):
-        changed = _prepare_runtime_profile_credentials(prof, user_id, workspace_id) or False
+        _strip_profile_llm_env(prof)
+        _strip_profile_action_env(prof)
     else:
-        changed = _strip_profile_llm_env(prof) or False
-        changed = _strip_profile_action_env(prof) or changed
-        changed = _sync_profile_provider_env(prof, user_id, workspace_id) or changed
+        _strip_profile_llm_env(prof)
+        _strip_profile_action_env(prof)
+        _sync_profile_provider_env(prof, user_id, workspace_id)
 
-    provider, model_name = _read_model_from_config(prof)
-    llm_provider = _llm_billing_provider(prof, provider or "")
-    if not str(model_name or "").strip():
-        changed = _apply_mvp_model_for_provider(prof, llm_provider) or changed
-        if _is_runtime_profile_slug(prof):
-            _ensure_profile_llm_proxy(prof, llm_provider)
-    elif not str(_read_model_from_config(prof)[0] or "").strip():
-        ok_provider, _ = _set_profile_model_provider(prof, llm_provider)
-        changed = ok_provider or changed
-        if _is_runtime_profile_slug(prof):
-            _ensure_profile_llm_proxy(prof, llm_provider)
-
+    llm_provider = _llm_billing_provider(prof, user_id=user_id, workspace_id=workspace_id)
     auth_path = _profile_dir(prof) / "auth.json"
     auth = _load_profile_auth_json(prof)
     if _provider_pool_has_entries(auth, llm_provider):
-        return changed
+        return False
 
     user = str(user_id or "").strip()
     llm_spec = _catalog_provider_for_llm(llm_provider)
@@ -12988,7 +13029,7 @@ def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: 
 
     if _is_runtime_profile_slug(prof):
         if not user or not _user_can_use_llm(user, workspace_id, llm_provider):
-            return changed
+            return False
         env_var = _provider_env_var(llm_provider)
         template = _runtime_provider_pool_entry(llm_provider, env_var)
     else:
@@ -12999,7 +13040,7 @@ def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: 
             user_only=_provider_user_only(llm_provider),
         )
         if not resolved:
-            return changed
+            return False
 
         ref = str(resolved.get("credential_ref") or "")
         env_var = str(resolved.get("env_var") or "") or (ref[4:] if ref.startswith("env:") else _provider_env_var(llm_provider))
@@ -13017,6 +13058,32 @@ def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: 
     auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _publish_profile_gateway_secrets(prof)
     return True
+
+
+def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: str = "") -> bool:
+    """Seed profile auth + MVP model config from user, workspace, or primary stack."""
+    prof = resolve_hermes_profile(profile)
+    if prof == _primary_profile():
+        return False
+
+    changed = _ensure_profile_auth_pool(prof, user_id, workspace_id)
+
+    provider, model_name = _read_model_from_config(prof)
+    llm_provider = _llm_billing_provider(prof, provider or "")
+    if not str(model_name or "").strip():
+        changed = _apply_mvp_model_for_provider(prof, llm_provider) or changed
+        if _is_runtime_profile_slug(prof):
+            _ensure_profile_llm_proxy(prof, llm_provider)
+    elif not str(_read_model_from_config(prof)[0] or "").strip():
+        ok_provider, _ = _set_profile_model_provider(prof, llm_provider)
+        changed = ok_provider or changed
+        if _is_runtime_profile_slug(prof):
+            _ensure_profile_llm_proxy(prof, llm_provider)
+
+    if _is_runtime_profile_slug(prof):
+        _prepare_runtime_profile_credentials(prof, user_id, workspace_id)
+
+    return changed
 
 
 def ensure_profile_api(
@@ -14855,7 +14922,7 @@ def _model_catalog_rows_for_provider(provider_id: str) -> list[dict[str, str]]:
         seen.add(mid)
         rows.append(
             {
-                "provider": label,
+                "provider": provider_key,
                 "billing_provider": provider_key,
                 "model": mid,
                 "label": row_label,
@@ -14896,10 +14963,20 @@ def _suggestions_for_connected_llm_providers(connected: set[str]) -> list[dict[s
     return out
 
 
-def _resolve_billing_provider_for_model(model_id: str, connected: set[str]) -> str:
+def _resolve_billing_provider_for_model(
+    model_id: str,
+    connected: set[str],
+    *,
+    prefer: str = "",
+) -> str:
     mid = str(model_id or "").strip()
     if not mid or not connected:
         return ""
+    pref = str(prefer or "").strip().lower()
+    if pref and pref in connected:
+        for row in _model_catalog_rows_for_provider(pref):
+            if str(row.get("model") or "").strip() == mid:
+                return pref
     for provider_id in sorted(connected):
         for row in _model_catalog_rows_for_provider(provider_id):
             if str(row.get("model") or "").strip() == mid:
@@ -14965,7 +15042,9 @@ def _apply_model_for_billing_provider(
         _strip_profile_model_proxy_fields(profile)
         fallbacks = PROVIDER_MVP_MODELS.get(billing, {}).get("fallbacks") or []
         if isinstance(fallbacks, list):
-            _write_fallback_chain(profile, fallbacks)
+            chain = _read_model_block(profile).get("fallback_chain") or []
+            if not chain:
+                _write_fallback_chain(profile, fallbacks)
         user = str(user_id or "").strip()
         if user:
             _sync_oauth_llm_to_profile(profile, user, billing)
@@ -15123,52 +15202,14 @@ HERMES_MODEL_CATALOG: list[dict[str, str]] = [
 
 
 def _set_profile_model(profile: str, model_id: str) -> tuple[bool, str]:
-    """Update `model.default` in config.yaml. Minimal text rewrite — no pyyaml."""
+    """Update `model.default` in config.yaml via profile_config_yaml."""
     _normalize_profile_config_yaml(profile)
     try:
         config_path = _ensure_gateway_config_file(profile)
     except ValueError as exc:
         return False, str(exc)
     try:
-        raw = config_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return False, f"read failed: {exc}"
-
-    lines = raw.splitlines(keepends=True)
-    out: list[str] = []
-    in_model_block = False
-    wrote_default = False
-    for line in lines:
-        stripped = line.lstrip()
-        if stripped.startswith("model:"):
-            if not in_model_block:
-                in_model_block = True
-                rest = stripped.split(":", 1)[1].strip().strip("'\"")
-                if rest:
-                    out.append("model:\n")
-                    out.append(f"  default: {rest}\n")
-                else:
-                    out.append("model:\n")
-            continue
-        if in_model_block and stripped and not line.startswith((" ", "\t", "#")):
-            in_model_block = False
-        if in_model_block and stripped.startswith("default:"):
-            indent = line[: len(line) - len(stripped)]
-            out.append(f"{indent}default: {model_id}\n")
-            wrote_default = True
-            continue
-        if in_model_block and stripped.startswith("- "):
-            continue
-        out.append(line)
-
-    if not wrote_default:
-        # No model block existed. Prepend one.
-        if not raw.endswith("\n"):
-            out.insert(0, "\n")
-        out.insert(0, f"model:\n  default: {model_id}\n")
-
-    try:
-        config_path.write_text("".join(out), encoding="utf-8")
+        profile_config_yaml.update_model_surface(config_path, default=model_id)
     except OSError as exc:
         return False, f"write failed: {exc}"
     return True, ""
@@ -15184,56 +15225,7 @@ def _set_profile_model_provider(profile: str, provider: str) -> tuple[bool, str]
     if not provider:
         return False, "provider required"
     try:
-        raw = config_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return False, f"read failed: {exc}"
-
-    lines = raw.splitlines(keepends=True)
-    out: list[str] = []
-    in_model_block = False
-    wrote_provider = False
-    for line in lines:
-        stripped = line.lstrip()
-        if stripped.startswith("model:"):
-            if not in_model_block:
-                in_model_block = True
-                rest = stripped.split(":", 1)[1].strip().strip("'\"")
-                if rest:
-                    out.append("model:\n")
-                    out.append(f"  default: {rest}\n")
-                else:
-                    out.append("model:\n")
-            continue
-        if in_model_block and stripped and not line.startswith((" ", "\t", "#")):
-            if not wrote_provider:
-                out.append(f"  provider: {provider}\n")
-                wrote_provider = True
-            in_model_block = False
-        if in_model_block and stripped.startswith("provider:"):
-            indent = line[: len(line) - len(stripped)]
-            out.append(f"{indent}provider: {provider}\n")
-            wrote_provider = True
-            continue
-        if in_model_block and stripped.startswith("- "):
-            continue
-        out.append(line)
-
-    if not wrote_provider:
-        if not raw.endswith("\n") and out:
-            out.append("\n")
-        inserted = False
-        rebuilt: list[str] = []
-        for line in out:
-            rebuilt.append(line)
-            if not inserted and line.lstrip().startswith("model:"):
-                rebuilt.append(f"  provider: {provider}\n")
-                inserted = True
-        if not inserted:
-            rebuilt.insert(0, f"model:\n  provider: {provider}\n")
-        out = rebuilt
-
-    try:
-        config_path.write_text("".join(out), encoding="utf-8")
+        profile_config_yaml.update_model_surface(config_path, provider=provider)
     except OSError as exc:
         return False, f"write failed: {exc}"
     return True, ""
@@ -15391,14 +15383,7 @@ def _sync_runtime_model_from_template(runtime: str, template: str) -> None:
 
 
 def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bool, str]:
-    """Rewrite the `fallback_providers` block in config.yaml to match the
-    supplied chain. Preserves all other keys, comments, and ordering.
-    Strips ANY existing `fallback_providers:` blocks first — duplicates
-    can occur when a profile was migrated multiple times or when the
-    block was hand-edited — then inserts the new block at the natural
-    position (right after the `model:` section, before the next
-    top-level key).
-    """
+    """Rewrite fallback_providers via profile_config_yaml (WF-033)."""
     _normalize_profile_config_yaml(profile)
     config_path = _profile_gateway_config_path(profile)
     if not config_path or not config_path.is_file():
@@ -15406,87 +15391,16 @@ def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bo
             config_path = _ensure_gateway_config_file(profile)
         except ValueError as exc:
             return False, str(exc)
-    try:
-        raw = config_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return False, f"read failed: {exc}"
-
-    lines = raw.splitlines(keepends=True)
-
-    # Pass 1: drop every line that belongs to a `fallback_providers:`
-    # block (anywhere it appears in the file). We also remember whether
-    # a `model:` section existed so pass 2 can decide where to insert.
-    out: list[str] = []
-    in_fallback = False
-    saw_model = False
-    for line in lines:
-        stripped = line.rstrip()
-        if not stripped.strip():
-            out.append(line)
-            continue
-        indent = len(stripped) - len(stripped.lstrip())
-        content = stripped.lstrip()
-        if indent == 0 and content.startswith("model:"):
-            saw_model = True
-            in_fallback = False
-        if indent == 0 and content.startswith("fallback_providers:"):
-            in_fallback = True
-            continue
-        if in_fallback:
-            # A line is part of the block if it's indented more than 0
-            # (sub-keys), starts with `- ` (list item at the same
-            # indent as the key — also indent 0 here), or is otherwise
-            # not a fresh top-level key. Top-level (indent 0) non-fb
-            # keys end the block.
-            if indent > 0:
-                continue
-            if content.startswith("- "):
-                continue
-            if not content.startswith("fallback_providers"):
-                in_fallback = False
-        if indent == 0:
-            in_fallback = False
-        out.append(line)
-
-    # Pass 2: build the new block and find the right insertion point.
-    new_block: list[str] = ["fallback_providers:\n"]
+    normalized: list[dict[str, str]] = []
     for entry in chain:
+        if not isinstance(entry, dict):
+            continue
         provider = str(entry.get("provider", "")).strip()
         model = str(entry.get("model", "")).strip()
-        if not provider or not model:
-            continue
-        new_block.append(f"  - provider: {provider}\n")
-        new_block.append(f"    model: {model}\n")
-
-    if not saw_model:
-        # No model section at all — create a minimal one with the
-        # canonical primary plus the fallback chain.
-        if out and not out[-1].endswith("\n"):
-            out.append("\n")
-        out.append("model:\n")
-        out.append(f"  default: {HERMES_DEFAULT_PRIMARY}\n")
-        out.extend(new_block)
-    else:
-        # Insert just after the last line of the `model:` block, which
-        # is the first top-level key that follows it.
-        insertion = len(out)
-        in_model = False
-        for idx, line in enumerate(out):
-            stripped = line.rstrip()
-            if not stripped.strip():
-                continue
-            indent = len(stripped) - len(stripped.lstrip())
-            content = stripped.lstrip()
-            if indent == 0 and content.startswith("model:"):
-                in_model = True
-                continue
-            if indent == 0 and in_model:
-                insertion = idx
-                break
-        out[insertion:insertion] = new_block
-
+        if provider and model:
+            normalized.append({"provider": provider, "model": model})
     try:
-        config_path.write_text("".join(out), encoding="utf-8")
+        profile_config_yaml.update_model_surface(config_path, fallback_chain=normalized)
     except OSError as exc:
         return False, f"write failed: {exc}"
     _normalize_profile_config_yaml(profile)
@@ -15555,7 +15469,7 @@ def hermes_models(
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
     if primary_profile:
-        _bootstrap_profile_providers(primary_profile, user_id, workspace_id)
+        _ensure_profile_auth_pool(primary_profile, user_id, workspace_id)
     block = _read_model_block(primary_profile) if primary_profile else {
         "default": "", "provider": "", "base_url": "",
         "providers": {}, "fallback_chain": [],
@@ -15589,10 +15503,11 @@ def hermes_models(
     billing = _billing_provider_id_from_hermes_config(active_provider)
     if not billing and primary_model:
         billing = _resolve_billing_provider_for_model(primary_model, connected_llm) or ""
-    if str(active_provider or "").lower() == "custom" and billing:
-        display_provider = billing
-    else:
-        display_provider = active_provider
+    if not billing and user_id and primary_profile:
+        billing = _llm_billing_provider(
+            primary_profile, user_id=user_id, workspace_id=workspace_id,
+        )
+    display_provider = billing
     return {
         "ok": True,
         "profile": primary_profile,
@@ -15640,6 +15555,7 @@ def hermes_model_set(
     workspace_id: str = "",
     *,
     selection_only: bool = False,
+    billing_provider: str = "",
 ) -> dict[str, Any]:
     """Set primary model and align Hermes provider routing to a connected billing provider."""
     user = str(user_id or "").strip()
@@ -15647,7 +15563,9 @@ def hermes_model_set(
         if not user:
             return {"ok": False, "error": "unauthorized"}
         connected = _user_llm_providers_for_picker(user)
-        billing = _resolve_billing_provider_for_model(model_id, connected)
+        billing = str(billing_provider or "").strip().lower()
+        if not billing:
+            billing = _resolve_billing_provider_for_model(model_id, connected)
         if not billing and not _user_llm_has_provider(user, workspace_id):
             return {"ok": False, "error": "connect an LLM provider first"}
         _write_user_llm_prefs(user, primary=model_id)
@@ -15667,7 +15585,10 @@ def hermes_model_set(
     user = str(user_id or "").strip()
     ws = str(workspace_id or "").strip()
     connected = _user_llm_providers_for_picker(user) if user else set()
-    billing = _resolve_billing_provider_for_model(model_id, connected)
+    billing = str(billing_provider or "").strip().lower()
+    if not billing:
+        prefer = _llm_billing_provider(target, user_id=user, workspace_id=ws) if target else ""
+        billing = _resolve_billing_provider_for_model(model_id, connected, prefer=prefer)
     if billing:
         if not _apply_model_for_billing_provider(target, billing, model_id, user_id=user):
             return {"ok": False, "error": "model apply failed"}
@@ -15681,14 +15602,15 @@ def hermes_model_set(
         if _runtime_profile_on_disk(runtime):
             _sync_runtime_model_from_template(runtime, tpl)
     block = _read_model_block(target)
+    resolved_billing = billing or _billing_provider_id_from_hermes_config(
+        str(block.get("provider") or "")
+    ) or _llm_billing_provider(target, user_id=user, workspace_id=ws)
     return {
         "ok": True,
         "profile": target,
         "model": model_id,
-        "provider": str(block.get("provider") or ""),
-        "billing_provider": billing or _billing_provider_id_from_hermes_config(
-            str(block.get("provider") or "")
-        ),
+        "provider": resolved_billing,
+        "billing_provider": resolved_billing,
     }
 
 
@@ -19219,11 +19141,7 @@ class Handler(BaseHTTPRequestHandler):
                 selection_only = bool(body.get("selection_only"))
                 if not model_id:
                     return self._json(400, {"error": "model required"})
-                if profile and not selection_only:
-                    try:
-                        _bootstrap_profile_providers(_resolve_models_profile(profile), user_id, workspace_id)
-                    except ValueError as exc:
-                        return self._json(400, {"ok": False, "error": str(exc)})
+                billing_provider = str(body.get("billing_provider", "")).strip()
                 return self._json(
                     200,
                     hermes_model_set(
@@ -19232,6 +19150,7 @@ class Handler(BaseHTTPRequestHandler):
                         user_id,
                         workspace_id,
                         selection_only=selection_only,
+                        billing_provider=billing_provider,
                     ),
                 )
             if path == "/api/hermes/model/apply-default":

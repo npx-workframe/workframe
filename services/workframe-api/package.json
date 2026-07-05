@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "python3 server.py",
     "start": "python3 server.py",
-    "typecheck": "python3 -m py_compile server.py zk_auth.py email_sender.py",
+    "typecheck": "python3 -m py_compile server.py zk_auth.py email_sender.py profile_config_yaml.py && python3 test_public_routes.py && python3 test_billing_provider.py && python3 test_model_surface_consistency.py && python3 test_profile_model_yaml.py",
     "build": "python3 -m py_compile server.py zk_auth.py email_sender.py"
   }
 }
