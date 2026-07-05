@@ -88,7 +88,7 @@ assert route_registry.authorize_request(
 )
 
 data_read_get = [r for r in route_registry.ROUTES if r.method == "GET"]
-assert len(data_read_get) == 28
+assert len(data_read_get) == 36
 registry_post = [r for r in route_registry.ROUTES if r.method == "POST"]
 assert len(registry_post) == 18
 

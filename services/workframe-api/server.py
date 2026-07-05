@@ -16222,6 +16222,115 @@ class Handler(BaseHTTPRequestHandler):
     def _route_get_meta(self, qs: dict[str, list[str]]) -> None:
         self._json(200, workframe_meta())
 
+    def _route_get_health(self, qs: dict[str, list[str]]) -> None:
+        vault_stat = credential_vault.vault_status()
+        self._json(
+            200,
+            {
+                "ok": True,
+                "version": VERSION,
+                "mode": "dev_unsafe" if DEV_LOCAL_UNSAFE else "secure",
+                "secure_mode": SECURE_MODE,
+                "deployment_mode": DEPLOYMENT_MODE,
+                "admin_updates_enabled": os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") == "1",
+                "docker_sock_on_api": Path("/var/run/docker.sock").exists(),
+                "proxy_token_configured": internal_proxy_auth.proxy_token_configured(),
+                "vault_sealed": vault_stat.get("sealed"),
+                "vault_envelope": not vault_stat.get("sealed"),
+                "install_window_open": _install_window_open(),
+                "workframe_e2e": os.environ.get("WORKFRAME_E2E") == "1",
+                "dev_local_unsafe": DEV_LOCAL_UNSAFE,
+            },
+        )
+
+    def _route_get_setup_status(self, qs: dict[str, list[str]]) -> None:
+        try:
+            db = _workframe_db()
+            ws = db.execute("SELECT id FROM workspaces WHERE slug='default' AND deleted_at IS NULL").fetchone()
+            if not ws:
+                db.close()
+                self._json(200, {"setup_complete": False})
+                return
+            agents = db.execute(
+                "SELECT COUNT(*) AS c FROM agent_profiles WHERE workspace_id = ? AND deleted_at IS NULL",
+                (ws["id"],),
+            ).fetchone()
+            db.close()
+            self._json(200, {"setup_complete": bool(agents and agents["c"] > 0)})
+        except Exception:
+            self._json(200, {"setup_complete": False})
+
+    def _route_get_install_status(self, qs: dict[str, list[str]]) -> None:
+        if install_api.install_window_open(str(_workframe_db_path())):
+            try:
+                _ensure_native_hermes_profile()
+            except Exception:
+                pass
+        payload = install_api.install_status_payload(
+            DEPLOYMENT_MODE,
+            SECURE_MODE,
+            DEV_LOCAL_UNSAFE,
+            str(_workframe_db_path()),
+        )
+        self._json(200, payload)
+
+    def _route_get_public_site_meta(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, _public_site_meta_payload())
+
+    def _route_get_public_link_preview(self, qs: dict[str, list[str]]) -> None:
+        meta = _public_site_meta_payload()
+        html = site_meta.link_preview_html(meta).encode("utf-8")
+        self._send(200, html, "text/html; charset=utf-8")
+
+    def _route_get_public_manifest(self, qs: dict[str, list[str]]) -> None:
+        meta = _public_site_meta_payload()
+        body = json.dumps(site_meta.manifest_payload(meta), indent=2).encode("utf-8")
+        self._send(200, body, "application/manifest+json; charset=utf-8")
+
+    def _route_get_me_cohort(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        workspace_id = str(qs.get("workspace_id", [""])[0] or "").strip()
+        if not workspace_id:
+            self._json(400, {"ok": False, "error": "workspace_id_required"})
+            return
+        ws_id = _resolve_wid(workspace_id) or workspace_id
+        if not _user_is_workspace_member(user_id, ws_id):
+            self._json(403, {"ok": False, "error": "forbidden"})
+            return
+        cohort = ensure_user_agent_cohort(user_id, ws_id)
+        self._json(
+            200,
+            {
+                "ok": True,
+                "workspace_id": ws_id,
+                "user_id": user_id,
+                "cohort": cohort,
+            },
+        )
+
+    def _route_get_user_credentials(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            if DEV_LOCAL_UNSAFE:
+                user_id = "dev"
+            else:
+                self._json(401, {"ok": False, "error": "no_authenticated_user"})
+                return
+        try:
+            conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+            conn.row_factory = sqlite3.Row
+            creds = conn.execute(
+                "SELECT id, workspace_id, user_id, agent_profile_id, provider, credential_type, label, is_active, created_at, updated_at FROM credential_bindings WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
+                (user_id,),
+            ).fetchall()
+            conn.close()
+        except Exception:
+            creds = []
+        self._json(200, {"ok": True, "credentials": [dict(c) for c in creds]})
+
     def _route_get_agents(self, qs: dict[str, list[str]]) -> None:
         self._json(200, workframe_agents())
 
@@ -16926,26 +17035,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file_public("index.html")
             if path.startswith("/assets/"):
                 return self._file_public(path.lstrip("/"))
-            if path == "/api/health":
-                vault_stat = credential_vault.vault_status()
-                return self._json(
-                    200,
-                    {
-                        "ok": True,
-                        "version": VERSION,
-                        "mode": "dev_unsafe" if DEV_LOCAL_UNSAFE else "secure",
-                        "secure_mode": SECURE_MODE,
-                        "deployment_mode": DEPLOYMENT_MODE,
-                        "admin_updates_enabled": os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") == "1",
-                        "docker_sock_on_api": Path("/var/run/docker.sock").exists(),
-                        "proxy_token_configured": internal_proxy_auth.proxy_token_configured(),
-                        "vault_sealed": vault_stat.get("sealed"),
-                        "vault_envelope": not vault_stat.get("sealed"),
-                        "install_window_open": _install_window_open(),
-                        "workframe_e2e": os.environ.get("WORKFRAME_E2E") == "1",
-                        "dev_local_unsafe": DEV_LOCAL_UNSAFE,
-                    },
-                )
             if path == "/api/admin/vault/status":
                 if not _role_allows(self, OWNER_ADMIN_ROLES):
                     return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
@@ -16975,44 +17064,6 @@ class Handler(BaseHTTPRequestHandler):
                     self.end_headers()
                     return
                 return self._json(403, {"ok": False, "error": "dashboard_forbidden"})
-            if path == "/api/setup/status":
-                # Public endpoint: check if default workspace has agents (setup complete?)
-                try:
-                    db = _workframe_db()
-                    ws = db.execute("SELECT id FROM workspaces WHERE slug='default' AND deleted_at IS NULL").fetchone()
-                    if not ws:
-                        db.close()
-                        return self._json(200, {"setup_complete": False})
-                    agents = db.execute("SELECT COUNT(*) AS c FROM agent_profiles WHERE workspace_id = ? AND deleted_at IS NULL", (ws["id"],)).fetchone()
-                    db.close()
-                    return self._json(200, {"setup_complete": bool(agents and agents["c"] > 0)})
-                except Exception:
-                    return self._json(200, {"setup_complete": False})
-            if path == "/api/install/status":
-                if install_api.install_window_open(str(_workframe_db_path())):
-                    try:
-                        _ensure_native_hermes_profile()
-                    except Exception:
-                        pass
-                payload = install_api.install_status_payload(
-                    DEPLOYMENT_MODE,
-                    SECURE_MODE,
-                    DEV_LOCAL_UNSAFE,
-                    str(_workframe_db_path()),
-                )
-                return self._json(200, payload)
-            if path == "/api/public/site-meta":
-                return self._json(200, _public_site_meta_payload())
-            if path == "/api/public/link-preview":
-                meta = _public_site_meta_payload()
-                html = site_meta.link_preview_html(meta).encode("utf-8")
-                self._send(200, html, "text/html; charset=utf-8")
-                return
-            if path == "/api/public/manifest.webmanifest":
-                meta = _public_site_meta_payload()
-                body = json.dumps(site_meta.manifest_payload(meta), indent=2).encode("utf-8")
-                self._send(200, body, "application/manifest+json; charset=utf-8")
-                return
             branding_match = re.fullmatch(r"/api/public/branding/(og|favicon)", path)
             if branding_match:
                 asset = site_meta.branding_asset_bytes(branding_match.group(1))
@@ -17295,27 +17346,6 @@ class Handler(BaseHTTPRequestHandler):
                         return self._json(403, {"ok": False, "error": str(exc)})
                     return self._json(200, payload)
 
-            if path == "/api/me/cohort":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                workspace_id = str(qs.get("workspace_id", [""])[0] or "").strip()
-                if not workspace_id:
-                    return self._json(400, {"ok": False, "error": "workspace_id_required"})
-                ws_id = _resolve_wid(workspace_id) or workspace_id
-                if not _user_is_workspace_member(user_id, ws_id):
-                    return self._json(403, {"ok": False, "error": "forbidden"})
-                cohort = ensure_user_agent_cohort(user_id, ws_id)
-                return self._json(
-                    200,
-                    {
-                        "ok": True,
-                        "workspace_id": ws_id,
-                        "user_id": user_id,
-                        "cohort": cohort,
-                    },
-                )
-
             if path.startswith("/api/rooms/") and path.endswith("/sessions"):
                 rid = path.strip("/").split("/")[-2]
                 user_id = str(getattr(self, "auth_user", "") or "")
@@ -17378,25 +17408,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not ws_id:
                         return self._json(404, {"ok": False, "error": "workspace_not_found"})
                     return self._json(*_list_workspace_members(ws_id, self))
-
-            # --- Sprint J: User credentials (GET) ---
-            if path == "/api/user/credentials":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    if DEV_LOCAL_UNSAFE:
-                        user_id = "dev"
-                    else:
-                        return self._json(401, {"ok": False, "error": "no_authenticated_user"})
-                try:
-                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    creds = conn.execute(
-                        "SELECT id, workspace_id, user_id, agent_profile_id, provider, credential_type, label, is_active, created_at, updated_at FROM credential_bindings WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
-                        (user_id,)).fetchall()
-                    conn.close()
-                except Exception:
-                    creds = []
-                return self._json(200, {"ok": True, "credentials": [dict(c) for c in creds]})
 
             # --- Sprint I: Memory (GET) ---
             if path.startswith("/api/workspace/") and path.endswith("/memory"):
@@ -17686,33 +17697,6 @@ class Handler(BaseHTTPRequestHandler):
                         "workspace_id": ws_id,
                         "credentials": [dict(r) for r in rows],
                     })
-
-            # GET /api/me/credentials — user-scoped credentials
-            if path == "/api/me/credentials" and self.command == "GET":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    rows = conn.execute(
-                        """SELECT id, workspace_id, user_id, agent_profile_id, provider,
-                                  credential_type, credential_ref, label, is_active,
-                                  expires_at, created_by, created_at, updated_at
-                           FROM credential_bindings
-                           WHERE user_id = ? AND deleted_at IS NULL
-                           ORDER BY created_at DESC""",
-                        (user_id,),
-                    ).fetchall()
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                return self._json(200, {
-                    "ok": True,
-                    "scope": "user",
-                    "user_id": user_id,
-                    "credentials": [dict(r) for r in rows],
-                })
 
             # GET /api/agents/:agentId/credentials — agent-profile-scoped
             if path.startswith("/api/agents/") and path.endswith("/credentials") and self.command == "GET":
@@ -18437,33 +18421,6 @@ class Handler(BaseHTTPRequestHandler):
                         "workspace_id": ws_id,
                         "credentials": [dict(r) for r in rows],
                     })
-
-            # GET /api/me/credentials — user-scoped credentials
-            if path == "/api/me/credentials" and self.command == "GET":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    rows = conn.execute(
-                        """SELECT id, workspace_id, user_id, agent_profile_id, provider,
-                                  credential_type, credential_ref, label, is_active,
-                                  expires_at, created_by, created_at, updated_at
-                           FROM credential_bindings
-                           WHERE user_id = ? AND deleted_at IS NULL
-                           ORDER BY created_at DESC""",
-                        (user_id,),
-                    ).fetchall()
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                return self._json(200, {
-                    "ok": True,
-                    "scope": "user",
-                    "user_id": user_id,
-                    "credentials": [dict(r) for r in rows],
-                })
 
             # GET /api/agents/:agentId/credentials — agent-profile-scoped credentials
             if path.startswith("/api/agents/") and path.endswith("/credentials") and self.command == "GET":

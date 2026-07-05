@@ -76,6 +76,12 @@ class Route:
 # Batch: data-read GET surfaces (handler methods on server.Handler).
 ROUTES: tuple[Route, ...] = (
     Route("GET", "/api/meta", "_route_get_meta", AuthLevel.PUBLIC),
+    Route("GET", "/api/health", "_route_get_health", AuthLevel.PUBLIC),
+    Route("GET", "/api/setup/status", "_route_get_setup_status", AuthLevel.PUBLIC),
+    Route("GET", "/api/install/status", "_route_get_install_status", AuthLevel.PUBLIC),
+    Route("GET", "/api/public/site-meta", "_route_get_public_site_meta", AuthLevel.PUBLIC),
+    Route("GET", "/api/public/link-preview", "_route_get_public_link_preview", AuthLevel.PUBLIC),
+    Route("GET", "/api/public/manifest.webmanifest", "_route_get_public_manifest", AuthLevel.PUBLIC),
     Route("GET", "/api/agents", "_route_get_agents", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/snapshot", "_route_get_snapshot", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/activity/detail", "_route_get_activity_detail", AuthLevel.SESSION),
@@ -104,6 +110,9 @@ ROUTES: tuple[Route, ...] = (
     Route("GET", "/api/hermes/debug", "_route_get_hermes_debug", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/hermes/insights", "_route_get_hermes_insights", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/hermes/gquota", "_route_get_hermes_gquota", AuthLevel.SINGLE_USER_GET),
+    # Batch 4: session cohort + legacy user credentials
+    Route("GET", "/api/me/cohort", "_route_get_me_cohort", AuthLevel.SESSION),
+    Route("GET", "/api/user/credentials", "_route_get_user_credentials", AuthLevel.SESSION),
     # Batch 2: auth-flow + hermes/chat + me credentials POST surfaces
     Route("POST", "/api/auth/start", "_route_post_auth_start", AuthLevel.AUTH_FLOW),
     Route("POST", "/api/auth/verify", "_route_post_auth_verify", AuthLevel.AUTH_FLOW),
