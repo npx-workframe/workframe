@@ -201,9 +201,11 @@ DEPLOYMENT_MODE = _resolve_deployment_mode()
 _gateway_registered_cache: dict[str, tuple[bool, float]] = {}
 _GATEWAY_REG_TTL_SEC = 45.0
 _profile_health_cache: dict[str, tuple[bool, float]] = {}
-_PROFILE_HEALTH_TTL_SEC = 2.0
+_PROFILE_HEALTH_TTL_SEC = 8.0
 _user_llm_picker_cache: dict[str, tuple[frozenset[str], float]] = {}
 _USER_LLM_PICKER_TTL_SEC = 5.0
+_session_info_cache: dict[str, tuple[dict[str, Any], float]] = {}
+_SESSION_INFO_TTL_SEC = 5.0
 
 
 def _install_window_open() -> bool:
@@ -5988,6 +5990,18 @@ def _invalidate_profile_health_cache(profile: str = "") -> None:
         _profile_health_cache.clear()
 
 
+def _invalidate_session_info_cache(profile: str = "", session_id: str = "") -> None:
+    if profile and session_id:
+        _session_info_cache.pop(f"{safe_profile_slug(profile)}:{session_id}", None)
+    elif profile:
+        prefix = f"{safe_profile_slug(profile)}:"
+        for key in list(_session_info_cache):
+            if key.startswith(prefix):
+                _session_info_cache.pop(key, None)
+    else:
+        _session_info_cache.clear()
+
+
 def _is_user_credential_home_slug(slug: str) -> bool:
     """UUID dirs under profiles/ hold per-user keys — not Hermes agent profiles."""
     return bool(_AGENT_PROFILE_UUID_RE.fullmatch(str(slug or "").strip()))
@@ -10724,15 +10738,23 @@ def _latest_session_id(profile: str) -> str:
 
 
 def _session_info(profile: str, session_id: str) -> dict[str, Any]:
-    db = _profile_dir(profile) / "state.db"
+    sid = str(session_id or "").strip()
+    prof = safe_profile_slug(str(profile or "").strip())
+    cache_key = f"{prof}:{sid}"
+    now = time.monotonic()
+    cached = _session_info_cache.get(cache_key)
+    if cached and now - cached[1] < _SESSION_INFO_TTL_SEC:
+        return dict(cached[0])
+    empty: dict[str, Any] = {
+        "session_id": session_id,
+        "title": "",
+        "active": False,
+        "message_count": 0,
+    }
+    db = _profile_dir(prof) / "state.db"
     conn = _ro_sqlite_live(db)
     if not conn:
-        return {
-            "session_id": session_id,
-            "title": "",
-            "active": False,
-            "message_count": 0,
-        }
+        return empty
     try:
         row = conn.execute(
             """
@@ -10742,26 +10764,20 @@ def _session_info(profile: str, session_id: str) -> dict[str, Any]:
             (session_id,),
         ).fetchone()
         if not row:
-            return {
-                "session_id": session_id,
-                "title": "",
-                "active": False,
-                "message_count": 0,
-            }
-        return {
+            _session_info_cache[cache_key] = (empty, now)
+            return empty
+        result = {
             "session_id": str(row["id"]),
             "title": (row["title"] or "").strip(),
             "active": row["ended_at"] is None,
             "message_count": int(row["message_count"] or 0),
             "started_at": _iso_from_unix(row["started_at"]),
         }
+        _session_info_cache[cache_key] = (result, now)
+        return result
     except sqlite3.Error:
-        return {
-            "session_id": session_id,
-            "title": "",
-            "active": False,
-            "message_count": 0,
-        }
+        _session_info_cache[cache_key] = (empty, now)
+        return empty
     finally:
         conn.close()
 
@@ -11627,12 +11643,13 @@ def _apply_turn_credential_lease(
     oauth_spec = _oauth_llm_provider_spec(provider)
     if oauth_spec and str(resolved.get("credential_type") or "") == "oauth":
         _sync_oauth_llm_to_profile(prof, user_id, provider)
-        current_model = str(_read_model_from_config(prof)[1] or "").strip()
-        if not _resolve_billing_provider_for_model(current_model, {provider}):
-            current_model = str(
-                (PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
-            ).strip()
-        _apply_model_for_billing_provider(prof, provider, current_model, user_id)
+        if not _profile_routing_matches_billing(prof, provider):
+            current_model = str(_read_model_from_config(prof)[1] or "").strip()
+            if not _resolve_billing_provider_for_model(current_model, {provider}):
+                current_model = str(
+                    (PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
+                ).strip()
+            _apply_model_for_billing_provider(prof, provider, current_model, user_id)
         return ""
     binding_id = str(
         resolved.get("credential_binding_id") or resolved.get("credential_id") or ""
@@ -12783,10 +12800,11 @@ def _llm_billing_provider(
     *,
     user_id: str = "",
     workspace_id: str = "",
+    block: dict[str, Any] | None = None,
 ) -> str:
     """Map Hermes routing provider (often custom for proxy) to vault/billing provider id."""
     prof = resolve_hermes_profile(profile)
-    block = _read_model_block(prof)
+    block = block if block is not None else _read_model_block(prof)
     cfg_provider = str(block.get("provider") or "").strip().lower()
     billing_cfg = _billing_provider_id_from_hermes_config(cfg_provider)
     user = str(user_id or "").strip()
@@ -12809,12 +12827,17 @@ def _profile_llm_proxy_matches_billing(profile: str, billing_provider: str) -> b
     return bool(base) and base == _llm_proxy_base_url(billing_provider)
 
 
-def _profile_routing_matches_billing(prof: str, billing: str) -> bool:
+def _profile_routing_matches_billing(
+    prof: str,
+    billing: str,
+    *,
+    block: dict[str, Any] | None = None,
+) -> bool:
     """True when config.yaml already routes through the requested billing provider."""
     billing = str(billing or "").strip().lower()
     if not billing:
         return False
-    block = _read_model_block(prof)
+    block = block if block is not None else _read_model_block(prof)
     model = str(block.get("default") or "").strip()
     if not model:
         return False
@@ -12844,7 +12867,9 @@ def _reconcile_profile_llm_for_user(
         cfg = str(block.get("provider") or "").strip().lower()
         quick_billing = _billing_provider_id_from_hermes_config(cfg)
         # Direct oauth routing only — custom proxy may still need rebilling to user's provider.
-        if quick_billing and cfg != "custom" and _profile_routing_matches_billing(prof, quick_billing):
+        if quick_billing and cfg != "custom" and _profile_routing_matches_billing(
+            prof, quick_billing, block=block,
+        ):
             return False
     connected = _user_llm_providers_for_picker(user)
     current_model = model
@@ -13084,19 +13109,20 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
     hermes_prof = ""
     template_prof = ""
     agent_db_id = ""
+    room_conn: sqlite3.Connection | None = None
 
     if room_id:
         if not user_id:
             raise ValueError("room_id requires authenticated user")
-        conn = _workframe_db()
+        room_conn = _workframe_db()
         try:
-            room = conn.execute(
+            room = room_conn.execute(
                 "SELECT * FROM rooms WHERE id = ? AND deleted_at IS NULL",
                 (room_id,),
             ).fetchone()
             if not room:
                 raise ValueError("room_not_found")
-            if not _user_can_access_room(conn, room_id, user_id):
+            if not _user_can_access_room(room_conn, room_id, user_id):
                 raise ValueError("room_access_denied")
             if not workspace_id:
                 workspace_id = str(room["workspace_id"])
@@ -13110,30 +13136,45 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
                     hermes_prof = _resolve_chat_hermes_profile(
                         template_prof, user_id, room_id, workspace_id,
                     )
-                agent_row = _lookup_agent_profile(conn, workspace_id, template_prof)
+                agent_row = _lookup_agent_profile(room_conn, workspace_id, template_prof)
                 if not agent_row:
                     raise ValueError("agent_profile_not_found")
                 agent_db_id = str(agent_row["id"])
             else:
                 _room, template_prof, hermes_prof, agent_db_id, workspace_id = _resolve_room_agent_chat(
-                    conn, user_id, room_id,
+                    room_conn, user_id, room_id,
                 )
-        finally:
-            conn.close()
+        except Exception:
+            if room_conn is not None:
+                room_conn.close()
+            raise
     else:
         hermes_prof, template_prof = _resolve_bind_profile_arg(
             profile, user_id, "", workspace_id,
         )
     payer = user_id
-    if payer:
-        _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
-    llm_provider = _llm_billing_provider(hermes_prof, user_id=payer, workspace_id=workspace_id)
+    model_block = _read_model_block(hermes_prof) if hermes_prof else {}
     lifecycle = ensure_profile_api(hermes_prof, user_id, workspace_id)
+    if payer and hermes_prof:
+        cfg = str(model_block.get("provider") or "").strip().lower()
+        quick_billing = _billing_provider_id_from_hermes_config(cfg)
+        need_reconcile = not (
+            quick_billing
+            and cfg != "custom"
+            and _profile_routing_matches_billing(hermes_prof, quick_billing, block=model_block)
+        )
+        if need_reconcile:
+            _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
+            model_block = _read_model_block(hermes_prof)
+    llm_provider = _llm_billing_provider(
+        hermes_prof, user_id=payer, workspace_id=workspace_id, block=model_block,
+    )
     llm_ready = _user_can_use_llm(payer, workspace_id, llm_provider) if payer else False
     session_extra = {"llm_ready": llm_ready, "has_llm_provider": llm_ready}
 
     if room_id:
-        conn = _workframe_db()
+        conn = room_conn if room_conn is not None else _workframe_db()
+        close_conn = room_conn is None
         try:
             existing_row = (
                 None
@@ -13142,13 +13183,14 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
             )
             if existing_row:
                 sid = str(existing_row["session_id"]).strip()
-                if not sid or not _session_exists(hermes_prof, sid):
+                if not sid:
                     existing_row = None
             if existing_row:
                 sid = str(existing_row["session_id"]).strip()
                 gateway_sid = str(existing_row["gateway_session_id"] or f"api:{hermes_prof}:{sid}").strip()
                 session_title = str(existing_row["title"] or _default_session_title(template_prof))
-                _ensure_hermes_session_title(hermes_prof, sid, session_title)
+                if _is_blank_session_title(str(existing_row["title"] or "")):
+                    _ensure_hermes_session_title(hermes_prof, sid, session_title)
                 _upsert_room_session(
                     conn,
                     room_id=room_id,
@@ -13167,6 +13209,11 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
                     sid,
                     gateway_sid,
                 )
+                display_title = (
+                    session_title
+                    if not _is_blank_session_title(session_title)
+                    else _resolved_session_title(hermes_prof, sid, session_title)
+                )
                 return {
                     "ok": True,
                     "profile": hermes_prof,
@@ -13174,7 +13221,7 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
                     "workspace_id": workspace_id,
                     "room_id": room_id,
                     "session_id": sid,
-                    "title": _resolved_session_title(hermes_prof, sid, session_title),
+                    "title": display_title,
                     "api_port": lifecycle["api_port"],
                     "created": False,
                     "resumed": str(existing_row["status"]) != "active",
@@ -13197,7 +13244,10 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
             )
             conn.commit()
         finally:
-            conn.close()
+            if close_conn:
+                conn.close()
+            elif room_conn is not None:
+                room_conn.close()
         _sync_lane_binding(
             hermes_prof,
             source_id,
@@ -13807,8 +13857,10 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         raise ValueError("session_id required")
     if not text:
         raise ValueError("text required")
-    llm_provider = _llm_billing_provider(prof, user_id=_triggering_user, workspace_id=_workspace_id)
     model_block = _read_model_block(prof)
+    llm_provider = _llm_billing_provider(
+        prof, user_id=_triggering_user, workspace_id=_workspace_id, block=model_block,
+    )
     model_used = str(model_block.get("default") or "").strip()
     llm_ready = bool(
         _triggering_user
@@ -15337,6 +15389,9 @@ def _read_model_block(profile: str) -> dict[str, Any]:
         return _parse_model_block_from_disk(raw)
     block = _parse_model_block_from_disk(prof)
     if not _is_runtime_profile_slug(prof):
+        return block
+    # ponytail: runtime with model+provider on disk — skip template read on bind/chat hot path.
+    if str(block.get("default") or "").strip() and str(block.get("provider") or "").strip():
         return block
     template = resolve_validated_profile(_runtime_template_slug(prof))
     tblock = _parse_model_block_from_disk(template)
