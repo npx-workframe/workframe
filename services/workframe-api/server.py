@@ -12871,15 +12871,25 @@ def _reconcile_profile_llm_for_user(
     if not user:
         return False
     prof = resolve_hermes_profile(profile)
-    billing = _llm_billing_provider(prof, user_id=user, workspace_id=workspace_id)
+    connected = _user_llm_providers_for_picker(user)
+    current_model = str(_read_model_block(prof).get("default") or "").strip()
     prefer = str(prefer_provider or "").strip().lower()
-    if prefer and _user_can_use_llm(user, workspace_id, prefer):
+    model_billing = (
+        _resolve_billing_provider_for_model(current_model, connected, prefer=prefer)
+        if current_model
+        else ""
+    )
+    if model_billing and _user_can_use_llm(user, workspace_id, model_billing):
+        billing = model_billing
+    elif prefer and _user_can_use_llm(user, workspace_id, prefer):
         billing = prefer
-    elif not _user_can_use_llm(user, workspace_id, billing):
-        connected = sorted(_user_llm_providers_for_picker(user))
-        if not connected:
-            return False
-        billing = connected[0]
+    else:
+        billing = _llm_billing_provider(prof, user_id=user, workspace_id=workspace_id)
+        if not _user_can_use_llm(user, workspace_id, billing):
+            connected_sorted = sorted(connected)
+            if not connected_sorted:
+                return False
+            billing = connected_sorted[0]
     if _profile_routing_matches_billing(prof, billing):
         return False
     if _oauth_llm_provider_spec(billing) and _user_can_use_llm(user, workspace_id, billing):
@@ -14951,6 +14961,9 @@ def _apply_model_for_billing_provider(
     user_id: str = "",
 ) -> bool:
     billing = str(billing or "").strip().lower()
+    _, bare = _model_id_vendor_and_bare(model_id)
+    if _oauth_llm_provider_spec(billing) and bare:
+        model_id = bare
     ok, _ = _set_profile_model(profile, model_id)
     if not ok:
         return False

@@ -58,4 +58,27 @@ assert applied.get("ok"), applied
 assert applied.get("billing_provider") == "codex"
 assert applied.get("provider") == "codex"
 
+# E: reconcile picks model billing over stale openrouter proxy yaml
+(prof_dir / "config.yaml").write_text(
+    "model:\n  default: openai-codex/gpt-5.4-mini\n  provider: custom\n"
+    "  base_url: http://workframe-api:8080/internal/llm/openrouter/v1\n",
+    encoding="utf-8",
+)
+_orig_picker = server._user_llm_providers_for_picker
+_orig_can = server._user_can_use_llm
+_orig_sync = server._sync_oauth_llm_to_profile
+server._user_llm_providers_for_picker = lambda uid: {"codex"} if uid == "user-1" else set()
+server._user_can_use_llm = lambda uid, ws, prov: uid == "user-1" and prov == "codex"
+server._sync_oauth_llm_to_profile = lambda *a, **k: None
+try:
+    assert server._reconcile_profile_llm_for_user(PROF, "user-1", "") is True
+    block = server._read_model_block(PROF)
+    assert block.get("provider") == "openai-codex"
+    assert block.get("default") == "gpt-5.4-mini"
+    assert not block.get("base_url")
+finally:
+    server._user_llm_providers_for_picker = _orig_picker
+    server._user_can_use_llm = _orig_can
+    server._sync_oauth_llm_to_profile = _orig_sync
+
 print("model surface consistency self-check ok")
