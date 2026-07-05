@@ -1,0 +1,597 @@
+{
+  "schema_version": "1.0",
+  "updated": "2026-07-05",
+  "north_star_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
+  "items": [
+    {
+      "id": "WF-001",
+      "title": "Version agreement gate",
+      "summary": "README, install docs, root package, create-workframe package, tags, and npm publish must agree.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:P0-1", "RT-05", "RT-06", "package-truth-gate"],
+      "acceptance": [
+        "Single version string across README, docs/public/install.md, both package.json files",
+        "CI script fails on drift",
+        "Release evidence records package version"
+      ],
+      "depends_on": [],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-002",
+      "title": "PackageTruthGate from packed tarball",
+      "summary": "Prove wipe → create-workframe → wizard → chat from npm pack artifact, not source optimism.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:P0-2", "package-truth-gate", "final-convergence-synthesis:layer-0"],
+      "acceptance": [
+        "Produces machine-readable PackageInstallEvidence JSON",
+        "Runs from packed create-workframe tarball in clean temp dir",
+        "Fails if UI bundle parity or health checks fail"
+      ],
+      "depends_on": ["WF-001", "WF-018"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-003",
+      "title": "Split release evidence model",
+      "summary": "PackageInstallEvidence, FirstRunEvidence, NegativeInstallEvidence — no overloaded first_chat_ok boolean.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:P0-3", "25-audit:ticket-1"],
+      "acceptance": [
+        "JSON schema committed under operations/release-evidence/",
+        "Example fixture committed",
+        "Docs state evidence is maintainer-release artifact"
+      ],
+      "depends_on": [],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-004",
+      "title": "Empty-target-only install claim",
+      "summary": "Until CellAuthorityGate exists, public install claim is clean empty target only; deny with no mutation.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "partial",
+      "sources": ["25-audit:P0-4", "RT-01"],
+      "acceptance": [
+        "NegativeInstallEvidence proves no mutation on deny",
+        "Public docs scope install claim to empty target"
+      ],
+      "depends_on": ["WF-019"],
+      "owner_role": "implementer",
+      "workflow": { "notes": "validateProjectName exists; full evidence runner missing" }
+    },
+    {
+      "id": "WF-005",
+      "title": "Local release gates cannot be skipped silently",
+      "summary": "verify.mjs may skip cursor-local/manual in CI; release sign-off must fail or report blocked when local evidence missing.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:P0-5", "RT-05", "RT-11"],
+      "acceptance": [
+        "installer-ui-bundle and dogfood-install-gate tracked in release gate",
+        "Release script fails closed when local evidence absent"
+      ],
+      "depends_on": ["WF-002"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-006",
+      "title": "Docs-claim gate",
+      "summary": "Public docs must only claim what evidence proves; flag adapter/Electron/public-VPS overclaims.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:P0-6", "25-audit:ticket-6", "RT-09"],
+      "acceptance": [
+        "Verifier scans docs/public for unsupported claims",
+        "Allows planned/experimental wording",
+        "CI or release gate integration"
+      ],
+      "depends_on": [],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-007",
+      "title": "CellAuthorityGate",
+      "summary": "Manifest provenance, install root ownership, read-only open, mutation plan before update/connect/adopt.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["25-audit:P1-7", "25-audit:ticket-7", "RT-08"],
+      "acceptance": [
+        "Design doc committed",
+        "Implementation tickets derived",
+        "Update/connect/adopt blocked without explicit authority"
+      ],
+      "depends_on": ["WF-003"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-008",
+      "title": "Mutation-free doctor",
+      "summary": "workframe doctor --json reports Docker/Node/cell/runtime candidates without reading secrets or mutating host.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["25-audit:P1-8", "runtime-detection-map"],
+      "acceptance": [
+        "JSON output schema documented",
+        "No credential material in output",
+        "No filesystem mutation"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-009",
+      "title": "RunAuthorityGate",
+      "summary": "Single pre-run decision: actor, profile owner, runtime, provider, credential, payer, delegation, deny reason.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["25-audit:P1-9", "25-audit:ticket-8", "RT-10", "north-star:phase-2"],
+      "acceptance": [
+        "Design doc + test cases before implementation",
+        "Covers BYOK, trusted-team delegation, company-pays, user_only no fallback",
+        "All run-creating surfaces call gate"
+      ],
+      "depends_on": ["WF-NS-P2"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-010",
+      "title": "SurfaceContractGate",
+      "summary": "Agent rail, chat, files, browser, activity need contracts: reads, writes, authority gate, evidence emitted.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["25-audit:P1-10", "workframe-surface-baseline", "RT-09"],
+      "acceptance": [
+        "Contract table per surface committed",
+        "Each surface linked to harness scenario or manual evidence"
+      ],
+      "depends_on": [],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-011",
+      "title": "Supervisor negative tests",
+      "summary": "Public mode cannot reach docker.sock from API; supervisor rejects profile/path misuse; update/connect require authority.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["25-audit:P1-11", "RT-07"],
+      "acceptance": [
+        "Automated tests for denial paths",
+        "Public compose verify includes supervisor constraints"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-012",
+      "title": "UI and package parity identity",
+      "summary": "Generated install exposes build/package identity so PackageInstallEvidence can assert bundled UI parity.",
+      "wave": "release-truth",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["25-audit:P1-12", "RT-05"],
+      "acceptance": [
+        "UI and/or API expose package-version or build stamp",
+        "PackageTruthGate asserts match to packed version"
+      ],
+      "depends_on": ["WF-002"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-013",
+      "title": "AgentIdentity vs HermesRuntimeState seam",
+      "summary": "Separate Workframe agent identity from Hermes profile implementation.",
+      "wave": "adapter",
+      "priority": "P2",
+      "status": "deferred",
+      "sources": ["25-audit:P2-13", "refactor-map", "north-star:phase-4"],
+      "acceptance": [
+        "Schema or model separates agent_id from runtime profile slug",
+        "Chat/kanban use Workframe agent identity"
+      ],
+      "depends_on": ["WF-NS-P4"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-014",
+      "title": "RuntimeBinding candidate model",
+      "summary": "Host Hermes, Codex, Claude CLI, Cursor, etc. as inert detected candidates — no execution until harness proves receipt.",
+      "wave": "adapter",
+      "priority": "P2",
+      "status": "deferred",
+      "sources": ["25-audit:P2-14", "runtime-detection-map", "existing-runtime-adoption-policy"],
+      "acceptance": [
+        "Candidate registry in doctor or API meta",
+        "Detection-only default; no adopt without authority"
+      ],
+      "depends_on": ["WF-008"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-015",
+      "title": "Second runtime adapter harness",
+      "summary": "One non-Hermes adapter end-to-end before expanding runtime matrix claims.",
+      "wave": "adapter",
+      "priority": "P2",
+      "status": "deferred",
+      "sources": ["25-audit:P2-15", "north-star:phase-4"],
+      "acceptance": [
+        "Start/stream/cancel/log/receipt proven for one adapter",
+        "Harness scenario green"
+      ],
+      "depends_on": ["WF-013", "WF-NS-P4"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-016",
+      "title": "Funding modes beyond BYOK",
+      "summary": "Company-pays and hybrid with visible payer, no user_only fallback, receipt evidence.",
+      "wave": "run-ledger",
+      "priority": "P2",
+      "status": "partial",
+      "sources": ["25-audit:P2-16", "multi-user-provider-policy", "north-star:phase-2"],
+      "acceptance": [
+        "RunAuthorityGate enforces payer",
+        "Billing line items on run_line_items table",
+        "Receipt emitted per run"
+      ],
+      "depends_on": ["WF-009", "WF-NS-P2"],
+      "owner_role": "implementer",
+      "workflow": { "notes": "BYOK/company-pays UI exists; run-level receipt missing" }
+    },
+    {
+      "id": "WF-017",
+      "title": "Public and VPS hardening evidence",
+      "summary": "Domain, HTTPS, SMTP, invite-only, backup/restore, secure-mode evidence before marketing public mode.",
+      "wave": "release-truth",
+      "priority": "P2",
+      "status": "partial",
+      "sources": ["25-audit:P2-17", "PUBLIC_DEPLOY.md", "verify-public-deploy.sh"],
+      "acceptance": [
+        "verify-public-deploy.sh green on reference VPS",
+        "Backup/restore documented and tested",
+        "No marketing overclaim beyond evidence"
+      ],
+      "depends_on": ["WF-006", "WF-028"],
+      "evidence": ["scripts/workframe/verify-public-deploy.sh"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-018",
+      "title": "Release evidence JSON schema",
+      "summary": "package-truth-gate.schema.json + example fixture.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:ticket-1"],
+      "acceptance": ["Schema and example committed under operations/release-evidence/"],
+      "depends_on": [],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-019",
+      "title": "Negative install evidence runner",
+      "summary": "Non-empty target, unsafe names, arbitrary dir deny, missing Docker — mutation hash before/after.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:ticket-3"],
+      "acceptance": ["Produces NegativeInstallEvidence JSON", "Temp dir only, no host side effects"],
+      "depends_on": ["WF-018"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-020",
+      "title": "First-run evidence runner",
+      "summary": "Docker boot, health, wizard, BYOK path, first chat, minimal session/receipt evidence.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:ticket-4"],
+      "acceptance": ["Produces FirstRunEvidence JSON", "Redacted credential class only"],
+      "depends_on": ["WF-002"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-021",
+      "title": "Package install evidence runner",
+      "summary": "pack → clean install → assert files, version, UI identity.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:ticket-2"],
+      "acceptance": ["JSON PackageInstallEvidence", "Fails on version drift", "No live model key required"],
+      "depends_on": ["WF-018", "WF-001"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-022",
+      "title": "Version agreement verifier script",
+      "summary": "CI checks root package, installer package, README, install.md alignment.",
+      "wave": "release-truth",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["25-audit:ticket-5"],
+      "acceptance": ["Runnable in CI", "Release gate fails on drift"],
+      "depends_on": [],
+      "blocks": ["WF-001"],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-023",
+      "title": "Egress doctrine in public security docs",
+      "summary": "Two traffic classes; credential broker unavoidable in public_multi_user.",
+      "wave": "broker",
+      "priority": "P0",
+      "status": "done",
+      "sources": ["audit-0027:critical-1"],
+      "acceptance": ["docs/public/security.md section", "PUBLIC_DEPLOY.md aligned"],
+      "evidence": ["docs/public/security.md", "1c7d517"],
+      "owner_role": "docs",
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": ["1c7d517"] }
+    },
+    {
+      "id": "WF-024",
+      "title": "Public deploy egress posture reporting",
+      "summary": "verify-public-deploy.sh reports gateway egress; fails on control-net miswire.",
+      "wave": "broker",
+      "priority": "P0",
+      "status": "done",
+      "sources": ["audit-0027:critical-2"],
+      "evidence": ["scripts/workframe/verify-public-deploy.sh", "1c7d517"],
+      "owner_role": "harness",
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": ["1c7d517"] }
+    },
+    {
+      "id": "WF-025",
+      "title": "WORKFRAME_FORCE_AGENT_EGRESS_BROKER enforcement",
+      "summary": "Network-level forced broker for public_multi_user — deny direct provider egress from gateway.",
+      "wave": "broker",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["audit-0027:critical-3", "north-star:egress-policy", "17-final-recommendation"],
+      "acceptance": [
+        "Compose/network policy blocks direct provider hosts from gateway",
+        "Broker path remains reachable",
+        "General internet for non-credential traffic preserved",
+        "verify passes when flag true and enforcement active"
+      ],
+      "depends_on": ["WF-026"],
+      "owner_role": "implementer",
+      "workflow": { "notes": "Verify fails if flag set today — intentional until built" }
+    },
+    {
+      "id": "WF-026",
+      "title": "Provider-neutral credential broker layer",
+      "summary": "Extract lease validation and authorization from llm_proxy.py for reuse by action_proxy and future brokers.",
+      "wave": "broker",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["audit-0027:high-4", "north-star:phase-3"],
+      "acceptance": [
+        "credential_broker.py or equivalent module",
+        "llm_proxy and action_proxy use shared validation",
+        "No behavior regression in LLM path"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-027",
+      "title": "Structured broker audit events",
+      "summary": "Timestamped attributable events for brokered requests (user, workspace, profile, run, provider, host, status, deny reason).",
+      "wave": "broker",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["audit-0027:high-5", "north-star:AuditEvent"],
+      "acceptance": ["Events persisted or logged in structured form", "Queryable for public deploy audit"],
+      "depends_on": ["WF-026"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-028",
+      "title": "Lease validation test matrix",
+      "summary": "Tests for expired, revoked, provider/profile mismatch, missing proxy token/header.",
+      "wave": "broker",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["audit-0027:high-6"],
+      "acceptance": ["test_* or harness scenarios cover all rejection cases"],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-029",
+      "title": "Generalize tool brokers beyond LLM",
+      "summary": "GitHub, messaging, deploy, MCP — same lease+broker pattern as LLM proxy.",
+      "wave": "broker",
+      "priority": "P2",
+      "status": "deferred",
+      "sources": ["north-star:phase-3", "audit-0027:medium"],
+      "acceptance": ["At least one non-LLM broker with lease injection", "Documented in architecture.md"],
+      "depends_on": ["WF-026", "WF-NS-P3"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-030",
+      "title": "Optional Agent Vault backend spike",
+      "summary": "Sidecar integration only after native egress invariant is enforced and tested.",
+      "wave": "broker",
+      "priority": "P3",
+      "status": "deferred",
+      "sources": ["audit-0027:long-term"],
+      "acceptance": ["Spike doc or branch; no hard dependency on external vault"],
+      "depends_on": ["WF-025"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P0",
+      "title": "Vocabulary lock (Cell, Run, Lease, …)",
+      "summary": "Consistent terms across docs and code; stop using Hermes profile as catch-all for agent/runtime/authority.",
+      "wave": "meta",
+      "priority": "P2",
+      "status": "partial",
+      "sources": ["north-star:phase-0"],
+      "acceptance": ["Glossary in public docs", "New code uses Workframe terms"],
+      "owner_role": "docs",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P1",
+      "title": "Harden current Hermes stack",
+      "summary": "Supervisor-only Docker socket, LLM proxy + wf_rt leases, no raw keys in profile .env for turns.",
+      "wave": "broker",
+      "priority": "P1",
+      "status": "partial",
+      "sources": ["north-star:phase-1"],
+      "acceptance": [
+        "API cannot access Docker socket in SECURE_MODE",
+        "All model usage through proxy and leases",
+        "Tests prove socket boundary"
+      ],
+      "evidence": ["credential_vault.py", "llm_proxy.py", "workframe-supervisor"],
+      "owner_role": "implementer",
+      "workflow": { "notes": "Core path shipped; negative tests incomplete (WF-011)" }
+    },
+    {
+      "id": "WF-NS-P2",
+      "title": "Workframe-owned runs and run_events tables",
+      "summary": "Minimum run ledger schema; DM, mention, card, cron, slash, webhook create runs.",
+      "wave": "run-ledger",
+      "priority": "P1",
+      "status": "deferred",
+      "sources": ["north-star:phase-2", "17-final-recommendation"],
+      "acceptance": [
+        "runs, run_events, run_line_items tables",
+        "Chat path creates run record",
+        "Activity panel reads run_events"
+      ],
+      "depends_on": ["WF-009"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P3",
+      "title": "Tool and credential broker generalization",
+      "summary": "LLM proxy pattern → git, messaging, deploy, Google, MCP brokers.",
+      "wave": "broker",
+      "priority": "P2",
+      "status": "deferred",
+      "sources": ["north-star:phase-3"],
+      "depends_on": ["WF-026"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P4",
+      "title": "Runtime and engine adapter seam",
+      "summary": "EngineAdapter + RuntimeAdapter protocols; Hermes first implementation.",
+      "wave": "adapter",
+      "priority": "P2",
+      "status": "deferred",
+      "sources": ["north-star:phase-4", "adapter-build-roadmap"],
+      "acceptance": ["runtime_kind column", "Resolver + FakeEngine test"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P5",
+      "title": "Run-scoped file manifests",
+      "summary": "Move from broad workspace mounts to copy-in/run workspace/promote-out with ledger file diff.",
+      "wave": "cell",
+      "priority": "P3",
+      "status": "deferred",
+      "sources": ["north-star:phase-5"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P6",
+      "title": "Workframe Cell productization",
+      "summary": "cell_id metadata, install/upgrade/backup/health/domain tooling.",
+      "wave": "cell",
+      "priority": "P3",
+      "status": "deferred",
+      "sources": ["north-star:phase-6"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P7",
+      "title": "Provisioned and BYOC control plane",
+      "summary": "Cloud manager for VPS cells, licensing, billing, template install, support bundle.",
+      "wave": "cell",
+      "priority": "P3",
+      "status": "deferred",
+      "sources": ["north-star:phase-7"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-NS-P8",
+      "title": "Marketplace and payment rails",
+      "summary": "Agent/skill/playbook marketplace after runs and billing stable.",
+      "wave": "marketplace",
+      "priority": "P3",
+      "status": "deferred",
+      "sources": ["north-star:phase-8"],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-SK-001",
+      "title": "Adopt spec-kit workflow mapping",
+      "summary": "Map constitution/spec/plan/tasks/implement to ledger + .harness without duplicating AGENTS.md.",
+      "wave": "meta",
+      "priority": "P2",
+      "status": "todo",
+      "sources": ["spec-kit", "docs/ledger/spec-kit.md"],
+      "acceptance": [
+        "spec-kit.md documents mapping",
+        "Optional vendor/spec-kit submodule or specify init",
+        "P0 items have spec stubs under docs/ledger/specs/"
+      ],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    }
+  ]
+}

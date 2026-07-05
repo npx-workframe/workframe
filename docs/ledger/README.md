@@ -9,6 +9,7 @@ Single public index for **what we ship now**, **where we are going**, and **what
 | **Know current priorities** | [now.md](now.md) |
 | **Understand long-term vision** | [north-star.md](north-star.md) → [strategy brief](../strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md) |
 | **Trace an audit finding** | [audits.md](audits.md) |
+| **Pick up work (agents)** | [backlog.json](backlog.json) · [automation.md](automation.md) |
 | **See how autonomous loops run** | [loops.md](loops.md) |
 | **Install / operate / secure** | [public docs index](../README.md) |
 
@@ -16,7 +17,7 @@ Single public index for **what we ship now**, **where we are going**, and **what
 
 ```text
 docs/public/           Ship-facing product docs (users, evaluators, contributors)
-docs/ledger/           Status spine — now, vision summary, audit registry, loop model
+docs/ledger/           Status spine — now, backlog.json, audit registry, loop model
 docs/strategy/         Full north-star brief (v0.1.1 strategy package)
 docs/living-audit/     Planning archive — convergence work toward the cell product
 docs/audits/           Numbered point-in-time security/architecture audits
