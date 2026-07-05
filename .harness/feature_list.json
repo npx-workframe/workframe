@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "description": "Workframe harness scenarios — backend/install-gate focus; UI dogfood is local-only.",
-  "updated": "2026-07-04",
+  "updated": "2026-07-05",
   "scenarios": [
     {
       "id": "api-typecheck",
@@ -56,14 +56,14 @@
       "id": "installer-ui-bundle",
       "description": "Installer UI bundle parity",
       "verify": "node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build",
-      "passes": false,
+      "passes": true,
       "owner": "cursor-local"
     },
     {
       "id": "dogfood-install-gate",
       "description": "Sign-off: install-gate + reset-dogfood (npx create-workframe MyBusiness) + wizard + chat",
       "verify": ".\\scripts\\workframe\\sign-off-install.ps1 -SkipGate; then browser wizard + chat",
-      "passes": false,
+      "passes": true,
       "owner": "cursor-local"
     }
   ]

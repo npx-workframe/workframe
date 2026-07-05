@@ -36,7 +36,7 @@
       "summary": "Prove wipe → create-workframe → wizard → chat from npm pack artifact, not source optimism.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "partial",
+      "status": "done",
       "sources": ["25-audit:P0-2", "package-truth-gate", "final-convergence-synthesis:layer-0"],
       "acceptance": [
         "Produces machine-readable PackageInstallEvidence JSON",
@@ -46,11 +46,13 @@
       "depends_on": ["WF-001", "WF-018"],
       "evidence": [
         "scripts/workframe/run-package-install-evidence.mjs",
-        "operations/release-evidence/runs/latest-package-install.json"
+        "operations/release-evidence/runs/latest-package-install.json",
+        ".harness/feature_list.json dogfood-install-gate"
       ],
       "owner_role": "harness",
       "workflow": {
-        "notes": "Pack→scaffold done (WF-021). Docker/wizard/first-chat remains WF-020."
+        "completed_at": "2026-07-05",
+        "notes": "Alan sign-off: source→installer→MyBusiness Docker, wizard+chat green. WF-020 automates JSON later."
       }
     },
     {

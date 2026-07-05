@@ -84,7 +84,7 @@ services/workframe-api/ | apps/web/src/
 
 Run: `node .harness/verify.mjs` or `pnpm test:ci`.
 
-**Known failing scenarios (2026-07-04):** `installer-ui-bundle` (local), `dogfood-install-gate` (run `sign-off-install.ps1` + wizard).
+**Local harness (2026-07-05):** `installer-ui-bundle` and `dogfood-install-gate` signed off — `node scripts/workframe/verify-release-gates.mjs` before publish.
 
 ## Policies enforced (pitfalls)
 

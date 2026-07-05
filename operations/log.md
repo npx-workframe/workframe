@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-05T04:56-03:00 | pm-workframe | Dogfood sign-off done (Alan) — WF-002 done; harness dogfood-install-gate + installer-ui-bundle passes:true.
 2026-07-05T04:15-03:00 | pm-workframe | WF-005 done — verify-release-gates.mjs; harness reports blocked-local; publish fails closed.
 2026-07-05T04:05-03:00 | pm-workframe | WF-021 done — run-package-install-evidence.mjs (pack→scaffold, allow). WF-002 partial pending WF-020.
 

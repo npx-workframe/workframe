@@ -19,13 +19,14 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 | In-app Workframe update (SECURE_MODE) | shipped | v0.1.9–0.1.11 |
 | Public deploy verify script | shipped | `scripts/workframe/verify-public-deploy.sh` |
 | Agent egress doctrine (docs) | shipped | [security.md](../public/security.md) |
-| Harness verify (cloud/API/build/scaffold) | partial | `.harness/verify.mjs` — install-gate still local |
+| Harness verify (cloud/API/build/scaffold) | shipped | `.harness/verify.mjs` |
+| Dogfood sign-off (MyBusiness Docker) | **done** | Alan 2026-07-05 — wizard + chat |
 
 ## Active (next proof layers)
 
 From [final convergence synthesis](../../archive/planning/living-audit/final-convergence-synthesis.md):
 
-1. **PackageTruthGate** — one credible wipe → `create-workframe` → wizard → chat path with version parity.
+1. **PackageTruthGate** — **done** (Alan sign-off MyBusiness Docker; WF-020 automates FirstRunEvidence JSON).
 2. **Forced egress broker** — network-unavoidable credential traffic (`WORKFRAME_FORCE_AGENT_EGRESS_BROKER` is **planned**, verify fails if set).
 3. **Runtime adapter seam** — `runtime_kind` column + resolver; Hermes remains default executable runtime.
 4. **Run ledger** — authority, cost, artifacts, audit per run (north-star primitive; minimal hooks today).
