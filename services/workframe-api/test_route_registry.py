@@ -88,8 +88,22 @@ assert route_registry.authorize_request(
 )
 
 data_read_get = [r for r in route_registry.ROUTES if r.method == "GET"]
-assert len(data_read_get) == 20
+assert len(data_read_get) == 28
 registry_post = [r for r in route_registry.ROUTES if r.method == "POST"]
 assert len(registry_post) == 18
+
+class _PostStub:
+    def __init__(self) -> None:
+        self.called = False
+        self.body: dict | None = None
+
+    def _route_post_auth_start(self, body: dict) -> None:
+        self.called = True
+        self.body = body
+
+_stub = _PostStub()
+assert route_registry.dispatch_post(_stub, "/api/auth/start", {"email": "a@b.c"})
+assert _stub.called and _stub.body == {"email": "a@b.c"}
+assert not route_registry.dispatch_post(_stub, "/api/not-registered", {})
 
 print("route registry self-check ok")

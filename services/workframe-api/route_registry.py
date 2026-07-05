@@ -95,6 +95,15 @@ ROUTES: tuple[Route, ...] = (
     Route("GET", "/api/hermes/commands", "_route_get_hermes_commands", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/hermes/usage", "_route_get_hermes_usage", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/hermes/profile", "_route_get_hermes_profile", AuthLevel.SINGLE_USER_GET),
+    # Batch 3: session /me + hermes catalog GET surfaces
+    Route("GET", "/api/me", "_route_get_me", AuthLevel.SESSION),
+    Route("GET", "/api/me/onboarding", "_route_get_me_onboarding", AuthLevel.SESSION),
+    Route("GET", "/api/me/credentials", "_route_get_me_credentials", AuthLevel.SESSION),
+    Route("GET", "/api/me/providers", "_route_get_me_providers", AuthLevel.SESSION),
+    Route("GET", "/api/hermes/models", "_route_get_hermes_models", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/debug", "_route_get_hermes_debug", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/insights", "_route_get_hermes_insights", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/gquota", "_route_get_hermes_gquota", AuthLevel.SINGLE_USER_GET),
     # Batch 2: auth-flow + hermes/chat + me credentials POST surfaces
     Route("POST", "/api/auth/start", "_route_post_auth_start", AuthLevel.AUTH_FLOW),
     Route("POST", "/api/auth/verify", "_route_post_auth_verify", AuthLevel.AUTH_FLOW),

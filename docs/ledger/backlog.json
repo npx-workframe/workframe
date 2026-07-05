@@ -771,7 +771,7 @@
       ],
       "depends_on": ["WF-031"],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": ["7460667"], "notes": "Batch 1: 20 GET via dispatch_get. Batch 2: 18 POST (auth-flow + hermes/chat/me/board) via dispatch_post. Dead if-chain blocks for migrated POST paths remain — prune in next batch.", "completed_at": "2026-07-05" }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "route_registry.py: auth tiers + ROUTES/dispatch_get/dispatch_post; batch 1: 20 data-read GETs; batch 2: 18 POST; batch 3: 8 GET (/api/me*, hermes models/debug/insights/gquota); 28 GET + 18 POST in ROUTES; remainder for batch 4+", "completed_at": "2026-07-05" }
     },
     {
       "id": "WF-038",

@@ -16325,6 +16325,72 @@ class Handler(BaseHTTPRequestHandler):
     def _route_get_hermes_profile(self, qs: dict[str, list[str]]) -> None:
         self._json(200, hermes_profile())
 
+    def _route_get_me(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        payload = _session_profile_payload(user_id)
+        if not payload:
+            self._json(404, {"ok": False, "error": "user_not_found"})
+            return
+        self._json(200, payload)
+
+    def _route_get_me_onboarding(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        self._json(200, _onboarding_payload(user_id))
+
+    def _route_get_me_credentials(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        try:
+            conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """SELECT id, workspace_id, user_id, agent_profile_id, provider, credential_type,
+                       credential_ref, label, is_active, created_at, updated_at
+                   FROM credential_bindings
+                   WHERE user_id = ? AND deleted_at IS NULL
+                   ORDER BY updated_at DESC, created_at DESC""",
+                (user_id,),
+            ).fetchall()
+            conn.close()
+        except sqlite3.Error as exc:
+            self._json(500, {"ok": False, "error": f"db_error: {exc}"})
+            return
+        self._json(200, {"ok": True, "credentials": [dict(row) for row in rows]})
+
+    def _route_get_me_providers(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        workspace_id = qs.get("workspace_id", [""])[0]
+        self._json(200, list_user_providers(user_id, workspace_id))
+
+    def _route_get_hermes_models(self, qs: dict[str, list[str]]) -> None:
+        profile = qs.get("profile", [""])[0]
+        user_id = str(getattr(self, "auth_user", "") or "")
+        workspace_id = qs.get("workspace_id", [""])[0]
+        selection_only = qs.get("selection_only", ["0"])[0] in {"1", "true", "yes"}
+        payload = hermes_models(profile, user_id, workspace_id, selection_only=selection_only)
+        status = 200 if payload.get("ok", True) else 400
+        self._json(status, payload)
+
+    def _route_get_hermes_debug(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, hermes_debug())
+
+    def _route_get_hermes_insights(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, hermes_insights())
+
+    def _route_get_hermes_gquota(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, hermes_gquota())
+
     # WF-037 auth-flow + hermes/chat + me credentials POST handlers
     def _route_post_auth_google_start(self, body: dict) -> None:
         invite_email = str(body.get("email") or "").strip().lower()
@@ -17016,49 +17082,6 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 except Exception as exc:
                     return self._json(401, {"ok": False, "error": str(exc)})
-            if path == "/api/me":
-                # zk-auth compatible profile endpoint (GET)
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                payload = _session_profile_payload(user_id)
-                if not payload:
-                    return self._json(404, {"ok": False, "error": "user_not_found"})
-                return self._json(200, payload)
-
-            if path == "/api/me/onboarding":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                return self._json(200, _onboarding_payload(user_id))
-
-            if path == "/api/me/credentials":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    rows = conn.execute(
-                        """SELECT id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-                               credential_ref, label, is_active, created_at, updated_at
-                           FROM credential_bindings
-                           WHERE user_id = ? AND deleted_at IS NULL
-                           ORDER BY updated_at DESC, created_at DESC""",
-                        (user_id,),
-                    ).fetchall()
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"ok": False, "error": f"db_error: {exc}"})
-                return self._json(200, {"ok": True, "credentials": [dict(row) for row in rows]})
-
-            if path == "/api/me/providers":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                workspace_id = qs.get("workspace_id", [""])[0]
-                return self._json(200, list_user_providers(user_id, workspace_id))
-
             if path.startswith("/api/me/oauth/") and path.endswith("/status"):
                 parts = path.strip("/").split("/")
                 if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "status":
@@ -17525,20 +17548,6 @@ class Handler(BaseHTTPRequestHandler):
                 if not _role_allows(self, OWNER_ADMIN_ROLES):
                     return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
                 return self._json(200, hermes_bootstrap())
-            if path == "/api/hermes/debug":
-                return self._json(200, hermes_debug())
-            if path == "/api/hermes/insights":
-                return self._json(200, hermes_insights())
-            if path == "/api/hermes/gquota":
-                return self._json(200, hermes_gquota())
-            if path == "/api/hermes/models":
-                profile = qs.get("profile", [""])[0]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                workspace_id = qs.get("workspace_id", [""])[0]
-                selection_only = qs.get("selection_only", ["0"])[0] in {"1", "true", "yes"}
-                payload = hermes_models(profile, user_id, workspace_id, selection_only=selection_only)
-                status = 200 if payload.get("ok", True) else 400
-                return self._json(status, payload)
             if path == "/api/hermes/profiles/status":
                 profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
                 if SUPERVISOR_URL:
@@ -19124,101 +19133,6 @@ class Handler(BaseHTTPRequestHandler):
                     self._log_audit("grant_created", "credential_grant", grant_id, f"workspace={ws_id} grantee={grantee_type}:{grantee_id}")
                     return self._json(201, {"ok": True, "grant_id": grant_id})
 
-            if path == "/api/hermes/commands/exec":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                line = str(body.get("line", "")).strip()
-                if not line:
-                    return self._json(400, {"error": "line required"})
-                return self._json(200, hermes_commands_exec(line))
-            if path == "/api/hermes/gateway/exec":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                line = str(body.get("line", "")).strip()
-                profile = str(body.get("profile", "")).strip()
-                if not line:
-                    return self._json(400, {"error": "line required"})
-                user_id = str(getattr(self, "auth_user", "") or "")
-                workspace_id = str(body.get("workspace_id", "") or "")
-                return self._json(
-                    200,
-                    hermes_gateway_exec(line, profile, user_id=user_id, workspace_id=workspace_id),
-                )
-            if path == "/api/chat/stop":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
-                run_id = str(body.get("run_id") or "").strip()
-                # If no run_id provided, find the latest active run for this profile
-                if not run_id:
-                    run_id = _latest_active_run_id(profile)
-                if not run_id:
-                    return self._json(400, {"error": "no active run to stop"})
-                return self._json(200, profile_gateway_stop(profile, run_id))
-            if path == "/api/chat/steer":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
-                run_id = str(body.get("run_id") or "").strip()
-                text = str(body.get("text") or "").strip()
-                if not text:
-                    return self._json(400, {"error": "text required"})
-                # If no run_id provided, find the latest active run
-                if not run_id:
-                    run_id = _latest_active_run_id(profile)
-                return self._json(200, profile_gateway_steer(profile, run_id or "", text))
-            if path == "/api/hermes/model":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                model_id = str(body.get("model", "")).strip()
-                profile = str(body.get("profile", "")).strip()
-                user_id = str(getattr(self, "auth_user", "") or "")
-                workspace_id = str(body.get("workspace_id", "")).strip()
-                selection_only = bool(body.get("selection_only"))
-                if not model_id:
-                    return self._json(400, {"error": "model required"})
-                billing_provider = str(body.get("billing_provider", "")).strip()
-                return self._json(
-                    200,
-                    hermes_model_set(
-                        profile,
-                        model_id,
-                        user_id,
-                        workspace_id,
-                        selection_only=selection_only,
-                        billing_provider=billing_provider,
-                    ),
-                )
-            if path == "/api/hermes/model/apply-default":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                return self._json(200, hermes_apply_default_model_config())
-            if path == "/api/hermes/fallback-chain":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                profile = str(body.get("profile", "")).strip()
-                chain = body.get("chain", [])
-                selection_only = bool(body.get("selection_only"))
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not isinstance(chain, list):
-                    return self._json(400, {"error": "chain must be a list"})
-                if not selection_only and not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                return self._json(
-                    200,
-                    hermes_fallback_chain_set(
-                        profile,
-                        chain,
-                        selection_only=selection_only,
-                        user_id=user_id,
-                    ),
-                )
-            if path == "/api/board":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                return self._json(201, board_create(body))
             if path == "/api/board/update":
                 if not _check_auth(self):
                     return self._json(401, {"error": "unauthorized"})
