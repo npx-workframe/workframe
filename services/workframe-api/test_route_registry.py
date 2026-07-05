@@ -90,7 +90,7 @@ assert route_registry.authorize_request(
 data_read_get = [r for r in route_registry.ROUTES if r.method == "GET"]
 assert len(data_read_get) == 36
 registry_post = [r for r in route_registry.ROUTES if r.method == "POST"]
-assert len(registry_post) == 18
+assert len(registry_post) == 25
 
 class _PostStub:
     def __init__(self) -> None:

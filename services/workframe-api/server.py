@@ -17005,6 +17005,96 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(201, board_create(body))
 
+    def _route_post_board_update(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        qs = getattr(self, "_post_qs", {})
+        task_id = qs.get("id", [""])[0]
+        if not task_id:
+            self._json(400, {"error": "id required"})
+            return
+        self._json(200, board_update(task_id, body))
+
+    def _route_post_board_delete(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        qs = getattr(self, "_post_qs", {})
+        task_id = qs.get("id", [""])[0]
+        if not task_id:
+            self._json(400, {"error": "id required"})
+            return
+        board_delete(task_id)
+        self._json(200, {"ok": True})
+
+    def _route_post_content_save(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        rel = str(body.get("path") or "").strip()
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        content = str(body.get("content") or "")
+        fp = _safe_content_path(rel)
+        if not fp:
+            self._json(400, {"error": "invalid path"})
+            return
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        fp.write_text(content, encoding="utf-8")
+        _bump_workspace_state(fp)
+        self._json(200, {"ok": True, "path": rel.replace("\\", "/")})
+
+    def _route_post_content_delete(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        qs = getattr(self, "_post_qs", {})
+        rel = qs.get("path", [""])[0] or str(body.get("path") or "")
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        fp = _safe_content_path(rel)
+        if not fp or not fp.is_file():
+            self._json(404, {"error": "not found"})
+            return
+        fp.unlink()
+        _bump_workspace_state(fp.parent)
+        self._json(200, {"ok": True})
+
+    def _route_post_files_write(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        rel = str(body.get("path") or "").strip()
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        content = str(body.get("content") or "")
+        self._json(200, file_write(rel, content))
+
+    def _route_post_files_upload(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        rel = str(body.get("path") or "").strip()
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        content_b64 = str(body.get("content_base64") or body.get("content") or "")
+        self._json(200, file_upload_binary(rel, content_b64))
+
+    def _route_post_chat_dispatch(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        self._json(200, chat_dispatch(body))
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -18112,6 +18202,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = self._read_json()
             post_body = body if isinstance(body, dict) else {}
+            self._post_qs = qs
 
             if route_registry.dispatch_post(self, path, post_body):
                 return
@@ -19090,71 +19181,6 @@ class Handler(BaseHTTPRequestHandler):
                     self._log_audit("grant_created", "credential_grant", grant_id, f"workspace={ws_id} grantee={grantee_type}:{grantee_id}")
                     return self._json(201, {"ok": True, "grant_id": grant_id})
 
-            if path == "/api/board/update":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                task_id = qs.get("id", [""])[0]
-                if not task_id:
-                    return self._json(400, {"error": "id required"})
-                return self._json(200, board_update(task_id, body))
-            if path == "/api/board/delete":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                task_id = qs.get("id", [""])[0]
-                if not task_id:
-                    return self._json(400, {"error": "id required"})
-                board_delete(task_id)
-                return self._json(200, {"ok": True})
-            if path == "/api/content/save":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                rel = str(body.get("path") or "").strip()
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                content = str(body.get("content") or "")
-                fp = _safe_content_path(rel)
-                if not fp:
-                    return self._json(400, {"error": "invalid path"})
-                fp.parent.mkdir(parents=True, exist_ok=True)
-                fp.write_text(content, encoding="utf-8")
-                _bump_workspace_state(fp)
-                return self._json(200, {"ok": True, "path": rel.replace("\\", "/")})
-            if path == "/api/content/delete":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                rel = qs.get("path", [""])[0] or str(body.get("path") or "")
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                fp = _safe_content_path(rel)
-                if not fp or not fp.is_file():
-                    return self._json(404, {"error": "not found"})
-                fp.unlink()
-                _bump_workspace_state(fp.parent)
-                return self._json(200, {"ok": True})
-            if path == "/api/files/write":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                rel = str(body.get("path") or "").strip()
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                content = str(body.get("content") or "")
-                return self._json(200, file_write(rel, content))
-            if path == "/api/files/upload":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                rel = str(body.get("path") or "").strip()
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                content_b64 = str(body.get("content_base64") or body.get("content") or "")
-                return self._json(200, file_upload_binary(rel, content_b64))
-            if path == "/api/chat/dispatch":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                return self._json(200, chat_dispatch(body))
             if path == "/api/hermes/profiles/create":
                 if not _check_auth(self):
                     return self._json(401, {"error": "unauthorized"})

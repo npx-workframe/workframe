@@ -132,6 +132,14 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/me/credentials", "_route_post_me_credentials", AuthLevel.SESSION),
     Route("POST", "/api/me/telegram/link", "_route_post_me_telegram_link", AuthLevel.SESSION),
     Route("POST", "/api/board", "_route_post_board", AuthLevel.SESSION),
+    # Batch 5: workspace mutation POST surfaces
+    Route("POST", "/api/board/update", "_route_post_board_update", AuthLevel.SESSION),
+    Route("POST", "/api/board/delete", "_route_post_board_delete", AuthLevel.SESSION),
+    Route("POST", "/api/content/save", "_route_post_content_save", AuthLevel.SESSION),
+    Route("POST", "/api/content/delete", "_route_post_content_delete", AuthLevel.SESSION),
+    Route("POST", "/api/files/write", "_route_post_files_write", AuthLevel.SESSION),
+    Route("POST", "/api/files/upload", "_route_post_files_upload", AuthLevel.SESSION),
+    Route("POST", "/api/chat/dispatch", "_route_post_chat_dispatch", AuthLevel.SESSION),
 )
 
 _ROUTES_BY_METHOD_PATH: dict[tuple[str, str], Route] = {
