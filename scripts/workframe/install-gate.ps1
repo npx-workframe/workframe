@@ -22,8 +22,12 @@ pnpm test:scaffold
 
 New-Item -ItemType Directory -Force -Path $GateDir | Out-Null
 Set-Location $Pkg
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 $packOut = npm pack --pack-destination $GateDir 2>&1
-if ($LASTEXITCODE -ne 0) { throw "npm pack failed: $packOut" }
+$packExit = $LASTEXITCODE
+$ErrorActionPreference = $prevEap
+if ($packExit -ne 0) { throw "npm pack failed: $packOut" }
 $tgz = ($packOut | Select-String '\.tgz$' | Select-Object -Last 1).Line.Trim()
 if (-not $tgz) { throw 'npm pack did not produce tarball' }
 $archive = Join-Path $GateDir $tgz
