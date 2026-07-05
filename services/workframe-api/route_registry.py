@@ -1,10 +1,12 @@
-"""Declarative API route auth registry (WF-037).
+"""Declarative API route registry (WF-037).
 
-Deny-by-default: every /api/* path resolves to an AuthLevel; handlers stay in server.py for now.
+Deny-by-default auth tiers plus batched handler dispatch; handler bodies live on server.Handler.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class AuthLevel(str, Enum):
@@ -62,6 +64,43 @@ AUTH_FLOW_POST_ROUTES = frozenset({
     "/api/auth/google/start",
     "/api/auth/local-bootstrap",
 })
+
+@dataclass(frozen=True, slots=True)
+class Route:
+    method: str
+    path: str
+    handler: str
+    auth: AuthLevel
+
+
+# Batch: data-read GET surfaces (handler methods on server.Handler).
+ROUTES: tuple[Route, ...] = (
+    Route("GET", "/api/meta", "_route_get_meta", AuthLevel.PUBLIC),
+    Route("GET", "/api/agents", "_route_get_agents", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/snapshot", "_route_get_snapshot", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/activity/detail", "_route_get_activity_detail", AuthLevel.SESSION),
+    Route("GET", "/api/board", "_route_get_board", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/content", "_route_get_content", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/content/get", "_route_get_content_get", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/files/tree", "_route_get_files_tree", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/files/list", "_route_get_files_list", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/files/state", "_route_get_files_state", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/files/read", "_route_get_files_read", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/files/raw", "_route_get_files_raw", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/routes", "_route_get_routes", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/chat/messages", "_route_get_chat_messages", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/chat/session", "_route_get_chat_session", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/chat/resolve", "_route_get_chat_resolve", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/skills", "_route_get_hermes_skills", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/commands", "_route_get_hermes_commands", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/usage", "_route_get_hermes_usage", AuthLevel.SINGLE_USER_GET),
+    Route("GET", "/api/hermes/profile", "_route_get_hermes_profile", AuthLevel.SINGLE_USER_GET),
+)
+
+_ROUTES_BY_METHOD_PATH: dict[tuple[str, str], Route] = {
+    (r.method.upper(), r.path): r for r in ROUTES
+}
+
 
 INSTALL_ROUTE_METHODS: dict[str, frozenset[str]] = {
     "GET": frozenset({
@@ -188,6 +227,22 @@ def authorize_request(
     return False
 
 
+def lookup_route(method: str, path: str) -> Route | None:
+    return _ROUTES_BY_METHOD_PATH.get((str(method or "GET").upper(), str(path or "").strip()))
+
+
+def dispatch_get(handler: Any, path: str, qs: dict[str, list[str]]) -> bool:
+    """Invoke a registered GET handler on *handler*; return True when dispatched."""
+    route = lookup_route("GET", path)
+    if not route:
+        return False
+    fn = getattr(handler, route.handler, None)
+    if not callable(fn):
+        raise RuntimeError(f"missing handler {route.handler!r} for GET {path}")
+    fn(qs)
+    return True
+
+
 def _require_session(sid: str, validate_session, attach_user) -> bool:
     if not sid:
         return False
@@ -213,4 +268,6 @@ def iter_registered_api_paths() -> frozenset[tuple[str, str]]:
     out.add(("GET", "/api/install/stack"))
     out.add(("PATCH", "/api/install/stack"))
     out.add(("GET", "/api/auth/hermes-dashboard-gate"))
+    for route in ROUTES:
+        out.add((route.method.upper(), route.path))
     return frozenset(out)

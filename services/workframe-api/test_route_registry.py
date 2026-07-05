@@ -14,10 +14,11 @@ import route_registry  # noqa: E402
 
 # Auth level coverage
 assert route_registry.resolve_auth_level("GET", "/api/health") == route_registry.AuthLevel.PUBLIC
+assert route_registry.resolve_auth_level("GET", "/api/meta") == route_registry.AuthLevel.PUBLIC
 assert route_registry.resolve_auth_level("GET", "/api/snapshot") == route_registry.AuthLevel.SINGLE_USER_GET
 assert route_registry.resolve_auth_level("POST", "/api/auth/start") == route_registry.AuthLevel.AUTH_FLOW
 assert route_registry.resolve_auth_level("GET", "/api/me") == route_registry.AuthLevel.SESSION
-assert route_registry.resolve_auth_level("POST", "/api/chat/send") == route_registry.AuthLevel.SESSION
+assert route_registry.resolve_auth_level("GET", "/api/activity/detail") == route_registry.AuthLevel.SESSION
 
 # Unknown /api paths require session (deny when anonymous)
 assert route_registry.resolve_auth_level("GET", "/api/not-a-real-handler") == route_registry.AuthLevel.SESSION
@@ -32,11 +33,26 @@ assert not route_registry.authorize_request(
     attach_user=lambda _u: None,
 )
 
-# Every explicit handler path in server.py should resolve to SESSION or declared tier.
+# ROUTES table: auth tier matches resolve_auth_level
+auth_mismatch: list[str] = []
+for route in route_registry.ROUTES:
+    resolved = route_registry.resolve_auth_level(route.method, route.path)
+    if resolved != route.auth:
+        auth_mismatch.append(f"{route.method} {route.path}: table={route.auth} resolved={resolved}")
+assert not auth_mismatch, f"route auth mismatch: {auth_mismatch}"
+
+# ROUTES handlers exist on server.Handler
 server_src = (ROOT / "server.py").read_text(encoding="utf-8")
+missing_handlers: list[str] = []
+for route in route_registry.ROUTES:
+    if f"def {route.handler}(" not in server_src:
+        missing_handlers.append(f"{route.method} {route.path} -> {route.handler}")
+assert not missing_handlers, f"missing handler methods: {missing_handlers}"
+
+# Remaining if-chain GET paths still map to a known auth tier
 handler_paths = set(re.findall(r'if path == "(/api/[^"]+)"', server_src))
-handler_paths |= set(re.findall(r'if path == \'(/api/[^\']+)\'', server_src))
-missing: list[str] = []
+handler_paths |= set(re.findall(r"if path == \'(/api/[^\']+)\'", server_src))
+unmapped: list[str] = []
 for p in sorted(handler_paths):
     level = route_registry.resolve_auth_level("GET", p)
     if level not in (
@@ -46,8 +62,8 @@ for p in sorted(handler_paths):
         route_registry.AuthLevel.INSTALL,
         route_registry.AuthLevel.AUTH_FLOW,
     ):
-        missing.append(p)
-assert not missing, f"unmapped auth levels: {missing}"
+        unmapped.append(p)
+assert not unmapped, f"unmapped auth levels: {unmapped}"
 
 # trusted_team: data GETs need session (not anonymous), not a hard deny
 assert not route_registry.authorize_request(
@@ -70,5 +86,8 @@ assert route_registry.authorize_request(
     validate_session=lambda s: {"user_id": "u1"} if s == "sid-ok" else None,
     attach_user=lambda _u: None,
 )
+
+data_read_get = [r for r in route_registry.ROUTES if r.method == "GET"]
+assert len(data_read_get) == 20
 
 print("route registry self-check ok")

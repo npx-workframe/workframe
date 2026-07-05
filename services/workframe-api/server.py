@@ -16218,6 +16218,113 @@ class Handler(BaseHTTPRequestHandler):
             resolve_secret=_resolve_secret_for_lease,
         )
 
+    # WF-037 data-read GET handlers (registered in route_registry.ROUTES)
+    def _route_get_meta(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, workframe_meta())
+
+    def _route_get_agents(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, workframe_agents())
+
+    def _route_get_snapshot(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, build_snapshot())
+
+    def _route_get_activity_detail(self, qs: dict[str, list[str]]) -> None:
+        profile = qs.get("profile", [""])[0].strip()
+        tool_call_id = qs.get("tool_call_id", [""])[0].strip()
+        session_id = qs.get("session_id", [""])[0].strip()
+        message_id = qs.get("message_id", [""])[0].strip()
+        self._json(200, activity_detail(profile, tool_call_id, session_id, message_id))
+
+    def _route_get_board(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, board_list())
+
+    def _route_get_content(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, content_list())
+
+    def _route_get_content_get(self, qs: dict[str, list[str]]) -> None:
+        rel = qs.get("path", [""])[0]
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        fp = _safe_content_path(rel)
+        if not fp or not fp.is_file():
+            self._json(404, {"error": "not found"})
+            return
+        text = fp.read_text(encoding="utf-8", errors="replace")
+        self._json(200, {"path": rel, "content": text, "text": text})
+
+    def _route_get_files_tree(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, {"root": files_tree()})
+
+    def _route_get_files_list(self, qs: dict[str, list[str]]) -> None:
+        rel = qs.get("path", [""])[0]
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        self._json(200, files_list(rel))
+
+    def _route_get_files_state(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, workspace_state())
+
+    def _route_get_files_read(self, qs: dict[str, list[str]]) -> None:
+        rel = qs.get("path", [""])[0]
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        self._json(200, file_read(rel))
+
+    def _route_get_files_raw(self, qs: dict[str, list[str]]) -> None:
+        rel = qs.get("path", [""])[0]
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        try:
+            data, mime = file_raw(rel)
+        except ValueError:
+            self._json(404, {"error": "not found"})
+            return
+        self._send(200, data, mime)
+
+    def _route_get_routes(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, load_routes())
+
+    def _route_get_chat_messages(self, qs: dict[str, list[str]]) -> None:
+        profile = resolve_hermes_profile(qs.get("profile", [""])[0] or _primary_profile())
+        session = qs.get("session", [""])[0]
+        source_id = qs.get("source", ["ui"])[0]
+        self._json(200, chat_messages(profile, session, source_id))
+
+    def _route_get_chat_session(self, qs: dict[str, list[str]]) -> None:
+        profile = resolve_hermes_profile(qs.get("profile", [""])[0] or _primary_profile())
+        session = qs.get("session", [""])[0]
+        source_id = qs.get("source", ["ui"])[0]
+        self._json(200, chat_session(profile, session, source_id))
+
+    def _route_get_chat_resolve(self, qs: dict[str, list[str]]) -> None:
+        profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
+        source_id = qs.get("source", ["ui"])[0]
+        client_id = qs.get("client", ["default"])[0]
+        self._json(
+            200,
+            chat_resolve({"profile": profile, "source_id": source_id, "client_id": client_id}),
+        )
+
+    def _route_get_hermes_skills(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, {"skills": hermes_skills()})
+
+    def _route_get_hermes_commands(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, hermes_commands_catalog())
+
+    def _route_get_hermes_usage(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, hermes_usage())
+
+    def _route_get_hermes_profile(self, qs: dict[str, list[str]]) -> None:
+        self._json(200, hermes_profile())
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -16240,6 +16347,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(403, {"error": "invalid origin"})
 
         try:
+            if route_registry.dispatch_get(self, path, qs):
+                return
+
             # Serve static files and UI
             if path in ("", "/") or not path.startswith("/api/") and not path.startswith("/assets/") and not path.startswith("/static/"):
                 return self._file_public("index.html")
@@ -16899,78 +17009,6 @@ class Handler(BaseHTTPRequestHandler):
                         pass
                     return
 
-            if path == "/api/meta":
-                return self._json(200, workframe_meta())
-            if path == "/api/agents":
-                return self._json(200, workframe_agents())
-            if path == "/api/snapshot":
-                return self._json(200, build_snapshot())
-            if path == "/api/activity/detail":
-                profile = qs.get("profile", [""])[0].strip()
-                tool_call_id = qs.get("tool_call_id", [""])[0].strip()
-                session_id = qs.get("session_id", [""])[0].strip()
-                message_id = qs.get("message_id", [""])[0].strip()
-                return self._json(200, activity_detail(profile, tool_call_id, session_id, message_id))
-            if path == "/api/board":
-                return self._json(200, board_list())
-            if path == "/api/content":
-                return self._json(200, content_list())
-            if path == "/api/content/get":
-                rel = qs.get("path", [""])[0]
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                fp = _safe_content_path(rel)
-                if not fp or not fp.is_file():
-                    return self._json(404, {"error": "not found"})
-                text = fp.read_text(encoding="utf-8", errors="replace")
-                return self._json(200, {"path": rel, "content": text, "text": text})
-            if path == "/api/files/tree":
-                return self._json(200, {"root": files_tree()})
-            if path == "/api/files/list":
-                rel = qs.get("path", [""])[0]
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                return self._json(200, files_list(rel))
-            if path == "/api/files/state":
-                return self._json(200, workspace_state())
-            if path == "/api/files/read":
-                rel = qs.get("path", [""])[0]
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                return self._json(200, file_read(rel))
-            if path == "/api/files/raw":
-                rel = qs.get("path", [""])[0]
-                reason = _workspace_protected_reason(rel)
-                if reason:
-                    return self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
-                try:
-                    data, mime = file_raw(rel)
-                except ValueError:
-                    return self._json(404, {"error": "not found"})
-                return self._send(200, data, mime)
-            if path == "/api/routes":
-                return self._json(200, load_routes())
-            if path == "/api/chat/messages":
-                profile = resolve_hermes_profile(qs.get("profile", [""])[0] or _primary_profile())
-                session = qs.get("session", [""])[0]
-                source_id = qs.get("source", ["ui"])[0]
-                return self._json(200, chat_messages(profile, session, source_id))
-            if path == "/api/chat/session":
-                profile = resolve_hermes_profile(qs.get("profile", [""])[0] or _primary_profile())
-                session = qs.get("session", [""])[0]
-                source_id = qs.get("source", ["ui"])[0]
-                return self._json(200, chat_session(profile, session, source_id))
-            if path == "/api/chat/resolve":
-                profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
-                source_id = qs.get("source", ["ui"])[0]
-                client_id = qs.get("client", ["default"])[0]
-                return self._json(
-                    200,
-                    chat_resolve({"profile": profile, "source_id": source_id, "client_id": client_id}),
-                )
             if path == "/api/chat/bootstrap":
                 if not _role_allows(self, OWNER_ADMIN_ROLES):
                     return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
@@ -16982,14 +17020,6 @@ class Handler(BaseHTTPRequestHandler):
                 if not _role_allows(self, OWNER_ADMIN_ROLES):
                     return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
                 return self._json(200, hermes_bootstrap())
-            if path == "/api/hermes/skills":
-                return self._json(200, {"skills": hermes_skills()})
-            if path == "/api/hermes/commands":
-                return self._json(200, hermes_commands_catalog())
-            if path == "/api/hermes/usage":
-                return self._json(200, hermes_usage())
-            if path == "/api/hermes/profile":
-                return self._json(200, hermes_profile())
             if path == "/api/hermes/debug":
                 return self._json(200, hermes_debug())
             if path == "/api/hermes/insights":
