@@ -1,0 +1,19 @@
+flowchart LR
+  UI[apps/web
+React UI] --> API[services/workframe-api
+Python BFF]
+  API --> DB[(SQLite
+workframe.db / board.db)]
+  API --> Vault[Credential Vault
+API-owned secrets]
+  API --> Lease[Turn Lease
+wf_rt tokens]
+  API --> Proxy[Internal LLM Proxy]
+  API --> Supervisor[workframe-supervisor
+Docker exec holder]
+  Supervisor --> Gateway[workframe-gateway
+Hermes profiles]
+  Gateway --> Agents[runtime/Agents]
+  Gateway --> Files[runtime/Files]
+  API -. current broad mounts .-> Agents
+  API -. current broad mounts .-> Files

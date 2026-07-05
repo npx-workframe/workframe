@@ -1,0 +1,9 @@
+digraph G { rankdir=TB; graph [bgcolor="transparent", pad="0.2", nodesep="0.45", ranksep="0.6"]; node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, color="#263244", fillcolor="#f7f8fb"]; edge [color="#516070", arrowsize=0.8]; L[label="1 Local
+Win/Mac Hermes install"]; D[label="2 Docker
+self-host trusted team"]; V[label="3 VPS self-host
+workframe.mybusiness.com
+email-domain allowlist"]; P[label="4 Workframe provisioned
+one-click VPS/server cluster
+Hostinger / Hetzner / AWS / GCP", fillcolor="#eaf0ff", color="#2f5fb3", penwidth=2]; E[label="5 Enterprise BYOC
+SSO, private network, audit, support"]; S[label="Shared hosted SaaS
+pooled cells + strict run isolation"]; L->D->V->P->E; P->S; }

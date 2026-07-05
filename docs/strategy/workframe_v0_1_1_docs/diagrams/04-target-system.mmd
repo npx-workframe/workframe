@@ -1,0 +1,20 @@
+flowchart TD
+  U[Humans] --> Cockpit[Workframe Cockpit
+chat, boards, files, approvals]
+  AG[Agents] --> Cockpit
+  Cockpit --> CP[Control Plane
+identity, workspace, policy, billing]
+  CP --> Runs[Run Ledger
+authority, cost, audit]
+  CP --> Brokers[Capability Brokers
+secrets, tools, egress, files]
+  Runs --> Engine{Engine Adapter}
+  Runs --> Runtime{Runtime Adapter}
+  Engine --> Hermes[Hermes]
+  Engine --> Pi[Pi / Claude Code / Codex / OpenCode]
+  Runtime --> AgentOS[Lightweight VM / AgentOS]
+  Runtime --> Sandbox[Full Sandbox]
+  Runtime --> BYOC[Local Daemon / BYOC Runner]
+  Brokers --> External[GitHub, Linear, Slack, Google, MCP, deploy APIs]
+  Runtime --> Artifacts[Artifacts + Files]
+  Artifacts --> Cockpit

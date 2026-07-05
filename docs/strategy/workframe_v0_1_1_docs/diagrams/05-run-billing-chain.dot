@@ -1,0 +1,11 @@
+digraph G { rankdir=LR; graph [bgcolor="transparent", pad="0.2", nodesep="0.45", ranksep="0.65"]; node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=10.5, color="#263244", fillcolor="#f7f8fb"]; edge [color="#516070", arrowsize=0.8]; I[label="Initiator
+human or parent agent"]; Budget[label="Budget / Credits
+Stripe, BYOK, crypto, company wallet", fillcolor="#eaf0ff", color="#2f5fb3"]; Run[label="Parent Run", fillcolor="#f0fff4", color="#32935f"]; Text[label="Text model
+tokens"]; Img[label="Image model
+request + params"]; Vid[label="Video model
+seconds"]; Audio[label="Audio model
+seconds / chars"]; Tool[label="Tool/API
+per call"]; Sandbox[label="Runtime
+seconds, CPU, memory"]; Child[label="Child Agent Run
+inherits payer + cost center"]; Ledger[label="Run Ledger
+line items + audit", fillcolor="#f0fff4", color="#32935f", penwidth=2]; Invoice[label="Invoice / Charge / Credit Deduction", fillcolor="#fff7e6", color="#b87514"]; I->Budget->Run; Run->Text; Run->Img; Run->Vid; Run->Audio; Run->Tool; Run->Sandbox; Run->Child; Text->Ledger; Img->Ledger; Vid->Ledger; Audio->Ledger; Tool->Ledger; Sandbox->Ledger; Child->Ledger; Ledger->Invoice; }

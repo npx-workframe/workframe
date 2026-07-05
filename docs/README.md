@@ -3,6 +3,16 @@
 Documentation for [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe).  
 Also published at [docs.workfra.me](https://docs.workfra.me).
 
+## Ledger (start here for status)
+
+| Doc | |
+|-----|---|
+| [Ledger index](ledger/README.md) | Now, north star, audits, loop engineering |
+| [Now](ledger/now.md) | Current shipping wedge |
+| [North star summary](ledger/north-star.md) | Vision + link to full strategy brief |
+| [Audit registry](ledger/audits.md) | All audits with status |
+| [Strategy brief](strategy/README.md) | Full v0.1.1 north-star package |
+
 ## Start here
 
 | I want to… | Read |

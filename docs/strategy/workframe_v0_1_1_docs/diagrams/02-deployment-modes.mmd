@@ -1,0 +1,14 @@
+flowchart TD
+  L[1 Local
+Win/Mac Hermes install] --> D[2 Docker
+self-host trusted team]
+  D --> V[3 VPS self-host
+workframe.mybusiness.com
+email-domain allowlist]
+  V --> P[4 Workframe provisioned
+one-click VPS/server cluster
+Hostinger Hetzner AWS GCP]
+  P --> E[5 Enterprise BYOC
+SSO, private network, audit, support]
+  P --> S[Shared hosted SaaS
+pooled cells with strict run isolation]

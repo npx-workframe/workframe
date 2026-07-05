@@ -1,6 +1,11 @@
 # Workframe Living Audit
 
-Temporary planning/living-audit material for the path from the current Workframe repository to the Workframe v0.1.1 Softsupply strategy brief. This folder is not public release doctrine and should not be treated as implementation authority.
+Planning material for the path from the current repository to the Workframe cell product.
+
+**Canonical index:** [ledger/audits.md](../ledger/audits.md) — status and cross-links.  
+**Shipping truth:** [ledger/now.md](../ledger/now.md) and source + `.harness/`.
+
+This folder is planning memory, not implementation authority by itself.
 
 ## Run 1 — installer decision tree
 

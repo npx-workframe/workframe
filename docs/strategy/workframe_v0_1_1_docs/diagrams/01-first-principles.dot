@@ -1,0 +1,7 @@
+digraph G { rankdir=LR; graph [bgcolor="transparent", pad="0.2", nodesep="0.55", ranksep="0.6"]; node [shape=box, style="rounded,filled", color="#263244", fillcolor="#f7f8fb", fontname="DejaVu Sans", fontsize=12]; edge [color="#516070", arrowsize=0.8]; H[label="Humans
+judgment, goals, trust"]; A[label="Persistent Agents
+roles, skills, memory, budgets"]; M[label="Computer
+files, tools, runtimes, schedules"]; C[label="Workframe Cell
+social business OS", fillcolor="#eaf0ff", color="#2f5fb3", penwidth=2]; R[label="Scoped Runs
+action, cost, audit", fillcolor="#f0fff4", color="#32935f"]; B[label="Autonomous Business
+software, games, reports, assets, operations", fillcolor="#fff7e6", color="#b87514"]; H->C; A->C; M->C; C->R; R->B; }

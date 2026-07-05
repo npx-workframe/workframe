@@ -1,0 +1,28 @@
+flowchart LR
+  I[Initiator
+human or parent agent] --> Budget[Budget / Credits
+Stripe, BYOK, crypto, company wallet]
+  Budget --> Run[Parent Run]
+  Run --> Text[Text model
+tokens]
+  Run --> Img[Image model
+request + params]
+  Run --> Vid[Video model
+seconds]
+  Run --> Audio[Audio model
+seconds / chars]
+  Run --> Tool[Tool/API
+per call]
+  Run --> Sandbox[Runtime
+seconds, CPU, memory]
+  Run --> Child[Child Agent Run
+inherits payer + cost center]
+  Text --> Ledger[Run Ledger
+line items + audit]
+  Img --> Ledger
+  Vid --> Ledger
+  Audio --> Ledger
+  Tool --> Ledger
+  Sandbox --> Ledger
+  Child --> Ledger
+  Ledger --> Invoice[Invoice / Charge / Credit Deduction]

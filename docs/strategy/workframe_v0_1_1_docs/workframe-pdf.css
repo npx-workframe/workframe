@@ -1,0 +1,34 @@
+
+@page {
+  size: A4;
+  margin: 18mm 16mm 20mm 16mm;
+  @bottom-center {
+    content: "Workframe v0.1.1 — Developed by Softsupply — " counter(page);
+    font-family: Inter, DejaVu Sans, Arial, sans-serif;
+    font-size: 8.5pt;
+    color: #6b7280;
+  }
+}
+html { font-family: Inter, DejaVu Sans, Arial, sans-serif; color: #18202b; font-size: 10.5pt; line-height: 1.48; }
+body { margin: 0; }
+.titlepage { min-height: 880px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.titlepage h1 { font-size: 42pt; letter-spacing: -1px; margin-bottom: 4mm; color: #0f172a; border: none; }
+.titlepage h2 { font-size: 20pt; color: #36507a; border: none; margin-top: 0; }
+h1 { font-size: 24pt; color: #0f172a; margin-top: 0; padding-top: 4mm; padding-bottom: 3mm; border-bottom: 2px solid #e5e7eb; page-break-before: always; }
+h2 { font-size: 15pt; color: #1e3a5f; margin-top: 8mm; margin-bottom: 2mm; }
+h3 { font-size: 12.5pt; color: #334155; margin-top: 5mm; }
+p { margin: 2.2mm 0; }
+blockquote { margin: 5mm 0; padding: 4mm 5mm; border-left: 4px solid #2f5fb3; background: #f3f6fc; color: #172033; font-size: 11.5pt; }
+code { font-family: DejaVu Sans Mono, Consolas, monospace; font-size: 8.8pt; color: #172033; background: #f3f4f6; padding: 0.2em 0.35em; border-radius: 3px; }
+pre { background: #0f172a; color: #e5e7eb; padding: 4mm; border-radius: 8px; overflow-wrap: break-word; white-space: pre-wrap; font-size: 8.3pt; line-height: 1.35; }
+pre code { background: transparent; color: #e5e7eb; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 4mm 0 6mm 0; font-size: 8.7pt; }
+th { background: #edf2ff; color: #0f172a; font-weight: 700; }
+th, td { border: 1px solid #d9dee8; padding: 2.1mm 2.4mm; vertical-align: top; }
+tr:nth-child(even) td { background: #fbfcff; }
+ul, ol { margin-top: 2mm; margin-bottom: 4mm; }
+li { margin: 1.1mm 0; }
+img { display: block; margin: 6mm auto; max-width: 96%; }
+.pagebreak { page-break-after: always; }
+a { color: #2f5fb3; text-decoration: none; }
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 8mm 0; }

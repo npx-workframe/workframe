@@ -1,0 +1,8 @@
+digraph G { rankdir=LR; graph [bgcolor="transparent", pad="0.2", nodesep="0.5", ranksep="0.75"]; node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, color="#263244", fillcolor="#f7f8fb"]; edge [color="#516070", arrowsize=0.8]; UI[label="apps/web
+React UI"]; API[label="services/workframe-api
+Python BFF", fillcolor="#eaf0ff", color="#2f5fb3"]; DB[label="SQLite
+workframe.db / board.db", shape=cylinder]; Vault[label="Credential Vault
+API-owned secrets", fillcolor="#f0fff4", color="#32935f"]; Lease[label="Turn Lease
+wf_rt tokens", fillcolor="#f0fff4", color="#32935f"]; Proxy[label="Internal LLM Proxy", fillcolor="#f0fff4", color="#32935f"]; Supervisor[label="workframe-supervisor
+Docker exec holder", fillcolor="#fff7e6", color="#b87514"]; Gateway[label="workframe-gateway
+Hermes profiles"]; Agents[label="runtime/Agents"]; Files[label="runtime/Files"]; UI->API; API->DB; API->Vault; API->Lease; API->Proxy; API->Supervisor; Supervisor->Gateway; Gateway->Agents; Gateway->Files; API->Agents [style=dashed, label="broad mount"]; API->Files [style=dashed, label="broad mount"]; }
