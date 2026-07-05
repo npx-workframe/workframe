@@ -16325,6 +16325,511 @@ class Handler(BaseHTTPRequestHandler):
     def _route_get_hermes_profile(self, qs: dict[str, list[str]]) -> None:
         self._json(200, hermes_profile())
 
+    # WF-037 auth-flow + hermes/chat + me credentials POST handlers
+    def _route_post_auth_google_start(self, body: dict) -> None:
+        invite_email = str(body.get("email") or "").strip().lower()
+        invite_token = str(body.get("invite_token") or "")
+        if invite_email:
+            allowed, deny_meta = _email_allowed_to_authenticate(invite_email)
+            if not allowed and not _invite_token_allows_email(invite_token, invite_email):
+                self._log_audit(
+                    "login_denied_private",
+                    "user",
+                    invite_email,
+                    str(deny_meta.get("error") or ""),
+                )
+                self._json(403, {"ok": False, **deny_meta})
+                return
+        try:
+            payload = google_auth.start_google_auth(invite_email, invite_token)
+            self._json(200, payload)
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+
+    def _route_post_auth_local_bootstrap(self, body: dict) -> None:
+        if DEPLOYMENT_MODE != "single_user_local" or not _install_window_open():
+            self._json(403, {"ok": False, "error": "local_bootstrap_unavailable"})
+            return
+        display = str(body.get("display_name") or "Owner")
+        email = "owner@local.workframe"
+        try:
+            result = _zk.create_session_for_email(email)
+        except Exception as exc:
+            self._json(500, {"ok": False, "error": str(exc)})
+            return
+        user_id = str(result["user_id"])
+        self.auth_user = user_id
+        self._ensure_user(user_id, display, email)
+        self._first_owner_bootstrap(user_id, display, email)
+        use_secure = _session_cookie_secure()
+        cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
+        me_payload = _session_profile_payload(user_id)
+        self._json(
+            200,
+            {
+                "ok": True,
+                "user_id": user_id,
+                "session_id": result["session_id"],
+                "refresh_token": result["refresh_token"],
+                **(me_payload or {}),
+            },
+            extra_headers=[("Set-Cookie", cookie_val)],
+        )
+
+    def _route_post_auth_bootstrap(self, body: dict) -> None:
+        if not SECURE_MODE:
+            self._json(501, {"ok": False, "error": "bootstrap_requires_secure_mode"})
+            return
+        data = body if isinstance(body, dict) else {}
+        user_id = str(data.get("user_id", "") or secrets.token_hex(8))
+        user_email = str(data.get("email", ""))
+        user_display = str(data.get("display_name", "") or "Owner")
+        result = self._first_owner_bootstrap(user_id, user_display, user_email)
+        self._log_audit("user_created", "user", user_id, f"first-owner bootstrap: {user_display}")
+        self._json(200, result)
+
+    def _route_post_setup(self, body: dict) -> None:
+        data = body if isinstance(body, dict) else {}
+        agent_name = str(data.get("agent_name", "")).strip()
+        workframe_name = str(data.get("workframe_name", "")).strip()
+        if not agent_name:
+            self._json(400, {"ok": False, "error": "agent_name required"})
+            return
+        try:
+            db = _workframe_db()
+            ws = db.execute("SELECT * FROM workspaces WHERE slug='default' AND deleted_at IS NULL").fetchone()
+            if not ws:
+                ws_id = str(uuid.uuid4())
+                now = str(int(time.time()))
+                workspace_display_name = workframe_name or "Default Workspace"
+                ws_settings = stack_config.github_oauth_for_workspace_settings({})
+                settings_json = json.dumps(ws_settings, sort_keys=True) if ws_settings else "{}"
+                db.execute(
+                    "INSERT INTO workspaces (id, slug, display_name, description, owner_id, status, created_at, updated_at, settings_json) VALUES (?, 'default', ?, '', '', 'active', ?, ?, ?)",
+                    (ws_id, workspace_display_name, now, now, settings_json),
+                )
+                ws = db.execute("SELECT * FROM workspaces WHERE id = ?", (ws_id,)).fetchone()
+            elif workframe_name and str(ws["display_name"] or "").strip() != workframe_name:
+                now = str(int(time.time()))
+                db.execute(
+                    "UPDATE workspaces SET display_name = ?, updated_at = ? WHERE id = ?",
+                    (workframe_name, now, ws["id"]),
+                )
+                ws = db.execute("SELECT * FROM workspaces WHERE id = ?", (ws["id"],)).fetchone()
+            ws_id = ws["id"]
+            existing_agents = db.execute("SELECT COUNT(*) AS c FROM agent_profiles WHERE workspace_id = ? AND deleted_at IS NULL", (ws_id,)).fetchone()
+            if existing_agents and existing_agents["c"] > 0:
+                if agent_name:
+                    now = str(int(time.time()))
+                    db.execute(
+                        """
+                        UPDATE agent_profiles
+                        SET display_name = ?, updated_at = ?
+                        WHERE workspace_id = ? AND is_native = 1 AND deleted_at IS NULL
+                        """,
+                        (agent_name, now, ws_id),
+                    )
+                    db.commit()
+                db.close()
+                self._json(200, {"ok": True, "already_initialized": True, "workspace_id": ws_id})
+                return
+            import re as _re
+            agent_slug = _re.sub(r"[^a-z0-9-]", "", agent_name.lower().replace(" ", "-"))[:40]
+            agent_id = str(uuid.uuid4())
+            now = str(int(time.time()))
+            db.execute(
+                "INSERT INTO agent_profiles (id, workspace_id, slug, display_name, tagline, role, is_native, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, 'active', ?, ?)",
+                (agent_id, ws_id, agent_slug, agent_name, str(data.get("agent_personality", "")), "native", now, now),
+            )
+            room_id = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO rooms (id, workspace_id, name, slug, topic, room_type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'channel', 'active', ?, ?)",
+                (room_id, ws_id, "General", "general", "General discussion", now, now),
+            )
+            db.commit()
+            db.close()
+            hermes = _bootstrap_after_setup(str(data.get("agent_personality", "")))
+            self._json(
+                200,
+                {
+                    "ok": True,
+                    "workspace_id": ws_id,
+                    "agent_id": agent_id,
+                    "room_id": room_id,
+                    "hermes": hermes,
+                },
+            )
+        except Exception as exc:
+            self._json(500, {"ok": False, "error": str(exc)})
+
+    def _route_post_auth_start(self, body: dict) -> None:
+        email = str(body.get("email", "")).strip().lower()
+        if not email or "@" not in email:
+            self._json(400, {"ok": False, "error": "email required"})
+            return
+        client_ip = str(self.client_address[0] if self.client_address else "")
+        import auth_rate_limit
+
+        if not auth_rate_limit.allow_auth_request("start", client_ip, email):
+            self._json(429, {"ok": False, "error": "too_many_requests"})
+            return
+        allowed, deny_meta = _email_allowed_to_authenticate(email)
+        if not allowed:
+            self._log_audit("login_denied_private", "user", email, str(deny_meta.get("error") or ""))
+            self._json(403, {"ok": False, **deny_meta})
+            return
+        try:
+            base = APP_BASE_URL.strip().lower()
+            loopback = base.startswith("http://127.0.0.1") or base.startswith("http://localhost")
+            expose_otp = (
+                os.environ.get("WORKFRAME_E2E") == "1"
+                and _install_window_open()
+                and loopback
+            )
+            result = _zk.start_email_verification(
+                email,
+                dev_local_unsafe=DEV_LOCAL_UNSAFE,
+                expose_otp=expose_otp,
+            )
+        except Exception as exc:
+            self._json(500, {"ok": False, "error": str(exc)})
+            return
+        if not DEV_LOCAL_UNSAFE and not expose_otp:
+            result.pop("otp_code", None)
+            result.pop("_dev_warning", None)
+        result.pop("_e2e_warning", None)
+        self._log_audit("otp_requested", "user", email, f"challenge={result.get('challenge_id','')}")
+        self._json(200, {"ok": True, "status": "verification_sent", **result})
+
+    def _route_post_auth_verify(self, body: dict) -> None:
+        email = str(body.get("email", "")).strip().lower()
+        code = str(body.get("code", "")).strip()
+        if not email or not code:
+            self._json(400, {"ok": False, "error": "email and code required"})
+            return
+        client_ip = str(self.client_address[0] if self.client_address else "")
+        import auth_rate_limit
+
+        if not auth_rate_limit.allow_auth_request("verify", client_ip, email):
+            self._json(429, {"ok": False, "error": "too_many_requests"})
+            return
+        allowed, deny_meta = _email_allowed_to_authenticate(email)
+        if not allowed:
+            self._log_audit("login_denied_private", "user", email, str(deny_meta.get("error") or ""))
+            self._json(403, {"ok": False, **deny_meta})
+            return
+        try:
+            result = _zk.verify_email_code(email, code)
+        except ValueError as exc:
+            self._log_audit("login_failed", "user", email, f"verify failed: {exc}")
+            self._json(401, {"ok": False, "error": str(exc)})
+            return
+        except Exception as exc:
+            self._json(500, {"ok": False, "error": str(exc)})
+            return
+        use_secure = _session_cookie_secure()
+        cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
+        self.auth_user = result["user_id"]
+        self._ensure_user(result["user_id"], email, email)
+        self._log_audit("login", "session", result["session_id"],
+                        f"user={result['user_id']} new={result['is_new_user']}")
+        me_payload = _session_profile_payload(result["user_id"])
+        self._json(
+            200,
+            {
+                "ok": True,
+                "user_id": result["user_id"],
+                "session_id": result["session_id"],
+                "refresh_token": result["refresh_token"],
+                "expires_at": result["expires_at"],
+                "is_new_user": result["is_new_user"],
+                **(me_payload or {}),
+            },
+            extra_headers=[("Set-Cookie", cookie_val)],
+        )
+
+    def _route_post_auth_logout(self, body: dict) -> None:
+        sid = _session_id_from_request(self)
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if sid:
+            try:
+                _zk.logout_session(sid)
+            except Exception:
+                pass
+        use_secure = _session_cookie_secure()
+        cookie_val = _zk.clear_session_cookie(secure=use_secure)
+        self._log_audit("logout", "session", sid, f"user={user_id}")
+        self._json(200, {"ok": True}, extra_headers=[("Set-Cookie", cookie_val)])
+
+    def _route_post_auth_refresh(self, body: dict) -> None:
+        refresh_token = str(body.get("refresh_token", "")).strip()
+        if not refresh_token:
+            sid = _session_id_from_request(self)
+            if not sid:
+                self._json(400, {"ok": False, "error": "refresh_token required"})
+                return
+            validated = _zk.validate_session_token(sid)
+            if not validated:
+                self._json(401, {"ok": False, "error": "session_expired"})
+                return
+            use_secure = _session_cookie_secure()
+            cookie_val = _zk.session_cookie_value(validated["session_id"], secure=use_secure)
+            self._json(
+                200,
+                {
+                    "ok": True,
+                    "user_id": validated["user_id"],
+                    "session_id": validated["session_id"],
+                    "expires_at": validated["expires_at"],
+                },
+                extra_headers=[("Set-Cookie", cookie_val)],
+            )
+            return
+        try:
+            result = _zk.refresh_session(refresh_token)
+        except ValueError as exc:
+            self._json(401, {"ok": False, "error": str(exc)})
+            return
+        except Exception as exc:
+            self._json(500, {"ok": False, "error": str(exc)})
+            return
+        use_secure = _session_cookie_secure()
+        cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
+        self._log_audit("session_refreshed", "session", result["session_id"],
+                        f"user={result['user_id']}")
+        self._json(
+            200,
+            {
+                "ok": True,
+                "user_id": result["user_id"],
+                "session_id": result["session_id"],
+                "refresh_token": result["refresh_token"],
+                "expires_at": result["expires_at"],
+            },
+            extra_headers=[("Set-Cookie", cookie_val)],
+        )
+
+    def _route_post_me_credentials(self, body: dict) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        provider = str(body.get("provider", "")).strip()
+        credential_type = str(body.get("credential_type", "api_key")).strip() or "api_key"
+        secret = str(body.get("secret", "")).strip()
+        spec = _catalog_provider(provider)
+        if spec:
+            credential_type = str(spec.get("connect_mode") or credential_type)
+        env_var = str(body.get("env_var", "")).strip() or (
+            str(spec.get("env_var") or "") if spec else ""
+        ) or _default_credential_env_var(provider, credential_type)
+        label = str(body.get("label", "")).strip() or env_var
+        if not provider:
+            self._json(400, {"ok": False, "error": "provider required"})
+            return
+        if not secret:
+            self._json(400, {"ok": False, "error": "secret required"})
+            return
+        payload = _store_user_credential(user_id, provider, credential_type, secret, env_var, label)
+        cred_ref = str(payload["credential_ref"])
+        now = _utc_now()
+        try:
+            conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
+            conn.row_factory = sqlite3.Row
+            existing = conn.execute(
+                """SELECT id FROM credential_bindings
+                   WHERE user_id = ? AND provider = ? AND credential_type = ?
+                     AND credential_ref = ? AND deleted_at IS NULL
+                   ORDER BY updated_at DESC, created_at DESC LIMIT 1""",
+                (user_id, provider, credential_type, cred_ref),
+            ).fetchone()
+            if existing:
+                cred_id = str(existing["id"])
+                conn.execute(
+                    """UPDATE credential_bindings
+                       SET label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
+                       WHERE id = ?""",
+                    (label, now, cred_id),
+                )
+            else:
+                cred_id = str(payload["credential_id"])
+                conn.execute(
+                    """INSERT INTO credential_bindings
+                       (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
+                        credential_ref, label, is_active, created_by, created_at, updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (cred_id, None, user_id, None, provider, credential_type, cred_ref, label, 1, user_id, now, now),
+                )
+            conn.execute(
+                """UPDATE credential_bindings
+                   SET is_active = 0, deleted_at = ?, updated_at = ?
+                   WHERE user_id = ? AND provider = ? AND deleted_at IS NULL AND id != ?""",
+                (now, now, user_id, provider, cred_id),
+            )
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as exc:
+            self._json(500, {"ok": False, "error": f"db_error: {exc}"})
+            return
+        self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
+        health: dict[str, Any] = {}
+        if provider == "openrouter":
+            secret_probe = _credential_secret(
+                {
+                    "credential_ref": cred_ref,
+                    "scope": "user",
+                    "user_id": user_id,
+                },
+                user_id,
+            )
+            if secret_probe:
+                health = openrouter_catalog.probe_account(secret_probe)
+        _bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
+        self._json(200, {
+            "ok": True,
+            "credential_id": cred_id,
+            "provider": provider,
+            "credential_type": credential_type,
+            "label": label,
+            "is_active": 1,
+            "user_id": user_id,
+            "created_at": now,
+            "updated_at": now,
+            "health": health,
+            **payload,
+        })
+
+    def _route_post_me_telegram_link(self, body: dict) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        result = platform_auth.verify_telegram_login(body if isinstance(body, dict) else {})
+        if not result.get("ok"):
+            self._json(400, {"ok": False, "error": result.get("error") or "telegram_link_failed"})
+            return
+        patch = result.get("platform_ids") if isinstance(result.get("platform_ids"), dict) else {}
+        if patch:
+            _merge_user_platform_ids(user_id, {str(k): str(v) for k, v in patch.items()})
+        self._json(200, {"ok": True, "provider": "telegram", "platform_ids": patch})
+
+    def _route_post_hermes_commands_exec(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        line = str(body.get("line", "")).strip()
+        if not line:
+            self._json(400, {"error": "line required"})
+            return
+        self._json(200, hermes_commands_exec(line))
+
+    def _route_post_hermes_gateway_exec(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        line = str(body.get("line", "")).strip()
+        profile = str(body.get("profile", "")).strip()
+        if not line:
+            self._json(400, {"error": "line required"})
+            return
+        user_id = str(getattr(self, "auth_user", "") or "")
+        workspace_id = str(body.get("workspace_id", "") or "")
+        self._json(
+            200,
+            hermes_gateway_exec(line, profile, user_id=user_id, workspace_id=workspace_id),
+        )
+
+    def _route_post_chat_stop(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
+        run_id = str(body.get("run_id") or "").strip()
+        if not run_id:
+            run_id = _latest_active_run_id(profile)
+        if not run_id:
+            self._json(400, {"error": "no active run to stop"})
+            return
+        self._json(200, profile_gateway_stop(profile, run_id))
+
+    def _route_post_chat_steer(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
+        run_id = str(body.get("run_id") or "").strip()
+        text = str(body.get("text") or "").strip()
+        if not text:
+            self._json(400, {"error": "text required"})
+            return
+        if not run_id:
+            run_id = _latest_active_run_id(profile)
+        self._json(200, profile_gateway_steer(profile, run_id or "", text))
+
+    def _route_post_hermes_model(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        model_id = str(body.get("model", "")).strip()
+        profile = str(body.get("profile", "")).strip()
+        user_id = str(getattr(self, "auth_user", "") or "")
+        workspace_id = str(body.get("workspace_id", "")).strip()
+        selection_only = bool(body.get("selection_only"))
+        if not model_id:
+            self._json(400, {"error": "model required"})
+            return
+        billing_provider = str(body.get("billing_provider", "")).strip()
+        self._json(
+            200,
+            hermes_model_set(
+                profile,
+                model_id,
+                user_id,
+                workspace_id,
+                selection_only=selection_only,
+                billing_provider=billing_provider,
+            ),
+        )
+
+    def _route_post_hermes_model_apply_default(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        self._json(200, hermes_apply_default_model_config())
+
+    def _route_post_hermes_fallback_chain(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        profile = str(body.get("profile", "")).strip()
+        chain = body.get("chain", [])
+        selection_only = bool(body.get("selection_only"))
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not isinstance(chain, list):
+            self._json(400, {"error": "chain must be a list"})
+            return
+        if not selection_only and not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        self._json(
+            200,
+            hermes_fallback_chain_set(
+                profile,
+                chain,
+                selection_only=selection_only,
+                user_id=user_id,
+            ),
+        )
+
+    def _route_post_board(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        self._json(201, board_create(body))
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -17613,6 +18118,10 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             body = self._read_json()
+            post_body = body if isinstance(body, dict) else {}
+
+            if route_registry.dispatch_post(self, path, post_body):
+                return
 
             if path == "/api/install/email/test":
                 if not _install_window_open():
@@ -17775,365 +18284,6 @@ class Handler(BaseHTTPRequestHandler):
                 self._log_audit("vault_wipe", "vault", "secrets", f"deleted={deleted}")
                 return self._json(200, {"ok": True, "deleted": deleted, **credential_vault.vault_status()})
 
-            if path == "/api/auth/google/start":
-                invite_email = str(body.get("email") or "").strip().lower()
-                invite_token = str(body.get("invite_token") or "")
-                if invite_email:
-                    allowed, deny_meta = _email_allowed_to_authenticate(invite_email)
-                    if not allowed and not _invite_token_allows_email(invite_token, invite_email):
-                        self._log_audit(
-                            "login_denied_private",
-                            "user",
-                            invite_email,
-                            str(deny_meta.get("error") or ""),
-                        )
-                        return self._json(403, {"ok": False, **deny_meta})
-                try:
-                    payload = google_auth.start_google_auth(invite_email, invite_token)
-                    return self._json(200, payload)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-
-            if path == "/api/auth/local-bootstrap":
-                if DEPLOYMENT_MODE != "single_user_local" or not _install_window_open():
-                    return self._json(403, {"ok": False, "error": "local_bootstrap_unavailable"})
-                display = str(body.get("display_name") or "Owner")
-                email = "owner@local.workframe"
-                try:
-                    result = _zk.create_session_for_email(email)
-                except Exception as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                user_id = str(result["user_id"])
-                self.auth_user = user_id
-                self._ensure_user(user_id, display, email)
-                self._first_owner_bootstrap(user_id, display, email)
-                use_secure = _session_cookie_secure()
-                cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
-                me_payload = _session_profile_payload(user_id)
-                return self._json(
-                    200,
-                    {
-                        "ok": True,
-                        "user_id": user_id,
-                        "session_id": result["session_id"],
-                        "refresh_token": result["refresh_token"],
-                        **(me_payload or {}),
-                    },
-                    extra_headers=[("Set-Cookie", cookie_val)],
-                )
-
-            # --- First-owner bootstrap (also wired into /api/auth/start) ---
-            if path == "/api/auth/bootstrap":
-                if not SECURE_MODE:
-                    return self._json(501, {"ok": False, "error": "bootstrap_requires_secure_mode"})
-                data = body if isinstance(body, dict) else {}
-                user_id = str(data.get("user_id", "") or secrets.token_hex(8))
-                user_email = str(data.get("email", ""))
-                user_display = str(data.get("display_name", "") or "Owner")
-                result = self._first_owner_bootstrap(user_id, user_display, user_email)
-                self._log_audit("user_created", "user", user_id, f"first-owner bootstrap: {user_display}")
-                return self._json(200, result)
-
-            # --- Setup endpoint (public, no auth) ---
-            if path == "/api/setup":
-                data = body if isinstance(body, dict) else {}
-                agent_name = str(data.get("agent_name", "")).strip()
-                workframe_name = str(data.get("workframe_name", "")).strip()
-                if not agent_name:
-                    return self._json(400, {"ok": False, "error": "agent_name required"})
-                try:
-                    db = _workframe_db()
-                    ws = db.execute("SELECT * FROM workspaces WHERE slug='default' AND deleted_at IS NULL").fetchone()
-                    if not ws:
-                        ws_id = str(uuid.uuid4())
-                        now = str(int(time.time()))
-                        workspace_display_name = workframe_name or "Default Workspace"
-                        ws_settings = stack_config.github_oauth_for_workspace_settings({})
-                        settings_json = json.dumps(ws_settings, sort_keys=True) if ws_settings else "{}"
-                        db.execute(
-                            "INSERT INTO workspaces (id, slug, display_name, description, owner_id, status, created_at, updated_at, settings_json) VALUES (?, 'default', ?, '', '', 'active', ?, ?, ?)",
-                            (ws_id, workspace_display_name, now, now, settings_json),
-                        )
-                        ws = db.execute("SELECT * FROM workspaces WHERE id = ?", (ws_id,)).fetchone()
-                    elif workframe_name and str(ws["display_name"] or "").strip() != workframe_name:
-                        now = str(int(time.time()))
-                        db.execute(
-                            "UPDATE workspaces SET display_name = ?, updated_at = ? WHERE id = ?",
-                            (workframe_name, now, ws["id"]),
-                        )
-                        ws = db.execute("SELECT * FROM workspaces WHERE id = ?", (ws["id"],)).fetchone()
-                    ws_id = ws["id"]
-                    existing_agents = db.execute("SELECT COUNT(*) AS c FROM agent_profiles WHERE workspace_id = ? AND deleted_at IS NULL", (ws_id,)).fetchone()
-                    if existing_agents and existing_agents["c"] > 0:
-                        if agent_name:
-                            now = str(int(time.time()))
-                            db.execute(
-                                """
-                                UPDATE agent_profiles
-                                SET display_name = ?, updated_at = ?
-                                WHERE workspace_id = ? AND is_native = 1 AND deleted_at IS NULL
-                                """,
-                                (agent_name, now, ws_id),
-                            )
-                            db.commit()
-                        db.close()
-                        return self._json(200, {"ok": True, "already_initialized": True, "workspace_id": ws_id})
-                    import re as _re
-                    agent_slug = _re.sub(r"[^a-z0-9-]", "", agent_name.lower().replace(" ", "-"))[:40]
-                    agent_id = str(uuid.uuid4())
-                    now = str(int(time.time()))
-                    db.execute(
-                        "INSERT INTO agent_profiles (id, workspace_id, slug, display_name, tagline, role, is_native, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, 'active', ?, ?)",
-                        (agent_id, ws_id, agent_slug, agent_name, str(data.get("agent_personality", "")), "native", now, now),
-                    )
-                    room_id = str(uuid.uuid4())
-                    db.execute(
-                        "INSERT INTO rooms (id, workspace_id, name, slug, topic, room_type, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'channel', 'active', ?, ?)",
-                        (room_id, ws_id, "General", "general", "General discussion", now, now),
-                    )
-                    db.commit()
-                    db.close()
-                    hermes = _bootstrap_after_setup(str(data.get("agent_personality", "")))
-                    return self._json(
-                        200,
-                        {
-                            "ok": True,
-                            "workspace_id": ws_id,
-                            "agent_id": agent_id,
-                            "room_id": room_id,
-                            "hermes": hermes,
-                        },
-                    )
-                except Exception as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-
-            # --- Auth endpoints (zk-auth compatible) ---
-            if path == "/api/auth/start":
-                # POST /api/auth/start — email → OTP → send email (or return in dev)
-                email = str(body.get("email", "")).strip().lower()
-                if not email or "@" not in email:
-                    return self._json(400, {"ok": False, "error": "email required"})
-                client_ip = str(self.client_address[0] if self.client_address else "")
-                import auth_rate_limit
-
-                if not auth_rate_limit.allow_auth_request("start", client_ip, email):
-                    return self._json(429, {"ok": False, "error": "too_many_requests"})
-                allowed, deny_meta = _email_allowed_to_authenticate(email)
-                if not allowed:
-                    self._log_audit("login_denied_private", "user", email, str(deny_meta.get("error") or ""))
-                    return self._json(403, {"ok": False, **deny_meta})
-                try:
-                    base = APP_BASE_URL.strip().lower()
-                    loopback = base.startswith("http://127.0.0.1") or base.startswith("http://localhost")
-                    expose_otp = (
-                        os.environ.get("WORKFRAME_E2E") == "1"
-                        and _install_window_open()
-                        and loopback
-                    )
-                    result = _zk.start_email_verification(
-                        email,
-                        dev_local_unsafe=DEV_LOCAL_UNSAFE,
-                        expose_otp=expose_otp,
-                    )
-                except Exception as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                if not DEV_LOCAL_UNSAFE and not expose_otp:
-                    result.pop("otp_code", None)
-                    result.pop("_dev_warning", None)
-                result.pop("_e2e_warning", None)
-                self._log_audit("otp_requested", "user", email, f"challenge={result.get('challenge_id','')}")
-                return self._json(200, {"ok": True, "status": "verification_sent", **result})
-
-            if path == "/api/auth/verify":
-                # POST /api/auth/verify — email + OTP → session
-                email = str(body.get("email", "")).strip().lower()
-                code = str(body.get("code", "")).strip()
-                if not email or not code:
-                    return self._json(400, {"ok": False, "error": "email and code required"})
-                client_ip = str(self.client_address[0] if self.client_address else "")
-                import auth_rate_limit
-
-                if not auth_rate_limit.allow_auth_request("verify", client_ip, email):
-                    return self._json(429, {"ok": False, "error": "too_many_requests"})
-                allowed, deny_meta = _email_allowed_to_authenticate(email)
-                if not allowed:
-                    self._log_audit("login_denied_private", "user", email, str(deny_meta.get("error") or ""))
-                    return self._json(403, {"ok": False, **deny_meta})
-                try:
-                    result = _zk.verify_email_code(email, code)
-                except ValueError as exc:
-                    self._log_audit("login_failed", "user", email, f"verify failed: {exc}")
-                    return self._json(401, {"ok": False, "error": str(exc)})
-                except Exception as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                # Set session cookie
-                use_secure = _session_cookie_secure()
-                cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
-                # Store user_id on handler for role checks
-                self.auth_user = result["user_id"]
-                self._ensure_user(result["user_id"], email, email)
-                self._log_audit("login", "session", result["session_id"],
-                                f"user={result['user_id']} new={result['is_new_user']}")
-                me_payload = _session_profile_payload(result["user_id"])
-                return self._json(
-                    200,
-                    {
-                        "ok": True,
-                        "user_id": result["user_id"],
-                        "session_id": result["session_id"],
-                        "refresh_token": result["refresh_token"],
-                        "expires_at": result["expires_at"],
-                        "is_new_user": result["is_new_user"],
-                        **(me_payload or {}),
-                    },
-                    extra_headers=[("Set-Cookie", cookie_val)],
-                )
-
-            if path == "/api/auth/logout":
-                # POST /api/auth/logout — revoke session
-                sid = _session_id_from_request(self)
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if sid:
-                    try:
-                        _zk.logout_session(sid)
-                    except Exception:
-                        pass
-                use_secure = _session_cookie_secure()
-                cookie_val = _zk.clear_session_cookie(secure=use_secure)
-                self._log_audit("logout", "session", sid, f"user={user_id}")
-                return self._json(200, {"ok": True}, extra_headers=[("Set-Cookie", cookie_val)])
-
-            if path == "/api/auth/refresh":
-                # POST /api/auth/refresh — refresh token rotation or cookie session extend
-                refresh_token = str(body.get("refresh_token", "")).strip()
-                if not refresh_token:
-                    sid = _session_id_from_request(self)
-                    if not sid:
-                        return self._json(400, {"ok": False, "error": "refresh_token required"})
-                    validated = _zk.validate_session_token(sid)
-                    if not validated:
-                        return self._json(401, {"ok": False, "error": "session_expired"})
-                    use_secure = _session_cookie_secure()
-                    cookie_val = _zk.session_cookie_value(validated["session_id"], secure=use_secure)
-                    return self._json(
-                        200,
-                        {
-                            "ok": True,
-                            "user_id": validated["user_id"],
-                            "session_id": validated["session_id"],
-                            "expires_at": validated["expires_at"],
-                        },
-                        extra_headers=[("Set-Cookie", cookie_val)],
-                    )
-                try:
-                    result = _zk.refresh_session(refresh_token)
-                except ValueError as exc:
-                    return self._json(401, {"ok": False, "error": str(exc)})
-                except Exception as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                # Set new session cookie
-                use_secure = _session_cookie_secure()
-                cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
-                self._log_audit("session_refreshed", "session", result["session_id"],
-                                f"user={result['user_id']}")
-                return self._json(
-                    200,
-                    {
-                        "ok": True,
-                        "user_id": result["user_id"],
-                        "session_id": result["session_id"],
-                        "refresh_token": result["refresh_token"],
-                        "expires_at": result["expires_at"],
-                    },
-                    extra_headers=[("Set-Cookie", cookie_val)],
-                )
-
-            if path == "/api/me/credentials":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                provider = str(body.get("provider", "")).strip()
-                credential_type = str(body.get("credential_type", "api_key")).strip() or "api_key"
-                secret = str(body.get("secret", "")).strip()
-                spec = _catalog_provider(provider)
-                if spec:
-                    credential_type = str(spec.get("connect_mode") or credential_type)
-                env_var = str(body.get("env_var", "")).strip() or (
-                    str(spec.get("env_var") or "") if spec else ""
-                ) or _default_credential_env_var(provider, credential_type)
-                label = str(body.get("label", "")).strip() or env_var
-                if not provider:
-                    return self._json(400, {"ok": False, "error": "provider required"})
-                if not secret:
-                    return self._json(400, {"ok": False, "error": "secret required"})
-                payload = _store_user_credential(user_id, provider, credential_type, secret, env_var, label)
-                cred_ref = str(payload["credential_ref"])
-                now = _utc_now()
-                try:
-                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    existing = conn.execute(
-                        """SELECT id FROM credential_bindings
-                           WHERE user_id = ? AND provider = ? AND credential_type = ?
-                             AND credential_ref = ? AND deleted_at IS NULL
-                           ORDER BY updated_at DESC, created_at DESC LIMIT 1""",
-                        (user_id, provider, credential_type, cred_ref),
-                    ).fetchone()
-                    if existing:
-                        cred_id = str(existing["id"])
-                        conn.execute(
-                            """UPDATE credential_bindings
-                               SET label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
-                               WHERE id = ?""",
-                            (label, now, cred_id),
-                        )
-                    else:
-                        cred_id = str(payload["credential_id"])
-                        conn.execute(
-                            """INSERT INTO credential_bindings
-                               (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-                                credential_ref, label, is_active, created_by, created_at, updated_at)
-                               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                            (cred_id, None, user_id, None, provider, credential_type, cred_ref, label, 1, user_id, now, now),
-                        )
-                    conn.execute(
-                        """UPDATE credential_bindings
-                           SET is_active = 0, deleted_at = ?, updated_at = ?
-                           WHERE user_id = ? AND provider = ? AND deleted_at IS NULL AND id != ?""",
-                        (now, now, user_id, provider, cred_id),
-                    )
-                    conn.commit()
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"ok": False, "error": f"db_error: {exc}"})
-                self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
-                health: dict[str, Any] = {}
-                if provider == "openrouter":
-                    secret_probe = _credential_secret(
-                        {
-                            "credential_ref": cred_ref,
-                            "scope": "user",
-                            "user_id": user_id,
-                        },
-                        user_id,
-                    )
-                    if secret_probe:
-                        health = openrouter_catalog.probe_account(secret_probe)
-                _bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
-                return self._json(200, {
-                    "ok": True,
-                    "credential_id": cred_id,
-                    "provider": provider,
-                    "credential_type": credential_type,
-                    "label": label,
-                    "is_active": 1,
-                    "user_id": user_id,
-                    "created_at": now,
-                    "updated_at": now,
-                    "health": health,
-                    **payload,
-                })
-
             if path.startswith("/api/me/oauth/") and path.endswith("/start"):
                 parts = path.strip("/").split("/")
                 if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "start":
@@ -18143,18 +18293,6 @@ class Handler(BaseHTTPRequestHandler):
                     provider_id = parts[3]
                     workspace_id = str(body.get("workspace_id") or "")
                     return self._json(200, start_user_oauth(user_id, provider_id, workspace_id))
-
-            if path == "/api/me/telegram/link":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                result = platform_auth.verify_telegram_login(body if isinstance(body, dict) else {})
-                if not result.get("ok"):
-                    return self._json(400, {"ok": False, "error": result.get("error") or "telegram_link_failed"})
-                patch = result.get("platform_ids") if isinstance(result.get("platform_ids"), dict) else {}
-                if patch:
-                    _merge_user_platform_ids(user_id, {str(k): str(v) for k, v in patch.items()})
-                return self._json(200, {"ok": True, "provider": "telegram", "platform_ids": patch})
 
             if path.startswith("/api/me/providers/") and path.endswith("/disconnect"):
                 parts = path.strip("/").split("/")

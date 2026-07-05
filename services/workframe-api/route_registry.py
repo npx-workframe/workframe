@@ -95,6 +95,25 @@ ROUTES: tuple[Route, ...] = (
     Route("GET", "/api/hermes/commands", "_route_get_hermes_commands", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/hermes/usage", "_route_get_hermes_usage", AuthLevel.SINGLE_USER_GET),
     Route("GET", "/api/hermes/profile", "_route_get_hermes_profile", AuthLevel.SINGLE_USER_GET),
+    # Batch 2: auth-flow + hermes/chat + me credentials POST surfaces
+    Route("POST", "/api/auth/start", "_route_post_auth_start", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/auth/verify", "_route_post_auth_verify", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/auth/logout", "_route_post_auth_logout", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/auth/refresh", "_route_post_auth_refresh", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/auth/bootstrap", "_route_post_auth_bootstrap", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/auth/google/start", "_route_post_auth_google_start", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/auth/local-bootstrap", "_route_post_auth_local_bootstrap", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/setup", "_route_post_setup", AuthLevel.AUTH_FLOW),
+    Route("POST", "/api/hermes/model", "_route_post_hermes_model", AuthLevel.SESSION),
+    Route("POST", "/api/hermes/model/apply-default", "_route_post_hermes_model_apply_default", AuthLevel.SESSION),
+    Route("POST", "/api/hermes/fallback-chain", "_route_post_hermes_fallback_chain", AuthLevel.SESSION),
+    Route("POST", "/api/hermes/commands/exec", "_route_post_hermes_commands_exec", AuthLevel.SESSION),
+    Route("POST", "/api/hermes/gateway/exec", "_route_post_hermes_gateway_exec", AuthLevel.SESSION),
+    Route("POST", "/api/chat/stop", "_route_post_chat_stop", AuthLevel.SESSION),
+    Route("POST", "/api/chat/steer", "_route_post_chat_steer", AuthLevel.SESSION),
+    Route("POST", "/api/me/credentials", "_route_post_me_credentials", AuthLevel.SESSION),
+    Route("POST", "/api/me/telegram/link", "_route_post_me_telegram_link", AuthLevel.SESSION),
+    Route("POST", "/api/board", "_route_post_board", AuthLevel.SESSION),
 )
 
 _ROUTES_BY_METHOD_PATH: dict[tuple[str, str], Route] = {
@@ -240,6 +259,18 @@ def dispatch_get(handler: Any, path: str, qs: dict[str, list[str]]) -> bool:
     if not callable(fn):
         raise RuntimeError(f"missing handler {route.handler!r} for GET {path}")
     fn(qs)
+    return True
+
+
+def dispatch_post(handler: Any, path: str, body: dict) -> bool:
+    """Invoke a registered POST handler on *handler*; return True when dispatched."""
+    route = lookup_route("POST", path)
+    if not route:
+        return False
+    fn = getattr(handler, route.handler, None)
+    if not callable(fn):
+        raise RuntimeError(f"missing handler {route.handler!r} for POST {path}")
+    fn(body)
     return True
 
 
