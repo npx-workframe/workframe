@@ -11,13 +11,22 @@
 3. **Backlog before code** — set `status: in_progress` when starting; `done` + `completed_at` when merged
 4. **Handoff** — use `handoff_steps` on the backlog item; agent reads item id only
 
+## Parallel lanes (2026-07-05)
+
+| Lane | Owner | Scope | Backlog |
+|------|-------|-------|---------|
+| **Main** | implementation agent | API, session/model wiring, WF commits → deferred | WF-033 → WF-037 → WF-032 → … |
+| **Cosmetic UI** | separate agent / human | CSS, layout, copy only | WF-036 cosmetic slice — see `handoffs/cosmetic-ui-lane.md` |
+
+Cosmetic lane must not edit `server.py`, session/model files, or ledger status.
+
 ## Current wave: A → B (stabilize + decompose)
 
 | Wave | Items | Parallel? | Status |
 |------|-------|-----------|--------|
 | A1 | WF-031 security | — | **done** |
 | A2 | WF-034 tests, WF-033 yaml writer, WF-038 prune | yes | **done** (WF-033 partial) |
-| A3 | model/provider UI consistency | — | **committed wave 1** |
+| A3 | model/provider UI consistency | — | **partial** (composer badge + new session errors; dogfood synced) |
 | B1 | WF-037 route registry | after A2 | **partial** (auth table; handlers pending) |
 | B2 | WF-032 server split | after WF-037 | todo |
 
