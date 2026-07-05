@@ -52,8 +52,12 @@ import { findAgentByProfile } from '@/lib/hermesProfile'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
 import {
   clearCachedMessages,
+  clearCachedRoomBind,
+  readCachedMessages,
+  readCachedRoomBind,
   writeActiveLane,
   writeCachedMessages,
+  writeCachedRoomBind,
 } from '@/lib/workspacePersist'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -170,11 +174,19 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
 
   // ── Load history from BFF ──
   const loadHistory = useCallback(async (prof: string, sessionId: string, mergeLocal = false) => {
+    const roomId = roomIdRef.current
+    if (roomId) {
+      const cached = readCachedMessages(roomId, sessionId)
+      if (cached.length) {
+        setMessages((prev) => (mergeLocal ? finalizeChatHandoff(cached, prev) : cached))
+      }
+    }
     try {
       console.log('[workframe] loadHistory:', prof, sessionId.substring(0, 40))
       const { messages: rows } = await fetchChatMessages(prof, sessionId, sourceIdRef.current)
       console.log('[workframe] loaded', rows.length, 'messages')
       setMessages((prev) => (mergeLocal ? finalizeChatHandoff(rows, prev) : rows))
+      if (roomId) writeCachedMessages(roomId, sessionId, rows)
     } catch (err) {
       console.error('[workframe] loadHistory error:', err)
     }
@@ -208,6 +220,13 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
       setMessages(bound.messages)
       writeActiveLane({ roomId })
       writeCachedMessages(roomId, bound.sessionId, bound.messages)
+      writeCachedRoomBind(roomId, {
+        sessionId: bound.sessionId,
+        profile: runtimeProf,
+        templateProfile: crewProf,
+        agentDisplayName: bound.agentDisplayName || '',
+        llmReady: llmReadyRef.current ?? true,
+      })
       setConnectError(null)
       setSessionReady(true)
       notifyHermesModelsChanged(runtimeProf)
@@ -219,15 +238,33 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     async (roomId: string, displayName: string) => {
       const gen = ++bindGenRef.current
       console.log('[workframe] useSessionForRoom:', roomId)
-      setSessionReady(false)
       setConnectError(null)
       roomIdRef.current = roomId
       setAgentDisplayName(displayName)
-      setStateDbSessionId(null)
-      setGatewaySessionId(null)
-      stateDbSidRef.current = null
-      gatewaySidRef.current = null
-      setMessages([])
+
+      const cachedBind = readCachedRoomBind(roomId)
+      if (cachedBind) {
+        const cachedMessages = readCachedMessages(roomId, cachedBind.sessionId)
+        llmReadyRef.current = cachedBind.llmReady
+        const templateProf = cachedBind.templateProfile || cachedBind.profile
+        if (templateProf && templateProf !== activeProfile) {
+          setActiveRoute(templateProf)
+        }
+        applyBoundSession(roomId, templateProf, {
+          sessionId: cachedBind.sessionId,
+          profile: cachedBind.profile || templateProf,
+          templateProfile: templateProf,
+          agentDisplayName: cachedBind.agentDisplayName || displayName,
+          messages: cachedMessages,
+        })
+      } else {
+        setSessionReady(false)
+        setStateDbSessionId(null)
+        setGatewaySessionId(null)
+        stateDbSidRef.current = null
+        gatewaySidRef.current = null
+        setMessages([])
+      }
 
       try {
         const bound = await bindRoomSession(roomId)
@@ -247,6 +284,10 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
         })
       } catch (err) {
         if (gen !== bindGenRef.current) return
+        if (cachedBind) {
+          console.warn('[workframe] bind revalidate failed; keeping cached session', err)
+          return
+        }
         roomIdRef.current = ''
         stateDbSidRef.current = null
         gatewaySidRef.current = null
@@ -690,6 +731,7 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     if (!roomId) throw new Error('No agent room selected')
     const gen = ++bindGenRef.current
     clearCachedMessages(roomId)
+    clearCachedRoomBind(roomId)
     setConnectError(null)
 
     try {
@@ -733,6 +775,8 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
 
     const runtimeProf = data.profile
     const gatewaySid = `api:${runtimeProf}:${sid}`
+    const cachedMessages = readCachedMessages(roomId, sid)
+    if (cachedMessages.length) setMessages(cachedMessages)
     stateDbSidRef.current = sid
     gatewaySidRef.current = gatewaySid
     profileRef.current = runtimeProf
@@ -741,6 +785,13 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     setProfile(runtimeProf)
     setStateDbSessionId(sid)
     setGatewaySessionId(gatewaySid)
+    writeCachedRoomBind(roomId, {
+      sessionId: sid,
+      profile: runtimeProf,
+      templateProfile: data.template_profile || templateProf,
+      agentDisplayName: data.agent_display_name || agentDisplayName,
+      llmReady: llmReadyRef.current ?? true,
+    })
     await loadHistory(runtimeProf, sid, false)
     writeActiveLane({ roomId })
     setConnectError(null)

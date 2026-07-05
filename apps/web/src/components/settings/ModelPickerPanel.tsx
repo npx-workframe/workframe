@@ -12,6 +12,7 @@ import {
   type HermesModelRow,
   type HermesModelsResponse,
 } from '@/lib/hermesCatalogApi'
+import { peekCachedHermesModels } from '@/lib/workspacePersist'
 import { providerIconForId } from '@/lib/workframeAssets'
 import { billingProviderDisplayLabel } from '@/lib/brandAssets'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
@@ -101,9 +102,21 @@ export function ModelPickerPanel({
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
+    const cacheProfile = selectionOnly ? '' : (profile?.trim() ?? '')
+    const cached = cacheProfile ? peekCachedHermesModels(cacheProfile) : null
+    if (cached) {
+      setData(cached)
+      setLoading(false)
+      onLoadedRef.current?.(cached)
+      if (selectionOnly) {
+        const chain = cached.fallback_chain ?? []
+        setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
+      }
+    } else {
+      setLoading(true)
+      setData(null)
+    }
     setLoadError('')
-    setData(null)
     fetchHermesModels(selectionOnly ? undefined : profile, workspaceId, { selectionOnly })
       .then((res) => {
         if (cancelled) return

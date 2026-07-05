@@ -1,4 +1,5 @@
 import { apiGet, apiPatch, apiPost } from '@/lib/apiClient'
+import { writeCachedHermesModels, clearCachedHermesModels } from '@/lib/workspacePersist'
 
 export type HermesSkillRow = {
   name: string
@@ -108,7 +109,10 @@ export async function fetchHermesModels(
   if (workspaceId?.trim()) params.set('workspace_id', workspaceId.trim())
   if (opts?.selectionOnly) params.set('selection_only', '1')
   const query = params.toString() ? `?${params.toString()}` : ''
-  return apiGet<HermesModelsResponse>(`/api/hermes/models${query}`)
+  const data = await apiGet<HermesModelsResponse>(`/api/hermes/models${query}`)
+  const prof = profile?.trim()
+  if (data.ok && prof) writeCachedHermesModels(prof, data)
+  return data
 }
 
 export function notifyHermesModelsChanged(profile = '') {
@@ -131,6 +135,7 @@ export async function setHermesModel(
     billing_provider: opts?.billingProvider?.trim() ?? '',
   })
   if (res.ok && !opts?.selectionOnly) notifyHermesModelsChanged(profile ?? '')
+  if (res.ok && profile?.trim()) clearCachedHermesModels(profile.trim())
   return res
 }
 
@@ -148,6 +153,7 @@ export async function setHermesFallbackChain(
     },
   )
   if (res.ok && !opts?.selectionOnly) notifyHermesModelsChanged(profile ?? '')
+  if (res.ok && profile?.trim()) clearCachedHermesModels(profile.trim())
   return res
 }
 

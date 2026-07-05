@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/lib/chatTypes'
+import type { HermesModelsResponse } from '@/lib/hermesCatalogApi'
 import { peekCachedSessionProfile } from '@/lib/workframeAuthApi'
 import type { WorkspaceRoom } from '@/lib/workframeAuthApi'
 
@@ -17,6 +18,27 @@ function roomsKey(workspaceId: string): string {
 function messagesKey(roomId: string, sessionId: string): string {
   return `workframe.cachedMessages:${projectKey()}:${roomId}:${sessionId.trim()}`
 }
+
+function roomBindKey(roomId: string): string {
+  return `workframe.cachedRoomBind:${projectKey()}:${roomId}`
+}
+
+function modelsKey(profile: string): string {
+  return `workframe.cachedModels:${projectKey()}:${profile.trim()}`
+}
+
+/** Room bind hint — instant reopen; server revalidates in background. */
+export type CachedRoomBind = {
+  sessionId: string
+  profile: string
+  templateProfile: string
+  agentDisplayName: string
+  llmReady: boolean
+  savedAt: number
+}
+
+const BIND_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+const MODEL_CACHE_MAX_AGE_MS = 10 * 60 * 1000
 
 /** One lane hint per user — room only; session comes from server bind. */
 export type ActiveLaneHint = {
@@ -95,6 +117,53 @@ export function readCachedRooms(workspaceId: string): WorkspaceRoom[] {
 
 export function writeCachedRooms(workspaceId: string, rooms: WorkspaceRoom[]): void {
   writeJson(roomsKey(workspaceId), { rooms, savedAt: Date.now() })
+}
+
+export function readCachedRoomBind(roomId: string): CachedRoomBind | null {
+  if (!roomId.trim()) return null
+  const data = readJson<CachedRoomBind>(roomBindKey(roomId))
+  if (!data?.sessionId?.trim()) return null
+  if (Date.now() - (data.savedAt || 0) > BIND_CACHE_MAX_AGE_MS) return null
+  return data
+}
+
+export function writeCachedRoomBind(roomId: string, bind: Omit<CachedRoomBind, 'savedAt'>): void {
+  if (!roomId.trim() || !bind.sessionId.trim()) return
+  writeJson(roomBindKey(roomId), { ...bind, savedAt: Date.now() })
+}
+
+export function clearCachedRoomBind(roomId: string): void {
+  if (!roomId.trim() || typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(roomBindKey(roomId))
+  } catch {
+    // ignore
+  }
+}
+
+export function peekCachedHermesModels(profile: string): HermesModelsResponse | null {
+  const key = profile.trim()
+  if (!key) return null
+  const data = readJson<{ models: HermesModelsResponse; savedAt: number }>(modelsKey(key))
+  if (!data?.models?.ok) return null
+  if (Date.now() - (data.savedAt || 0) > MODEL_CACHE_MAX_AGE_MS) return null
+  return data.models
+}
+
+export function writeCachedHermesModels(profile: string, models: HermesModelsResponse): void {
+  const key = profile.trim()
+  if (!key || !models.ok) return
+  writeJson(modelsKey(key), { models, savedAt: Date.now() })
+}
+
+export function clearCachedHermesModels(profile: string): void {
+  const key = profile.trim()
+  if (!key || typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(modelsKey(key))
+  } catch {
+    // ignore
+  }
 }
 
 const MAX_CACHED_MSGS = 80
