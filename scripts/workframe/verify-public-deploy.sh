@@ -11,6 +11,57 @@ COMPOSE_FILE="$COMPOSE_DIR/docker-compose.yml"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 warn() { echo "WARN: $*" >&2; }
 ok() { echo "OK: $*"; }
+info() { echo "INFO: $*"; }
+
+gateway_container_name() {
+  local name
+  name="$(grep -A20 '^  gateway:' "$COMPOSE_FILE" | grep 'container_name:' | head -n1 | sed 's/.*container_name:[[:space:]]*//' | tr -d '\r"')"
+  printf '%s' "${name:-workframe-gateway}"
+}
+
+report_egress_posture() {
+  local gw force_broker gw_on_control internal_control
+  gw="$(gateway_container_name)"
+  force_broker="$(env_val WORKFRAME_FORCE_AGENT_EGRESS_BROKER)"
+
+  if grep -A30 '^  gateway:' "$COMPOSE_FILE" | grep -q 'control-net'; then
+    gw_on_control=yes
+  else
+    gw_on_control=no
+  fi
+  if grep -A5 'control-net:' "$COMPOSE_FILE" | grep -q 'internal:[[:space:]]*true'; then
+    internal_control=yes
+  else
+    internal_control=no
+  fi
+
+  info "egress gateway_container=$gw"
+  info "egress gateway_on_control_net=$gw_on_control (expected no)"
+  info "egress control_net_internal=$internal_control (expected yes)"
+  [[ "$gw_on_control" == "no" ]] || fail "gateway must not join control-net"
+  [[ "$internal_control" == "yes" ]] || warn "control-net is not marked internal:true"
+
+  if command -v docker >/dev/null 2>&1 && docker inspect "$gw" >/dev/null 2>&1; then
+    local nets
+    nets="$(docker inspect "$gw" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' 2>/dev/null || true)"
+    info "egress gateway_networks=${nets:-<unknown>}"
+    if echo "$nets" | grep -qi 'control'; then
+      fail "running gateway is attached to a control network"
+    fi
+    info "egress gateway_egress_posture=unrestricted_general (broker for LLM/action providers)"
+  else
+    info "egress gateway_egress_posture=unknown (gateway container not running)"
+  fi
+
+  info "egress broker_path=config_plus_leases (/internal/llm/*, /internal/action/*)"
+  info "egress general_internet=allowed (research, terminal, public APIs)"
+  info "egress broker_latency=per-request lease validation (no human approval gate)"
+
+  if [[ "$force_broker" =~ ^(1|true|yes|on)$ ]]; then
+    fail "WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true is set but provider-host egress enforcement is not implemented yet"
+  fi
+  ok "egress posture reported"
+}
 
 [[ -f "$ENV_FILE" ]] || fail "missing $ENV_FILE"
 [[ -f "$COMPOSE_FILE" ]] || fail "missing $COMPOSE_FILE"
@@ -92,14 +143,16 @@ else
   warn "curl not found — skipping HTTP checks"
 fi
 
-if command -v docker >/dev/null 2>&1 && docker inspect workframe-gateway >/dev/null 2>&1; then
-  gw_env="$(docker inspect workframe-gateway --format '{{range .Config.Env}}{{println .}}{{end}}')"
+if command -v docker >/dev/null 2>&1 && docker inspect "$(gateway_container_name)" >/dev/null 2>&1; then
+  gw_env="$(docker inspect "$(gateway_container_name)" --format '{{range .Config.Env}}{{println .}}{{end}}')"
   for marker in WORKFRAME_SUPERVISOR_TOKEN ZK_AUTH_ SMTP_PASS; do
     echo "$gw_env" | grep -q "$marker" && fail "gateway env contains $marker"
   done
   ok "gateway env allowlist"
 else
-  warn "workframe-gateway not running — skipping docker inspect"
+  warn "$(gateway_container_name) not running — skipping docker inspect"
 fi
+
+report_egress_posture
 
 ok "public_multi_user preflight passed"

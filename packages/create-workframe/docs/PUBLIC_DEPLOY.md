@@ -98,6 +98,7 @@ Manual smoke:
 | Owner/admin UI | Dashboard opens |
 | `docker inspect workframe-gateway` env | No `ZK_AUTH_*`, `WORKFRAME_SUPERVISOR_TOKEN`, `SMTP_PASS` |
 | Gateway → supervisor network | Gateway cannot resolve `workframe-supervisor` |
+| `verify-public-deploy.sh` egress lines | Reports `gateway_egress_posture` and `broker_path` (informational unless `WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true`) |
 
 ## Security behavior (public mode)
 
@@ -110,6 +111,7 @@ Manual smoke:
 | Runtime profile RBAC | Members may only exec/chat on their own `u-{user}-*` profiles (public); owners may delegate in trusted_team |
 | Internal LLM proxy | Lease token + `X-Workframe-Proxy-Token` from gateway env (not on shared profile mount) |
 | Credential vault | Envelope v2 (per-secret DEK + KEK); vault DB not mounted on gateway |
+| Agent egress | **Two classes** — general internet allowed; vault-backed providers use internal broker + leases (`/internal/llm/*`, `/internal/action/*`); terminal stays enabled |
 | Agent toolsets | **Full** (`hermes-cli` + `terminal`) on `/workspace` — credential isolation via vault + proxy token, not disabled shell |
 | Kanban delegation | Assignee **owner** pays (not initiator) |
 

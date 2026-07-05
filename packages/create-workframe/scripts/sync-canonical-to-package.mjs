@@ -137,6 +137,14 @@ if (fs.existsSync(publicDeploySrc)) {
   console.log('Synced PUBLIC_DEPLOY.md -> package/docs/');
 }
 
+const securityPublicSrc = path.join(REPO_ROOT, 'docs/public/security.md');
+const securityPkgDst = path.join(PKG_ROOT, 'docs/security.md');
+if (fs.existsSync(securityPublicSrc)) {
+  fs.mkdirSync(path.dirname(securityPkgDst), { recursive: true });
+  fs.copyFileSync(securityPublicSrc, securityPkgDst);
+  console.log('Synced docs/public/security.md -> package/docs/security.md');
+}
+
 for (const name of ['LICENSE', 'NOTICE', 'SECURITY.md']) {
   const src = path.join(REPO_ROOT, name);
   const dst = path.join(PKG_ROOT, name);
