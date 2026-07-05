@@ -17,5 +17,9 @@ const steps = [
 
 for (const args of steps) {
   const r = spawnSync(py, args, { cwd: dir, stdio: 'inherit' });
+  if (r.error) {
+    console.error(`typecheck spawn failed (${py}):`, r.error.message);
+    process.exit(1);
+  }
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
