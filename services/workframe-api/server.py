@@ -6158,7 +6158,7 @@ def ensure_runtime_profile(
         if not _profile_toolsets_ready(runtime, _chat_toolsets_for_profile(runtime)):
             _ensure_profile_toolsets(runtime)
         _ensure_profile_terminal_cwd(runtime)
-        _sync_runtime_model_from_template(runtime, template)
+        # ponytail: do not re-sync template model on every bind — destroys per-user reconcile
         return
     _purge_runtime_profile(runtime)
     _register_runtime_profile(runtime, template)
@@ -12897,6 +12897,8 @@ def _reconcile_profile_llm_for_user(
         if not _resolve_billing_provider_for_model(current, {billing}, prefer=billing):
             current = str((PROVIDER_MVP_MODELS.get(billing) or {}).get("primary") or "")
         _apply_model_for_billing_provider(prof, billing, current, user_id=user)
+        if _is_runtime_profile_slug(prof):
+            _restart_runtime_profile_gateway(prof)
         return True
     if _user_can_use_llm(user, workspace_id, billing) and _profile_llm_proxy_matches_billing(prof, billing):
         return False
@@ -12904,6 +12906,8 @@ def _reconcile_profile_llm_for_user(
     block = _read_model_block(prof)
     if _is_runtime_profile_slug(prof) or str(block.get("provider") or "").strip().lower() == "custom":
         _ensure_profile_llm_proxy(prof, billing)
+    if changed and _is_runtime_profile_slug(prof):
+        _restart_runtime_profile_gateway(prof)
     return changed
 
 
@@ -15248,6 +15252,15 @@ def _parse_model_block_from_disk(profile: str) -> dict[str, Any]:
                 in_fallback = False
             continue
 
+        if in_fallback and indent == fallback_indent + 2 and ":" in content and not content.startswith("- "):
+            # ponytail: wizard once wrote flat `model:` keys (no list) — tolerate one entry per line
+            k, _, v = content.partition(":")
+            key = k.strip()
+            val = v.strip().strip('"').strip("'")
+            if key == "model" and val:
+                out["fallback_chain"].append({"model": val})
+            continue
+
         if in_fallback and indent == fallback_indent + 2 and content.startswith("- "):
             # Start of a new fallback entry. First key may be inline.
             inline = content[2:].strip()
@@ -15286,12 +15299,12 @@ def _read_model_block(profile: str) -> dict[str, Any]:
         return block
     template = resolve_validated_profile(_runtime_template_slug(prof))
     tblock = _parse_model_block_from_disk(template)
-    if str(tblock.get("default") or "").strip():
+    if not str(block.get("default") or "").strip() and str(tblock.get("default") or "").strip():
         block["default"] = tblock["default"]
-    if tblock.get("fallback_chain"):
+    if not block.get("fallback_chain") and tblock.get("fallback_chain"):
         block["fallback_chain"] = list(tblock["fallback_chain"])
     tpl_provider = str(tblock.get("provider") or "").strip()
-    if tpl_provider:
+    if not str(block.get("provider") or "").strip() and tpl_provider:
         block["provider"] = tpl_provider
     return block
 
@@ -15304,14 +15317,21 @@ def _sync_runtime_model_from_template(runtime: str, template: str) -> None:
         return
     tblock = _parse_model_block_from_disk(template_slug)
     default = str(tblock.get("default") or "").strip()
-    if default:
-        _set_profile_model(runtime_slug, default)
+    if not default:
+        return
+    connected: set[str] = set()
+    billing = _billing_provider_id_from_hermes_config(str(tblock.get("provider") or ""))
+    if not billing:
+        billing = _resolve_billing_provider_for_model(default, connected) or ""
+    _, bare = _model_id_vendor_and_bare(default)
+    model_id = bare or default
+    if billing:
+        _apply_model_for_billing_provider(runtime_slug, billing, model_id)
+        return
+    _set_profile_model(runtime_slug, model_id)
     chain = [e for e in (tblock.get("fallback_chain") or []) if isinstance(e, dict)]
     if chain:
         _write_fallback_chain(runtime_slug, chain)
-    billing = _billing_provider_id_from_hermes_config(str(tblock.get("provider") or ""))
-    if billing and default:
-        _apply_model_for_billing_provider(runtime_slug, billing, default)
 
 
 def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bool, str]:
@@ -15415,6 +15435,9 @@ def hermes_models(
     billing = _billing_provider_id_from_hermes_config(active_provider)
     if not billing and primary_model:
         billing = _resolve_billing_provider_for_model(primary_model, connected_llm) or ""
+    _, bare_primary = _model_id_vendor_and_bare(primary_model)
+    if _oauth_llm_provider_spec(billing) and bare_primary:
+        primary_model = bare_primary
     # ponytail: skip OpenRouter live catalog on Codex/other billing — blocks stdlib server up to 45s
     if user_id and "openrouter" in connected_llm and billing in ("", "openrouter"):
         resolved = _resolve_credential(user_id, workspace_id, "openrouter", user_only=True)
@@ -15525,6 +15548,8 @@ def hermes_model_set(
     if billing:
         if not _apply_model_for_billing_provider(target, billing, model_id, user_id=user):
             return {"ok": False, "error": "model apply failed"}
+        if _is_runtime_profile_slug(target):
+            _restart_runtime_profile_gateway(target)
     else:
         ok, err = _set_profile_model(target, model_id)
         if not ok:

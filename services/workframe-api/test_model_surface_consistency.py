@@ -81,4 +81,16 @@ finally:
     server._user_can_use_llm = _orig_can
     server._sync_oauth_llm_to_profile = _orig_sync
 
+# F: runtime disk wins over template in _read_model_block
+runtime_prof = "u-test-user-surface-test-agent"
+runtime_dir = server._profile_dir(runtime_prof)
+runtime_dir.mkdir(parents=True, exist_ok=True)
+(runtime_dir / "config.yaml").write_text(
+    "model:\n  default: gpt-5.4-mini\n  provider: openai-codex\n",
+    encoding="utf-8",
+)
+block = server._read_model_block(runtime_prof)
+assert block.get("default") == "gpt-5.4-mini", block
+assert block.get("provider") == "openai-codex", block
+
 print("model surface consistency self-check ok")
