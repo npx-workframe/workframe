@@ -19,7 +19,7 @@ Single public index for **what we ship now**, **where we are going**, and **what
 docs/public/           Ship-facing product docs (users, evaluators, contributors)
 docs/ledger/           Status spine — now, backlog.json, audit registry, loop model
 docs/strategy/         Full north-star brief (v0.1.1 strategy package)
-docs/living-audit/     Planning archive — convergence work toward the cell product
+archive/planning/living-audit/     Planning archive — convergence work toward the cell product
 docs/audits/           Numbered point-in-time security/architecture audits
 .harness/              Executable verification loop (feature scenarios + verify.mjs)
 operations/log.md      Operator session log (repo root)

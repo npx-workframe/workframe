@@ -23,7 +23,7 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 
 ## Active (next proof layers)
 
-From [final convergence synthesis](../living-audit/final-convergence-synthesis.md):
+From [final convergence synthesis](../../archive/planning/living-audit/final-convergence-synthesis.md):
 
 1. **PackageTruthGate** — one credible wipe → `create-workframe` → wizard → chat path with version parity.
 2. **Forced egress broker** — network-unavoidable credential traffic (`WORKFRAME_FORCE_AGENT_EGRESS_BROKER` is **planned**, verify fails if set).

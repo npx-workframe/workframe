@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1",
+  "updated": "2026-07-05",
+  "pm_role": "pm-workframe",
+  "reports_to": ["alan", "orchestrator"],
+  "last_session": null,
+  "active_backlog_ids": [],
+  "dogfood": {
+    "local_path": "D:/ab/projects/MyBusiness",
+    "ui_url": "http://127.0.0.1:18644",
+    "api_port": 19120
+  },
+  "notes": "Cursor PM harness promoted 2026-07-05. backlog.json is program truth."
+}

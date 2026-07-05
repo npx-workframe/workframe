@@ -1,0 +1,7 @@
+{
+  "schema_version": "0.1",
+  "updated": "2026-07-05",
+  "pm_role": "pm-workframe",
+  "backlog": "docs/ledger/backlog.json",
+  "work_items": []
+}

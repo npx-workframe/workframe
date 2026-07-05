@@ -1,20 +1,25 @@
 # Workframe operations rail
 
-Session-level operator log and pointers to ledgers. **Not** a duplicate of ABKB meta `operations/daily/`.
+**PM operating system:** [pm/README.md](pm/README.md) — start every session at `pm/session.md`.
 
-## Ledgers (two layers)
+Session-level operator log and pointers to ledgers. Not a duplicate of ABKB meta `operations/daily/`.
+
+## Ledgers
 
 ```text
-workframe/.harness/feature_list.json   product verify state (scenarios)
-abkb/operations/daily/.../work_items assignment queue (PM → workers)
+docs/ledger/backlog.json              program queue (WF-*) — PM owns
+.harness/feature_list.json            verify scenarios
+operations/pm/queues.json             active handoffs
+operations/log.md                     narrative (here)
+abkb/operations/daily/.../work_items  cross-portfolio (optional)
 ```
 
 | Need | Read |
 |------|------|
+| What to do next | `node scripts/workframe/ledger-next.mjs` |
+| How to ship | `operations/pm/runbook.md` |
 | What must pass before release | `.harness/feature_list.json` |
-| What task am I doing this run | ABKB `queues.json` → `work_items` |
-| Narrative session history | `operations/log.md` (here) |
-| Ontology + pitfalls | ABKB `projects/workframe/` + repo `START_HERE.md` |
+| Narrative session history | `operations/log.md` |
 
 ## Log
 
@@ -22,9 +27,5 @@ Append-only: `operations/log.md` — `ISO timestamp | Role | outcome`
 
 ## Roles
 
-Registry: `abkb/operations/roles/registry.json`
-
-- **pm-workframe** — plans, enqueues `work_items`, no product code in PM pass
-- **coder / tests / docs / code-reviewer** — one `work_items` entry per run
-
-Prompts: `abkb/operations/roles/pm-workframe/prompt.md` and `workers/*/prompt.md`.
+Registry: `abkb/operations/roles/registry.json`  
+Canonical PM harness: `operations/pm/identity.md`

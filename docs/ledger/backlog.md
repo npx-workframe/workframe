@@ -70,7 +70,7 @@ Full prose: [strategy brief](../strategy/workframe_v0_1_1_docs/chapters/12-12-ro
 
 ## Living-audit archive
 
-Twenty-seven planning files under [`living-audit/`](../living-audit/) informed the seventeen findings. They remain linked evidence — not duplicate backlog rows. See [audits.md](audits.md).
+Twenty-seven planning files under [`archive/planning/living-audit/`](../../archive/planning/living-audit/) informed the seventeen findings. They remain linked evidence — not duplicate backlog rows. See [audits.md](audits.md).
 
 ## Next agent action
 

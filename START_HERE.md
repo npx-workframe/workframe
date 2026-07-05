@@ -1,5 +1,6 @@
 # Workframe — agent entry
 
+**PM harness:** [operations/pm/session.md](operations/pm/session.md) — boot every Workframe session.  
 **You are in the product source repo.** Read this before editing code or running sandboxes.
 
 Chain of truth: **source here** → ABKB curated memory → chat hints.
@@ -15,15 +16,17 @@ Chain of truth: **source here** → ABKB curated memory → chat hints.
 ## Cascade (read in order)
 
 ```text
-1. This file (START_HERE.md)
-2. AGENTS.md — mutation discipline, harness pointer
-3. ABKB projects/workframe/project_profile.md — ontology + risks
-4. ABKB projects/workframe/install-sandbox-doctrine.md — sign-off spine
-5. .harness/feature_list.json — scenario ledger (what must pass)
-6. docs/public/architecture.md — vault, supervisor, layers
-7. docs/public/security.md — SECURE_MODE, leases, BYOK
-8. docs/public/session-architecture.md — u-{user}-* profiles, binding
-9. Source grep — then smallest edit
+1. operations/pm/session.md — PM boot (if owning Workframe)
+2. This file (START_HERE.md)
+3. AGENTS.md — mutation discipline, harness pointer
+4. docs/ledger/backlog.json — program queue
+5. ABKB projects/workframe/project_profile.md — ontology + risks
+6. ABKB projects/workframe/install-sandbox-doctrine.md — sign-off spine
+7. .harness/feature_list.json — scenario ledger (what must pass)
+8. docs/public/architecture.md — vault, supervisor, layers
+9. docs/public/security.md — SECURE_MODE, leases, BYOK
+10. docs/public/session-architecture.md — u-{user}-* profiles, binding
+11. Source grep — then smallest edit
 ```
 
 **Release loop:** `docs/public/release.md`  
@@ -72,10 +75,12 @@ services/workframe-api/ | apps/web/src/
 
 | File | Purpose |
 |------|---------|
-| `.harness/feature_list.json` | Scenario pass/fail — product operator ledger |
+| `docs/ledger/backlog.json` | **Program queue** — WF-* items, agent automation |
+| `operations/pm/` | PM harness — session, runbook, queues |
+| `.harness/feature_list.json` | Scenario pass/fail — verify ledger |
 | `.harness/verify.mjs` | Cloud verify runner (`HARNESS_CHECK=1` in CI) |
-| `operations/log.md` | Append-only operator log (this repo) |
-| ABKB `operations/daily/.../work_items` | PM → worker assignment queue (cross-repo) |
+| `operations/log.md` | Append-only operator log |
+| ABKB `operations/daily/.../work_items` | Cross-portfolio worker queue (optional) |
 
 Run: `node .harness/verify.mjs` or `pnpm test:ci`.
 
@@ -102,11 +107,12 @@ Full doctrine: ABKB `projects/workframe/install-sandbox-doctrine.md`.
 
 When running as a **role** (not ad-hoc chat):
 
-1. Load `abkb/operations/roles/<role-id>/` (identity + prompt)
-2. Return here for project map
-3. One task per run; update ledger + `work_items` when done
+1. **PM:** `operations/pm/session.md` + `docs/ledger/backlog.json`
+2. **Worker:** `abkb/operations/roles/<role-id>/` (identity + prompt)
+3. Return here for project map
+4. One task per run; update backlog + `operations/pm/queues.json` when done
 
-PM-workframe enqueues workers in ABKB `queues.json`. Coder workers implement here and open PR.
+PM enqueues `WF-*` items; coder implements and opens PR; code-reviewer closes review rows.
 
 ## Docs index
 

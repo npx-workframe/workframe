@@ -24,5 +24,5 @@ See `backlog.json` → `WF-002.acceptance`.
 
 ## Sources
 
-- `docs/living-audit/package-truth-gate.md`
-- `docs/living-audit/25-audit.md` (P0-2, ticket-2)
+- `archive/planning/living-audit/package-truth-gate.md`
+- `archive/planning/living-audit/25-audit.md` (P0-2, ticket-2)

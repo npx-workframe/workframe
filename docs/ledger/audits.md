@@ -8,7 +8,7 @@ Point-in-time reviews and planning audits. Update **status** when code or docs c
 |----|-------|--------|-------------|
 | [0027](../audits/0027-agent-vault-comparison.md) | Agent Vault comparison | **partial** | Vault + leases + LLM proxy align with industry; **forced egress broker** still planned |
 
-## Living audit (`docs/living-audit/`)
+## Living audit (`archive/planning/living-audit/`)
 
 Convergence planning toward the Workframe cell (v0.1.x → v0.2). Indexed below; full prose stays in place.
 
@@ -16,49 +16,49 @@ Convergence planning toward the Workframe cell (v0.1.x → v0.2). Indexed below;
 
 | Doc | Role | Status |
 |-----|------|--------|
-| [README](../living-audit/README.md) | Index | archive index |
-| [25-audit](../living-audit/25-audit.md) | Consolidated living audit | planning |
-| [final-convergence-synthesis](../living-audit/final-convergence-synthesis.md) | Roadmap compression | planning |
-| [current-code-proof-and-forward-plan](../living-audit/current-code-proof-and-forward-plan.md) | Code-grounded forward plan | planning |
-| [package-truth-gate](../living-audit/package-truth-gate.md) | Release gate memo | **active** |
-| [release-readiness](../living-audit/release-readiness.md) | Blockers | planning |
+| [README](../archive/planning/living-audit/README.md) | Index | archive index |
+| [25-audit](../archive/planning/living-audit/25-audit.md) | Consolidated living audit | planning |
+| [final-convergence-synthesis](../archive/planning/living-audit/final-convergence-synthesis.md) | Roadmap compression | planning |
+| [current-code-proof-and-forward-plan](../archive/planning/living-audit/current-code-proof-and-forward-plan.md) | Code-grounded forward plan | planning |
+| [package-truth-gate](../archive/planning/living-audit/package-truth-gate.md) | Release gate memo | **active** |
+| [release-readiness](../archive/planning/living-audit/release-readiness.md) | Blockers | planning |
 
 ### Installer & runtime
 
 | Doc | Topic |
 |-----|-------|
-| [first-run-wizard](../living-audit/first-run-wizard.md) | Wizard convergence |
-| [deployment-order](../living-audit/deployment-order.md) | Mode selection |
-| [runtime-detection-map](../living-audit/runtime-detection-map.md) | Environment detection |
-| [existing-runtime-adoption-policy](../living-audit/existing-runtime-adoption-policy.md) | Non-destructive adoption |
-| [agent-runtime-config](../living-audit/agent-runtime-config.md) | Profile/provider/runtime model |
-| [installer-validation-plan](../living-audit/installer-validation-plan.md) | Journey validation |
+| [first-run-wizard](../archive/planning/living-audit/first-run-wizard.md) | Wizard convergence |
+| [deployment-order](../archive/planning/living-audit/deployment-order.md) | Mode selection |
+| [runtime-detection-map](../archive/planning/living-audit/runtime-detection-map.md) | Environment detection |
+| [existing-runtime-adoption-policy](../archive/planning/living-audit/existing-runtime-adoption-policy.md) | Non-destructive adoption |
+| [agent-runtime-config](../archive/planning/living-audit/agent-runtime-config.md) | Profile/provider/runtime model |
+| [installer-validation-plan](../archive/planning/living-audit/installer-validation-plan.md) | Journey validation |
 
 ### Product surfaces & policy
 
 | Doc | Topic |
 |-----|-------|
-| [workframe-surface-baseline](../living-audit/workframe-surface-baseline.md) | UI/surface contracts |
-| [multi-user-provider-policy](../living-audit/multi-user-provider-policy.md) | BYOK / company-pays |
-| [refactor-map](../living-audit/refactor-map.md) | Adapter-first refactor seams |
+| [workframe-surface-baseline](../archive/planning/living-audit/workframe-surface-baseline.md) | UI/surface contracts |
+| [multi-user-provider-policy](../archive/planning/living-audit/multi-user-provider-policy.md) | BYOK / company-pays |
+| [refactor-map](../archive/planning/living-audit/refactor-map.md) | Adapter-first refactor seams |
 
 ### Red team (01–12)
 
 | ID | Doc | Theme |
 |----|-----|-------|
-| RT-01 | [red-team-01-adoption-risk](../living-audit/red-team-01-adoption-risk.md) | Adoption / installer category |
-| RT-02 | [red-team-02-detection-privacy](../living-audit/red-team-02-detection-privacy.md) | Detection privacy |
-| RT-03 | [red-team-03-agent-runtime-matrix](../living-audit/red-team-03-agent-runtime-matrix.md) | Runtime matrix |
-| RT-04 | [red-team-04-refactor-seam-risk](../living-audit/red-team-04-refactor-seam-risk.md) | Adapter seams |
-| RT-05 | [red-team-05-release-gate-risk](../living-audit/red-team-05-release-gate-risk.md) | Release gates |
-| RT-06 | [red-team-06-validation-matrix-risk](../living-audit/red-team-06-validation-matrix-risk.md) | Evidence inflation |
-| RT-07 | [red-team-07-open-update-connect-risk](../living-audit/red-team-07-open-update-connect-risk.md) | Update/connect paths |
-| RT-08 | [red-team-08-manifest-authority-risk](../living-audit/red-team-08-manifest-authority-risk.md) | Manifest authority |
-| RT-09 | [red-team-09-surface-contract-risk](../living-audit/red-team-09-surface-contract-risk.md) | Surface contracts |
-| RT-10 | [red-team-10-funding-authority-risk](../living-audit/red-team-10-funding-authority-risk.md) | Funding authority |
-| RT-11 | [red-team-11-gate-theater-risk](../living-audit/red-team-11-gate-theater-risk.md) | Gate theater |
-| RT-12 | [red-team-12-evidence-authority-collapse](../living-audit/red-team-12-evidence-authority-collapse.md) | Evidence authority |
-| — | [red-team-smoke-test-2026-07-04](../living-audit/red-team-smoke-test-2026-07-04.md) | Smoke test |
+| RT-01 | [red-team-01-adoption-risk](../archive/planning/living-audit/red-team-01-adoption-risk.md) | Adoption / installer category |
+| RT-02 | [red-team-02-detection-privacy](../archive/planning/living-audit/red-team-02-detection-privacy.md) | Detection privacy |
+| RT-03 | [red-team-03-agent-runtime-matrix](../archive/planning/living-audit/red-team-03-agent-runtime-matrix.md) | Runtime matrix |
+| RT-04 | [red-team-04-refactor-seam-risk](../archive/planning/living-audit/red-team-04-refactor-seam-risk.md) | Adapter seams |
+| RT-05 | [red-team-05-release-gate-risk](../archive/planning/living-audit/red-team-05-release-gate-risk.md) | Release gates |
+| RT-06 | [red-team-06-validation-matrix-risk](../archive/planning/living-audit/red-team-06-validation-matrix-risk.md) | Evidence inflation |
+| RT-07 | [red-team-07-open-update-connect-risk](../archive/planning/living-audit/red-team-07-open-update-connect-risk.md) | Update/connect paths |
+| RT-08 | [red-team-08-manifest-authority-risk](../archive/planning/living-audit/red-team-08-manifest-authority-risk.md) | Manifest authority |
+| RT-09 | [red-team-09-surface-contract-risk](../archive/planning/living-audit/red-team-09-surface-contract-risk.md) | Surface contracts |
+| RT-10 | [red-team-10-funding-authority-risk](../archive/planning/living-audit/red-team-10-funding-authority-risk.md) | Funding authority |
+| RT-11 | [red-team-11-gate-theater-risk](../archive/planning/living-audit/red-team-11-gate-theater-risk.md) | Gate theater |
+| RT-12 | [red-team-12-evidence-authority-collapse](../archive/planning/living-audit/red-team-12-evidence-authority-collapse.md) | Evidence authority |
+| — | [red-team-smoke-test-2026-07-04](../archive/planning/living-audit/red-team-smoke-test-2026-07-04.md) | Smoke test |
 
 ## Cross-cutting themes → status
 

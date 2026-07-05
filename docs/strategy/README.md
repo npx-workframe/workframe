@@ -8,4 +8,4 @@ Long-term product, architecture, and monetization brief. **v0.1.x shipping scope
 | [Ledger summary](../ledger/north-star.md) | One-page index into chapters |
 | [Diagrams](workframe_v0_1_1_docs/assets/) | Rendered SVG figures |
 
-This package was previously maintained as a private draft; it is now public planning memory alongside [living-audit](../living-audit/) and [ledger](../ledger/).
+This package was previously maintained as a private draft; it is now public planning memory alongside [archived living-audit](../archive/planning/living-audit/) and [ledger](../ledger/).

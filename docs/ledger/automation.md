@@ -2,6 +2,11 @@
 
 How autonomous agents use [`backlog.json`](backlog.json) as the single work queue.
 
+## PM boot (Workframe)
+
+Every session: [`operations/pm/session.md`](../operations/pm/session.md)  
+Program queue: [`backlog.json`](backlog.json)
+
 ## Loop (implementer ↔ reviewer)
 
 ```text

@@ -7,6 +7,7 @@ Also published at [docs.workfra.me](https://docs.workfra.me).
 
 | Doc | |
 |-----|---|
+| [PM harness](../operations/pm/README.md) | Session boot, runbook, queues — **start every Workframe session** |
 | [Ledger index](ledger/README.md) | Now, north star, audits, loop engineering |
 | [Now](ledger/now.md) | Current shipping wedge |
 | [North star summary](ledger/north-star.md) | Vision + link to full strategy brief |
@@ -54,10 +55,13 @@ Also published at [docs.workfra.me](https://docs.workfra.me).
 | [API reference](public/api-reference.md) | HTTP routes used by the UI |
 | [Database schema](public/schema.sql) | SQL schema |
 
-## Contributors
+## Archive
 
-| Doc | |
-|-----|---|
+| | |
+|--|--|
+| [archive/README.md](../archive/README.md) | Superseded planning (living-audit rail) |
+
+## Contributors
 | [Develop](public/develop.md) | Monorepo setup |
 | [Contributing](public/contributing.md) | Issues, PRs, code areas |
 | [Release verification](public/release.md) | Pre-publish regression scripts |

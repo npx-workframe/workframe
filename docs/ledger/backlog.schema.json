@@ -72,7 +72,12 @@
         },
         "owner_role": {
           "type": "string",
-          "enum": ["implementer", "reviewer", "harness", "docs", "design"]
+          "enum": ["implementer", "reviewer", "harness", "docs", "design", "pm-workframe"]
+        },
+        "abkb_role": {
+          "type": "string",
+          "description": "ABKB operations/roles registry id for worker dispatch",
+          "enum": ["coder", "code-reviewer", "tests", "docs", "pm-workframe"]
         },
         "workflow": {
           "type": "object",

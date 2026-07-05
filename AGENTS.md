@@ -2,7 +2,8 @@
 
 These instructions apply to AI assistants working in this repository.
 
-**Start here:** [START_HERE.md](START_HERE.md) — project map, ledger, pitfalls, cascade read order.
+**Start here:** [operations/pm/README.md](operations/pm/README.md) — PM harness (every Workframe session).  
+Also: [START_HERE.md](START_HERE.md) — repo map, environments, cascade.
 
 ## Developer loop (source → dogfood → npm)
 
