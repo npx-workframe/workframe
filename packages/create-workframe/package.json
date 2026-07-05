@@ -1,6 +1,6 @@
 {
   "name": "create-workframe",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Scaffold a Workframe + Hermes workspace with guided onboarding",
   "type": "module",
   "bin": {

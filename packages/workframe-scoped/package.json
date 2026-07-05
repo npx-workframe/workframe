@@ -1,6 +1,6 @@
 {
   "name": "@workframe/workframe",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Scoped mirror of the Workframe lifecycle CLI.",
   "type": "module",
   "private": false,

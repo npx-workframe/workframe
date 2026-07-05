@@ -57,12 +57,13 @@ _wf_sync_from_pack_dir() {
     echo "Syncing workframe-ui/public -> $UI_DIR"
     _wf_sync_tree "$pkg/workframe-ui/public" "$UI_DIR"
   fi
-  for script in apply-update-hermes.sh apply-update-workframe.sh restart-gateway-hermes.sh compose-docker-host.sh update-hermes.sh; do
-    if [[ -f "$pkg/scripts/$script" ]]; then
-      cp -a "$pkg/scripts/$script" "$SCRIPTS_DIR/$script"
-      chmod +x "$SCRIPTS_DIR/$script" 2>/dev/null || true
-    fi
-  done
+  if [[ -d "$pkg/scripts" ]]; then
+    for script in "$pkg/scripts"/*.sh; do
+      [[ -f "$script" ]] || continue
+      cp -a "$script" "$SCRIPTS_DIR/$(basename "$script")"
+      chmod +x "$SCRIPTS_DIR/$(basename "$script")" 2>/dev/null || true
+    done
+  fi
 }
 
 _wf_apply_npm_tarball() {
