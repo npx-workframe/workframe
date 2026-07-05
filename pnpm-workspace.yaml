@@ -3,6 +3,4 @@ packages:
   - "apps/website"
   - "apps/desktop"
   - "packages/create-workframe"
-  - "packages/workframe"
-  - "packages/workframe-scoped"
   - "services/workframe-api"
