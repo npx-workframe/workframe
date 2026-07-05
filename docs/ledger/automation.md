@@ -61,7 +61,7 @@ Map completed items to harness scenarios when applicable:
 |---------|------------------|
 | WF-002, WF-021 | `dogfood-install-gate` |
 | WF-012 | `installer-ui-bundle` |
-| WF-022, WF-001 | new `version-agreement` (to add) |
+| WF-022, WF-001 | `verify:version` / `version-agreement` |
 | WF-028 | API self-check / new lease tests |
 
 ## Daily ledger (portfolio)

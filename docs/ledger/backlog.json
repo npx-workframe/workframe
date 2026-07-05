@@ -9,7 +9,7 @@
       "summary": "README, install docs, root package, create-workframe package, tags, and npm publish must agree.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P0-1", "RT-05", "RT-06", "package-truth-gate"],
       "acceptance": [
         "Single version string across README, docs/public/install.md, both package.json files",
@@ -17,8 +17,18 @@
         "Release evidence records package version"
       ],
       "depends_on": [],
+      "evidence": [
+        "scripts/workframe/verify-version-agreement.mjs",
+        "pnpm verify:version",
+        ".github/workflows/ci.yml"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "abkb_role": "tests",
+      "workflow": {
+        "assignee": "pm-workframe",
+        "completed_at": "2026-07-05",
+        "patch_refs": []
+      }
     },
     {
       "id": "WF-002",
@@ -343,13 +353,14 @@
       "summary": "CI checks root package, installer package, README, install.md alignment.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:ticket-5"],
       "acceptance": ["Runnable in CI", "Release gate fails on drift"],
       "depends_on": [],
-      "blocks": ["WF-001"],
+      "evidence": ["scripts/workframe/verify-version-agreement.mjs", "package.json verify:version"],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "abkb_role": "tests",
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": [] }
     },
     {
       "id": "WF-023",

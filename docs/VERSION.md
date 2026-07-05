@@ -1,17 +1,25 @@
-# Workframe v0.1.9
+# Workframe v0.1.11
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.9 |
-| workframe CLI | 0.1.9 |
-| @workframe/workframe | 0.1.9 |
-| Workframe API / UI | 0.1.9 |
+| create-workframe | 0.1.11 |
+| workframe CLI | 0.1.11 |
+| @workframe/workframe | 0.1.11 |
+| Workframe API / UI | 0.1.11 |
 
 ```bash
-npx create-workframe@0.1.9 MyProject
+npx create-workframe@0.1.11 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.11
+
+- Sync all install scripts from npm pack during in-app Workframe apply.
+
+## 0.1.10
+
+- Defer supervisor self-restart during in-app Workframe apply (SECURE_MODE).
 
 ## 0.1.9
 

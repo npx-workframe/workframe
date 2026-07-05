@@ -26,6 +26,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Version agreement
+        run: node scripts/workframe/verify-version-agreement.mjs
+
       - name: Harness verify
         env:
           HARNESS_CHECK: "1"

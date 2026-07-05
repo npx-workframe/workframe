@@ -25,6 +25,7 @@ After reset: open the printed UI URL → complete the **wizard in the browser**.
 | **Pre-publish gate** (no install) | `.\scripts\workframe\install-gate.ps1` |
 | **Reset VPS sandbox** | `.\scripts\workframe\reset-vps-runtime.ps1 -VpsHost user@host` |
 | **VPS tunnel** | `.\scripts\workframe\open-vps-tunnel.ps1` |
+| **Version agreement** | `node scripts/workframe/verify-version-agreement.mjs` |
 | **Publish npm** | `.\scripts\workframe\publish-npm.ps1` |
 
 ---
