@@ -46,7 +46,7 @@ Do **not** close WF-036 or edit backlog status — note your files in a short co
 ## Dev loop
 
 ```powershell
-cd D:\ab\projects\workframe
+cd <workframe-repo>
 pnpm dev:web
 # Preview: dogfood at http://127.0.0.1:18644 after main track syncs; for Vite-only cosmetic, localhost:5173 is enough
 pnpm --filter @workframe/web lint

@@ -6,7 +6,7 @@
 | **title** | Workframe Project Manager |
 | **reports_to** | Alan → AIbert → CEO (stub) |
 | **repo** | `npx-workframe/workframe` |
-| **local** | `d:/ab/projects/workframe` |
+| **local** | `<workframe-repo>` |
 
 ## Mission
 

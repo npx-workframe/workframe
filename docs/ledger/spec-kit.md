@@ -31,7 +31,7 @@ We already have parallel artifacts. **Do not duplicate** — map layers:
 ```bash
 # When ready (requires uv + specify-cli)
 uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
-cd d:/ab/projects/workframe
+cd <workframe-repo>
 specify init . --here --integration cursor --force
 # Then merge .specify/ templates with docs/ledger/specs/ paths in automation.md
 ```

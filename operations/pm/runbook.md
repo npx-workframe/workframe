@@ -1,20 +1,20 @@
 # PM runbook — edit, build, deploy
 
-**Default:** execute these after patches without asking Alan. Repo root: `D:\ab\projects\workframe`.
+**Default:** execute these after patches without asking Alan. Repo root: `<workframe-repo>`.
 
 ## Four targets (never confuse)
 
 | Target | Path | Edit? |
 |--------|------|-------|
 | **Source** | This repo | **Yes** — `services/workframe-api/`, `apps/web/src/` |
-| **Dogfood local** | `D:\ab\projects\MyBusiness` | **No** — disposable install |
+| **Dogfood local** | `../MyBusiness` | **No** — disposable install |
 | **Dogfood VPS** | `/opt/workframe/MyBusiness` | **No** — reinstall from pack |
 | **Host Hermes** | `%LOCALAPPDATA%\hermes` | **OFF LIMITS** |
 
 ## Canonical edit order
 
 ```powershell
-cd D:\ab\projects\workframe
+cd <workframe-repo>
 # 1. Edit services/workframe-api/ and/or apps/web/src/
 
 # 2. If UI changed:
@@ -53,14 +53,14 @@ node packages/create-workframe/scripts/bundle-workframe-ui.mjs
 
 ```powershell
 # Manual compose refresh if needed (from MyBusiness dir):
-cd D:\ab\projects\MyBusiness
+cd ../MyBusiness
 docker compose up -d --build workframe-api workframe-supervisor workframe
 ```
 
 ## Bump and publish
 
 ```powershell
-cd D:\ab\projects\workframe
+cd <workframe-repo>
 # Bump package.json (root + packages/create-workframe) — align README install @version
 pnpm build:web
 node packages/create-workframe/scripts/sync-canonical-to-package.mjs

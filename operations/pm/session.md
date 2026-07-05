@@ -5,7 +5,7 @@ Run this at the start of **every** Workframe chat or automation.
 ## 1. Orient (10 s)
 
 ```powershell
-cd D:\ab\projects\workframe
+cd <workframe-repo>
 git status -sb
 git log main -3 --oneline
 ```
@@ -55,7 +55,7 @@ Update `backlog.json` workflow fields if item moved.
 
 | Action | Command |
 |--------|---------|
-| Local install | `D:\ab\projects\MyBusiness` — slot 1 `18644` |
+| Local install | `../MyBusiness` — slot 1 `18644` |
 | Wipe sandbox | `.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm` |
 | Sign-off | `.\scripts\workframe\sign-off-install.ps1` |
 | Routine update | Browser Admin → Updates → Workframe |

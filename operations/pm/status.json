@@ -6,7 +6,7 @@
   "last_session": null,
   "active_backlog_ids": [],
   "dogfood": {
-    "local_path": "D:/ab/projects/MyBusiness",
+    "local_path": "../MyBusiness",
     "ui_url": "http://127.0.0.1:18644",
     "api_port": 19120
   },
