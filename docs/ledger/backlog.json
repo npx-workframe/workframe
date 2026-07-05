@@ -743,8 +743,8 @@
       "workflow": {
         "assignee": null,
         "reviewer": null,
-        "patch_refs": [],
-        "notes": "2026-07-05: Composer decoupled model fetch from sessionReady; startNewSession sets connectError + avoids prevRoomKey race; applyBoundSession dispatches hermes-models-changed. ModelPickerDialog still unmounted (composer uses agent settings). Remaining: split HermesSessionContext, mount or delete dead modelOpen dialog."
+        "patch_refs": ["b8e1355", "faa2298"],
+        "notes": "Composer badge + new session errors (b8e1355). CommandModelPickerMount wires ModelPickerDialog; /model opens picker. Remaining: split HermesSessionContext/ConciergeFlow; inferProviderFromModelId cleanup."
       }
     },
     {

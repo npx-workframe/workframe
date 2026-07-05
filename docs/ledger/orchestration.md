@@ -27,7 +27,7 @@ Cosmetic lane must not edit `server.py`, session/model files, or ledger status.
 | A1 | WF-031 security | — | **done** |
 | A2 | WF-034 tests, WF-033 yaml writer, WF-038 prune | yes | **done** (WF-033 partial) |
 | A3 | model/provider UI consistency | — | **partial** (composer badge + new session errors; dogfood synced) |
-| B1 | WF-037 route registry | after A2 | **partial** (auth table; handlers pending) |
+| B1 | WF-037 route registry | after A2 | **partial** (batch 1: 20 data-read GETs; POST next) |
 | B2 | WF-032 server split | after WF-037 | todo |
 
 ## Commit queue (this session)

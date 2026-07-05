@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Composer, type ComposerHandle } from '@/components/chat/Composer'
+import { CommandModelPickerMount } from '@/components/chat/CommandModelPickerMount'
 import { CommandDialogsProvider } from '@/contexts/CommandDialogsContext'
 import type { MentionAgent } from '@/components/chat/MentionPalette'
 import { MessageList } from '@/components/chat/MessageList'
@@ -400,6 +401,7 @@ export function ChatSplit() {
           />
         </div>
       </div>
+      <CommandModelPickerMount />
       </CommandDialogsProvider>
     )
   }
@@ -453,6 +455,7 @@ export function ChatSplit() {
         />
       </div>
     </div>
+    <CommandModelPickerMount />
     </CommandDialogsProvider>
   )
 }

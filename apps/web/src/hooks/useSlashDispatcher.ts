@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { execHermesCommand, execHermesGateway, setHermesModel, type SlashDispatchResult } from '@/lib/hermesCatalogApi'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
+import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveAgentModelsProfile } from '@/lib/agentProfile'
@@ -25,6 +26,7 @@ import { resolveAgentModelsProfile } from '@/lib/agentProfile'
  */
 export function useSlashDispatcher() {
   const { startNewSession, profile: runtimeProfile } = useHermesSession()
+  const { openModelPicker } = useCommandDialogs()
   const { activeProfile } = useAgentRoute()
   const { activeRoom } = useWorkspacePanels()
   const modelsProfile = resolveAgentModelsProfile(activeRoom, activeProfile, runtimeProfile)
@@ -100,8 +102,19 @@ export function useSlashDispatcher() {
               await startNewSession()
               break
             case 'openModelSwitcher':
+              if (!result.args?.trim()) {
+                openModelPicker()
+              }
+              break
             case 'openHelp':
             case 'openStatus':
+            case 'openUsage':
+            case 'openProfile':
+            case 'openDebug':
+            case 'openInsights':
+            case 'openGquota':
+            case 'openSkills':
+            case 'openPersonality':
               // Dialog-opening handlers: set lastResult with the real
               // handler so the composer's effect routes it to the right
               // dialog. The dialogs already exist; no need to defer.
@@ -136,7 +149,7 @@ export function useSlashDispatcher() {
         setBusy(false)
       }
     },
-    [startNewSession, modelsProfile, workspaceId],
+    [startNewSession, openModelPicker, modelsProfile, workspaceId],
   )
 
   return { dispatch, lastResult, busy }
