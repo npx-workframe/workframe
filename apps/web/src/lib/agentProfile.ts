@@ -1,5 +1,18 @@
+import { nativeProfileSlug } from '@/lib/workframeProfile'
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const TEMPLATE_PROFILES = [
+  'workframe-agent',
+  nativeProfileSlug(),
+  'architect',
+  'visionary',
+  'docs',
+  'dev',
+  'research',
+  'designer',
+]
 
 export type AgentProfileRef = {
   agent_profile_id?: string | null
@@ -12,15 +25,7 @@ export function templateProfileSlug(profileOrRuntime: string): string {
   const slug = profileOrRuntime.trim().toLowerCase()
   if (!/^u-[a-z0-9]/.test(slug)) return profileOrRuntime.trim()
   const rest = slug.slice(2)
-  const templates = [
-    'workframe-agent',
-    'architect',
-    'visionary',
-    'docs',
-    'dev',
-    'research',
-    'designer',
-  ]
+  const templates = [...new Set(TEMPLATE_PROFILES.filter(Boolean))]
   for (const template of templates) {
     if (rest === template || rest.endsWith(`-${template}`)) return template
   }
@@ -30,16 +35,31 @@ export function templateProfileSlug(profileOrRuntime: string): string {
 /** Hermes profile slug for API calls — never a workspace agent_profiles UUID. */
 export function resolveHermesProfileSlug(
   room: AgentProfileRef | null | undefined,
-  _fallback = '',
+  fallback = '',
 ): string {
   if (!isAgentChatRoom(room)) return ''
   const hermes = room?.hermes_profile?.trim()
   if (hermes) return templateProfileSlug(hermes)
   const ref = room?.agent_profile_id?.trim() || ''
-  if (!ref) return ''
-  if (!UUID_RE.test(ref)) return templateProfileSlug(ref)
+  if (ref && !UUID_RE.test(ref)) return templateProfileSlug(ref)
+  const fb = fallback.trim()
+  if (fb && !UUID_RE.test(fb)) return templateProfileSlug(fb)
   // ponytail: agent DM rooms store agent_profiles.id (UUID). Never guess from stale activeProfile.
   return ''
+}
+
+/** Template Hermes slug for agent settings / routes — not per-user runtime u-*. */
+export function resolveAgentTemplateProfile(
+  room: AgentProfileRef | null | undefined,
+  activeProfile: string,
+): string {
+  return (
+    resolveHermesProfileSlug(room, activeProfile) ||
+    (activeProfile.trim() && !isAgentProfileUuid(activeProfile)
+      ? templateProfileSlug(activeProfile)
+      : '') ||
+    nativeProfileSlug()
+  )
 }
 
 /** Agent DM room only — direct + bound agent. Projects use room_memberships for agents. */

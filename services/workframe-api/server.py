@@ -908,8 +908,13 @@ def _auth_check(handler: BaseHTTPRequestHandler) -> bool:
     if method == "OPTIONS":
         return True
 
-    # GET public routes
+    # GET public routes — still attach session user when cookie/header present
+    # (e.g. /api/hermes/models needs auth_user for per-user provider detection).
     if method == "GET" and _is_public_get(path):
+        if sid:
+            session_info = _zk.validate_session_token(sid)
+            if session_info:
+                _apply_session_user(handler, session_info["user_id"])
         return True
 
     # POST auth endpoints (start/verify/logout/refresh) are public
@@ -2074,6 +2079,53 @@ def _merge_user_platform_ids(user_id: str, patch: dict[str, str]) -> None:
         current = {str(k): str(v) for k, v in user["platform_ids"].items() if str(v or "").strip()}
     merged = {**current, **{str(k): str(v) for k, v in patch.items() if str(v or "").strip()}}
     _apply_me_profile_updates(user_id, {"platform_ids": merged})
+
+
+def _read_user_llm_prefs(user_id: str) -> tuple[str, list[dict[str, str]]]:
+    """User-level default model prefs (not agent profile config)."""
+    user = _get_workframe_user(str(user_id or "").strip())
+    pids = user.get("platform_ids") if user and isinstance(user.get("platform_ids"), dict) else {}
+    primary = str(pids.get("llm_primary") or "").strip()
+    chain_raw = pids.get("llm_fallback_chain")
+    chain: list[dict[str, str]] = []
+    if isinstance(chain_raw, str) and chain_raw.strip():
+        try:
+            parsed = json.loads(chain_raw)
+            if isinstance(parsed, list):
+                for entry in parsed:
+                    if isinstance(entry, dict):
+                        prov = str(entry.get("provider") or "").strip()
+                        model = str(entry.get("model") or "").strip()
+                        if prov and model:
+                            chain.append({"provider": prov, "model": model})
+        except json.JSONDecodeError:
+            pass
+    return primary, chain
+
+
+def _write_user_llm_prefs(
+    user_id: str,
+    *,
+    primary: str = "",
+    fallback_chain: list[dict[str, str]] | None = None,
+) -> None:
+    user_id = str(user_id or "").strip()
+    if not user_id:
+        return
+    patch: dict[str, str] = {}
+    if primary:
+        patch["llm_primary"] = primary.strip()
+    if fallback_chain is not None:
+        patch["llm_fallback_chain"] = json.dumps(fallback_chain, separators=(",", ":"))
+    if patch:
+        _merge_user_platform_ids(user_id, patch)
+
+
+def _user_llm_has_provider(user_id: str, workspace_id: str = "") -> bool:
+    if _user_has_llm_provider(user_id):
+        return True
+    ws = str(workspace_id or "").strip()
+    return bool(ws and _workspace_has_llm_provider(ws))
 
 
 def _start_discord_oauth(user_id: str, workspace_id: str = "") -> dict[str, Any]:
@@ -5098,6 +5150,25 @@ def bootstrap_agent_dm_lane(
         try:
             _bootstrap_profile_providers(runtime, user_id, workspace_id)
             steps.append({"step": "bootstrap_providers", "ok": True})
+            user_primary, user_chain = _read_user_llm_prefs(user_id)
+            if user_primary:
+                applied = hermes_model_set(runtime, user_primary, user_id, workspace_id)
+                steps.append(
+                    {
+                        "step": "user_default_model",
+                        "ok": bool(applied.get("ok")),
+                        "model": user_primary,
+                    },
+                )
+            if user_chain:
+                chained = hermes_fallback_chain_set(runtime, user_chain, user_id=user_id)
+                steps.append(
+                    {
+                        "step": "user_default_fallbacks",
+                        "ok": bool(chained.get("ok")),
+                        "count": len(user_chain),
+                    },
+                )
         except Exception as exc:
             steps.append({"step": "bootstrap_providers", "ok": False, "error": str(exc)})
 
@@ -6169,6 +6240,7 @@ def ensure_runtime_profile(
         if not _profile_toolsets_ready(runtime, _chat_toolsets_for_profile(runtime)):
             _ensure_profile_toolsets(runtime)
         _ensure_profile_terminal_cwd(runtime)
+        _sync_runtime_model_from_template(runtime, template)
         return
     _purge_runtime_profile(runtime)
     _register_runtime_profile(runtime, template)
@@ -10678,6 +10750,28 @@ def _profile_model(profile: str) -> str:
         conn.close()
 
 
+def _llm_attribution_for_profile(profile: str, session_model: str = "") -> tuple[str, str]:
+    """Resolve model id + billing provider for chat turn footers."""
+    _ = session_model  # ponytail: Hermes sessions.model is profile slug, not LLM id
+    try:
+        prof = resolve_hermes_profile(str(profile or "").strip())
+    except ValueError:
+        return "", ""
+    block = _read_model_block(prof)
+    model = str(block.get("default") or "").strip()
+    billing = _billing_provider_id_from_hermes_config(str(block.get("provider") or ""))
+    if not billing:
+        billing = _llm_billing_provider(prof)
+    if not billing and model:
+        infer_llm = {
+            str(spec["id"]).lower()
+            for spec in PROVIDER_CONNECT_CATALOG
+            if str(spec.get("category") or "") == "llm"
+        }
+        billing = _resolve_billing_provider_for_model(model, infer_llm)
+    return model, str(billing or "").strip()
+
+
 def _latest_session_id(profile: str) -> str:
     """Most recent session — prefer active (ended_at IS NULL), then by started_at."""
     db = _profile_dir(profile) / "state.db"
@@ -10904,13 +10998,16 @@ def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> 
         _runtime_template_slug(profile) if _is_runtime_profile_slug(profile) else profile
     )
     display = _profile_display_name(profile)
+    attr_model, attr_provider = _llm_attribution_for_profile(profile)
     try:
         raw = conn.execute(
             """
-            SELECT id, role, content, reasoning_content, tool_name, timestamp, token_count
-            FROM messages
-            WHERE role IN ('user', 'assistant', 'tool') AND session_id = ?
-            ORDER BY timestamp ASC, id ASC
+            SELECT m.id, m.role, m.content, m.reasoning_content, m.tool_name,
+                   m.timestamp, m.token_count, s.model AS session_model
+            FROM messages m
+            LEFT JOIN sessions s ON s.id = m.session_id
+            WHERE m.role IN ('user', 'assistant', 'tool') AND m.session_id = ?
+            ORDER BY m.timestamp ASC, m.id ASC
             LIMIT 200
             """,
             (sid,),
@@ -10943,6 +11040,9 @@ def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> 
             if current and current["role"] == "agent":
                 current["segments"].extend(segments)
                 current["tokens"] += tokens
+                if attr_model:
+                    current["model"] = attr_model
+                    current["llm_provider"] = attr_provider
             else:
                 if current:
                     turns.append(current)
@@ -10954,6 +11054,8 @@ def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> 
                     "segments": list(segments),
                     "timestamp": ts,
                     "tokens": tokens,
+                    "model": attr_model,
+                    "llm_provider": attr_provider,
                 }
         if current:
             turns.append(current)
@@ -12678,13 +12780,13 @@ def _overlay_chat_llm_env(
 
 
 def _resolve_models_profile(profile: str) -> str:
-    """Profile slug for model picker reads — accepts runtime u-* Hermes dirs."""
+    """Template profile slug for model picker reads — never per-user runtime u-*."""
     raw = str(profile or "").strip()
     if not raw:
         return _primary_profile()
     slug = safe_profile_slug(raw)
     if _is_runtime_profile_slug(slug):
-        return resolve_hermes_profile(slug)
+        return resolve_validated_profile(_runtime_template_slug(slug))
     return resolve_validated_profile(slug)
 
 
@@ -12713,10 +12815,13 @@ def _augment_model_suggestions(
     extra: list[dict[str, str]] = []
     primary = str(block.get("default") or "").strip()
     if primary and primary not in seen:
+        bill = _billing_provider_id_from_hermes_config(str(block.get("provider") or "")) or str(
+            block.get("provider") or "openrouter"
+        )
         extra.append(
             _model_suggestion_row(
                 primary,
-                provider_label=str(block.get("provider") or "OpenRouter").title(),
+                provider_label=_provider_display_label(bill),
                 label="Current primary",
                 description="Active model for this agent profile",
             ),
@@ -12732,10 +12837,11 @@ def _augment_model_suggestions(
         full = model if "/" in model else f"{prov}/{model}"
         if full in seen:
             continue
+        bill = _billing_provider_id_from_hermes_config(prov) or prov
         extra.append(
             _model_suggestion_row(
                 full,
-                provider_label=prov.title(),
+                provider_label=_provider_display_label(bill),
                 label=f"Fallback · {model}",
                 description="Configured in this profile's fallback chain",
             ),
@@ -13732,6 +13838,8 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
     if _triggering_user:
         _reconcile_profile_llm_for_user(prof, _triggering_user, _workspace_id)
     llm_provider = _llm_billing_provider(prof, user_id=_triggering_user, workspace_id=_workspace_id)
+    model_block = _read_model_block(prof)
+    model_used = str(model_block.get("default") or "").strip()
     llm_ready = bool(
         _triggering_user
         and _user_can_use_llm(_triggering_user, _workspace_id, llm_provider)
@@ -13810,8 +13918,10 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         handler.send_header("X-Workframe-Api-Port", str(lifecycle["api_port"]))
         handler.end_headers()
         handler.wfile.write(
-            b"event: run.started\n"
-            b"data: {\"text\":\"Contacting model...\"}\n\n"
+            (
+                "event: run.started\n"
+                f"data: {json.dumps({'text': 'Contacting model...', 'model': model_used, 'llm_provider': llm_provider})}\n\n"
+            ).encode("utf-8")
         )
         handler.wfile.flush()
         buffer = b""
@@ -15122,7 +15232,7 @@ def _set_profile_model_provider(profile: str, provider: str) -> tuple[bool, str]
     return True, ""
 
 
-def _read_model_block(profile: str) -> dict[str, Any]:
+def _parse_model_block_from_disk(profile: str) -> dict[str, Any]:
     """Parse the model surface from the profile's config.yaml:
     `model.default`, `model.provider`, etc. (siblings of `model:`) AND
     the top-level `fallback_providers:` block. Pure text scan — no
@@ -15231,6 +15341,48 @@ def _read_model_block(profile: str) -> dict[str, Any]:
     return out
 
 
+def _read_model_block(profile: str) -> dict[str, Any]:
+    """Model surface for a profile. Runtime u-* slugs inherit default/chain from template."""
+    raw = str(profile or "").strip()
+    if not raw:
+        return _parse_model_block_from_disk("")
+    try:
+        prof = resolve_hermes_profile(raw)
+    except ValueError:
+        return _parse_model_block_from_disk(raw)
+    block = _parse_model_block_from_disk(prof)
+    if not _is_runtime_profile_slug(prof):
+        return block
+    template = resolve_validated_profile(_runtime_template_slug(prof))
+    tblock = _parse_model_block_from_disk(template)
+    if str(tblock.get("default") or "").strip():
+        block["default"] = tblock["default"]
+    if tblock.get("fallback_chain"):
+        block["fallback_chain"] = list(tblock["fallback_chain"])
+    tpl_provider = str(tblock.get("provider") or "").strip()
+    if tpl_provider:
+        block["provider"] = tpl_provider
+    return block
+
+
+def _sync_runtime_model_from_template(runtime: str, template: str) -> None:
+    """Keep per-user runtime Hermes config aligned with agent template model picks."""
+    runtime_slug = safe_profile_slug(runtime)
+    template_slug = resolve_validated_profile(template)
+    if not _is_runtime_profile_slug(runtime_slug) or not profile_exists(runtime_slug):
+        return
+    tblock = _parse_model_block_from_disk(template_slug)
+    default = str(tblock.get("default") or "").strip()
+    if default:
+        _set_profile_model(runtime_slug, default)
+    chain = [e for e in (tblock.get("fallback_chain") or []) if isinstance(e, dict)]
+    if chain:
+        _write_fallback_chain(runtime_slug, chain)
+    billing = _billing_provider_id_from_hermes_config(str(tblock.get("provider") or ""))
+    if billing and default:
+        _apply_model_for_billing_provider(runtime_slug, billing, default)
+
+
 def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bool, str]:
     """Rewrite the `fallback_providers` block in config.yaml to match the
     supplied chain. Preserves all other keys, comments, and ordering.
@@ -15332,24 +15484,22 @@ def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bo
     return True, ""
 
 
-def hermes_models(profile: str = "", user_id: str = "", workspace_id: str = "") -> dict[str, Any]:
+def hermes_models(
+    profile: str = "",
+    user_id: str = "",
+    workspace_id: str = "",
+    *,
+    selection_only: bool = False,
+) -> dict[str, Any]:
     """Return a profile's model surface: primary, fallback chain,
     and curated suggestions scoped to the active provider. The catalog
     is a hint list, not a hardcoded menu — the BFF accepts any
     `provider/model` id and the picker always lets the user type a
     custom one.
     """
-    primary_profile = _resolve_models_profile(profile) if profile else _primary_profile()
-    if primary_profile:
-        _bootstrap_profile_providers(primary_profile, user_id, workspace_id)
-    block = _read_model_block(primary_profile) if primary_profile else {
-        "default": "", "provider": "", "base_url": "",
-        "providers": {}, "fallback_chain": [],
-    }
-    active_provider = block.get("provider", "").strip()
     picker_llm = _user_llm_providers_for_picker(user_id) if user_id else set()
     connected = _connected_provider_names(user_id, workspace_id)
-    has_llm = bool(picker_llm) if user_id else any(
+    has_llm = _user_llm_has_provider(user_id, workspace_id) if user_id else any(
         str(spec.get("category") or "") == "llm"
         and str(spec.get("id")).lower() in {n.lower() for n in connected}
         for spec in PROVIDER_CONNECT_CATALOG
@@ -15360,6 +15510,48 @@ def hermes_models(profile: str = "", user_id: str = "", workspace_id: str = "") 
         if str(spec.get("category") or "") == "llm"
         and str(spec.get("id")).lower() in {n.lower() for n in connected}
     }
+
+    if selection_only:
+        user_primary, user_chain = _read_user_llm_prefs(user_id) if user_id else ("", [])
+        primary = user_primary or (HERMES_DEFAULT_PRIMARY if has_llm else "")
+        billing = _resolve_billing_provider_for_model(primary, connected_llm) if primary else ""
+        suggestions = _augment_model_suggestions(
+            _suggestions_for_connected_llm_providers(connected_llm) if connected_llm else [],
+            {
+                "default": primary,
+                "provider": billing or "",
+                "base_url": "",
+                "providers": {},
+                "fallback_chain": user_chain,
+            },
+        )
+        return {
+            "ok": True,
+            "profile": "",
+            "primary": primary if has_llm else "",
+            "provider": billing if has_llm else "",
+            "base_url": "",
+            "fallback_chain": user_chain if has_llm else [],
+            "suggestions": suggestions,
+            "connected_providers": sorted(picker_llm if user_id else connected),
+            "has_llm_provider": has_llm,
+            "billing_provider": billing if has_llm else "",
+            "selection_only": True,
+            "default_primary": HERMES_DEFAULT_PRIMARY,
+            "default_fallback_chain": HERMES_DEFAULT_FALLBACK_CHAIN,
+        }
+
+    try:
+        primary_profile = _resolve_models_profile(profile) if profile else _primary_profile()
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
+    if primary_profile:
+        _bootstrap_profile_providers(primary_profile, user_id, workspace_id)
+    block = _read_model_block(primary_profile) if primary_profile else {
+        "default": "", "provider": "", "base_url": "",
+        "providers": {}, "fallback_chain": [],
+    }
+    active_provider = block.get("provider", "").strip()
     suggestions = _augment_model_suggestions(
         _suggestions_for_connected_llm_providers(connected_llm) if connected_llm else [],
         block,
@@ -15384,16 +15576,25 @@ def hermes_models(profile: str = "", user_id: str = "", workspace_id: str = "") 
         seen_models.add(mid)
         deduped.append(row)
     suggestions = deduped
+    primary_model = str(block.get("default") or "").strip()
+    billing = _billing_provider_id_from_hermes_config(active_provider)
+    if not billing and primary_model:
+        billing = _resolve_billing_provider_for_model(primary_model, connected_llm) or ""
+    if str(active_provider or "").lower() == "custom" and billing:
+        display_provider = billing
+    else:
+        display_provider = active_provider
     return {
         "ok": True,
         "profile": primary_profile,
-        "primary": block.get("default", "") if has_llm else "",
-        "provider": active_provider if has_llm else "",
+        "primary": primary_model if has_llm else "",
+        "provider": display_provider if has_llm else "",
         "base_url": block.get("base_url", ""),
         "fallback_chain": block.get("fallback_chain", []) if has_llm else [],
         "suggestions": suggestions,
         "connected_providers": sorted(picker_llm if user_id else connected),
         "has_llm_provider": has_llm,
+        "billing_provider": billing if has_llm else "",
         "default_primary": HERMES_DEFAULT_PRIMARY,
         "default_fallback_chain": HERMES_DEFAULT_FALLBACK_CHAIN,
     }
@@ -15428,8 +15629,27 @@ def hermes_model_set(
     model_id: str,
     user_id: str = "",
     workspace_id: str = "",
+    *,
+    selection_only: bool = False,
 ) -> dict[str, Any]:
     """Set primary model and align Hermes provider routing to a connected billing provider."""
+    user = str(user_id or "").strip()
+    if selection_only:
+        if not user:
+            return {"ok": False, "error": "unauthorized"}
+        connected = _user_llm_providers_for_picker(user)
+        billing = _resolve_billing_provider_for_model(model_id, connected)
+        if not billing and not _user_llm_has_provider(user, workspace_id):
+            return {"ok": False, "error": "connect an LLM provider first"}
+        _write_user_llm_prefs(user, primary=model_id)
+        return {
+            "ok": True,
+            "profile": "",
+            "model": model_id,
+            "provider": billing or "",
+            "billing_provider": billing or "",
+            "selection_only": True,
+        }
     target = profile or _primary_profile()
     if not target:
         return {"ok": False, "error": "no profile resolved"}
@@ -15446,6 +15666,11 @@ def hermes_model_set(
         ok, err = _set_profile_model(target, model_id)
         if not ok:
             return {"ok": False, "error": err}
+    tpl = safe_profile_slug(target)
+    if user and not _is_runtime_profile_slug(tpl):
+        runtime = _runtime_profile_slug(user, tpl)
+        if _runtime_profile_on_disk(runtime):
+            _sync_runtime_model_from_template(runtime, tpl)
     block = _read_model_block(target)
     return {
         "ok": True,
@@ -15458,14 +15683,17 @@ def hermes_model_set(
     }
 
 
-def hermes_fallback_chain_set(profile: str, chain: list[Any]) -> dict[str, Any]:
+def hermes_fallback_chain_set(
+    profile: str,
+    chain: list[Any],
+    *,
+    selection_only: bool = False,
+    user_id: str = "",
+) -> dict[str, Any]:
     """Set the fallback chain for a profile. Each entry must have
     `provider` and `model` keys. Order matters: Hermes tries them in
     sequence when the primary fails.
     """
-    target = profile or _primary_profile()
-    if not target:
-        return {"ok": False, "error": "no profile resolved"}
     normalized: list[dict[str, str]] = []
     for entry in chain:
         if not isinstance(entry, dict):
@@ -15478,9 +15706,24 @@ def hermes_fallback_chain_set(profile: str, chain: list[Any]) -> dict[str, Any]:
                 "error": f"invalid fallback entry: provider={provider!r} model={model!r}",
             }
         normalized.append({"provider": provider, "model": model})
+    if selection_only:
+        user = str(user_id or "").strip()
+        if not user:
+            return {"ok": False, "error": "unauthorized"}
+        _write_user_llm_prefs(user, fallback_chain=normalized)
+        return {"ok": True, "profile": "", "fallback_chain": normalized, "selection_only": True}
+    target = profile or _primary_profile()
+    if not target:
+        return {"ok": False, "error": "no profile resolved"}
     ok, err = _write_fallback_chain(target, normalized)
     if not ok:
         return {"ok": False, "error": err}
+    user = str(user_id or "").strip()
+    tpl = safe_profile_slug(target)
+    if user and not _is_runtime_profile_slug(tpl):
+        runtime = _runtime_profile_slug(user, tpl)
+        if _runtime_profile_on_disk(runtime):
+            _sync_runtime_model_from_template(runtime, tpl)
     return {"ok": True, "profile": target, "fallback_chain": normalized}
 
 
@@ -16958,7 +17201,10 @@ class Handler(BaseHTTPRequestHandler):
                 profile = qs.get("profile", [""])[0]
                 user_id = str(getattr(self, "auth_user", "") or "")
                 workspace_id = qs.get("workspace_id", [""])[0]
-                return self._json(200, hermes_models(profile, user_id, workspace_id))
+                selection_only = qs.get("selection_only", ["0"])[0] in {"1", "true", "yes"}
+                payload = hermes_models(profile, user_id, workspace_id, selection_only=selection_only)
+                status = 200 if payload.get("ok", True) else 400
+                return self._json(status, payload)
             if path == "/api/hermes/profiles/status":
                 profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
                 if SUPERVISOR_URL:
@@ -18961,11 +19207,24 @@ class Handler(BaseHTTPRequestHandler):
                 profile = str(body.get("profile", "")).strip()
                 user_id = str(getattr(self, "auth_user", "") or "")
                 workspace_id = str(body.get("workspace_id", "")).strip()
+                selection_only = bool(body.get("selection_only"))
                 if not model_id:
                     return self._json(400, {"error": "model required"})
-                if profile:
-                    _bootstrap_profile_providers(resolve_validated_profile(profile), user_id, workspace_id)
-                return self._json(200, hermes_model_set(profile, model_id, user_id, workspace_id))
+                if profile and not selection_only:
+                    try:
+                        _bootstrap_profile_providers(_resolve_models_profile(profile), user_id, workspace_id)
+                    except ValueError as exc:
+                        return self._json(400, {"ok": False, "error": str(exc)})
+                return self._json(
+                    200,
+                    hermes_model_set(
+                        profile,
+                        model_id,
+                        user_id,
+                        workspace_id,
+                        selection_only=selection_only,
+                    ),
+                )
             if path == "/api/hermes/model/apply-default":
                 if not _check_auth(self):
                     return self._json(401, {"error": "unauthorized"})
@@ -18975,13 +19234,23 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/hermes/fallback-chain":
                 if not _check_auth(self):
                     return self._json(401, {"error": "unauthorized"})
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
                 profile = str(body.get("profile", "")).strip()
                 chain = body.get("chain", [])
+                selection_only = bool(body.get("selection_only"))
+                user_id = str(getattr(self, "auth_user", "") or "")
                 if not isinstance(chain, list):
                     return self._json(400, {"error": "chain must be a list"})
-                return self._json(200, hermes_fallback_chain_set(profile, chain))
+                if not selection_only and not _role_allows(self, OWNER_ADMIN_ROLES):
+                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+                return self._json(
+                    200,
+                    hermes_fallback_chain_set(
+                        profile,
+                        chain,
+                        selection_only=selection_only,
+                        user_id=user_id,
+                    ),
+                )
             if path == "/api/board":
                 if not _check_auth(self):
                     return self._json(401, {"error": "unauthorized"})

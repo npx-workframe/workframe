@@ -68,7 +68,7 @@ export function liveTurnToChatMessage(
     turnId,
     agentSlug,
     agentName,
-    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    new Date().toISOString(),
   )
   return { ...base, segments: segments.length ? segments : base.segments }
 }

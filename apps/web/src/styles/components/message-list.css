@@ -82,7 +82,8 @@
 }
 
 .wf-message__time,
-.wf-message__tokens {
+.wf-message__tokens,
+.wf-message__attribution {
   font-family: var(--wf-font-mono);
   font-size: var(--wf-type-meta);
   line-height: var(--wf-leading-meta);
@@ -112,7 +113,9 @@
 
 .wf-message__footer {
   display: flex;
+  align-items: center;
   justify-content: flex-start;
+  gap: var(--wf-space-3);
   margin-top: 2px;
 }
 

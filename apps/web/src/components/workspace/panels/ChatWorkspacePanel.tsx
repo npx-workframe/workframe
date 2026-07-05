@@ -22,10 +22,14 @@ export function ChatWorkspacePanel({ api }: IDockviewPanelProps) {
   const { startNewSession, turnActive, sessionReady } = useHermesSession()
   const [resetting, setResetting] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsAgentTab, setSettingsAgentTab] = useState<'identity' | 'instructions' | 'models' | undefined>()
   const agentRoom = isAgentChatRoom(activeRoom)
 
   useEffect(() => {
-    registerOpenChatSettings(() => setSettingsOpen(true))
+    registerOpenChatSettings((agentTab) => {
+      setSettingsAgentTab(agentTab)
+      setSettingsOpen(true)
+    })
     return () => registerOpenChatSettings(null)
   }, [registerOpenChatSettings])
 
@@ -67,7 +71,16 @@ export function ChatWorkspacePanel({ api }: IDockviewPanelProps) {
         leading={newSessionControl}
         settingsOpen={settingsOpen}
         onSettingsOpenChange={setSettingsOpen}
-        renderSettings={({ open, onClose }) => <ChatSettingsSheet open={open} onClose={onClose} />}
+        renderSettings={({ open, onClose }) => (
+          <ChatSettingsSheet
+            open={open}
+            onClose={() => {
+              setSettingsAgentTab(undefined)
+              onClose()
+            }}
+            initialAgentTab={settingsAgentTab}
+          />
+        )}
       />
 
       <ChatSplit />

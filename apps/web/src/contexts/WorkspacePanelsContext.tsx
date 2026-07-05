@@ -24,18 +24,18 @@ type WorkspacePanelsContextValue = {
   activeRoom: WorkspaceRoom | null
   userSettingsOpen: boolean
   userSettingsTab: 'profile' | 'connect' | 'agents' | 'appearance'
-  userSettingsConnectTab: 'providers' | 'models' | 'messaging'
+  userSettingsConnectTab: 'providers' | 'messaging'
   onLogout?: () => void | Promise<void>
   openPanel: (panelId: string) => void
   openUserSettings: (
     tab?: 'profile' | 'connect' | 'agents' | 'appearance',
-    connectTab?: 'providers' | 'models' | 'messaging',
+    connectTab?: 'providers' | 'messaging' | 'models',
   ) => void
   closeUserSettings: () => void
   openAgentSettings: (profile: string, displayName: string) => void
   registerOpenAgentSettings: (fn: ((profile: string, displayName: string) => void | Promise<void>) | null) => void
-  registerOpenChatSettings: (fn: (() => void) | null) => void
-  openChatSettings: () => void
+  registerOpenChatSettings: (fn: ((agentTab?: 'identity' | 'instructions' | 'models') => void) | null) => void
+  openChatSettings: (agentTab?: 'identity' | 'instructions' | 'models') => void
   rebalanceLayout: (options?: ApplyLayoutOptions) => void
   setRailExpanded: (expanded: boolean) => void
   setActiveRoom: (room: WorkspaceRoom | null) => void
@@ -62,9 +62,9 @@ export function WorkspacePanelsProvider({
   const [activeRoom, setActiveRoomState] = useState<WorkspaceRoom | null>(null)
   const [userSettingsOpen, setUserSettingsOpen] = useState(false)
   const [userSettingsTab, setUserSettingsTab] = useState<'profile' | 'connect' | 'agents' | 'appearance'>('profile')
-  const [userSettingsConnectTab, setUserSettingsConnectTab] = useState<'providers' | 'models' | 'messaging'>('providers')
+  const [userSettingsConnectTab, setUserSettingsConnectTab] = useState<'providers' | 'messaging'>('providers')
   const openAgentSettingsRef = useRef<((profile: string, displayName: string) => void | Promise<void>) | null>(null)
-  const openChatSettingsRef = useRef<(() => void) | null>(null)
+  const openChatSettingsRef = useRef<((agentTab?: 'identity' | 'instructions' | 'models') => void) | null>(null)
 
   const registerOpenAgentSettings = useCallback(
     (fn: ((profile: string, displayName: string) => void | Promise<void>) | null) => {
@@ -73,22 +73,29 @@ export function WorkspacePanelsProvider({
     [],
   )
 
-  const registerOpenChatSettings = useCallback((fn: (() => void) | null) => {
-    openChatSettingsRef.current = fn
-  }, [])
+  const registerOpenChatSettings = useCallback(
+    (fn: ((agentTab?: 'identity' | 'instructions' | 'models') => void) | null) => {
+      openChatSettingsRef.current = fn
+    },
+    [],
+  )
 
   const openAgentSettings = useCallback((profile: string, displayName: string) => {
     void openAgentSettingsRef.current?.(profile, displayName)
   }, [])
 
-  const openChatSettings = useCallback(() => {
-    openChatSettingsRef.current?.()
+  const openChatSettings = useCallback((agentTab?: 'identity' | 'instructions' | 'models') => {
+    openChatSettingsRef.current?.(agentTab)
   }, [])
 
   const openUserSettings = useCallback((
     tab: 'profile' | 'connect' | 'agents' | 'appearance' = 'profile',
-    connectTab: 'providers' | 'models' | 'messaging' = 'providers',
+    connectTab: 'providers' | 'messaging' | 'models' = 'providers',
   ) => {
+    if (connectTab === 'models') {
+      openChatSettingsRef.current?.('models')
+      return
+    }
     setUserSettingsTab(tab)
     if (tab === 'connect') setUserSettingsConnectTab(connectTab)
     setUserSettingsOpen(true)

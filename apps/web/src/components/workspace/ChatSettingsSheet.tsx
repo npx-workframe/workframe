@@ -29,7 +29,7 @@ import {
   updateHermesProfile,
   type HermesProfileDetailResponse,
 } from '@/lib/hermesCatalogApi'
-import { resolveHermesProfileSlug } from '@/lib/agentProfile'
+import { resolveAgentTemplateProfile } from '@/lib/agentProfile'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { cn } from '@/lib/utils'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
@@ -43,6 +43,7 @@ import {
 type ChatSettingsSheetProps = {
   open: boolean
   onClose: () => void
+  initialAgentTab?: AgentSettingsTab
 }
 
 type ChatSettingsMode = 'agent' | 'project' | 'dm'
@@ -56,11 +57,7 @@ function resolveChatMode(room: WorkspaceRoom | null): ChatSettingsMode {
   return 'project'
 }
 
-function resolveAgentProfile(room: WorkspaceRoom | null, activeProfile: string): string {
-  return resolveHermesProfileSlug(room, activeProfile) || 'workframe-agent'
-}
-
-export function ChatSettingsSheet({ open, onClose }: ChatSettingsSheetProps) {
+export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettingsSheetProps) {
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   const { crew, reload: reloadCrew } = useCrew(projectName)
   const { activeRoom, setActiveRoom } = useWorkspacePanels()
@@ -91,7 +88,7 @@ export function ChatSettingsSheet({ open, onClose }: ChatSettingsSheetProps) {
 
   const mode = useMemo(() => resolveChatMode(activeRoom), [activeRoom])
   const agentProfile = useMemo(
-    () => resolveAgentProfile(activeRoom, activeProfile),
+    () => resolveAgentTemplateProfile(activeRoom, activeProfile),
     [activeRoom, activeProfile],
   )
   const route = useMemo(
@@ -204,6 +201,11 @@ export function ChatSettingsSheet({ open, onClose }: ChatSettingsSheetProps) {
     if (!open) return
     void load()
   }, [load, open])
+
+  useEffect(() => {
+    if (!open || !initialAgentTab) return
+    setAgentTab(initialAgentTab)
+  }, [open, initialAgentTab])
 
   const title = mode === 'agent' ? 'Agent settings' : mode === 'project' ? 'Project settings' : 'Conversation'
 

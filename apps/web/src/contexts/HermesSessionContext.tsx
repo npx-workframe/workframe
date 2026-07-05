@@ -427,9 +427,26 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     (evt: ProfileStreamEvent) => {
       const { event, data } = evt
       switch (event) {
-        case 'run.started':
+        case 'run.started': {
           handleEvent({ type: 'status.update', sessionId: '', payload: { text: 'Running...' } })
+          const streamId = streamMessageIdRef.current
+          const model = String(data.model ?? '').trim()
+          const llmProv = String(data.llm_provider ?? '').trim()
+          if (streamId && (model || llmProv)) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === streamId
+                  ? {
+                      ...m,
+                      ...(model ? { modelId: model } : {}),
+                      ...(llmProv ? { llmProvider: llmProv } : {}),
+                    }
+                  : m,
+              ),
+            )
+          }
           break
+        }
         case 'message.started':
           handleEvent({ type: 'message.start', sessionId: '', payload: data })
           break
@@ -492,7 +509,7 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
       const templateProf = templateProfileRef.current || prof
       const crewProf = templateProf
       const display = agentDisplayName
-      const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const timeLabel = new Date().toISOString()
       const userId = `u-${Date.now()}`
       const assistantId = `a-${Date.now()}`
       finalizedTurnIdsRef.current.delete(assistantId)
@@ -601,7 +618,7 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
       const templateProf = templateProfileRef.current || prof
       const crewProf = templateProf
       const display = agentDisplayName
-      const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const timeLabel = new Date().toISOString()
       const userId = `u-${Date.now()}`
       const assistantId = `a-${Date.now()}`
       finalizedTurnIdsRef.current.delete(assistantId)

@@ -22,8 +22,13 @@ export type ChatMessage = {
   authorName: string
   role: 'user' | 'agent'
   segments: ChatSegment[]
+  /** ISO-8601 timestamp for relative display. */
   timestamp: string
   tokens: number
+  /** Billing provider slug for agent turns (e.g. openrouter, codex). */
+  llmProvider?: string
+  /** Model id used for this agent turn. */
+  modelId?: string
   /** Live stream placeholder — replaced on history refresh. */
   ephemeral?: boolean
   color?: string
@@ -42,6 +47,32 @@ export function modelLabelFromId(modelId: string): string {
   if (!trimmed) return 'No model'
   const slash = trimmed.lastIndexOf('/')
   return slash >= 0 ? trimmed.slice(slash + 1) : trimmed
+}
+
+function providerDisplayLabel(providerId: string): string {
+  const key = providerId.trim().toLowerCase()
+  if (!key || key === 'custom') return ''
+  if (key === 'openrouter') return 'OpenRouter'
+  if (key === 'openai') return 'OpenAI'
+  if (key === 'anthropic') return 'Anthropic'
+  if (key === 'google') return 'Gemini'
+  if (key === 'codex' || key === 'openai-codex') return 'Codex'
+  if (key === 'deepseek') return 'DeepSeek'
+  if (key === 'nous') return 'Nous'
+  return providerId
+}
+
+/** Compact provider · model label for message attribution. */
+export function formatModelAttribution(modelId?: string, llmProvider?: string): string {
+  const model = modelId?.trim() ?? ''
+  if (model && /^u-[a-z0-9][a-z0-9-]*$/i.test(model)) return ''
+  const provider =
+    providerDisplayLabel(llmProvider ?? '') ||
+    (model.includes('/') ? providerDisplayLabel(model.split('/')[0] ?? '') : '')
+  if (provider && model) return `${provider} · ${modelLabelFromId(model)}`
+  if (model) return modelLabelFromId(model)
+  if (provider) return provider
+  return ''
 }
 
 export function emptyAgentStreamMessage(

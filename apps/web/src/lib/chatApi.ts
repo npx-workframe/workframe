@@ -10,6 +10,8 @@ type ChatApiMessage = {
   segments: ChatSegment[]
   timestamp: string
   tokens: number
+  model?: string
+  llm_provider?: string
 }
 
 export type ChatSessionInfo = {
@@ -28,11 +30,18 @@ type ChatMessagesResponse = {
   messages: ChatApiMessage[]
 }
 
-function formatTimestamp(iso: string): string {
-  if (!iso) return '--:--'
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+function mapApiMessage(m: ChatApiMessage): ChatMessage {
+  return {
+    id: m.id,
+    authorId: m.authorId,
+    authorName: m.authorName,
+    role: m.role,
+    segments: m.segments,
+    timestamp: m.timestamp,
+    tokens: m.tokens,
+    ...(m.model ? { modelId: m.model } : {}),
+    ...(m.llm_provider ? { llmProvider: m.llm_provider } : {}),
+  }
 }
 
 export async function fetchChatMessages(
@@ -48,10 +57,7 @@ export async function fetchChatMessages(
   )
   return {
     sessionId: data.session_id ?? sessionId ?? '',
-    messages: data.messages.map((m) => ({
-      ...m,
-      timestamp: formatTimestamp(m.timestamp),
-    })),
+    messages: data.messages.map(mapApiMessage),
   }
 }
 
@@ -90,10 +96,7 @@ export async function ensureRoomBind(payload: {
     agentDisplayName: data.agent_display_name ?? '',
     created: Boolean(data.created),
     llmReady: data.llm_ready ?? data.has_llm_provider ?? false,
-    messages: (data.messages ?? []).map((m) => ({
-      ...m,
-      timestamp: formatTimestamp(m.timestamp),
-    })),
+    messages: (data.messages ?? []).map(mapApiMessage),
   }
 }
 
@@ -117,10 +120,7 @@ export async function ensureProfileBind(payload: {
     agentDisplayName: data.agent_display_name ?? '',
     created: Boolean(data.created),
     llmReady: data.llm_ready ?? data.has_llm_provider ?? false,
-    messages: (data.messages ?? []).map((m) => ({
-      ...m,
-      timestamp: formatTimestamp(m.timestamp),
-    })),
+    messages: (data.messages ?? []).map(mapApiMessage),
   }
 }
 

@@ -60,6 +60,18 @@ function providerLabel(provider: string): string {
   return provider
 }
 
+function providerBucketKey(provider: string): string {
+  const k = provider.trim().toLowerCase().replace(/_/g, '-')
+  if (k === 'openai-codex' || k === 'codex' || k === 'openai codex') return 'codex'
+  if (k === 'openrouter') return 'openrouter'
+  if (k === 'openai') return 'openai'
+  if (k === 'anthropic') return 'anthropic'
+  if (k === 'google' || k === 'gemini') return 'google'
+  if (k === 'deepseek') return 'deepseek'
+  if (k === 'nous') return 'nous'
+  return k
+}
+
 export function ModelPickerPanel({
   profile,
   workspaceId,
@@ -83,7 +95,7 @@ export function ModelPickerPanel({
   ])
 
   useEffect(() => {
-    fetchHermesModels(selectionOnly ? undefined : profile, workspaceId)
+    fetchHermesModels(selectionOnly ? undefined : profile, workspaceId, { selectionOnly })
       .then((res) => {
         if (!res.ok) {
           onError?.('Could not load model surface')
@@ -104,14 +116,18 @@ export function ModelPickerPanel({
     for (const row of data?.suggestions ?? []) {
       if (seenModels.has(row.model)) continue
       seenModels.add(row.model)
-      const bucket = map.get(row.provider) ?? []
-      bucket.push(row)
-      map.set(row.provider, bucket)
+      const bucket = providerBucketKey(row.provider)
+      const list = map.get(bucket) ?? []
+      list.push(row)
+      map.set(bucket, list)
     }
     return map
   }, [data?.suggestions])
 
-  const providers = useMemo(() => [...grouped.keys()].sort(), [grouped])
+  const providers = useMemo(
+    () => [...grouped.keys()].sort((a, b) => providerLabel(a).localeCompare(providerLabel(b))),
+    [grouped],
+  )
 
   const filteredGroups = useMemo(() => {
     if (!filterProvider) return [...grouped.entries()]
@@ -120,12 +136,36 @@ export function ModelPickerPanel({
   }, [filterProvider, grouped])
 
   async function applyFallbackChain(next: FallbackEntry[]) {
-    if (!data || selectionOnly) return
+    if (!data) return
+    if (selectionOnly) {
+      setBusy(true)
+      try {
+        const res = await setHermesFallbackChain(
+          next.map((entry) => ({ provider: entry.provider, model: entry.model })),
+          undefined,
+          { selectionOnly: true },
+        )
+        if (!res.ok) {
+          onError?.(res.error ?? 'Failed to set fallbacks')
+          return
+        }
+        setData({ ...data, fallback_chain: res.fallback_chain ?? next })
+        updateDraftFallbacks([next[0] ?? null, next[1] ?? null])
+        await refreshModels()
+      } catch (err) {
+        onError?.(err instanceof Error ? err.message : 'set failed')
+      } finally {
+        setBusy(false)
+        setPending(null)
+      }
+      return
+    }
     setBusy(true)
     try {
       const res = await setHermesFallbackChain(
         next.map((entry) => ({ provider: entry.provider, model: entry.model })),
         profile ?? data.profile,
+        { selectionOnly },
       )
       if (!res.ok) {
         onError?.(res.error ?? 'Failed to set fallbacks')
@@ -149,7 +189,7 @@ export function ModelPickerPanel({
 
   async function refreshModels() {
     try {
-      const res = await fetchHermesModels(selectionOnly ? undefined : profile, workspaceId)
+      const res = await fetchHermesModels(selectionOnly ? undefined : profile, workspaceId, { selectionOnly })
       if (res.ok) setData(res)
     } catch {
       /* ponytail: best-effort resync after save */
@@ -160,15 +200,34 @@ export function ModelPickerPanel({
     const trimmed = model.trim()
     if (busy || !data || !trimmed) return
 
+    const customEntry = (): FallbackEntry | null => {
+      const slash = trimmed.indexOf('/')
+      if (slash <= 0) return null
+      return { provider: trimmed.slice(0, slash), model: trimmed }
+    }
+
     if (selectionOnly) {
       if (activeSlot === 'primary') {
         if (trimmed === value) return
-        onChanged?.(trimmed)
+        setBusy(true)
+        try {
+          const res = await setHermesModel(trimmed, undefined, workspaceId, { selectionOnly: true })
+          if (!res.ok) {
+            onError?.(res.error ?? 'Failed to set model')
+            return
+          }
+          onChanged?.(res.model ?? trimmed)
+          await refreshModels()
+        } catch (err) {
+          onError?.(err instanceof Error ? err.message : 'set failed')
+        } finally {
+          setBusy(false)
+        }
         return
       }
-      const row = rowForModel(data, trimmed)
+      const row = rowForModel(data, trimmed) ?? customEntry()
       if (!row) {
-        onError?.('Pick a model from the list for fallbacks.')
+        onError?.('Use provider/model format for custom fallbacks (e.g. openrouter/owl-alpha).')
         return
       }
       const entry: FallbackEntry = { provider: row.provider, model: row.model }
@@ -176,6 +235,8 @@ export function ModelPickerPanel({
       const next: [FallbackEntry | null, FallbackEntry | null] = [...draftFallbacks]
       next[idx] = entry
       updateDraftFallbacks(next)
+      const chain = next.filter((item): item is FallbackEntry => Boolean(item?.provider && item?.model))
+      await applyFallbackChain(chain)
       return
     }
 
@@ -206,9 +267,9 @@ export function ModelPickerPanel({
       return
     }
 
-    const row = rowForModel(data, trimmed)
+    const row = rowForModel(data, trimmed) ?? customEntry()
     if (!row) {
-      onError?.('Pick a model from the list for fallbacks.')
+      onError?.('Use provider/model format for custom fallbacks (e.g. openrouter/owl-alpha).')
       return
     }
     const entry: FallbackEntry = { provider: row.provider, model: row.model }

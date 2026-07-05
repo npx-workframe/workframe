@@ -2,8 +2,10 @@ import { useCallback, useState } from 'react'
 
 import { execHermesCommand, execHermesGateway, setHermesModel, type SlashDispatchResult } from '@/lib/hermesCatalogApi'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
+import { useAgentRoute } from '@/contexts/AgentRouteContext'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
+import { resolveAgentTemplateProfile } from '@/lib/agentProfile'
 
 /**
  * Dispatch a slash command line.
@@ -22,8 +24,10 @@ import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
  * `/compress`) is left for Slice 2 with a real BFF endpoint.
  */
 export function useSlashDispatcher() {
-  const { startNewSession, profile: activeProfile } = useHermesSession()
+  const { startNewSession } = useHermesSession()
+  const { activeProfile } = useAgentRoute()
   const { activeRoom } = useWorkspacePanels()
+  const agentTemplateProfile = resolveAgentTemplateProfile(activeRoom, activeProfile)
   const workspaceId = activeRoom?.workspace_id ?? ''
   const [lastResult, setLastResult] = useState<SlashDispatchResult | null>(null)
   const [busy, setBusy] = useState(false)
@@ -58,7 +62,7 @@ export function useSlashDispatcher() {
           result.args
         ) {
           try {
-            const set = await setHermesModel(result.args, activeProfile, workspaceId)
+            const set = await setHermesModel(result.args, agentTemplateProfile, workspaceId)
             if (!set.ok) {
               const fail: SlashDispatchResult = {
                 ok: false,
@@ -132,7 +136,7 @@ export function useSlashDispatcher() {
         setBusy(false)
       }
     },
-    [startNewSession, activeProfile, workspaceId],
+    [startNewSession, agentTemplateProfile, workspaceId],
   )
 
   return { dispatch, lastResult, busy }

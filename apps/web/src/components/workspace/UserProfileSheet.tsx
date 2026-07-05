@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
-import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { AgentDelegationPanel } from '@/components/workspace/AgentDelegationPanel'
 import { ThemeSettingsPanel } from '@/components/settings/ThemeSettingsPanel'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
@@ -15,16 +14,15 @@ import { resolveUserAvatarUrl } from '@/lib/avatarResolve'
 import { userAvatarPersistPayload, userAvatarPickerValue } from '@/lib/presetAssets'
 import { workframeAuthApi, type SessionProfile, type WorkspaceMember } from '@/lib/workframeAuthApi'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
-import { cn } from '@/lib/utils'
 
 type ProfileTab = 'profile' | 'connect' | 'agents' | 'appearance'
-type ConnectTab = 'providers' | 'models' | 'messaging'
+type ConnectTab = 'providers' | 'messaging'
 
 type UserProfileSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialTab?: ProfileTab
-  initialConnectTab?: ConnectTab
+  initialConnectTab?: ConnectTab | 'models'
 }
 
 export function UserProfileSheet({
@@ -58,7 +56,9 @@ export function UserProfileSheet({
       setError('')
       setStatus('')
       setTab(initialTab)
-      if (initialTab === 'connect') setConnectTab(initialConnectTab)
+      if (initialTab === 'connect') {
+        setConnectTab(initialConnectTab === 'messaging' ? 'messaging' : 'providers')
+      }
       try {
         const me = await workframeAuthApi.getMe()
         if (cancelled) return
@@ -146,7 +146,7 @@ export function UserProfileSheet({
       summary={summary || undefined}
       titleId="wf-user-profile-title"
       loading={loading}
-      contentFill={tab === 'connect' && connectTab === 'models'}
+      contentFill={false}
       tabs={[
         { id: 'profile', label: 'Identity & Bio' },
         { id: 'connect', label: 'Connected Accounts' },
@@ -170,12 +170,7 @@ export function UserProfileSheet({
         ) : null
       }
     >
-      <div
-        className={cn(
-          'space-y-6',
-          tab === 'connect' && connectTab === 'models' && 'wf-settings-fill-stack',
-        )}
-      >
+      <div className="space-y-6">
         {tab === 'agents' && error ? <WorkframeNotice message={error} /> : null}
         {tab === 'agents' && status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -229,17 +224,11 @@ export function UserProfileSheet({
             {error ? <WorkframeNotice message={error} /> : null}
             {status ? <WorkframeStatusNotice message={status} /> : null}
 
-            <div
-              className={cn(
-                'wf-wizard-panel wf-onboarding-form',
-                connectTab === 'models' && 'wf-wizard-panel--model-fill',
-              )}
-            >
+            <div className="wf-wizard-panel wf-onboarding-form">
               <div className="wf-wizard-subtabs" role="tablist" aria-label="Connected account sections">
                 {(
                   [
                     ['providers', 'LLM Providers'],
-                    ['models', 'LLM Models'],
                     ['messaging', 'Messaging'],
                   ] as const
                 ).map(([id, label]) => (
@@ -266,6 +255,9 @@ export function UserProfileSheet({
                   layout="stack"
                   onStatus={setStatus}
                   onError={setError}
+                  onConnected={() => {
+                    setStatus('Provider connected — configure models per agent in Agent Settings.')
+                  }}
                 />
               ) : null}
 
@@ -275,14 +267,6 @@ export function UserProfileSheet({
                   workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
                   disabled={loading}
                   onLinked={() => setStatus('Messaging account linked.')}
-                />
-              ) : null}
-
-              {connectTab === 'models' ? (
-                <ModelPickerPanel
-                  embedded
-                  workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
-                  onError={setError}
                 />
               ) : null}
             </div>

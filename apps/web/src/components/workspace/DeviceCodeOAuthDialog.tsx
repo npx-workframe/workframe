@@ -83,6 +83,7 @@ export function DeviceCodeOAuthDialog({
         setUserCode(result.user_code ?? null)
         setStatus(result.status === 'connected' ? 'connected' : 'pending')
         if (result.status === 'connected') {
+          setMessage(`${row.label} is connected.`)
           onConnected?.()
           return
         }
@@ -96,6 +97,7 @@ export function DeviceCodeOAuthDialog({
               if (poll.status === 'connected' && poll.ok) {
                 clearPoll()
                 setStatus('connected')
+                setMessage(`${row.label} is connected. You can close this dialog.`)
                 onConnected?.()
                 return
               }
@@ -150,7 +152,8 @@ export function DeviceCodeOAuthDialog({
         <DialogHeader>
           <DialogTitle>Connect {row.label}</DialogTitle>
           <DialogDescription>
-            Open the link below and enter the code to authorize your {row.label} session in Hermes.
+            Sign in with your {row.label} account using the device code flow. Keep this dialog open until
+            connection completes.
           </DialogDescription>
         </DialogHeader>
 

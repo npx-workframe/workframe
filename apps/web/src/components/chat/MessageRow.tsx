@@ -1,10 +1,10 @@
 import type { ChatMessage, ChatSegment } from '@/lib/chatTypes'
+import { formatModelAttribution } from '@/lib/chatTypes'
 import { ThinkingBlock } from '@/components/chat/ThinkingBlock'
 import { ToolRunCard } from '@/components/chat/ToolRunCard'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { AgentAvatar } from '@/components/ui/AgentAvatar'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
-import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import type { WorkframeNoticeAction } from '@/lib/workframeErrors'
@@ -73,14 +73,14 @@ function SegmentBlock({
 
 export function MessageRow({ message, onReplyToAgent }: MessageRowProps) {
   const isUser = message.role === 'user'
-  const { openModelPicker } = useCommandDialogs()
-  const { openUserSettings } = useWorkspacePanels()
+  const { openChatSettings, openUserSettings } = useWorkspacePanels()
   const canReply = !isUser && Boolean(onReplyToAgent && message.authorId && message.authorId !== 'system')
+  const modelAttribution = !isUser ? formatModelAttribution(message.modelId, message.llmProvider) : ''
 
   const handleNoticeAction = (action: WorkframeNoticeAction) => {
     if (action.type === 'open_settings') {
       if (action.tab === 'model') {
-        openModelPicker()
+        openChatSettings('models')
         return
       }
       openUserSettings('connect', action.tab === 'providers' ? 'providers' : undefined)
@@ -138,15 +138,22 @@ export function MessageRow({ message, onReplyToAgent }: MessageRowProps) {
         ))}
       </div>
 
-      {canReply && onReplyToAgent ? (
+      {(canReply && onReplyToAgent) || modelAttribution ? (
         <div className="wf-message__footer">
-          <button
-            type="button"
-            className="wf-message__reply"
-            onClick={() => onReplyToAgent(message.authorId)}
-          >
-            Reply
-          </button>
+          {modelAttribution ? (
+            <span className="wf-message__attribution" title={message.modelId ?? modelAttribution}>
+              {modelAttribution}
+            </span>
+          ) : null}
+          {canReply && onReplyToAgent ? (
+            <button
+              type="button"
+              className="wf-message__reply"
+              onClick={() => onReplyToAgent(message.authorId)}
+            >
+              Reply
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>

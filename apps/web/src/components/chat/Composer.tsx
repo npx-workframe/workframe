@@ -1,13 +1,13 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Paperclip, Send, Square } from 'lucide-react'
 
+import { useAgentRoute } from '@/contexts/AgentRouteContext'
 import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
 import { DebugDialog } from '@/components/chat/DebugDialog'
 import { GquotaDialog } from '@/components/chat/GquotaDialog'
 import { HelpDialog } from '@/components/chat/HelpDialog'
 import { InsightsDialog } from '@/components/chat/InsightsDialog'
-import { ModelPickerDialog } from '@/components/chat/ModelPickerDialog'
 import { ModelSwitcher } from '@/components/chat/ModelSwitcher'
 import { PersonalityDialog } from '@/components/chat/PersonalityDialog'
 import { ProfileDialog } from '@/components/chat/ProfileDialog'
@@ -24,6 +24,7 @@ import { useSlashDispatcher } from '@/hooks/useSlashDispatcher'
 import { mentionTokenAt } from '@/lib/mentionToken'
 import { apiStopRun, apiSteerRun, fetchHermesModels, type HermesSkillRow, type SlashDispatchResult } from '@/lib/hermesCatalogApi'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
+import { resolveAgentTemplateProfile } from '@/lib/agentProfile'
 import { cn } from '@/lib/utils'
 
 type ComposerProps = {
@@ -47,12 +48,23 @@ export type ComposerHandle = {
  *  (local handler vs. dialog). Keeps the dispatcher pure. */
 function routeDispatchResult(
   result: SlashDispatchResult,
-  open: { openModelPicker: () => void; openHelp: () => void; openStatus: () => void; openUsage: () => void; openProfile: () => void; openDebug: () => void; openInsights: () => void; openGquota: () => void; openSkills: () => void; openPersonality: () => void },
+  open: {
+    openAgentModels: () => void
+    openHelp: () => void
+    openStatus: () => void
+    openUsage: () => void
+    openProfile: () => void
+    openDebug: () => void
+    openInsights: () => void
+    openGquota: () => void
+    openSkills: () => void
+    openPersonality: () => void
+  },
 ): boolean {
   if (result.dispatched === 'client' && result.handler) {
     switch (result.handler) {
       case 'openModelSwitcher':
-        open.openModelPicker()
+        open.openAgentModels()
         return true
       case 'openHelp':
         open.openHelp()
@@ -108,36 +120,45 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   const { rootRef, toolbarRef, textareaRef } = useComposerMinHeight(onMinHeightChange)
   const { dispatch, lastResult, busy } = useSlashDispatcher()
   const dialogs = useCommandDialogs()
-  const { reloadHistory, profile: activeProfile } = useHermesSession()
-  const { activeRoom, openUserSettings } = useWorkspacePanels()
+  const { profile: runtimeProfile, sessionReady } = useHermesSession()
+  const { activeProfile } = useAgentRoute()
+  const { activeRoom, openUserSettings, openChatSettings } = useWorkspacePanels()
+  const agentTemplateProfile = resolveAgentTemplateProfile(activeRoom, activeProfile)
   const workspaceId = activeRoom?.workspace_id ?? ''
   const [hasLlmProvider, setHasLlmProvider] = useState(false)
+  const [billingProvider, setBillingProvider] = useState('')
 
   useEffect(() => {
     if (!showModelPicker) {
       setModelId('')
+      setBillingProvider('')
       return
     }
-    if (!activeProfile) {
+    if (!agentTemplateProfile || !sessionReady) {
+      if (!sessionReady) return
       setModelId('')
+      setHasLlmProvider(false)
+      setBillingProvider('')
       return
     }
-    void fetchHermesModels(activeProfile, workspaceId)
+    void fetchHermesModels(agentTemplateProfile, workspaceId)
       .then((res) => {
         if (!res.ok) {
           setModelId('')
           setHasLlmProvider(false)
+          setBillingProvider('')
           return
         }
         setHasLlmProvider(Boolean(res.has_llm_provider))
-        if (res.primary) setModelId(res.primary)
-        else setModelId('')
+        setModelId(res.primary || '')
+        setBillingProvider(res.billing_provider || res.provider || '')
       })
       .catch(() => {
         setModelId('')
         setHasLlmProvider(false)
+        setBillingProvider('')
       })
-  }, [activeProfile, workspaceId, showModelPicker])
+  }, [agentTemplateProfile, workspaceId, showModelPicker, sessionReady])
 
   // The palette shows only while the leading token is a slash command.
   // Once the user types a space (and starts entering args) it closes so
@@ -187,7 +208,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
     setValue('')
     // When agent is working, treat regular text as a steer command
     if (turnActive) {
-      void apiSteerRun(activeProfile, text)
+      void apiSteerRun(runtimeProfile, text)
     } else {
       onSend?.(text)
     }
@@ -225,12 +246,15 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
     // both end up in the same place. The dispatcher hook applies
     // any local state mutation (e.g. startNewSession) before the
     // result is set; the composer's job is to open dialogs.
-    if (result.ok) routeDispatchResult(result, dialogs)
+    if (result.ok) routeDispatchResult(result, {
+      ...dialogs,
+      openAgentModels: () => openChatSettings('models'),
+    })
     // Model changes invalidate the meta cache upstream, so the next
     // fetch here sees the new value. Re-fetching on every command would
     // hammer the BFF; the gate keeps it to model-affecting commands.
     if (result.ok && result.command === '/model') {
-      void fetchHermesModels(activeProfile, workspaceId)
+      void fetchHermesModels(agentTemplateProfile, workspaceId)
         .then((m) => m.primary && setModelId(m.primary))
         .catch(() => undefined)
     }
@@ -364,7 +388,10 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
           {showModelPicker ? (
             <ModelSwitcher
               modelId={modelId}
+              providerId={billingProvider}
               hasProvider={hasLlmProvider}
+              readOnly
+              onOpenAgentModels={() => openChatSettings('models')}
               onConnectProvider={() => openUserSettings('connect')}
             />
           ) : null}
@@ -410,7 +437,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
             disabled={disabled || (!turnActive && !value.trim())}
             onClick={() => {
               if (turnActive) {
-                void apiStopRun(activeProfile)
+                void apiStopRun(runtimeProfile)
                 setValue('')
               } else {
                 void submit()
@@ -423,17 +450,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         </div>
       </div>
 
-      <ModelPickerDialog
-        open={showModelPicker && dialogs.modelOpen}
-        onOpenChange={dialogs.closeModelPicker}
-        profile={activeProfile}
-        workspaceId={workspaceId}
-        onConnectProvider={() => openUserSettings('connect')}
-        onChanged={(model) => {
-          setModelId(model)
-          void reloadHistory().catch(() => undefined)
-        }}
-      />
+
       <HelpDialog open={dialogs.helpOpen} onOpenChange={dialogs.closeHelp} />
       <StatusDialog open={dialogs.statusOpen} onOpenChange={dialogs.closeStatus} />
       <UsageDialog open={dialogs.usageOpen} onOpenChange={dialogs.closeUsage} />

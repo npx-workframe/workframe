@@ -4,6 +4,14 @@ These instructions apply to AI assistants working in this repository.
 
 **Start here:** [START_HERE.md](START_HERE.md) — project map, ledger, pitfalls, cascade read order.
 
+## Developer loop (source → dogfood → npm)
+
+1. **Edit source** — `services/workframe-api/`, `apps/web/src/` (not `MyBusiness/`, not installer mirrors).
+2. **Dogfood preview** — build, sync installer, restart local `MyBusiness` Docker to see it live.
+3. **Publish** — bump, sync, bundle, `npm publish`; new installs get it.
+
+Full commands and anti-patterns: Cursor skill `workframe-release` (`.cursor/skills/workframe-release/SKILL.md`).
+
 ## Source Hierarchy
 
 1. Primary source artifacts in this repository.
