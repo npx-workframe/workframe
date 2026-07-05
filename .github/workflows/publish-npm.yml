@@ -1,5 +1,6 @@
-# Publish workframe, create-workframe, and @workframe/workframe via npm trusted publishing (OIDC).
-# npm: each package → Settings → Trusted publishing → GitHub Actions →
+# Publish create-workframe via npm trusted publishing (OIDC).
+# ponytail: stub workframe / @workframe/workframe CLIs removed in WF-038; installer is the product package.
+# npm: create-workframe → Settings → Trusted publishing → GitHub Actions →
 #   repo npx-workframe/workframe, workflow publish-npm.yml
 # GitHub: secret VERIFY_PUBLIC_PATTERNS_JSON = contents of verify-public-patterns.local.json
 name: Publish npm
@@ -29,7 +30,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
-          for pkg in packages/workframe packages/create-workframe packages/workframe-scoped; do
+          for pkg in packages/create-workframe; do
             VER="$(node -p "require('./$pkg/package.json').version")"
             if [ "$VER" != "$TAG" ]; then
               echo "version mismatch: $pkg is $VER but tag is v$TAG"
@@ -89,23 +90,15 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish workframe
-        working-directory: packages/workframe
-        run: npm publish --access public
-
       - name: Publish create-workframe
         working-directory: packages/create-workframe
-        run: npm publish --access public
-
-      - name: Publish @workframe/workframe
-        working-directory: packages/workframe-scoped
         run: npm publish --access public
 
       - name: Verify registry
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
-          for pkg in workframe create-workframe @workframe/workframe; do
+          for pkg in create-workframe; do
             for i in $(seq 1 12); do
               v="$(npm view "$pkg" version 2>/dev/null || true)"
               if [ "$v" = "$TAG" ]; then

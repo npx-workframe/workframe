@@ -3,9 +3,9 @@
 | Component | Version |
 |-----------|---------|
 | create-workframe | 0.1.12 |
-| workframe CLI | 0.1.12 |
-| @workframe/workframe | 0.1.12 |
-| Workframe API / UI | 0.1.12 |
+| workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
+| @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
+| Workframe API / UI | 0.1.12 (bundled in create-workframe) |
 
 ```bash
 npx create-workframe@0.1.12 MyProject
