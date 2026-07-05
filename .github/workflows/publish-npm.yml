@@ -69,6 +69,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: API Python deps
+        run: pip install -r services/workframe-api/requirements.txt
+
       # Same gate as ci.yml — publish runs prepack on npm publish.
       - name: API typecheck
         run: pnpm --filter @workframe/workframe-api typecheck
