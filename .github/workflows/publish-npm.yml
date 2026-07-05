@@ -74,7 +74,7 @@ jobs:
 
       # Same gate as ci.yml — publish runs prepack on npm publish.
       - name: API typecheck
-        run: pnpm --filter @workframe/workframe-api typecheck
+        run: bash services/workframe-api/run-typecheck.sh
 
       - name: Build web
         run: pnpm build:web

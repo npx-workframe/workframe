@@ -6,7 +6,7 @@
     {
       "id": "api-typecheck",
       "description": "workframe-api TypeScript typecheck passes",
-      "verify": "pnpm --filter @workframe/workframe-api typecheck",
+      "verify": "bash services/workframe-api/run-typecheck.sh",
       "passes": true,
       "owner": "cursor-cloud"
     },
