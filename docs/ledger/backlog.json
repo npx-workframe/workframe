@@ -665,7 +665,7 @@
       "summary": "Replace hand-rolled line-based config.yaml editors (_write_fallback_chain, _set_profile_model*, _coalesce_profile_model_yaml) with one read-parse-modify-write helper. Root cause of the wizard YAML-corruption bug class.",
       "wave": "code-health",
       "priority": "P1",
-      "status": "partial",
+      "status": "done",
       "sources": ["audit-2026-07-05", "wizard config.yaml duplicate model: block incident (a7271ed)"],
       "acceptance": [
         "All model/fallback yaml mutations go through one helper",
@@ -680,7 +680,7 @@
       ],
       "depends_on": [],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "profile_config_yaml.py wires set_model, set_provider, fallback_chain; coalesce/base_url still line-based; _parse_model_block_from_disk tolerates flat fallback_providers model: keys (wizard corruption class)" }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "profile_config_yaml.update_model_surface is the single writer for model.default/provider/base_url/api_key/fallback_providers; coalesce uses coalesce=True; normalize keeps text-only pre-parse repairs (_fix_invalid_model_header, _fix_model_child_indent, _scrub_orphan_top_level_yaml_lines); comments not preserved on write (documented in module)" }
     },
     {
       "id": "WF-034",

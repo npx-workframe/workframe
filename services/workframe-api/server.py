@@ -11319,48 +11319,7 @@ def _set_profile_model_base_url(profile: str, base_url: str) -> tuple[bool, str]
     if not base_url:
         return False, "base_url required"
     try:
-        raw = config_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return False, f"read failed: {exc}"
-    lines = raw.splitlines(keepends=True)
-    out: list[str] = []
-    in_model = False
-    wrote = False
-    for line in lines:
-        stripped = line.lstrip()
-        if stripped.startswith("model:"):
-            if not in_model:
-                in_model = True
-                rest = stripped.split(":", 1)[1].strip().strip("'\"")
-                if rest:
-                    out.append("model:\n")
-                    out.append(f"  default: {rest}\n")
-                else:
-                    out.append("model:\n")
-            continue
-        if in_model and stripped and not line.startswith((" ", "\t", "#")):
-            if not wrote:
-                out.append(f"  base_url: {base_url}\n")
-                wrote = True
-            in_model = False
-        if in_model and stripped.startswith("base_url:"):
-            out.append(f"  base_url: {base_url}\n")
-            wrote = True
-            continue
-        out.append(line)
-    if not wrote:
-        rebuilt: list[str] = []
-        inserted = False
-        for line in out:
-            rebuilt.append(line)
-            if not inserted and line.lstrip().startswith("model:"):
-                rebuilt.append(f"  base_url: {base_url}\n")
-                inserted = True
-        if not inserted:
-            rebuilt.insert(0, f"model:\n  base_url: {base_url}\n")
-        out = rebuilt
-    try:
-        config_path.write_text("".join(out), encoding="utf-8")
+        profile_config_yaml.update_model_surface(config_path, base_url=base_url)
     except OSError as exc:
         return False, f"write failed: {exc}"
     return True, ""
@@ -11425,70 +11384,21 @@ def _coalesce_profile_model_yaml(profile: str) -> None:
     if not needs_coalesce:
         return
     block = _read_model_block(profile)
-    api_key_line = ""
-    for line in lines:
-        stripped = line.lstrip()
-        if stripped.startswith("api_key:"):
-            api_key_line = line if line.endswith("\n") else f"{line}\n"
-    out: list[str] = []
-    skipping_model = False
-    skipping_fallback = False
-    for line in lines:
-        stripped = line.lstrip()
-        indent = len(line) - len(stripped)
-        if indent == 0 and stripped.startswith("model:"):
-            skipping_model = True
-            skipping_fallback = False
-            continue
-        if indent == 0 and stripped.startswith("fallback_providers:"):
-            skipping_fallback = True
-            skipping_model = False
-            continue
-        if skipping_model:
-            if indent == 0 and stripped:
-                if stripped.startswith("- "):
-                    continue
-                if not stripped.startswith("fallback_providers:"):
-                    skipping_model = False
-                else:
-                    continue
-            else:
-                continue
-        if skipping_fallback:
-            if indent == 0 and stripped and not stripped.startswith("fallback_providers"):
-                skipping_fallback = False
-            else:
-                continue
-        out.append(line)
-    merged: list[str] = ["model:\n"]
     default = str(block.get("default") or HERMES_DEFAULT_PRIMARY).strip()
-    merged.append(f"  default: {default}\n")
     provider = str(block.get("provider") or "").strip()
-    if provider:
-        merged.append(f"  provider: {provider}\n")
     base_url = str(block.get("base_url") or "").strip()
-    if base_url:
-        merged.append(f"  base_url: {base_url}\n")
-    if api_key_line:
-        merged.append(api_key_line if api_key_line.startswith("  ") else f"  {api_key_line.lstrip()}")
+    api_key = str(block.get("api_key") or "").strip()
     chain = block.get("fallback_chain") if isinstance(block.get("fallback_chain"), list) else []
-    if chain:
-        merged.append("fallback_providers:\n")
-        for entry in chain:
-            prov = str(entry.get("provider", "")).strip()
-            model = str(entry.get("model", "")).strip()
-            if prov and model:
-                merged.append(f"  - provider: {prov}\n")
-                merged.append(f"    model: {model}\n")
-    if out and not out[0].startswith("model:"):
-        insert_at = 0
-        while insert_at < len(out) and (not out[insert_at].strip() or out[insert_at].lstrip().startswith("#")):
-            insert_at += 1
-        out[insert_at:insert_at] = merged
-    else:
-        out = merged + out
     try:
-        config_path.write_text("".join(out), encoding="utf-8")
+        profile_config_yaml.update_model_surface(
+            config_path,
+            default=default,
+            provider=provider or None,
+            base_url=base_url or None,
+            api_key=api_key or None,
+            fallback_chain=chain,
+            coalesce=True,
+        )
     except OSError:
         return
 
