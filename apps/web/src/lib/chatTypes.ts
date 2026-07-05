@@ -1,4 +1,5 @@
 import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
+import { billingProviderDisplayLabel } from '@/lib/brandAssets'
 
 export type ChatSegment =
   | { kind: 'text'; text: string }
@@ -49,26 +50,13 @@ export function modelLabelFromId(modelId: string): string {
   return slash >= 0 ? trimmed.slice(slash + 1) : trimmed
 }
 
-function providerDisplayLabel(providerId: string): string {
-  const key = providerId.trim().toLowerCase()
-  if (!key || key === 'custom') return ''
-  if (key === 'openrouter') return 'OpenRouter'
-  if (key === 'openai') return 'OpenAI'
-  if (key === 'anthropic') return 'Anthropic'
-  if (key === 'google') return 'Gemini'
-  if (key === 'codex' || key === 'openai-codex') return 'Codex'
-  if (key === 'deepseek') return 'DeepSeek'
-  if (key === 'nous') return 'Nous'
-  return providerId
-}
-
 /** Compact provider · model label for message attribution. */
 export function formatModelAttribution(modelId?: string, llmProvider?: string): string {
   const model = modelId?.trim() ?? ''
   if (model && /^u-[a-z0-9][a-z0-9-]*$/i.test(model)) return ''
   const provider =
-    providerDisplayLabel(llmProvider ?? '') ||
-    (model.includes('/') ? providerDisplayLabel(model.split('/')[0] ?? '') : '')
+    billingProviderDisplayLabel(llmProvider ?? '') ||
+    (model.includes('/') ? billingProviderDisplayLabel(model.split('/')[0] ?? '') : '')
   if (provider && model) return `${provider} · ${modelLabelFromId(model)}`
   if (model) return modelLabelFromId(model)
   if (provider) return provider

@@ -65,3 +65,17 @@ export function providerIconForId(providerId: string): string | null {
   if (key in PROVIDER_ICON_BY_ID) return PROVIDER_ICON_BY_ID[key as ProviderBrandId]
   return null
 }
+
+/** Human label for billing provider ids (codex, openrouter) — not Hermes config ids (custom, openai-codex). */
+export function billingProviderDisplayLabel(providerId: string): string {
+  const key = providerId.trim().toLowerCase()
+  if (!key || key === 'custom') return ''
+  if (key === 'openrouter') return 'OpenRouter'
+  if (key === 'openai') return 'OpenAI'
+  if (key === 'anthropic') return 'Anthropic'
+  if (key === 'google' || key === 'gemini') return 'Gemini'
+  if (key === 'codex' || key === 'openai-codex' || key === 'openai_codex') return 'Codex'
+  if (key === 'deepseek') return 'DeepSeek'
+  if (key === 'nous') return 'Nous'
+  return providerId
+}

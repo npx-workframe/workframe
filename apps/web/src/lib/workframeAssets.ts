@@ -2,7 +2,7 @@ import { type ProviderBrandId } from '@/lib/brandAssets'
 import { agentPresetUrl } from '@/lib/presetAssets'
 
 export { DEFAULT_USER_AVATAR, DEFAULT_WORKSPACE_LOGO } from '@/lib/presetAssets'
-export { providerIconForId, type ProviderBrandId as ProviderId } from '@/lib/brandAssets'
+export { providerIconForId, billingProviderDisplayLabel, type ProviderBrandId as ProviderId } from '@/lib/brandAssets'
 
 /** Hermes profile slug → specialist avatar (placeholders until gateway crew snapshot). */
 export const AGENT_AVATAR_BY_SLUG: Record<string, string> = {

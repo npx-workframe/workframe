@@ -1,21 +1,8 @@
 import { Button } from '@/components/ui/button'
 import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
 import { modelLabelFromId } from '@/lib/chatTypes'
-import { inferProviderFromModelId, providerIconForId } from '@/lib/workframeAssets'
+import { billingProviderDisplayLabel, inferProviderFromModelId, providerIconForId } from '@/lib/workframeAssets'
 import { cn } from '@/lib/utils'
-
-function providerDisplayLabel(providerId: string): string {
-  const key = providerId.trim().toLowerCase()
-  if (!key || key === 'custom') return ''
-  if (key === 'openrouter') return 'OpenRouter'
-  if (key === 'openai') return 'OpenAI'
-  if (key === 'anthropic') return 'Anthropic'
-  if (key === 'google') return 'Gemini'
-  if (key === 'codex' || key === 'openai-codex') return 'Codex'
-  if (key === 'deepseek') return 'DeepSeek'
-  if (key === 'nous') return 'Nous'
-  return providerId
-}
 
 type ModelSwitcherProps = {
   modelId: string
@@ -39,8 +26,8 @@ export function ModelSwitcher({
   const { openModelPicker } = useCommandDialogs()
   const inactive = !hasProvider
   const billingProvider =
-    providerDisplayLabel(providerId) ||
-    providerDisplayLabel(inferProviderFromModelId(modelId)) ||
+    billingProviderDisplayLabel(providerId) ||
+    billingProviderDisplayLabel(inferProviderFromModelId(modelId)) ||
     ''
   const modelLabel = modelLabelFromId(modelId)
   const label = inactive

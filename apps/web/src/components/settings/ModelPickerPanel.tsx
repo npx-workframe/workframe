@@ -13,6 +13,7 @@ import {
   type HermesModelsResponse,
 } from '@/lib/hermesCatalogApi'
 import { providerIconForId } from '@/lib/workframeAssets'
+import { billingProviderDisplayLabel } from '@/lib/brandAssets'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
 import { cn } from '@/lib/utils'
 
@@ -48,16 +49,12 @@ function rowForModel(data: HermesModelsResponse, modelId: string): HermesModelRo
   return data.suggestions.find((row) => row.model === modelId) ?? null
 }
 
+function billingIdForRow(row: HermesModelRow): string {
+  return (row.billing_provider || row.provider || '').trim()
+}
+
 function providerLabel(provider: string): string {
-  const key = provider.trim().toLowerCase()
-  if (key === 'openrouter') return 'OpenRouter'
-  if (key === 'openai') return 'OpenAI'
-  if (key === 'anthropic') return 'Anthropic'
-  if (key === 'google') return 'Google Gemini'
-  if (key === 'deepseek') return 'DeepSeek'
-  if (key === 'codex') return 'OpenAI Codex'
-  if (key === 'nous') return 'Nous Portal'
-  return provider
+  return billingProviderDisplayLabel(provider) || provider
 }
 
 function providerBucketKey(provider: string): string {
@@ -116,7 +113,7 @@ export function ModelPickerPanel({
     for (const row of data?.suggestions ?? []) {
       if (seenModels.has(row.model)) continue
       seenModels.add(row.model)
-      const bucket = providerBucketKey(row.provider)
+      const bucket = providerBucketKey(billingIdForRow(row))
       const list = map.get(bucket) ?? []
       list.push(row)
       map.set(bucket, list)
@@ -196,7 +193,7 @@ export function ModelPickerPanel({
     }
   }
 
-  async function pickModel(model: string) {
+  async function pickModel(model: string, billingHint = '') {
     const trimmed = model.trim()
     if (busy || !data || !trimmed) return
 
@@ -211,7 +208,10 @@ export function ModelPickerPanel({
         if (trimmed === value) return
         setBusy(true)
         try {
-          const res = await setHermesModel(trimmed, undefined, workspaceId, { selectionOnly: true })
+          const res = await setHermesModel(trimmed, undefined, workspaceId, {
+            selectionOnly: true,
+            billingProvider: billingHint,
+          })
           if (!res.ok) {
             onError?.(res.error ?? 'Failed to set model')
             return
@@ -230,7 +230,10 @@ export function ModelPickerPanel({
         onError?.('Use provider/model format for custom fallbacks (e.g. openrouter/owl-alpha).')
         return
       }
-      const entry: FallbackEntry = { provider: row.provider, model: row.model }
+      const entry: FallbackEntry = {
+        provider: billingIdForRow(row as HermesModelRow) || row.provider,
+        model: row.model,
+      }
       const idx = activeSlot === 'fallback-0' ? 0 : 1
       const next: [FallbackEntry | null, FallbackEntry | null] = [...draftFallbacks]
       next[idx] = entry
@@ -248,7 +251,16 @@ export function ModelPickerPanel({
       setBusy(true)
       setPending(trimmed)
       try {
-        const res = await setHermesModel(trimmed, profile ?? data.profile, workspaceId)
+        const catalogRow = rowForModel(data, trimmed)
+        const custom = customEntry()
+        const billing = catalogRow
+          ? billingIdForRow(catalogRow)
+          : custom
+            ? custom.provider
+            : billingHint
+        const res = await setHermesModel(trimmed, profile ?? data.profile, workspaceId, {
+          billingProvider: billing,
+        })
         if (!res.ok) {
           onError?.(res.error ?? 'Failed to set model')
           return
@@ -272,7 +284,10 @@ export function ModelPickerPanel({
       onError?.('Use provider/model format for custom fallbacks (e.g. openrouter/owl-alpha).')
       return
     }
-    const entry: FallbackEntry = { provider: row.provider, model: row.model }
+    const entry: FallbackEntry = {
+      provider: 'billing_provider' in row ? billingIdForRow(row) : row.provider,
+      model: row.model,
+    }
     const fb = data.fallback_chain ?? []
     const slots: Array<FallbackEntry | null> = [fb[0] ?? null, fb[1] ?? null]
     const idx = activeSlot === 'fallback-0' ? 0 : 1
@@ -384,7 +399,7 @@ export function ModelPickerPanel({
                   isPending={!selectionOnly && pending === row.model}
                   disabled={busy}
                   singleLine
-                  onSelect={() => void pickModel(row.model)}
+                  onSelect={() => void pickModel(row.model, billingIdForRow(row))}
                 />
               ))}
             </ModelListGroup>

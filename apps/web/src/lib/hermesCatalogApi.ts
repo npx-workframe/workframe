@@ -31,6 +31,8 @@ export type SlashDispatchResult = {
 
 export type HermesModelRow = {
   provider: string
+  /** Billing provider id when distinct from Hermes routing provider. */
+  billing_provider?: string
   model: string
   label: string
   description: string
@@ -109,18 +111,27 @@ export async function fetchHermesModels(
   return apiGet<HermesModelsResponse>(`/api/hermes/models${query}`)
 }
 
+export function notifyHermesModelsChanged(profile = '') {
+  window.dispatchEvent(
+    new CustomEvent('workframe:hermes-models-changed', { detail: { profile } }),
+  )
+}
+
 export async function setHermesModel(
   model: string,
   profile?: string,
   workspaceId?: string,
-  opts?: { selectionOnly?: boolean },
+  opts?: { selectionOnly?: boolean; billingProvider?: string },
 ): Promise<{ ok: boolean; model?: string; error?: string }> {
-  return apiPost('/api/hermes/model', {
+  const res = await apiPost<{ ok: boolean; model?: string; error?: string }>('/api/hermes/model', {
     model,
     profile: profile ?? '',
     workspace_id: workspaceId ?? '',
     selection_only: Boolean(opts?.selectionOnly),
+    billing_provider: opts?.billingProvider?.trim() ?? '',
   })
+  if (res.ok && !opts?.selectionOnly) notifyHermesModelsChanged(profile ?? '')
+  return res
 }
 
 export async function setHermesFallbackChain(
@@ -128,11 +139,16 @@ export async function setHermesFallbackChain(
   profile?: string,
   opts?: { selectionOnly?: boolean },
 ): Promise<{ ok: boolean; fallback_chain?: FallbackEntry[]; error?: string }> {
-  return apiPost('/api/hermes/fallback-chain', {
-    chain,
-    profile: profile ?? '',
-    selection_only: Boolean(opts?.selectionOnly),
-  })
+  const res = await apiPost<{ ok: boolean; fallback_chain?: FallbackEntry[]; error?: string }>(
+    '/api/hermes/fallback-chain',
+    {
+      chain,
+      profile: profile ?? '',
+      selection_only: Boolean(opts?.selectionOnly),
+    },
+  )
+  if (res.ok && !opts?.selectionOnly) notifyHermesModelsChanged(profile ?? '')
+  return res
 }
 
 export type HermesUsageSession = {

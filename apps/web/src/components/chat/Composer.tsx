@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { Paperclip, Send, Square } from 'lucide-react'
 
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
@@ -24,7 +24,7 @@ import { useSlashDispatcher } from '@/hooks/useSlashDispatcher'
 import { mentionTokenAt } from '@/lib/mentionToken'
 import { apiStopRun, apiSteerRun, fetchHermesModels, type HermesSkillRow, type SlashDispatchResult } from '@/lib/hermesCatalogApi'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
-import { resolveAgentTemplateProfile } from '@/lib/agentProfile'
+import { resolveAgentModelsProfile } from '@/lib/agentProfile'
 import { cn } from '@/lib/utils'
 
 type ComposerProps = {
@@ -123,25 +123,17 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   const { profile: runtimeProfile, sessionReady } = useHermesSession()
   const { activeProfile } = useAgentRoute()
   const { activeRoom, openUserSettings, openChatSettings } = useWorkspacePanels()
-  const agentTemplateProfile = resolveAgentTemplateProfile(activeRoom, activeProfile)
+  const modelsProfile = useMemo(
+    () => resolveAgentModelsProfile(activeRoom, activeProfile, runtimeProfile),
+    [activeRoom, activeProfile, runtimeProfile],
+  )
   const workspaceId = activeRoom?.workspace_id ?? ''
   const [hasLlmProvider, setHasLlmProvider] = useState(false)
   const [billingProvider, setBillingProvider] = useState('')
 
-  useEffect(() => {
-    if (!showModelPicker) {
-      setModelId('')
-      setBillingProvider('')
-      return
-    }
-    if (!agentTemplateProfile || !sessionReady) {
-      if (!sessionReady) return
-      setModelId('')
-      setHasLlmProvider(false)
-      setBillingProvider('')
-      return
-    }
-    void fetchHermesModels(agentTemplateProfile, workspaceId)
+  const refreshComposerModels = useCallback(() => {
+    if (!showModelPicker || !modelsProfile || !sessionReady) return
+    void fetchHermesModels(modelsProfile, workspaceId)
       .then((res) => {
         if (!res.ok) {
           setModelId('')
@@ -158,7 +150,33 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         setHasLlmProvider(false)
         setBillingProvider('')
       })
-  }, [agentTemplateProfile, workspaceId, showModelPicker, sessionReady])
+  }, [modelsProfile, workspaceId, showModelPicker, sessionReady])
+
+  useEffect(() => {
+    if (!showModelPicker) {
+      setModelId('')
+      setBillingProvider('')
+      return
+    }
+    if (!modelsProfile || !sessionReady) {
+      if (!sessionReady) return
+      setModelId('')
+      setHasLlmProvider(false)
+      setBillingProvider('')
+      return
+    }
+    refreshComposerModels()
+  }, [modelsProfile, sessionReady, showModelPicker, refreshComposerModels])
+
+  useEffect(() => {
+    const onModelsChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ profile?: string }>).detail
+      if (detail?.profile && detail.profile !== modelsProfile) return
+      refreshComposerModels()
+    }
+    window.addEventListener('workframe:hermes-models-changed', onModelsChanged)
+    return () => window.removeEventListener('workframe:hermes-models-changed', onModelsChanged)
+  }, [modelsProfile, refreshComposerModels])
 
   // The palette shows only while the leading token is a slash command.
   // Once the user types a space (and starts entering args) it closes so
@@ -254,9 +272,7 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
     // fetch here sees the new value. Re-fetching on every command would
     // hammer the BFF; the gate keeps it to model-affecting commands.
     if (result.ok && result.command === '/model') {
-      void fetchHermesModels(agentTemplateProfile, workspaceId)
-        .then((m) => m.primary && setModelId(m.primary))
-        .catch(() => undefined)
+      refreshComposerModels()
     }
     const t = window.setTimeout(() => setFlash(null), 3500)
     return () => window.clearTimeout(t)

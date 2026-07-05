@@ -62,6 +62,18 @@ export function resolveAgentTemplateProfile(
   )
 }
 
+/** Hermes profile for model reads/writes in agent DM — bound runtime when available. */
+export function resolveAgentModelsProfile(
+  room: AgentProfileRef | null | undefined,
+  activeProfile: string,
+  runtimeProfile = '',
+): string {
+  if (!isAgentChatRoom(room)) return ''
+  const runtime = runtimeProfile.trim()
+  if (runtime && /^u-[a-z0-9]/i.test(runtime)) return runtime
+  return resolveAgentTemplateProfile(room, activeProfile)
+}
+
 /** Agent DM room only — direct + bound agent. Projects use room_memberships for agents. */
 export function isAgentChatRoom(room: AgentProfileRef | null | undefined): boolean {
   if (!room) return false

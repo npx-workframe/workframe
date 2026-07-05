@@ -17,6 +17,7 @@ import { ReducedProfileCard } from '@/components/ui/ReducedProfileCard'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
+import { useHermesSession } from '@/contexts/HermesSessionContext'
 import { useCrew } from '@/hooks/useCrew'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveAgentAvatarUrl, resolveUserAvatarUrl } from '@/lib/avatarResolve'
@@ -29,7 +30,7 @@ import {
   updateHermesProfile,
   type HermesProfileDetailResponse,
 } from '@/lib/hermesCatalogApi'
-import { resolveAgentTemplateProfile } from '@/lib/agentProfile'
+import { resolveAgentModelsProfile, resolveAgentTemplateProfile } from '@/lib/agentProfile'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { cn } from '@/lib/utils'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
@@ -62,6 +63,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
   const { crew, reload: reloadCrew } = useCrew(projectName)
   const { activeRoom, setActiveRoom } = useWorkspacePanels()
   const { activeProfile, routes } = useAgentRoute()
+  const { profile: sessionRuntimeProfile } = useHermesSession()
   const [me, setMe] = useState<{ user_id: string; workspace_id: string } | null>(null)
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [roomMembers, setRoomMembers] = useState<WorkspaceRoomMember[]>([])
@@ -90,6 +92,10 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
   const agentProfile = useMemo(
     () => resolveAgentTemplateProfile(activeRoom, activeProfile),
     [activeRoom, activeProfile],
+  )
+  const modelsProfile = useMemo(
+    () => resolveAgentModelsProfile(activeRoom, activeProfile, sessionRuntimeProfile),
+    [activeRoom, activeProfile, sessionRuntimeProfile],
   )
   const route = useMemo(
     () => routes.find((row) => row.profile === agentProfile) ?? null,
@@ -504,7 +510,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
 
                 {canManageWorkspace ? (
                   <ModelPickerPanel
-                    profile={agentProfile}
+                    profile={modelsProfile}
                     workspaceId={me?.workspace_id}
                     embedded
                     onError={setError}
