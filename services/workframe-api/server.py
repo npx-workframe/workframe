@@ -14862,6 +14862,16 @@ def _suggestions_for_connected_llm_providers(connected: set[str]) -> list[dict[s
     return out
 
 
+def _model_id_vendor_and_bare(model_id: str) -> tuple[str, str]:
+    """Split vendor/model ids (e.g. openai-codex/gpt-5.4-mini) into billing + bare model."""
+    mid = str(model_id or "").strip()
+    if "/" not in mid:
+        return "", mid
+    prefix, bare = mid.split("/", 1)
+    billing = _billing_provider_id_from_hermes_config(prefix)
+    return billing, bare.strip()
+
+
 def _resolve_billing_provider_for_model(
     model_id: str,
     connected: set[str],
@@ -14871,22 +14881,32 @@ def _resolve_billing_provider_for_model(
     mid = str(model_id or "").strip()
     if not mid or not connected:
         return ""
+    vendor, bare = _model_id_vendor_and_bare(mid)
+    if vendor and vendor in connected:
+        return vendor
+    match_ids = [mid]
+    if bare and bare not in match_ids:
+        match_ids.append(bare)
     pref = str(prefer or "").strip().lower()
     if pref and pref in connected:
         for row in _model_catalog_rows_for_provider(pref):
-            if str(row.get("model") or "").strip() == mid:
+            row_model = str(row.get("model") or "").strip()
+            if row_model in match_ids:
                 return pref
     for provider_id in sorted(connected):
         for row in _model_catalog_rows_for_provider(provider_id):
-            if str(row.get("model") or "").strip() == mid:
+            row_model = str(row.get("model") or "").strip()
+            if row_model in match_ids:
                 return provider_id
-    low = mid.lower()
+    low = (bare or mid).lower()
     if low.startswith("gpt-") and "codex" in connected:
         return "codex"
     if low.startswith("gpt-") and "openai" in connected:
         return "openai"
     if "/" in mid and "openrouter" in connected:
-        return "openrouter"
+        prefix = mid.split("/", 1)[0].strip().lower()
+        if not _billing_provider_id_from_hermes_config(prefix):
+            return "openrouter"
     if low.startswith("claude") and "anthropic" in connected:
         return "anthropic"
     if "gemini" in low and "google" in connected:

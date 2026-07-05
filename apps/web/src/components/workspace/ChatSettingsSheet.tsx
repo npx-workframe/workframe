@@ -341,6 +341,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
 
   const agentFieldsDisabled = loading || busy || !canManageWorkspace
   const projectFieldsDisabled = loading || busy || !canManageWorkspace
+  const canEditAgentModels = Boolean(me?.user_id && modelsProfile)
 
   const projectAvatarDisplayUrl = useMemo(() => {
     return resolveLogoUrl(projectRoomAvatarUrl || activeRoom?.avatar_url, DEFAULT_WORKSPACE_LOGO)
@@ -508,7 +509,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                 {error ? <WorkframeNotice message={error} /> : null}
                 {status ? <WorkframeStatusNotice message={status} /> : null}
 
-                {canManageWorkspace ? (
+                {canEditAgentModels ? (
                   <ModelPickerPanel
                     profile={modelsProfile}
                     workspaceId={me?.workspace_id}
@@ -517,7 +518,9 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                     onChanged={() => void load()}
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground">You do not have permission to change models.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {loading ? 'Loading…' : 'Sign in to change models.'}
+                  </p>
                 )}
               </div>
             )

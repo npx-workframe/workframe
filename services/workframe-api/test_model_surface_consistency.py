@@ -46,6 +46,9 @@ assert server._resolve_billing_provider_for_model(
 assert server._resolve_billing_provider_for_model(
     "openrouter/owl-alpha", connected, prefer="openrouter",
 ) == "openrouter"
+assert server._resolve_billing_provider_for_model(
+    "openai-codex/gpt-5.4-mini", {"codex", "openrouter"},
+) == "codex"
 
 # D: set with explicit billing_provider returns billing id in response
 applied = server.hermes_model_set(

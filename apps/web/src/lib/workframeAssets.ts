@@ -23,6 +23,7 @@ export function agentAvatarForSlug(slug: string): string | null {
 
 export function inferProviderFromModelId(modelId: string): ProviderBrandId {
   const normalized = modelId.toLowerCase()
+  if (normalized.startsWith('openai-codex/') || normalized.startsWith('codex/')) return 'codex'
   if (normalized.startsWith('anthropic/')) return 'anthropic'
   if (normalized.startsWith('openai/')) return 'openai'
   if (normalized.startsWith('nous/')) return 'nous'
