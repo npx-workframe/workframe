@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ModelListGroup } from '@/components/settings/ModelListGroup'
 import { ModelOptionButton } from '@/components/settings/ModelOptionButton'
@@ -30,6 +30,7 @@ type ModelPickerPanelProps = {
   /** Draft fallback chain while picking models before a profile exists. */
   onFallbacksDraftChange?: (chain: FallbackEntry[]) => void
   onError?: (message: string) => void
+  onLoaded?: (data: HermesModelsResponse) => void
 }
 
 type ModelSlot = 'primary' | 'fallback-0' | 'fallback-1'
@@ -79,8 +80,11 @@ export function ModelPickerPanel({
   onChanged,
   onFallbacksDraftChange,
   onError,
+  onLoaded,
 }: ModelPickerPanelProps) {
   const [data, setData] = useState<HermesModelsResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState<string | null>(null)
   const [customModel, setCustomModel] = useState('')
@@ -90,22 +94,45 @@ export function ModelPickerPanel({
     null,
     null,
   ])
+  const onErrorRef = useRef(onError)
+  const onLoadedRef = useRef(onLoaded)
+  onErrorRef.current = onError
+  onLoadedRef.current = onLoaded
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setLoadError('')
+    setData(null)
     fetchHermesModels(selectionOnly ? undefined : profile, workspaceId, { selectionOnly })
       .then((res) => {
+        if (cancelled) return
         if (!res.ok) {
-          onError?.('Could not load model surface')
+          const message = 'Could not load models'
+          setLoadError(message)
+          onErrorRef.current?.(message)
           return
         }
         setData(res)
+        onLoadedRef.current?.(res)
         if (selectionOnly) {
           const chain = res.fallback_chain ?? []
           setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
         }
       })
-      .catch((err) => onError?.(err instanceof Error ? err.message : 'load failed'))
-  }, [onError, profile, selectionOnly, workspaceId])
+      .catch((err) => {
+        if (cancelled) return
+        const message = err instanceof Error ? err.message : 'load failed'
+        setLoadError(message)
+        onErrorRef.current?.(message)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [profile, selectionOnly, workspaceId])
 
   const grouped = useMemo(() => {
     const map = new Map<string, HermesModelRow[]>()
@@ -297,8 +324,16 @@ export function ModelPickerPanel({
     await applyFallbackChain(next)
   }
 
-  if (!data) {
+  if (loading) {
     return <p className="wf-auth__status">Loading models…</p>
+  }
+
+  if (loadError) {
+    return <p className="text-sm text-muted-foreground">{loadError}</p>
+  }
+
+  if (!data) {
+    return <p className="text-sm text-muted-foreground">Could not load models.</p>
   }
 
   const primaryModel = selectionOnly ? (value ?? '') : (data.primary || '')

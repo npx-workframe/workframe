@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { DialogCancelButton } from '@/components/dialogs/DialogActions'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
-import { fetchHermesModels, type FallbackEntry, type HermesModelsResponse } from '@/lib/hermesCatalogApi'
+import { billingProviderDisplayLabel } from '@/lib/brandAssets'
+import { modelLabelFromId } from '@/lib/chatTypes'
+import type { FallbackEntry, HermesModelsResponse } from '@/lib/hermesCatalogApi'
 
 type ModelPickerDialogProps = {
   open: boolean
@@ -23,29 +25,14 @@ export function ModelPickerDialog({
   workspaceId,
   onConnectProvider,
 }: ModelPickerDialogProps) {
-  const [data, setData] = useState<HermesModelsResponse | null>(null)
+  const [summary, setSummary] = useState<string>()
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    setError(null)
-    setLoading(true)
-    fetchHermesModels(profile, workspaceId)
-      .then((res) => {
-        if (!res.ok) {
-          setError('Could not load model surface')
-          return
-        }
-        setData(res)
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'load failed'))
-      .finally(() => setLoading(false))
-  }, [open, profile, workspaceId])
-
-  const summary = data
-    ? `${data.primary || '—'}${data.provider ? ` · ${data.provider}` : ''}`
-    : undefined
+  const handleLoaded = (data: HermesModelsResponse) => {
+    const provider = billingProviderDisplayLabel(data.billing_provider || data.provider || '')
+    const model = modelLabelFromId(data.primary || '')
+    setSummary(provider && model ? `${provider} · ${model}` : model || provider || undefined)
+  }
 
   return (
     <SettingsSheetFrame
@@ -56,7 +43,6 @@ export function ModelPickerDialog({
       titleId="wf-model-picker-title"
       sheetClassName="wf-dialog-content--settings-compact"
       contentFill
-      loading={loading}
       actions={
         onConnectProvider ? (
           <DialogCancelButton
@@ -75,22 +61,17 @@ export function ModelPickerDialog({
       <div className="wf-settings-fill-stack space-y-4" role="tabpanel">
         {error ? <WorkframeNotice message={error} /> : null}
 
-        {!loading && data && !data.has_llm_provider ? (
-          <p className="text-sm text-muted-foreground">
-            Connect an LLM provider under Settings → Connected Accounts.
-          </p>
-        ) : (
-          <ModelPickerPanel
-            profile={profile}
-            workspaceId={workspaceId}
-            embedded
-            onError={setError}
-            onChanged={(model) => {
-              onChanged?.(model)
-              onOpenChange(false)
-            }}
-          />
-        )}
+        <ModelPickerPanel
+          profile={profile}
+          workspaceId={workspaceId}
+          embedded
+          onError={setError}
+          onLoaded={handleLoaded}
+          onChanged={(model) => {
+            onChanged?.(model)
+            onOpenChange(false)
+          }}
+        />
       </div>
     </SettingsSheetFrame>
   )

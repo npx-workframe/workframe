@@ -12,7 +12,7 @@ _CACHE: dict[str, Any] = {"at": 0.0, "rows": []}
 _TTL_SEC = int(__import__("os").environ.get("WORKFRAME_OPENROUTER_CATALOG_TTL", "3600"))
 
 
-def _fetch_models(api_key: str) -> list[dict[str, str]]:
+def _fetch_models(api_key: str, *, timeout: float = 45) -> list[dict[str, str]]:
     req = urllib.request.Request(
         "https://openrouter.ai/api/v1/models",
         headers={
@@ -22,7 +22,7 @@ def _fetch_models(api_key: str) -> list[dict[str, str]]:
         },
         method="GET",
     )
-    with urllib.request.urlopen(req, timeout=45) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
         data = json.loads(resp.read())
     rows: list[dict[str, str]] = []
     for item in data.get("data") or []:
@@ -48,7 +48,7 @@ def _fetch_models(api_key: str) -> list[dict[str, str]]:
     return rows[:120]
 
 
-def live_suggestions(api_key: str = "", *, limit: int = 40) -> list[dict[str, str]]:
+def live_suggestions(api_key: str = "", *, limit: int = 40, timeout: float = 45) -> list[dict[str, str]]:
     """Return cached OpenRouter suggestions; empty without a key."""
     key = str(api_key or "").strip()
     if not key:
@@ -57,7 +57,7 @@ def live_suggestions(api_key: str = "", *, limit: int = 40) -> list[dict[str, st
     if _CACHE["rows"] and now - float(_CACHE["at"]) < _TTL_SEC:
         return list(_CACHE["rows"])[:limit]
     try:
-        rows = _fetch_models(key)
+        rows = _fetch_models(key, timeout=timeout)
     except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError):
         return list(_CACHE["rows"])[:limit]
     _CACHE["at"] = now

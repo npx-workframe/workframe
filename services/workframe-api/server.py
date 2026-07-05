@@ -15411,10 +15411,15 @@ def hermes_models(
         _suggestions_for_connected_llm_providers(connected_llm) if connected_llm else [],
         block,
     )
-    if user_id and "openrouter" in connected_llm:
+    primary_model = str(block.get("default") or "").strip()
+    billing = _billing_provider_id_from_hermes_config(active_provider)
+    if not billing and primary_model:
+        billing = _resolve_billing_provider_for_model(primary_model, connected_llm) or ""
+    # ponytail: skip OpenRouter live catalog on Codex/other billing — blocks stdlib server up to 45s
+    if user_id and "openrouter" in connected_llm and billing in ("", "openrouter"):
         resolved = _resolve_credential(user_id, workspace_id, "openrouter", user_only=True)
         secret = _credential_secret(resolved or {}, user_id) if resolved else ""
-        live = openrouter_catalog.live_suggestions(secret, limit=30)
+        live = openrouter_catalog.live_suggestions(secret, limit=30, timeout=8)
         if live:
             seen = {str(r.get("model") or "") for r in suggestions}
             suggestions = [
@@ -15431,10 +15436,6 @@ def hermes_models(
         seen_models.add(mid)
         deduped.append(row)
     suggestions = deduped
-    primary_model = str(block.get("default") or "").strip()
-    billing = _billing_provider_id_from_hermes_config(active_provider)
-    if not billing and primary_model:
-        billing = _resolve_billing_provider_for_model(primary_model, connected_llm) or ""
     if not billing and user_id and primary_profile:
         billing = _llm_billing_provider(
             primary_profile, user_id=user_id, workspace_id=workspace_id,
