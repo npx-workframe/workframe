@@ -200,6 +200,10 @@ DEPLOYMENT_MODE = _resolve_deployment_mode()
 # ponytail: docker exec per bind was ~10s; cache gateway registration briefly.
 _gateway_registered_cache: dict[str, tuple[bool, float]] = {}
 _GATEWAY_REG_TTL_SEC = 45.0
+_profile_health_cache: dict[str, tuple[bool, float]] = {}
+_PROFILE_HEALTH_TTL_SEC = 2.0
+_user_llm_picker_cache: dict[str, tuple[frozenset[str], float]] = {}
+_USER_LLM_PICKER_TTL_SEC = 5.0
 
 
 def _install_window_open() -> bool:
@@ -5977,6 +5981,13 @@ def _invalidate_gateway_registered_cache(runtime: str = "") -> None:
         _gateway_registered_cache.clear()
 
 
+def _invalidate_profile_health_cache(profile: str = "") -> None:
+    if profile:
+        _profile_health_cache.pop(safe_profile_slug(profile), None)
+    else:
+        _profile_health_cache.clear()
+
+
 def _is_user_credential_home_slug(slug: str) -> bool:
     """UUID dirs under profiles/ hold per-user keys — not Hermes agent profiles."""
     return bool(_AGENT_PROFILE_UUID_RE.fullmatch(str(slug or "").strip()))
@@ -11541,17 +11552,48 @@ def _read_config_model_api_key(profile: str) -> str:
     return str(_read_model_block(profile).get("api_key") or "").strip()
 
 
-def _restart_runtime_profile_gateway(profile: str) -> None:
-    """Hermes api_server caches config.yaml — reload after lease rotation."""
+def _reload_runtime_profile_gateway(profile: str, *, wait_healthy: bool = True) -> None:
+    """Reload Hermes after config.yaml change — gateway restart before stop+start."""
     prof = resolve_hermes_profile(profile)
     if not _is_runtime_profile_slug(prof) or prof == _primary_profile():
         return
     with _gateway_lifecycle_lock:
+        if _profile_api_healthy(prof, timeout=0.5, use_cache=False):
+            code, _out = _gateway_exec(prof, ["gateway", "restart"])
+            if code == 0:
+                _invalidate_profile_health_cache(prof)
+                if wait_healthy:
+                    _wait_profile_api_healthy(prof, attempts=48, delay=0.25)
+                return
+        _invalidate_profile_health_cache(prof)
         try:
             profile_gateway_lifecycle(prof, "stop", bootstrap_providers=False)
         except ValueError:
             pass
         profile_gateway_lifecycle(prof, "start", bootstrap_providers=False)
+        if wait_healthy:
+            _wait_profile_api_healthy(prof)
+
+
+def _schedule_gateway_reload(profile: str) -> None:
+    """ponytail: model-save hot path — yaml is sync; reload async (~7s, not ~45s)."""
+    prof = resolve_hermes_profile(profile)
+    if not _profile_api_healthy(prof, timeout=0.5, use_cache=False):
+        return  # cold start on next bind via ensure_profile_api
+
+    def _run() -> None:
+        try:
+            with _gateway_lifecycle_lock:
+                _reload_runtime_profile_gateway(prof, wait_healthy=False)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[workframe-api] gateway reload failed for {prof}: {exc}")
+
+    threading.Thread(target=_run, name=f"gw-reload-{prof}", daemon=True).start()
+
+
+def _restart_runtime_profile_gateway(profile: str) -> None:
+    """Hermes api_server caches config.yaml — reload after lease rotation."""
+    _reload_runtime_profile_gateway(profile, wait_healthy=True)
 
 
 def _sync_profile_model_api_key(profile: str, api_key: str) -> None:
@@ -11991,6 +12033,7 @@ def profile_gateway_lifecycle(profile: str, action: str, *, bootstrap_providers:
     prof = resolve_hermes_profile(profile)
     if action in {"start", "stop", "disable"}:
         _invalidate_gateway_registered_cache(prof)
+        _invalidate_profile_health_cache(prof)
     if action not in {"start", "stop", "status", "disable"}:
         raise ValueError("invalid action")
     port = _profile_api_port(prof)
@@ -12435,14 +12478,18 @@ def _is_transient_profile_api_error(exc: Exception) -> bool:
     return any(token in reason for token in ("connection refused", "timed out", "temporarily unavailable"))
 
 
-def _profile_api_healthy(profile: str, timeout: float = 1.5) -> bool:
+def _profile_api_healthy(profile: str, timeout: float = 1.5, *, use_cache: bool = True) -> bool:
     try:
         prof = resolve_hermes_profile(profile)
     except ValueError:
         return False
+    wait = max(1.0, float(timeout))
+    if use_cache and wait >= 1.0:
+        cached = _profile_health_cache.get(prof)
+        if cached and time.monotonic() - cached[1] < _PROFILE_HEALTH_TTL_SEC:
+            return cached[0]
     port = _profile_api_port(prof)
     key = _profile_api_key(prof)
-    wait = max(1.0, float(timeout))
     url = f"http://gateway:{port}/v1/health"
     req = urllib.request.Request(
         url,
@@ -12451,9 +12498,12 @@ def _profile_api_healthy(profile: str, timeout: float = 1.5) -> bool:
     )
     try:
         with urllib.request.urlopen(req, timeout=wait) as resp:
-            return int(resp.status) < 300
+            ok = int(resp.status) < 300
     except Exception:  # noqa: BLE001
-        return False
+        ok = False
+    if use_cache and wait >= 1.0:
+        _profile_health_cache[prof] = (ok, time.monotonic())
+    return ok
 
 
 def _wait_profile_api_healthy(profile: str, attempts: int = 60, delay: float = 0.5) -> bool:
@@ -12558,11 +12608,17 @@ def _user_llm_providers_for_picker(user_id: str) -> set[str]:
     user = str(user_id or "").strip()
     if not user:
         return set()
-    return {
+    now = time.monotonic()
+    cached = _user_llm_picker_cache.get(user)
+    if cached and now - cached[1] < _USER_LLM_PICKER_TTL_SEC:
+        return set(cached[0])
+    connected = frozenset(
         str(spec["id"]).lower()
         for spec in PROVIDER_CONNECT_CATALOG
         if str(spec.get("category") or "") == "llm" and _user_provider_connected(user, spec)
-    }
+    )
+    _user_llm_picker_cache[user] = (connected, now)
+    return set(connected)
 
 
 def _user_has_llm_provider(user_id: str) -> bool:
@@ -12782,8 +12838,16 @@ def _reconcile_profile_llm_for_user(
     if not user:
         return False
     prof = resolve_hermes_profile(profile)
+    block = _read_model_block(prof)
+    model = str(block.get("default") or "").strip()
+    if model:
+        cfg = str(block.get("provider") or "").strip().lower()
+        quick_billing = _billing_provider_id_from_hermes_config(cfg)
+        # Direct oauth routing only — custom proxy may still need rebilling to user's provider.
+        if quick_billing and cfg != "custom" and _profile_routing_matches_billing(prof, quick_billing):
+            return False
     connected = _user_llm_providers_for_picker(user)
-    current_model = str(_read_model_block(prof).get("default") or "").strip()
+    current_model = model
     prefer = str(prefer_provider or "").strip().lower()
     model_billing = (
         _resolve_billing_provider_for_model(current_model, connected, prefer=prefer)
@@ -12809,7 +12873,7 @@ def _reconcile_profile_llm_for_user(
             current = str((PROVIDER_MVP_MODELS.get(billing) or {}).get("primary") or "")
         _apply_model_for_billing_provider(prof, billing, current, user_id=user)
         if _is_runtime_profile_slug(prof):
-            _restart_runtime_profile_gateway(prof)
+            _reload_runtime_profile_gateway(prof, wait_healthy=True)
         return True
     if _user_can_use_llm(user, workspace_id, billing) and _profile_llm_proxy_matches_billing(prof, billing):
         return False
@@ -12818,7 +12882,7 @@ def _reconcile_profile_llm_for_user(
     if _is_runtime_profile_slug(prof) or str(block.get("provider") or "").strip().lower() == "custom":
         _ensure_profile_llm_proxy(prof, billing)
     if changed and _is_runtime_profile_slug(prof):
-        _restart_runtime_profile_gateway(prof)
+        _reload_runtime_profile_gateway(prof, wait_healthy=True)
     return changed
 
 
@@ -12922,6 +12986,20 @@ def ensure_profile_api(
     port = _profile_api_port(prof)
     if _profile_api_healthy(prof):
         return {"ok": True, "profile": prof, "api_port": port, "started": False}
+    # ponytail: gateway restart (~7s) before supervisor cold start (~37s).
+    if (
+        _is_runtime_profile_slug(prof)
+        and prof != _primary_profile()
+        and _runtime_profile_on_disk(prof)
+    ):
+        with _gateway_lifecycle_lock:
+            if _profile_api_healthy(prof, use_cache=False):
+                return {"ok": True, "profile": prof, "api_port": port, "started": False}
+            code, _out = _gateway_exec(prof, ["gateway", "restart"])
+            if code == 0:
+                _invalidate_profile_health_cache(prof)
+                if _wait_profile_api_healthy(prof, attempts=48, delay=0.25):
+                    return {"ok": True, "profile": prof, "api_port": port, "started": False}
     if prof == _primary_profile():
         ok, out, _port = _configure_profile_api(prof)
         if not ok:
@@ -13729,8 +13807,6 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         raise ValueError("session_id required")
     if not text:
         raise ValueError("text required")
-    if _triggering_user:
-        _reconcile_profile_llm_for_user(prof, _triggering_user, _workspace_id)
     llm_provider = _llm_billing_provider(prof, user_id=_triggering_user, workspace_id=_workspace_id)
     model_block = _read_model_block(prof)
     model_used = str(model_block.get("default") or "").strip()
@@ -14828,7 +14904,7 @@ def _apply_model_persisted(
     if expected and got != expected:
         return False, f"model not persisted (expected {expected}, got {got or 'empty'})"
     if restart_gateway and _is_runtime_profile_slug(prof):
-        _restart_runtime_profile_gateway(prof)
+        _reload_runtime_profile_gateway(prof, wait_healthy=True)
     return True, ""
 
 
@@ -14846,7 +14922,9 @@ def _mirror_template_model_to_runtime(
     runtime = _runtime_profile_slug(user, template)
     if not _runtime_profile_on_disk(runtime):
         return True, ""
-    return _apply_model_persisted(runtime, billing, model_id, user_id=user)
+    return _apply_model_persisted(
+        runtime, billing, model_id, user_id=user, restart_gateway=False,
+    )
 
 
 def _resolve_billing_provider_for_model(
@@ -15510,13 +15588,13 @@ def hermes_model_set(
         billing = _resolve_billing_provider_for_model(model_id, connected, prefer=prefer)
     if billing:
         ok, err = _apply_model_persisted(
-            target, billing, model_id, user, restart_gateway=_is_runtime_profile_slug(target),
+            target, billing, model_id, user, restart_gateway=False,
         )
         if not ok:
             return {"ok": False, "error": err}
     else:
         ok, err = _apply_model_persisted(
-            target, "", model_id, user, restart_gateway=_is_runtime_profile_slug(target),
+            target, "", model_id, user, restart_gateway=False,
         )
         if not ok:
             return {"ok": False, "error": err}
@@ -15524,6 +15602,15 @@ def hermes_model_set(
     ok, err = _mirror_template_model_to_runtime(user, tpl, billing, model_id)
     if not ok:
         return {"ok": False, "error": err}
+    reload_prof = ""
+    if _is_runtime_profile_slug(target):
+        reload_prof = target
+    elif user:
+        runtime = _runtime_profile_slug(user, tpl)
+        if _runtime_profile_on_disk(runtime):
+            reload_prof = runtime
+    if reload_prof:
+        _schedule_gateway_reload(reload_prof)
     block = _read_model_block(target)
     resolved_billing = billing or _billing_provider_id_from_hermes_config(
         str(block.get("provider") or "")
@@ -15581,7 +15668,7 @@ def hermes_fallback_chain_set(
             ok, err = _write_fallback_chain(runtime, normalized)
             if not ok:
                 return {"ok": False, "error": err or "runtime fallback apply failed"}
-            _restart_runtime_profile_gateway(runtime)
+            _schedule_gateway_reload(runtime)
     return {"ok": True, "profile": target, "fallback_chain": normalized}
 
 
