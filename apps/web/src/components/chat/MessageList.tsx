@@ -16,6 +16,7 @@ type MessageListProps = {
   projectName?: string
   messagesOverride?: ChatMessage[] | null
   sessionId?: string | null
+  waitMessageId?: string | null
   onReplyToAgent?: (slug: string) => void
 }
 
@@ -24,6 +25,7 @@ export function MessageList({
   projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe',
   messagesOverride = null,
   sessionId = null,
+  waitMessageId = null,
   onReplyToAgent,
 }: MessageListProps) {
   const nativeSlug = nativeProfileSlug()
@@ -107,7 +109,7 @@ export function MessageList({
       ) : null}
       {displayMessages.map((message, index, arr) => (
         <div key={message.id} className="wf-message-row">
-          <MessageRow message={message} onReplyToAgent={onReplyToAgent} />
+          <MessageRow message={message} waitMessageId={waitMessageId} onReplyToAgent={onReplyToAgent} />
           {index < arr.length - 1 ? <Divider className="wf-message-row__divider" /> : null}
         </div>
       ))}

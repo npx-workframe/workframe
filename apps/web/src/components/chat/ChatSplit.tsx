@@ -27,6 +27,10 @@ import { mentionHandleFromLabel } from '@/lib/mentionHandle'
 import { resolveAgentAvatarUrl } from '@/lib/avatarResolve'
 import { useCrew } from '@/hooks/useCrew'
 import { workframeAuthApi, watchWorkspaceEvents } from '@/lib/workframeAuthApi'
+import {
+  readCachedProjectRoomMessages,
+  writeCachedProjectRoomMessages,
+} from '@/lib/workspacePersist'
 import type { ChatMessage } from '@/lib/chatTypes'
 
 function roomMessageToChatMessage(
@@ -92,6 +96,7 @@ export function ChatSplit() {
   const [roomMentionAgents, setRoomMentionAgents] = useState<MentionAgent[]>([])
   const [spaceTurnActive, setSpaceTurnActive] = useState(false)
   const [spaceTurnStatus, setSpaceTurnStatus] = useState<string | null>(null)
+  const [spaceWaitTurnId, setSpaceWaitTurnId] = useState<string | null>(null)
   const roomRevisionRef = useRef('')
   const meUserIdRef = useRef('')
   const meAvatarRef = useRef<string | null>(null)
@@ -102,6 +107,8 @@ export function ChatSplit() {
   const composerRef = useRef<ComposerHandle>(null)
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   const { crew } = useCrew(projectName)
+  const crewRef = useRef(crew)
+  crewRef.current = crew
 
   const {
     composerHeight,
@@ -125,6 +132,15 @@ export function ChatSplit() {
     const ids = new Set(base.map((message) => message.id))
     return [...base, ...live.filter((message) => !ids.has(message.id))]
   }, [roomMessages, liveTurns])
+
+  const dmWaitMessageId = useMemo(() => {
+    if (!turnActive) return null
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const row = messages[i]
+      if (row.ephemeral && row.role !== 'user') return row.id
+    }
+    return null
+  }, [turnActive, messages])
 
   const reloadRoomMessages = useCallback(async (roomId: string, opts?: { silent?: boolean }) => {
     if (!opts?.silent) setRoomLoading(true)
@@ -164,7 +180,7 @@ export function ChatSplit() {
         let handle =
           member.mention_handle ||
           mentionHandleFromLabel(name, slug)
-        const nativeCrew = crew.find((row) => row.is_native && row.profile === slug)
+        const nativeCrew = crewRef.current.find((row) => row.is_native && row.profile === slug)
         if (nativeCrew?.display_name) {
           name = nativeCrew.display_name
           handle = mentionHandleFromLabel(nativeCrew.display_name, slug)
@@ -190,6 +206,7 @@ export function ChatSplit() {
         roomMessageToChatMessage(message, meResponse.user.user_id, memberNames, memberAvatars, agentNames, agentSlugs),
       )
       setRoomMessages(rows)
+      writeCachedProjectRoomMessages(roomId, rows)
       return rows
     } catch (err) {
       if (!opts?.silent) setRoomMessages([])
@@ -198,7 +215,7 @@ export function ChatSplit() {
     } finally {
       if (!opts?.silent) setRoomLoading(false)
     }
-  }, [crew])
+  }, [])
 
   const scheduleRoomReload = useDebouncedCallback((roomId: string) => {
     void reloadRoomMessages(roomId, { silent: true })
@@ -209,6 +226,8 @@ export function ChatSplit() {
       if (frame.type === 'turn.started' || frame.type === 'turn.snapshot') {
         const agentName = frame.agent_name || frame.agent_slug
         liveMetaRef.current[frame.turn_id] = { agentName, agentSlug: frame.agent_slug }
+        // ponytail: SSE connect replays empty in-memory snapshots — skip UI, keep meta.
+        if (frame.type === 'turn.snapshot' && !frame.segments?.length) return
         const message = liveTurnToChatMessage(
           frame.turn_id,
           frame.agent_slug,
@@ -216,8 +235,13 @@ export function ChatSplit() {
           frame.type === 'turn.snapshot' ? frame.segments : [],
         )
         liveBatcherRef.current.push(frame.turn_id, message)
+        if (frame.type === 'turn.started') setSpaceWaitTurnId(frame.turn_id)
         setSpaceTurnActive(true)
-        setSpaceTurnStatus(liveTurnStatusText(agentName, frame.type === 'turn.snapshot' ? frame.status : 'starting'))
+        if (frame.type === 'turn.snapshot' && frame.status && frame.status !== 'starting') {
+          setSpaceTurnStatus(liveTurnStatusText(agentName, frame.status))
+        } else if (frame.type === 'turn.started') {
+          setSpaceTurnStatus(null)
+        }
         return
       }
 
@@ -232,13 +256,15 @@ export function ChatSplit() {
         )
         liveBatcherRef.current.push(frame.turn_id, message)
         setSpaceTurnActive(true)
+        if (frame.segments.length) setSpaceWaitTurnId(null)
         setSpaceTurnStatus(liveTurnStatusText(meta.agentName, frame.status))
         return
       }
 
       if (frame.type === 'turn.complete') {
-        liveBatcherRef.current.cancel()
+        liveBatcherRef.current.flush()
         delete liveMetaRef.current[frame.turn_id]
+        setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
         setLiveTurns((prev) => {
           const next = { ...prev }
           delete next[frame.turn_id]
@@ -264,8 +290,10 @@ export function ChatSplit() {
             ? frame.segments
             : [{ kind: 'text', text: frame.error }],
         )
+        liveBatcherRef.current.flush()
         liveBatcherRef.current.push(frame.turn_id, { ...message, ephemeral: false })
         delete liveMetaRef.current[frame.turn_id]
+        setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
         setLiveTurns((prev) => {
           const next = { ...prev, [frame.turn_id]: { ...message, ephemeral: false } }
           return next
@@ -288,11 +316,17 @@ export function ChatSplit() {
       roomRevisionRef.current = ''
       setSpaceTurnActive(false)
       setSpaceTurnStatus(null)
+      setSpaceWaitTurnId(null)
       return
     }
     roomRevisionRef.current = ''
-    void reloadRoomMessages(humanRoom.id)
-  }, [humanRoom, reloadRoomMessages])
+    const cached = readCachedProjectRoomMessages(humanRoom.id)
+    if (cached.length) {
+      setRoomMessages(cached)
+      setRoomLoading(false)
+    }
+    void reloadRoomMessages(humanRoom.id, { silent: cached.length > 0 })
+  }, [humanRoom?.id, reloadRoomMessages])
 
   useEffect(() => {
     if (!humanRoom?.workspace_id) return
@@ -360,6 +394,7 @@ export function ChatSplit() {
           <MessageList
             nativeAgentName={agentDisplayName}
             messagesOverride={displayRoomMessages}
+            waitMessageId={spaceWaitTurnId}
             onReplyToAgent={
               projectRoom
                 ? (slug) => {
@@ -390,7 +425,7 @@ export function ChatSplit() {
             mentionAgents={projectRoom ? roomMentionAgents : []}
             onSend={sendRoomChatMessage}
             onAttachImage={() => {}}
-            disabled={roomLoading}
+            disabled={roomLoading && roomMessages === null}
             turnActive={spaceTurnActive}
             turnStatus={spaceTurnStatus}
             placeholder={
@@ -429,7 +464,11 @@ export function ChatSplit() {
         onConnected={() => setProviderDialogOpen(false)}
       />
       <div className="wf-chat-split__messages">
-        <MessageList nativeAgentName={agentDisplayName} messagesOverride={messages} />
+        <MessageList
+          nativeAgentName={agentDisplayName}
+          messagesOverride={messages}
+          waitMessageId={dmWaitMessageId}
+        />
       </div>
 
       <div

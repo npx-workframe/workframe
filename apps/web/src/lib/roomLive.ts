@@ -84,6 +84,7 @@ export function liveTurnStatusText(agentName: string, status?: string): string |
 
 type LiveTurnBatcher = {
   push: (turnId: string, message: ChatMessage) => void
+  flush: () => void
   cancel: () => void
 }
 
@@ -105,6 +106,13 @@ export function createLiveTurnBatcher(
     push(turnId: string, message: ChatMessage) {
       pending[turnId] = message
       if (!raf) raf = window.requestAnimationFrame(flush)
+    },
+    flush() {
+      if (raf) {
+        window.cancelAnimationFrame(raf)
+        raf = 0
+      }
+      flush()
     },
     cancel() {
       if (raf) window.cancelAnimationFrame(raf)

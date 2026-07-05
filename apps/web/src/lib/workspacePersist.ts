@@ -168,6 +168,17 @@ export function clearCachedHermesModels(profile: string): void {
 
 const MAX_CACHED_MSGS = 80
 
+/** Human/project rooms use listRoomMessages — cache under a fixed session sentinel. */
+export const PROJECT_ROOM_CACHE_SESSION = '__project_room__'
+
+export function readCachedProjectRoomMessages(roomId: string): ChatMessage[] {
+  return readCachedMessages(roomId, PROJECT_ROOM_CACHE_SESSION)
+}
+
+export function writeCachedProjectRoomMessages(roomId: string, messages: ChatMessage[]): void {
+  writeCachedMessages(roomId, PROJECT_ROOM_CACHE_SESSION, messages)
+}
+
 export function readCachedMessages(roomId: string, sessionId: string): ChatMessage[] {
   const sid = sessionId.trim()
   if (!sid) return []

@@ -1,17 +1,23 @@
-# Workframe v0.1.11
+# Workframe v0.1.12
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.11 |
-| workframe CLI | 0.1.11 |
-| @workframe/workframe | 0.1.11 |
-| Workframe API / UI | 0.1.11 |
+| create-workframe | 0.1.12 |
+| workframe CLI | 0.1.12 |
+| @workframe/workframe | 0.1.12 |
+| Workframe API / UI | 0.1.12 |
 
 ```bash
-npx create-workframe@0.1.11 MyProject
+npx create-workframe@0.1.12 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.12
+
+- Chat wait hints gated on active turns; fix group-room live SSE stale snapshots and batcher flush.
+- Project room message cache (stale-while-revalidate) matching DM bind pattern.
+- Public deploy verify: anonymous `/api/snapshot` must return 401.
 
 ## 0.1.11
 

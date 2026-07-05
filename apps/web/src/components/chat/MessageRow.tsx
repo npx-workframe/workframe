@@ -1,6 +1,7 @@
 import type { ChatMessage, ChatSegment } from '@/lib/chatTypes'
 import { formatModelAttribution } from '@/lib/chatTypes'
 import { ThinkingBlock } from '@/components/chat/ThinkingBlock'
+import { WaitHint } from '@/components/chat/WaitHint'
 import { ToolRunCard } from '@/components/chat/ToolRunCard'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { AgentAvatar } from '@/components/ui/AgentAvatar'
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 type MessageRowProps = {
   message: ChatMessage
+  waitMessageId?: string | null
   onReplyToAgent?: (slug: string) => void
 }
 
@@ -71,7 +73,7 @@ function SegmentBlock({
   return <MarkdownBody text={segment.text} />
 }
 
-export function MessageRow({ message, onReplyToAgent }: MessageRowProps) {
+export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: MessageRowProps) {
   const isUser = message.role === 'user'
   const { openChatSettings, openUserSettings } = useWorkspacePanels()
   const canReply = !isUser && Boolean(onReplyToAgent && message.authorId && message.authorId !== 'system')
@@ -125,9 +127,7 @@ export function MessageRow({ message, onReplyToAgent }: MessageRowProps) {
       </div>
 
       <div className="wf-message__segments">
-        {message.segments.length === 0 && message.ephemeral ? (
-          <p className="wf-message__live-hint">Waiting for agent…</p>
-        ) : null}
+        {message.segments.length === 0 && message.id === waitMessageId ? <WaitHint /> : null}
         {message.segments.map((segment, index) => (
           <SegmentBlock
             key={`${message.id}-${index}`}

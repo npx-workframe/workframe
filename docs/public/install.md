@@ -3,7 +3,7 @@
 End-user path: scaffold a project, run Docker, complete the setup wizard.
 
 ```bash
-npx create-workframe@0.1.11 MyProject
+npx create-workframe@0.1.12 MyProject
 cd MyProject
 node scripts/workframe.mjs doctor   # optional preflight
 docker compose up -d --build

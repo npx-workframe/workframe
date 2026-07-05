@@ -136,6 +136,9 @@ if command -v curl >/dev/null 2>&1; then
     echo "$health" | grep -q 'workframe_e2e' || warn "API health missing workframe_e2e"
     echo "$health" | grep -q 'dev_local_unsafe' || warn "API health missing dev_local_unsafe"
     ok "API health"
+    snapshot_code="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${API_PORT}/api/snapshot" || true)"
+    [[ "$snapshot_code" == "401" ]] || fail "anonymous /api/snapshot returned ${snapshot_code:-<empty>} (expected 401)"
+    ok "anonymous /api/snapshot denied"
   fi
   dash_code="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${UI_PORT}/hermes-dashboard/" || true)"
   [[ "$dash_code" == "403" ]] || warn "hermes-dashboard without session returned $dash_code (expected 403)"
