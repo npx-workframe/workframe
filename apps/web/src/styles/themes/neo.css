@@ -48,6 +48,13 @@
   --wf-neo-flat: 3px 3px 6px rgba(163, 163, 176, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.8);
   --wf-neo-highlight: -3px -3px 6px rgba(255, 255, 255, 0.8);
 
+  --wf-dialog-accent-hover-bg: color-mix(in srgb, var(--wf-cyan) 14%, white);
+  --wf-dialog-accent-hover-text: #0f766e;
+  --wf-dialog-accent-hover-border: color-mix(in srgb, var(--wf-cyan) 38%, transparent);
+  --wf-dialog-warn-hover-bg: color-mix(in srgb, #c2410c 12%, white);
+  --wf-dialog-warn-hover-text: #9a3412;
+  --wf-dialog-warn-hover-border: color-mix(in srgb, #ea580c 34%, transparent);
+
   --wf-control-bg-flush: transparent;
   --wf-control-bg-raised: var(--wf-surface);
   --wf-control-border-ring-closed: #fff;

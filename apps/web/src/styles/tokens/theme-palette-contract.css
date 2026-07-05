@@ -1,0 +1,19 @@
+/* Theme palette contract — each [data-theme='dark'|'neo'] block must define every token below.
+   Values differ per theme; names must match for parity. */
+
+/* Palette: --wf-violet, --wf-violet-glow, --wf-cyan, --wf-mint, --wf-ring
+   Surfaces: --wf-bg, --wf-text, --wf-muted, --wf-border, --wf-border-strong,
+             --wf-surface, --wf-surface-soft, --wf-primary, --wf-primary-foreground
+   Atmosphere: --wf-bg-gradient, --wf-orb-primary, --wf-orb-primary-opacity,
+               --wf-orb-secondary, --wf-orb-secondary-opacity, --wf-grid-tile,
+               --wf-grid-image, --wf-grid-mask, --wf-overlay
+   Notices: --wf-notice-fg, --wf-notice-muted, --wf-notice-border, --wf-notice-bg,
+            --wf-notice-info-bg, --wf-notice-info-border, --wf-status-fg
+   Chrome scale: --wf-radius, --wf-rail-cell-radius
+   Neo shadows (inert in dark): --wf-neo-shadow-light, --wf-neo-shadow-dark,
+     --wf-neo-shadow-inset-light, --wf-neo-shadow-inset-dark, --wf-neo-flat, --wf-neo-highlight
+   Dialog hovers: --wf-dialog-accent-hover-bg/text/border, --wf-dialog-warn-hover-bg/text/border
+   Controls: --wf-control-bg-flush, --wf-control-bg-raised, --wf-control-border-ring-closed,
+     --wf-control-border-ring-raised, --wf-control-shadow-flush, --wf-control-shadow-raised,
+     --wf-control-shadow-highlight, --wf-control-shadow-inset, --wf-control-shadow-elevated,
+     --wf-control-shadow-footer */

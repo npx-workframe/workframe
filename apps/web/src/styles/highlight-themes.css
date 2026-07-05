@@ -1,93 +1,93 @@
-/* GitHub light + dark syntax themes — code view + markdown fenced blocks. */
+/* GitHub light (neo) + dark syntax themes — code view + markdown fenced blocks. */
 
-[data-theme='light'] .wf-syntax .hljs {
+[data-theme='neo'] .wf-syntax .hljs {
   color: #24292e;
   background: transparent;
 }
 
-[data-theme='light'] .wf-syntax .hljs-doctag,
-[data-theme='light'] .wf-syntax .hljs-keyword,
-[data-theme='light'] .wf-syntax .hljs-meta .hljs-keyword,
-[data-theme='light'] .wf-syntax .hljs-template-tag,
-[data-theme='light'] .wf-syntax .hljs-template-variable,
-[data-theme='light'] .wf-syntax .hljs-type,
-[data-theme='light'] .wf-syntax .hljs-variable.language_ {
+[data-theme='neo'] .wf-syntax .hljs-doctag,
+[data-theme='neo'] .wf-syntax .hljs-keyword,
+[data-theme='neo'] .wf-syntax .hljs-meta .hljs-keyword,
+[data-theme='neo'] .wf-syntax .hljs-template-tag,
+[data-theme='neo'] .wf-syntax .hljs-template-variable,
+[data-theme='neo'] .wf-syntax .hljs-type,
+[data-theme='neo'] .wf-syntax .hljs-variable.language_ {
   color: #d73a49;
 }
 
-[data-theme='light'] .wf-syntax .hljs-title,
-[data-theme='light'] .wf-syntax .hljs-title.class_,
-[data-theme='light'] .wf-syntax .hljs-title.class_.inherited__,
-[data-theme='light'] .wf-syntax .hljs-title.function_ {
+[data-theme='neo'] .wf-syntax .hljs-title,
+[data-theme='neo'] .wf-syntax .hljs-title.class_,
+[data-theme='neo'] .wf-syntax .hljs-title.class_.inherited__,
+[data-theme='neo'] .wf-syntax .hljs-title.function_ {
   color: #6f42c1;
 }
 
-[data-theme='light'] .wf-syntax .hljs-attr,
-[data-theme='light'] .wf-syntax .hljs-attribute,
-[data-theme='light'] .wf-syntax .hljs-literal,
-[data-theme='light'] .wf-syntax .hljs-meta,
-[data-theme='light'] .wf-syntax .hljs-number,
-[data-theme='light'] .wf-syntax .hljs-operator,
-[data-theme='light'] .wf-syntax .hljs-variable,
-[data-theme='light'] .wf-syntax .hljs-selector-attr,
-[data-theme='light'] .wf-syntax .hljs-selector-class,
-[data-theme='light'] .wf-syntax .hljs-selector-id {
+[data-theme='neo'] .wf-syntax .hljs-attr,
+[data-theme='neo'] .wf-syntax .hljs-attribute,
+[data-theme='neo'] .wf-syntax .hljs-literal,
+[data-theme='neo'] .wf-syntax .hljs-meta,
+[data-theme='neo'] .wf-syntax .hljs-number,
+[data-theme='neo'] .wf-syntax .hljs-operator,
+[data-theme='neo'] .wf-syntax .hljs-variable,
+[data-theme='neo'] .wf-syntax .hljs-selector-attr,
+[data-theme='neo'] .wf-syntax .hljs-selector-class,
+[data-theme='neo'] .wf-syntax .hljs-selector-id {
   color: #005cc5;
 }
 
-[data-theme='light'] .wf-syntax .hljs-regexp,
-[data-theme='light'] .wf-syntax .hljs-string,
-[data-theme='light'] .wf-syntax .hljs-meta .hljs-string {
+[data-theme='neo'] .wf-syntax .hljs-regexp,
+[data-theme='neo'] .wf-syntax .hljs-string,
+[data-theme='neo'] .wf-syntax .hljs-meta .hljs-string {
   color: #032f62;
 }
 
-[data-theme='light'] .wf-syntax .hljs-built_in,
-[data-theme='light'] .wf-syntax .hljs-symbol {
+[data-theme='neo'] .wf-syntax .hljs-built_in,
+[data-theme='neo'] .wf-syntax .hljs-symbol {
   color: #e36209;
 }
 
-[data-theme='light'] .wf-syntax .hljs-comment,
-[data-theme='light'] .wf-syntax .hljs-code,
-[data-theme='light'] .wf-syntax .hljs-formula {
+[data-theme='neo'] .wf-syntax .hljs-comment,
+[data-theme='neo'] .wf-syntax .hljs-code,
+[data-theme='neo'] .wf-syntax .hljs-formula {
   color: #6a737d;
 }
 
-[data-theme='light'] .wf-syntax .hljs-name,
-[data-theme='light'] .wf-syntax .hljs-quote,
-[data-theme='light'] .wf-syntax .hljs-selector-tag,
-[data-theme='light'] .wf-syntax .hljs-selector-pseudo {
+[data-theme='neo'] .wf-syntax .hljs-name,
+[data-theme='neo'] .wf-syntax .hljs-quote,
+[data-theme='neo'] .wf-syntax .hljs-selector-tag,
+[data-theme='neo'] .wf-syntax .hljs-selector-pseudo {
   color: #22863a;
 }
 
-[data-theme='light'] .wf-syntax .hljs-subst {
+[data-theme='neo'] .wf-syntax .hljs-subst {
   color: #24292e;
 }
 
-[data-theme='light'] .wf-syntax .hljs-section {
+[data-theme='neo'] .wf-syntax .hljs-section {
   color: #005cc5;
   font-weight: bold;
 }
 
-[data-theme='light'] .wf-syntax .hljs-bullet {
+[data-theme='neo'] .wf-syntax .hljs-bullet {
   color: #735c0f;
 }
 
-[data-theme='light'] .wf-syntax .hljs-emphasis {
+[data-theme='neo'] .wf-syntax .hljs-emphasis {
   color: #24292e;
   font-style: italic;
 }
 
-[data-theme='light'] .wf-syntax .hljs-strong {
+[data-theme='neo'] .wf-syntax .hljs-strong {
   color: #24292e;
   font-weight: bold;
 }
 
-[data-theme='light'] .wf-syntax .hljs-addition {
+[data-theme='neo'] .wf-syntax .hljs-addition {
   color: #22863a;
   background-color: #f0fff4;
 }
 
-[data-theme='light'] .wf-syntax .hljs-deletion {
+[data-theme='neo'] .wf-syntax .hljs-deletion {
   color: #b31d28;
   background-color: #ffeef0;
 }

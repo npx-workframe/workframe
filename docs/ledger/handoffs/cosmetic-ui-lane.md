@@ -90,4 +90,9 @@ Append under **Cosmetic log** below: date, files touched, screenshots optional, 
 
 ## Cosmetic log
 
-_(cosmetic agent appends here)_
+**2026-07-05** — Theme consolidation (WF-036 cosmetic)
+- Kept `dark` + `neo` only; removed light, mono-light, mono-dark, brutal, architectonic (+ overrides)
+- Standardized palette contract: `styles/tokens/theme-palette-contract.css`; matching token sets in `dark.css` / `neo.css`
+- Updated `theme.ts`, `themeOptions.ts`, `useTheme.ts`, `index.html`, `shadcn-theme.css`, `highlight-themes.css` (neo = light syntax)
+- Files: `apps/web/src/styles/**`, `apps/web/src/lib/theme*.ts`, `apps/web/src/hooks/useTheme.ts`, `apps/web/index.html`, `apps/web/src/main.tsx`, `apps/web/src/index.css`
+- `pnpm build:web` ✓

@@ -31,7 +31,7 @@
   --wf-input-border: var(--wf-border);
   --wf-input-bg: color-mix(in srgb, var(--wf-bg) 80%, transparent);
 
-  /* Control interaction roles (themes override for neo, brutal, etc.) */
+  /* Control interaction roles (dark + neo palettes override in themes/*.css) */
   --wf-control-bg-flush: transparent;
   --wf-control-bg-raised: var(--wf-surface);
   --wf-control-border-ring-closed: var(--wf-border);

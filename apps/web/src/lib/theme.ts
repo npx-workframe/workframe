@@ -1,8 +1,8 @@
-export type Theme = 'light' | 'dark' | 'mono-light' | 'mono-dark' | 'neo' | 'brutal' | 'architectonic'
+export type Theme = 'dark' | 'neo'
 
 const STORAGE_KEY = 'wf-theme'
 
-const VALID_THEMES: Theme[] = ['light', 'dark', 'mono-light', 'mono-dark', 'neo', 'brutal', 'architectonic']
+const VALID_THEMES: Theme[] = ['dark', 'neo']
 
 function readStoredTheme(): Theme | null {
   try {
@@ -22,11 +22,8 @@ export function getInitialTheme(): Theme {
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme
-  document.documentElement.style.colorScheme = theme === 'light' || theme === 'neo' ? 'light' : 'dark'
-  document.querySelector('meta[name="theme-color"]')?.setAttribute(
-    'content',
-    theme === 'light' ? '#F2F2F7' : '#0A0A0F',
-  )
+  document.documentElement.style.colorScheme = theme === 'neo' ? 'light' : 'dark'
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0A0A0F')
   installNeoPressFeedback(theme === 'neo')
 }
 

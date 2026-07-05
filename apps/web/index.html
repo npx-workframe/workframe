@@ -29,12 +29,11 @@
     <script>
       ;(() => {
         try {
-          const valid = ['light', 'dark', 'mono-light', 'mono-dark', 'neo', 'brutal', 'architectonic']
+          const valid = ['dark', 'neo']
           const stored = localStorage.getItem('wf-theme')
           const theme = valid.includes(stored) ? stored : 'neo'
           document.documentElement.dataset.theme = theme
-          document.documentElement.style.colorScheme =
-            theme === 'light' || theme === 'neo' || theme === 'mono-light' ? 'light' : 'dark'
+          document.documentElement.style.colorScheme = theme === 'neo' ? 'light' : 'dark'
         } catch (_) {}
       })()
     </script>

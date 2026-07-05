@@ -4,12 +4,7 @@
  */
 
 [data-theme='dark'],
-[data-theme='light'],
-[data-theme='brutal'],
-[data-theme='neo'],
-[data-theme='architectonic'],
-[data-theme='mono-light'],
-[data-theme='mono-dark'] {
+[data-theme='neo'] {
   --radius: 0.5rem;
   --border-width: 1px;
 
@@ -47,36 +42,6 @@
   --shadow-xl: var(--wf-shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04));
 }
 
-[data-theme='dark'] {
-  --wf-dialog-accent-hover-bg: color-mix(in srgb, var(--wf-cyan) 24%, transparent);
-  --wf-dialog-accent-hover-text: #99f6e4;
-  --wf-dialog-accent-hover-border: color-mix(in srgb, var(--wf-cyan) 52%, transparent);
-  --wf-dialog-warn-hover-bg: color-mix(in srgb, #f59e0b 22%, transparent);
-  --wf-dialog-warn-hover-text: #fde68a;
-  --wf-dialog-warn-hover-border: color-mix(in srgb, #f59e0b 48%, transparent);
-}
-
-[data-theme='light'] {
-  --wf-dialog-accent-hover-bg: color-mix(in srgb, var(--wf-cyan) 14%, white);
-  --wf-dialog-accent-hover-text: #0f766e;
-  --wf-dialog-accent-hover-border: color-mix(in srgb, var(--wf-cyan) 38%, transparent);
-  --wf-dialog-warn-hover-bg: color-mix(in srgb, #c2410c 12%, white);
-  --wf-dialog-warn-hover-text: #9a3412;
-  --wf-dialog-warn-hover-border: color-mix(in srgb, #ea580c 34%, transparent);
-}
-
-[data-theme='brutal'] {
-  --radius: 0px;
-  --border-width: 3px;
-  --shadow-sm: 4px 4px 0px #1a1a1a;
-  --shadow-md: 6px 6px 0px #1a1a1a;
-  --shadow-lg: 8px 8px 0px #1a1a1a;
-  --shadow-xl: 12px 12px 0px #1a1a1a;
-  --border: #1a1a1a;
-  --input: #1a1a1a;
-  --ring: #1a1a1a;
-}
-
 [data-theme='neo'] {
   --radius: 12px;
   --border-width: 0px;
@@ -86,16 +51,6 @@
   --shadow-md: 6px 6px 12px rgba(163, 163, 176, 0.5), -6px -6px 12px rgba(255, 255, 255, 0.9);
   --shadow-lg: 8px 8px 16px rgba(163, 163, 176, 0.5), -8px -8px 16px rgba(255, 255, 255, 0.9);
   --shadow-xl: 12px 12px 24px rgba(163, 163, 176, 0.6), -12px -12px 24px rgba(255, 255, 255, 0.9);
-}
-
-[data-theme='architectonic'] {
-  --radius: 0px;
-  --border-width: 1px;
-  --border: rgba(255, 255, 255, 0.15);
-  --shadow-sm: 0 0 0 1px var(--border);
-  --shadow-md: 0 0 0 1px var(--border), 0 4px 12px rgba(0,0,0,0.5);
-  --shadow-lg: 0 0 0 1px var(--border), 0 12px 24px rgba(0,0,0,0.5);
-  --shadow-xl: 0 0 0 1px var(--border), 0 24px 48px rgba(0,0,0,0.5);
 }
 
 @theme inline {
