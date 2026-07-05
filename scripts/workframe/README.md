@@ -26,7 +26,7 @@ After reset: open the printed UI URL → complete the **wizard in the browser**.
 | **Reset VPS sandbox** | `.\scripts\workframe\reset-vps-runtime.ps1 -VpsHost user@host` |
 | **VPS tunnel** | `.\scripts\workframe\open-vps-tunnel.ps1` |
 | **Version agreement** | `node scripts/workframe/verify-version-agreement.mjs` |
-| **Release evidence schema** | `node scripts/workframe/validate-release-evidence.mjs` |
+| **Package install evidence** | `node scripts/workframe/run-package-install-evidence.mjs --build` |
 | **Publish npm** | `.\scripts\workframe\publish-npm.ps1` |
 
 ---

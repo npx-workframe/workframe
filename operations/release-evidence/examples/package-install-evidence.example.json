@@ -8,8 +8,8 @@
   "package_version": "0.1.11",
   "packed_artifact_digest": "sha512-EXAMPLE-REDACTED",
   "target_mode": "single_user_local",
-  "decision": "needs_user_action",
-  "decision_reason": "Example fixture only — runner WF-021 not wired yet; schema contract reference.",
+  "decision": "allow",
+  "decision_reason": "Illustrative allow shape — see run-package-install-evidence.mjs for live output.",
   "timestamp": "2026-07-05T06:45:00Z",
   "commands_redacted": [
     "pnpm build:web",
@@ -20,11 +20,11 @@
   ],
   "step_assertions": [
     { "id": "version_agreement", "status": "asserted", "note": "verify-version-agreement.mjs" },
-    { "id": "pack_created", "status": "not_asserted" },
-    { "id": "clean_target_created", "status": "not_asserted" },
-    { "id": "required_files_present", "status": "not_asserted" },
-    { "id": "manifest_version_match", "status": "not_asserted" },
-    { "id": "ui_bundle_identity", "status": "not_asserted" }
+    { "id": "pack_created", "status": "asserted" },
+    { "id": "clean_target_created", "status": "asserted" },
+    { "id": "required_files_present", "status": "asserted" },
+    { "id": "manifest_version_match", "status": "asserted" },
+    { "id": "ui_bundle_identity", "status": "asserted" }
   ],
   "negative_cases": [
     { "id": "non_empty_target", "decision": "deny", "mutation_observed": false },

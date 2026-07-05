@@ -104,7 +104,13 @@ Schemas and examples: [operations/release-evidence/README.md](../../operations/r
 node scripts/workframe/validate-release-evidence.mjs
 ```
 
-Runners that emit live JSON (WF-019–WF-021) are not wired yet; examples document the contract.
+Runners that emit live JSON:
+
+```bash
+node scripts/workframe/run-package-install-evidence.mjs --build
+```
+
+First-run and negative runners (WF-019–WF-020) are not wired yet.
 
 ## GitHub → npm (trusted publishing)
 

@@ -26,6 +26,15 @@ Validate:
 node scripts/workframe/validate-release-evidence.mjs
 ```
 
+Produce package install evidence (no Docker):
+
+```bash
+node scripts/workframe/run-package-install-evidence.mjs --build
+# --skip-prep after install-gate / test:ci prep
+```
+
+Output default: `runs/latest-package-install.json` (gitignored).
+
 ## Authority
 
 - **Product security audit** → [docs/public/audit.md](../docs/public/audit.md)

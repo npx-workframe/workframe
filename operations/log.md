@@ -4,7 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
-2026-07-05T03:50-03:00 | pm-workframe | WF-003 + WF-018 done — release evidence schemas, examples, validate-release-evidence.mjs in CI.
+2026-07-05T04:05-03:00 | pm-workframe | WF-021 done — run-package-install-evidence.mjs (pack→scaffold, allow). WF-002 partial pending WF-020.
 
 2026-07-03T21:00-03:00 | Scaffold | operations rail + START_HERE.md + harness README added for agent entry cascade.
 2026-07-04T00:00-03:00 | Planning Rail | created docs/living-audit/README.md with installer decision-tree convergence map.

@@ -39,3 +39,6 @@ jobs:
 
       - name: Installer UI bundle
         run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build
+
+      - name: Package install evidence
+        run: node scripts/workframe/run-package-install-evidence.mjs --build

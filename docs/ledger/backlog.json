@@ -36,7 +36,7 @@
       "summary": "Prove wipe → create-workframe → wizard → chat from npm pack artifact, not source optimism.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "partial",
       "sources": ["25-audit:P0-2", "package-truth-gate", "final-convergence-synthesis:layer-0"],
       "acceptance": [
         "Produces machine-readable PackageInstallEvidence JSON",
@@ -44,8 +44,14 @@
         "Fails if UI bundle parity or health checks fail"
       ],
       "depends_on": ["WF-001", "WF-018"],
+      "evidence": [
+        "scripts/workframe/run-package-install-evidence.mjs",
+        "operations/release-evidence/runs/latest-package-install.json"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "notes": "Pack→scaffold done (WF-021). Docker/wizard/first-chat remains WF-020."
+      }
     },
     {
       "id": "WF-003",
@@ -347,12 +353,17 @@
       "summary": "pack → clean install → assert files, version, UI identity.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:ticket-2"],
       "acceptance": ["JSON PackageInstallEvidence", "Fails on version drift", "No live model key required"],
       "depends_on": ["WF-018", "WF-001"],
+      "evidence": [
+        "scripts/workframe/run-package-install-evidence.mjs",
+        "package.json test:package-evidence",
+        ".github/workflows/ci.yml"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": [] }
     },
     {
       "id": "WF-022",
