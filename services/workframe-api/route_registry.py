@@ -160,15 +160,15 @@ def authorize_request(
     if level == AuthLevel.SINGLE_USER_GET:
         if m != "GET":
             return _require_session(sid, validate_session, attach_user)
-        if not deployment_allows_sessionless_data_get(
+        if deployment_allows_sessionless_data_get(
             deployment_mode, dev_local_unsafe=dev_local_unsafe,
         ):
-            return False
-        if sid:
-            info = validate_session(sid)
-            if info:
-                attach_user(info["user_id"])
-        return True
+            if sid:
+                info = validate_session(sid)
+                if info:
+                    attach_user(info["user_id"])
+            return True
+        return _require_session(sid, validate_session, attach_user)
 
     if level == AuthLevel.AUTH_FLOW:
         return True

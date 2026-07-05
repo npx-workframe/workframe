@@ -49,4 +49,26 @@ for p in sorted(handler_paths):
         missing.append(p)
 assert not missing, f"unmapped auth levels: {missing}"
 
+# trusted_team: data GETs need session (not anonymous), not a hard deny
+assert not route_registry.authorize_request(
+    "GET",
+    "/api/agents",
+    "",
+    deployment_mode="trusted_team",
+    dev_local_unsafe=False,
+    install_window_open=False,
+    validate_session=lambda _s: None,
+    attach_user=lambda _u: None,
+)
+assert route_registry.authorize_request(
+    "GET",
+    "/api/agents",
+    "sid-ok",
+    deployment_mode="trusted_team",
+    dev_local_unsafe=False,
+    install_window_open=False,
+    validate_session=lambda s: {"user_id": "u1"} if s == "sid-ok" else None,
+    attach_user=lambda _u: None,
+)
+
 print("route registry self-check ok")
