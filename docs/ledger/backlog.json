@@ -615,6 +615,226 @@
       "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
     },
     {
+      "id": "WF-031",
+      "title": "Close anonymous data exposure on public GET routes",
+      "summary": "CODE-VERIFIED 2026-07-05: handlers for /api/snapshot (build_snapshot: crew+activity+sessions+kanban+cron), /api/board, /api/chat/messages (attacker-chosen profile param), /api/files/list, /api/content/get do NO internal auth check — GET_PUBLIC_ROUTES is the only gate and they are on it. Anonymous callers read chat history and workspace files in any non-DEV deploy. SECURE_MODE origin check is header-based and does not stop direct requests. Also: _check_auth compares service bearer token with == (server.py ~L446) instead of hmac.compare_digest.",
+      "wave": "code-health",
+      "priority": "P0",
+      "status": "done",
+      "sources": ["audit-2026-07-05 code-read: server.py L780-828, L16486-16510, L17171-17233, L437-456"],
+      "acceptance": [
+        "Anonymous GET on snapshot/board/chat/files/content returns 401 unless deployment mode is single_user_local or DEV_LOCAL_UNSAFE",
+        "True-public set reduced to: /api/health, /api/meta, /api/setup/status, /api/install/status, /api/public/*, /api/auth/*, static assets",
+        "Bearer token comparison uses hmac.compare_digest",
+        "verify-public-deploy.sh asserts anonymous /api/snapshot -> 401"
+      ],
+      "handoff_steps": [
+        "1. In server.py, split GET_PUBLIC_ROUTES into GET_ALWAYS_PUBLIC (health/meta/setup/install/public/auth/static) and GET_SINGLE_USER_PUBLIC (the rest)",
+        "2. In _is_public_get, allow GET_SINGLE_USER_PUBLIC only when deployment mode is single_user_local (read stack_config deployment_mode) or DEV_LOCAL_UNSAFE",
+        "3. Replace == token compare in _check_auth with hmac.compare_digest",
+        "4. Fix frontend callers that relied on session-less GETs (login screen must not call snapshot/chat before auth)",
+        "5. Add test_public_routes.py: anonymous GET matrix per deployment mode; wire into pnpm test:ci",
+        "6. Extend scripts/workframe/verify-public-deploy.sh with anonymous 401 probe"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-05" }
+    },
+    {
+      "id": "WF-032",
+      "title": "Split server.py monolith (definitive module map)",
+      "summary": "~20k lines / 841 KB / 626 top-level defs in one file. Decompose along the seams found in the 2026-07-05 audit. Stdlib-only constraint stays; one extraction per commit; py_compile + test_*.py green after each.",
+      "wave": "code-health",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["audit-2026-07-05: def-density map of server.py"],
+      "acceptance": [
+        "Stage 0: characterization tests for model surface, auth gate, credential resolve (extends WF-034)",
+        "Stage 1 (leaf, no hermes deps): db_schema.py (Sprint G-K migrations, ~L19980+), auth_gate.py (GET_PUBLIC_ROUTES + _auth_check + session, ~L780-900), user_prefs.py (~L2000-4000), rooms.py (~L4000-6000), kanban_cron.py (~L10000-12000)",
+        "Stage 2 (hermes core): hermes_profiles.py (profile dirs/lifecycle, ~L6000-10000), profile_gateway.py (~L12000-14000), model_surface.py (hermes_models/model_set/billing, ~L14800-15800), provider_bootstrap.py (reconcile/auth pool/credentials, ~L12700-13060 + L19750+)",
+        "Stage 3 (transport): route_registry.py per WF-037; chat streaming + lane bindings module (~L13800-14200)",
+        "server.py residual under ~3k lines (main, wiring)"
+      ],
+      "depends_on": ["WF-034", "WF-033"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-033",
+      "title": "Single YAML config writer",
+      "summary": "Replace hand-rolled line-based config.yaml editors (_write_fallback_chain, _set_profile_model*, _coalesce_profile_model_yaml) with one read-parse-modify-write helper. Root cause of the wizard YAML-corruption bug class.",
+      "wave": "code-health",
+      "priority": "P1",
+      "status": "partial",
+      "sources": ["audit-2026-07-05", "wizard config.yaml duplicate model: block incident (a7271ed)"],
+      "acceptance": [
+        "All model/fallback yaml mutations go through one helper",
+        "Helper round-trips comments or documents loss explicitly",
+        "test_profile_model_yaml.py extended to cover writer"
+      ],
+      "handoff_steps": [
+        "1. Inventory all config.yaml mutators: _set_profile_model, _set_profile_model_provider, _set_profile_model_base_url, _strip_profile_model_proxy_fields, _write_fallback_chain, _coalesce_profile_model_yaml, _normalize_profile_config_yaml",
+        "2. Implement update_model_block(profile, **fields) using yaml.safe_load -> mutate -> safe_dump of the model/fallback_providers keys only, preserving unknown top-level keys",
+        "3. Replace each mutator body with a call to the helper; keep signatures so callers do not change",
+        "4. Extend test_profile_model_yaml.py: duplicate blocks, comments, missing file, concurrent double-write"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "profile_config_yaml.py wires set_model, set_provider, fallback_chain; coalesce/base_url still line-based" }
+    },
+    {
+      "id": "WF-034",
+      "title": "Model save/provider consistency regression tests",
+      "summary": "Lock in 2026-07-05 fix: GET /api/hermes/models must not mutate model yaml; POST /api/hermes/model honors billing_provider; reconcile is idempotent; codex vs openrouter attribution correct when both connected.",
+      "wave": "code-health",
+      "priority": "P1",
+      "status": "done",
+      "sources": ["audit-2026-07-05", "model save/provider drift incident"],
+      "acceptance": [
+        "Test: repeated GET models leaves config.yaml byte-identical",
+        "Test: set model with billing_provider=codex survives reconcile + GET",
+        "Test: ambiguous model id (both providers connected) resolves to explicit/preferred billing provider"
+      ],
+      "handoff_steps": [
+        "1. New test_model_surface_consistency.py using tmp WORKFRAME_API_DATA_DIR + fake profile dir with config.yaml fixture",
+        "2. Test A: call hermes_models() twice, assert config.yaml bytes unchanged",
+        "3. Test B: hermes_model_set(billing_provider='codex') then hermes_models(), assert provider==billing_provider=='codex'",
+        "4. Test C: _reconcile_profile_llm_for_user twice, second call returns False (idempotent)",
+        "5. Test D: gpt-* model with codex+openrouter connected honors prefer= current profile billing",
+        "6. Register in pnpm test scripts / CI"
+      ],
+      "depends_on": [],
+      "owner_role": "harness",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-05" }
+    },
+    {
+      "id": "WF-035",
+      "title": "Exception hygiene on credential/auth paths",
+      "summary": "server.py has ~140 broad `except Exception` blocks. Narrow the ones on auth, credential vault, and provider-sync paths; add structured logging so silent failures (e.g. lost saves) surface.",
+      "wave": "code-health",
+      "priority": "P2",
+      "status": "todo",
+      "sources": ["audit-2026-07-05:grep except Exception = 140"],
+      "acceptance": [
+        "Auth/vault/provider-sync paths catch specific exceptions or log with context",
+        "No user-visible behavior change"
+      ],
+      "depends_on": ["WF-032"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-036",
+      "title": "Frontend decomposition + provider display unification",
+      "summary": "ConciergeFlow.tsx (51 KB) and HermesSessionContext.tsx (29 KB) need splitting; finish billingProviderDisplayLabel adoption everywhere; remove inferProviderFromModelId's silent openrouter default.",
+      "wave": "code-health",
+      "priority": "P2",
+      "status": "todo",
+      "sources": ["audit-2026-07-05:largest tsx files", "provider label duplication fixed partially 2026-07-05"],
+      "acceptance": [
+        "No component file over ~800 lines in touched areas",
+        "One provider-label helper across composer/settings/messages",
+        "Unknown model prefix renders model-only label, not guessed provider"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-037",
+      "title": "Declarative route registry with auth requirements",
+      "summary": "The BaseHTTPRequestHandler dispatch is a multi-thousand-line if-chain and GET_PUBLIC_ROUTES is a separate allowlist that can drift from handlers. Replace with one route table: (method, path, handler, auth_level, roles). Auth becomes deny-by-default at the table, closing the WF-031 class permanently.",
+      "wave": "code-health",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["audit-2026-07-05: handler if-chain ~L16500-19700", "WF-031"],
+      "acceptance": [
+        "Single ROUTES table; unknown path = 404, unlisted auth = 401 (deny by default)",
+        "auth_level enum: public | session | role(owner_admin) | internal",
+        "Test asserts every /api/* handler is registered with explicit auth_level",
+        "GET_PUBLIC_ROUTES deleted"
+      ],
+      "handoff_steps": [
+        "1. Define Route dataclass (method, path, handler, auth: public|session|role_owner_admin|internal) + ROUTES list in new routes.py",
+        "2. Write dispatch(handler, method, path, qs, body) that enforces auth from the table before calling handler fn",
+        "3. Migrate do_GET branches to table entries in batches of ~20 routes per commit (handler fns already exist — reference them)",
+        "4. Migrate do_POST/do_PATCH/do_DELETE the same way",
+        "5. Delete GET_PUBLIC_ROUTES and the if-chains; keep _handle_internal_llm_proxy/_action_proxy as pre-dispatch",
+        "6. Add test: walk ROUTES, assert no /api/* path reachable without explicit auth level"
+      ],
+      "depends_on": ["WF-031"],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-038",
+      "title": "Prune stub packages and apps from monorepo",
+      "summary": "CODE-VERIFIED 2026-07-05: packages/{core,domain,sdk,telemetry,testing,ui,workframe-core} and apps/{admin,mobile,worker} are 1-5 file stubs with no consumers. packages/{workframe,workframe-scoped} are near-empty BUT listed in pnpm-workspace.yaml — pruning requires workspace edit. NOT stubs: apps/website (real Next.js marketing site), packages/create-workframe (the product), gitignored operator trees (packages/contracts, packages/workframe-integrations). Repo tracks a clean 921 files; local-only junk (New folder/, screenshots/, runtime/) is untracked and just needs local cleanup guidance.",
+      "wave": "code-health",
+      "priority": "P2",
+      "status": "done",
+      "sources": ["audit-2026-07-05: file counts + pnpm-workspace.yaml + git ls-files"],
+      "acceptance": [
+        "Stub dirs deleted; pnpm-workspace.yaml lists only real packages",
+        "pnpm install + pnpm test:ci green after prune",
+        "AGENTS.md boundary rules updated if a named boundary disappears"
+      ],
+      "handoff_steps": [
+        "1. grep imports repo-wide for @workframe/core|domain|sdk|telemetry|testing|ui|workframe-core to confirm zero consumers",
+        "2. Delete stub dirs: packages/{core,domain,sdk,telemetry,testing,ui,workframe-core,workframe,workframe-scoped}, apps/{admin,mobile,worker}",
+        "3. Remove packages/workframe and packages/workframe-scoped entries from pnpm-workspace.yaml",
+        "4. Run pnpm install; fix any lockfile/filter references (package.json scripts using --filter)",
+        "5. Update AGENTS.md / START_HERE.md boundary tables if they name deleted dirs"
+      ],
+      "depends_on": [],
+      "owner_role": "implementer",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-05" }
+    },
+    {
+      "id": "WF-039",
+      "title": "Domain model package: Cell, Agent, Run, Lease, Grant",
+      "summary": "First-principles core: the stable Workframe layer is a small typed domain model (agents as persistent actors, runs as units of authority+economics, leases as scoped credentials, capabilities not ambient authority). Today those concepts live implicitly inside server.py SQLite calls and profile-slug conventions. Define them once — Python dataclasses + JSON schema — so API, UI, and future adapters share one vocabulary.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["north-star: Core Doctrine / Target Architecture", "WF-NS-P0", "audit-2026-07-05"],
+      "acceptance": [
+        "Entities: Cell, User, Workspace, AgentIdentity, RuntimeBinding, Run, RunEvent, Lease, Grant, CredentialRef",
+        "Schema committed (packages/domain or services/workframe-api/domain/)",
+        "WF-NS-P2 runs tables and WF-009 RunAuthorityGate reference these types",
+        "Glossary in docs/public closes WF-NS-P0"
+      ],
+      "depends_on": [],
+      "owner_role": "design",
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-040",
+      "title": "Program roadmap: monolith → secure Hermes-native → agentic OS",
+      "summary": "Definitive sequencing of existing backlog into stages. Stage A (stabilize): WF-031/034/033 + WF-006/019/020 release truth. Stage B (decompose): WF-037 route registry, WF-032 module split, WF-038 prune, WF-036 frontend. Stage C (secure multi-user): WF-026/027/028 broker layer, WF-025 forced egress, WF-011 supervisor negatives, WF-017 public hardening. Stage D (authority+ledger): WF-039 domain model, WF-009 RunAuthorityGate, WF-NS-P2 runs tables, WF-016 funding modes, WF-007 CellAuthorityGate. Stage E (platform): WF-013/014/015 + WF-NS-P4 adapter seam (second runtime), WF-NS-P3/029 tool brokers, WF-NS-P5/P6 cells. Stage F (business): WF-NS-P7 control plane, WF-NS-P8 marketplace + social/agent-to-agent economy. Principle throughout: vault and leases keep raw keys away from agents while terminal/web tools stay fully capable — brokered egress, not nerfed agents.",
+      "wave": "meta",
+      "priority": "P0",
+      "status": "todo",
+      "sources": ["audit-2026-07-05 holistic pass + code-read redteam", "north-star: WORKFRAME_v0.1.1_MASTER.md"],
+      "acceptance": [
+        "Stage gates: each stage exits only with harness/evidence green",
+        "Backlog items carry stage labels or ordering derivable from this item",
+        "PM harness (operations/pm) picks next item by stage order"
+      ],
+      "handoff_steps": [
+        "Stage A (parallel-safe, one composer agent each): WF-031 (security fix), WF-034 (regression tests), WF-033 (yaml writer)",
+        "Stage B (sequential): WF-037 route registry -> WF-032 module split (one stage per agent run) -> WF-038 prune -> WF-036 frontend",
+        "Stage C: WF-026 -> WF-028 -> WF-027 -> WF-011 -> WF-025 -> WF-017",
+        "Stage D: WF-039 -> WF-009 -> WF-NS-P2 -> WF-016 -> WF-007",
+        "Stage E: WF-013 -> WF-NS-P4 -> WF-015 -> WF-NS-P3/WF-029 -> WF-NS-P5/P6",
+        "Stage F: WF-NS-P7 -> WF-NS-P8",
+        "Every agent handoff: read item handoff_steps, implement, run pnpm test:ci + py_compile, update item status + patch_refs"
+      ],
+      "depends_on": [],
+      "owner_role": "design",
+      "workflow": { "assignee": "pm-workframe", "notes": "Meta-item: the sequencing IS the deliverable; close when PM runbook references it. Findings code-verified 2026-07-05 (WF-031 exposure confirmed by handler read; WF-038 scope corrected)." }
+    },
+    {
       "id": "WF-SK-001",
       "title": "Adopt spec-kit workflow mapping",
       "summary": "Map constitution/spec/plan/tasks/implement to ledger + .harness without duplicating AGENTS.md.",
