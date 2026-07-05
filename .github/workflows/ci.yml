@@ -26,6 +26,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: API Python deps
+        run: pip install -r services/workframe-api/requirements.txt
+
       - name: Version agreement
         run: node scripts/workframe/verify-version-agreement.mjs
 
