@@ -746,7 +746,7 @@
       "summary": "The BaseHTTPRequestHandler dispatch is a multi-thousand-line if-chain and GET_PUBLIC_ROUTES is a separate allowlist that can drift from handlers. Replace with one route table: (method, path, handler, auth_level, roles). Auth becomes deny-by-default at the table, closing the WF-031 class permanently.",
       "wave": "code-health",
       "priority": "P1",
-      "status": "todo",
+      "status": "partial",
       "sources": ["audit-2026-07-05: handler if-chain ~L16500-19700", "WF-031"],
       "acceptance": [
         "Single ROUTES table; unknown path = 404, unlisted auth = 401 (deny by default)",

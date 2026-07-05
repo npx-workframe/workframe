@@ -38,6 +38,7 @@ from typing import Any, Iterator
 
 from email_sender import APP_BASE_URL, send_branded_invite_email, send_email, send_verification_email
 import profile_config_yaml
+import route_registry
 import stack_config
 import site_meta
 import google_auth
@@ -783,44 +784,7 @@ _gateway_lifecycle_lock = threading.Lock()
 # Auth session helpers
 # ---------------------------------------------------------------------------
 
-# Routes readable without a session on every deployment mode.
-GET_ALWAYS_PUBLIC_ROUTES = frozenset({
-    "/api/meta",
-    "/api/health",
-    "/api/setup/status",
-    "/api/install/status",
-    "/api/public/site-meta",
-    "/api/public/link-preview",
-    "/api/public/manifest.webmanifest",
-    "/api/auth/google/callback",
-})
-
-# Data surfaces — session-less GET only for single-user local or DEV_LOCAL_UNSAFE.
-GET_SINGLE_USER_PUBLIC_ROUTES = frozenset({
-    "/api/files/read",
-    "/api/files/raw",
-    "/api/files/tree",
-    "/api/files/list",
-    "/api/files/state",
-    "/api/board",
-    "/api/content",
-    "/api/content/get",
-    "/api/agents",
-    "/api/snapshot",
-    "/api/hermes/usage",
-    "/api/hermes/profile",
-    "/api/hermes/debug",
-    "/api/hermes/insights",
-    "/api/hermes/gquota",
-    "/api/hermes/models",
-    "/api/hermes/skills",
-    "/api/hermes/commands",
-    "/api/routes",
-    "/api/chat/session",
-    "/api/chat/resolve",
-    "/api/chat/messages",
-    "/api/profiles",
-})
+# Route auth tiers live in route_registry.py (WF-037).
 
 
 def _deployment_allows_sessionless_data_get(
@@ -830,7 +794,7 @@ def _deployment_allows_sessionless_data_get(
 ) -> bool:
     mode = deployment_mode if deployment_mode is not None else _resolve_deployment_mode()
     dev = DEV_LOCAL_UNSAFE if dev_local_unsafe is None else dev_local_unsafe
-    return mode == "single_user_local" or dev
+    return route_registry.deployment_allows_sessionless_data_get(mode, dev_local_unsafe=dev)
 
 
 def _sessionless_get_allowed(
@@ -839,16 +803,9 @@ def _sessionless_get_allowed(
     deployment_mode: str | None = None,
     dev_local_unsafe: bool | None = None,
 ) -> bool:
-    if path in GET_ALWAYS_PUBLIC_ROUTES:
-        return True
-    if path.startswith("/api/public/branding/"):
-        return True
-    if path in GET_SINGLE_USER_PUBLIC_ROUTES:
-        return _deployment_allows_sessionless_data_get(
-            deployment_mode=deployment_mode,
-            dev_local_unsafe=dev_local_unsafe,
-        )
-    return False
+    mode = deployment_mode if deployment_mode is not None else _resolve_deployment_mode()
+    dev = DEV_LOCAL_UNSAFE if dev_local_unsafe is None else dev_local_unsafe
+    return route_registry.sessionless_get_allowed(path, deployment_mode=mode, dev_local_unsafe=dev)
 
 
 def _is_public_get(path: str) -> bool:
@@ -883,85 +840,27 @@ def _session_id_from_request(handler: BaseHTTPRequestHandler) -> str:
 
 
 def _auth_check(handler: BaseHTTPRequestHandler) -> bool:
-    """Return True if the request should be allowed through."""
+    """Return True if the request should be allowed through (WF-037 route_registry)."""
     path = urllib.parse.urlparse(handler.path).path
     method = handler.command
     sid = _session_id_from_request(handler)
 
-    if method == "GET" and path == "/api/auth/hermes-dashboard-gate":
-        if sid:
-            session_info = _zk.validate_session_token(sid)
-            if session_info:
-                _apply_session_user(handler, session_info["user_id"])
-        return True
+    def _validate(sid_token: str):
+        return _zk.validate_session_token(sid_token)
 
-    if DEV_LOCAL_UNSAFE:
-        # Still validate session if present, to populate auth_user
-        if sid:
-            session_info = _zk.validate_session_token(sid)
-            if session_info:
-                _apply_session_user(handler, session_info["user_id"])
-        return True
+    def _attach(user_id: str) -> None:
+        _apply_session_user(handler, user_id)
 
-    # OPTIONS (CORS preflight) — always allow
-    if method == "OPTIONS":
-        return True
-
-    # GET public routes — still attach session user when cookie/header present
-    # (e.g. /api/hermes/models needs auth_user for per-user provider detection).
-    if method == "GET" and _is_public_get(path):
-        if sid:
-            session_info = _zk.validate_session_token(sid)
-            if session_info:
-                _apply_session_user(handler, session_info["user_id"])
-        return True
-
-    # POST auth endpoints (start/verify/logout/refresh) are public
-    if method == "POST" and path in (
-        "/api/auth/start",
-        "/api/auth/verify",
-        "/api/auth/logout",
-        "/api/auth/refresh",
-        "/api/setup",
-    ):
-        return True
-
-    if method == "POST" and path in (
-        "/api/auth/google/start",
-        "/api/auth/local-bootstrap",
-    ):
-        return True
-
-    if _install_window_open() and method == "POST" and path in (
-        "/api/install/email/test",
-        "/api/install/complete",
-        "/api/install/url/test",
-        "/api/install/setup-https",
-    ):
-        # ponytail: install/complete still needs auth_user in trusted_team — populate when session present
-        if sid:
-            session_info = _zk.validate_session_token(sid)
-            if session_info:
-                _apply_session_user(handler, session_info["user_id"])
-        return True
-
-    if _install_window_open() and method in ("GET", "PATCH") and path == "/api/install/stack":
-        return True
-
-    if _install_window_open() and method == "GET" and path in (
-        "/api/install/publish-hints",
-        "/api/install/url/test",
-    ):
-        return True
-
-    # Everything else needs a valid session
-    if not sid:
-        return False
-    session_info = _zk.validate_session_token(sid)
-    if not session_info:
-        return False
-    _apply_session_user(handler, session_info["user_id"])
-    return True
+    return route_registry.authorize_request(
+        method,
+        path,
+        sid,
+        deployment_mode=_resolve_deployment_mode(),
+        dev_local_unsafe=DEV_LOCAL_UNSAFE,
+        install_window_open=_install_window_open(),
+        validate_session=_validate,
+        attach_user=_attach,
+    )
 
 
 def _workspace_role_for_user(user_id: str) -> str:

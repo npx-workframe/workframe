@@ -18,7 +18,7 @@
 | A1 | WF-031 security | — | **done** |
 | A2 | WF-034 tests, WF-033 yaml writer, WF-038 prune | yes | **done** (WF-033 partial) |
 | A3 | model/provider UI consistency | — | **committed wave 1** |
-| B1 | WF-037 route registry | after A2 | todo |
+| B1 | WF-037 route registry | after A2 | **partial** (auth table; handlers pending) |
 | B2 | WF-032 server split | after WF-037 | todo |
 
 ## Commit queue (this session)
