@@ -17,6 +17,10 @@ missing scripts/workframe/verify-public-patterns.local.json
 & (Join-Path $PSScriptRoot 'verify-public-repo.ps1')
 if ($LASTEXITCODE -ne 0) { throw 'public repo verify failed — fix hits before publish' }
 
+Write-Host '=== release local gates ==='
+node (Join-Path $Root 'scripts\workframe\verify-release-gates.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'release gates blocked — complete sign-off before publish' }
+
 Write-Host '=== npm whoami ==='
 npm whoami
 if ($LASTEXITCODE -ne 0) { throw 'npm login required: npm login' }

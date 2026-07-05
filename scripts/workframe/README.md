@@ -27,6 +27,7 @@ After reset: open the printed UI URL → complete the **wizard in the browser**.
 | **VPS tunnel** | `.\scripts\workframe\open-vps-tunnel.ps1` |
 | **Version agreement** | `node scripts/workframe/verify-version-agreement.mjs` |
 | **Package install evidence** | `node scripts/workframe/run-package-install-evidence.mjs --build` |
+| **Release local gates** | `node scripts/workframe/verify-release-gates.mjs` (required before `publish-npm.ps1`) |
 | **Publish npm** | `.\scripts\workframe\publish-npm.ps1` |
 
 ---

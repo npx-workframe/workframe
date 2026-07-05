@@ -15,13 +15,19 @@ const checkOnly =
 const data = JSON.parse(readFileSync(listPath, "utf8"));
 
 let failed = 0;
+let blockedLocal = 0;
 for (const s of data.scenarios) {
   if (s.verify.startsWith("manual")) {
     console.log(`[skip] ${s.id}: ${s.verify}`);
     continue;
   }
   if (s.owner === "cursor-local") {
-    console.log(`[skip] ${s.id}: local-only`);
+    if (s.passes) {
+      console.log(`[pass] ${s.id}: local (recorded)`);
+    } else {
+      blockedLocal++;
+      console.log(`[blocked-local] ${s.id}: not passing — run verify-release-gates before publish`);
+    }
     continue;
   }
   const r = spawnSync(s.verify, { shell: true, cwd: root, stdio: "inherit" });
@@ -35,5 +41,10 @@ if (!checkOnly) {
   writeFileSync(listPath, JSON.stringify(data, null, 2) + "\n");
 } else {
   console.log(`[harness] check-only mode — ${failed ? failed + " failed" : "all passed"}`);
+  if (blockedLocal) {
+    console.log(
+      `[harness] ${blockedLocal} local gate(s) blocked — CI may pass; release requires node scripts/workframe/verify-release-gates.mjs`,
+    );
+  }
 }
 process.exit(failed ? 1 : 0);

@@ -19,6 +19,7 @@
     "verify:public": "node scripts/workframe/verify-public-repo.mjs",
     "verify:version": "node scripts/workframe/verify-version-agreement.mjs",
     "verify:evidence": "node scripts/workframe/validate-release-evidence.mjs",
+    "verify:release-gates": "node scripts/workframe/verify-release-gates.mjs",
     "test:package-evidence": "node scripts/workframe/run-package-install-evidence.mjs --build",
     "test:api": "pnpm --filter @workframe/workframe-api typecheck",
     "test:scaffold": "node packages/create-workframe/scripts/test-scaffold.mjs",

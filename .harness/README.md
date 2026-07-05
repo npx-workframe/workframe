@@ -19,7 +19,9 @@
 
 ## CI
 
-`.github/workflows/ci.yml` sets `HARNESS_CHECK=1` and runs `node .harness/verify.mjs`.
+`.github/workflows/ci.yml` sets `HARNESS_CHECK=1` and runs `node .harness/verify.mjs`. Local scenarios log `[blocked-local]` in CI; they do not fail the workflow.
+
+Before npm publish, run `node scripts/workframe/verify-release-gates.mjs` (also invoked from `publish-npm.ps1`).
 
 ## Assignment rail (cross-repo)
 

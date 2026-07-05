@@ -84,7 +84,13 @@ Dogfood reset only:
 .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm
 ```
 
-Then complete the **wizard in the browser** and send a test chat. CI green alone is not sign-off.
+Then complete the **wizard in the browser** and send a test chat. Set `dogfood-install-gate` to `passes: true` in `.harness/feature_list.json`, then:
+
+```bash
+node scripts/workframe/verify-release-gates.mjs
+```
+
+CI green alone is not sign-off. `publish-npm.ps1` calls the release-gates verifier and fails closed when local evidence is missing.
 
 DevOps map: [scripts/workframe/README.md](../../scripts/workframe/README.md)
 

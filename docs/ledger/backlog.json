@@ -98,15 +98,21 @@
       "summary": "verify.mjs may skip cursor-local/manual in CI; release sign-off must fail or report blocked when local evidence missing.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P0-5", "RT-05", "RT-11"],
       "acceptance": [
         "installer-ui-bundle and dogfood-install-gate tracked in release gate",
         "Release script fails closed when local evidence absent"
       ],
       "depends_on": ["WF-002"],
+      "evidence": [
+        "scripts/workframe/verify-release-gates.mjs",
+        "scripts/workframe/publish-npm.ps1",
+        "scripts/workframe/install-gate.ps1",
+        ".harness/verify.mjs"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": { "completed_at": "2026-07-05", "patch_refs": [] }
     },
     {
       "id": "WF-006",

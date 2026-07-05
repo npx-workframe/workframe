@@ -39,4 +39,8 @@ $bootstrap = tar -xOf $archive package/scripts/bootstrap-workspace-link.sh
 if ($bootstrap -match "`r") { throw 'pack bootstrap-workspace-link.sh has CRLF (Alpine sh will fail)' }
 Write-Host 'OK: pack contains installer scripts (LF shell scripts)'
 
+Write-Host 'OK: package install evidence'
+node (Join-Path $Root 'scripts\workframe\run-package-install-evidence.mjs') --skip-prep
+if ($LASTEXITCODE -ne 0) { throw 'package install evidence failed' }
+
 Write-Host 'OK: install gate passed'
