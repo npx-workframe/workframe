@@ -174,7 +174,16 @@ fi
 
 echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
-workframe_compose up -d --build --no-deps workframe-api workframe-supervisor
+if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
+  # ponytail: supervisor cannot recreate itself inside the stack.apply request — defer after handler returns
+  workframe_compose up -d --build --no-deps workframe-api
+  (
+    sleep 3
+    workframe_compose up -d --no-deps workframe-supervisor
+  ) >/tmp/workframe-supervisor-restart.log 2>&1 &
+else
+  workframe_compose up -d --build --no-deps workframe-api workframe-supervisor
+fi
 
 if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
   workframe_compose up -d --no-deps workframe-ui || workframe_compose restart workframe-ui || true

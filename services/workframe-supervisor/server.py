@@ -93,6 +93,7 @@ def _stack_apply(target: str, *, workframe_version: str = "", workframe_tarball:
     env = os.environ.copy()
     version = str(workframe_version or "").strip()
     tarball = str(workframe_tarball or "").strip()
+    env["WORKFRAME_UPDATE_FROM_SUPERVISOR"] = "1"
     if tarball and target in {"workframe", "all"}:
         env["WORKFRAME_UPDATE_TARBALL"] = tarball
         if version:
