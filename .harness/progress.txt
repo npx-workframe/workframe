@@ -11,7 +11,7 @@ Updates `feature_list.json` passes flags for automated scenarios.
 ## Local only
 
 - `installer-ui-bundle` after `pnpm build:web`
-- `dogfood-install-gate` per `d:/ab/.cursor/skills/workframe-release/SKILL.md`
+- `dogfood-install-gate` per `docs/public/release.md`
 
 ## Last run
 

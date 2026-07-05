@@ -41,7 +41,7 @@ After reset: open the printed UI URL → complete the **wizard in the browser**.
 7. Routine updates: in-app Admin → Updates (not reset per change)
 ```
 
-Full skill: `d:/ab/.cursor/skills/workframe-release/SKILL.md`
+Full checklist: `docs/public/release.md`
 
 ---
 

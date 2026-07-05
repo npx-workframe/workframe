@@ -26,8 +26,8 @@ Chain of truth: **source here** → ABKB curated memory → chat hints.
 9. Source grep — then smallest edit
 ```
 
-**Cursor release loop:** `d:/ab/.cursor/skills/workframe-release/SKILL.md`  
-**Environment map:** `d:/ab/.cursor/rules/workframe-environments.mdc`
+**Release loop:** `docs/public/release.md`  
+**Environment map:** see "Four targets" below and `docs/public/develop.md`
 
 ## Four targets (never confuse)
 

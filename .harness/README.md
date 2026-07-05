@@ -25,7 +25,7 @@
 
 PMs enqueue tasks in ABKB:
 
-`d:/ab/projects/abkb/operations/daily/YYYY-MM-DD/queues.json` → `work_items`
+`operations/daily/YYYY-MM-DD/queues.json` in your ABKB checkout → `work_items`
 
 Workers complete a `work_items` entry **and** update harness `passes` when acceptance requires it.
 

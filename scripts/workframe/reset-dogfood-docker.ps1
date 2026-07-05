@@ -12,7 +12,7 @@
 # Usage:
 #   .\scripts\workframe\reset-dogfood-docker.ps1 -WhatIf
 #   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm
-#   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm -ProjectName MyBusiness -InstallRoot D:\ab\projects
+#   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm -ProjectName MyBusiness -InstallRoot C:\projects
 #
 param(
   [string]$ProjectName = 'MyBusiness',
