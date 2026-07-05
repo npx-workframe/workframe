@@ -2,7 +2,7 @@
 
 **Repository:** [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe)
 
-**Install:** `npx create-workframe@0.1.6 MyProject`
+**Install:** `npx create-workframe@0.1.7 MyProject`
 
 Multi-user web shell around [Hermes Agent](https://github.com/NousResearch/hermes-agent) — UI, API, installer, and Docker Compose.
 
@@ -17,22 +17,20 @@ Multi-user web shell around [Hermes Agent](https://github.com/NousResearch/herme
 
 ## Quick start (developers)
 
-```bash
-git clone https://github.com/npx-workframe/workframe.git
-cd workframe
-pnpm install
-pnpm build:web
-cd infra/compose/workframe
-cp .env.example .env
-docker compose up -d --build
+Edit source, then reset dogfood:
+
+```powershell
+.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm   # npx create-workframe MyBusiness
 ```
 
-UI: `http://127.0.0.1:18644/`
+DevOps map: [scripts/workframe/README.md](scripts/workframe/README.md)
+
+Reference compose template (not local dogfood): `infra/compose/workframe/`
 
 ## End users
 
 ```bash
-npx create-workframe@0.1.6 MyProject
+npx create-workframe@0.1.7 MyProject
 ```
 
 ## Layout
@@ -43,7 +41,7 @@ services/workframe-api    API server
 services/workframe-supervisor  Secure-mode exec broker
 packages/create-workframe npm installer
 packages/workframe        lifecycle CLI
-infra/compose/workframe   Docker stack
+infra/compose/workframe   Reference compose template (not local dogfood)
 ```
 
 ## Docs

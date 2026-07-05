@@ -5,7 +5,7 @@ Thank you for considering a contribution to [Workframe](https://github.com/npx-w
 ## Before you start
 
 1. Read [What is Workframe?](./what-is-workframe.md) and [Develop](./develop.md)
-2. Set up the reference stack locally
+2. Reset dogfood: `.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm` (see [Develop](./develop.md))
 3. For security findings, use [SECURITY.md](../../SECURITY.md) — not public issues
 
 ## How to contribute
@@ -30,14 +30,11 @@ We do not require a CLA. Contributions are under the project [LICENSE](../../LIC
 
 ## Local development
 
-```bash
+```powershell
 git clone https://github.com/npx-workframe/workframe.git
 cd workframe
 pnpm install
-pnpm build:web
-cd infra/compose/workframe
-cp .env.example .env
-docker compose up -d --build
+.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm
 ```
 
 Full setup: [Develop](./develop.md)
@@ -50,7 +47,7 @@ Full setup: [Develop](./develop.md)
 | API | `services/workframe-api/` |
 | Supervisor | `services/workframe-supervisor/` |
 | Installer | `packages/create-workframe/` |
-| Reference compose | `infra/compose/workframe/` |
+| Reference compose template | `infra/compose/workframe/` (not local dogfood) |
 | Ops scripts | `scripts/workframe/` |
 
 UI or API changes that ship to end users must follow the canonical sync steps in [Release verification](./release.md) before npm publish.

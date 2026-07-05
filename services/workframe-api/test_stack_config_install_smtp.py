@@ -48,4 +48,9 @@ resolved = stack_config.resolved_smtp()
 assert resolved.get("host") == "smtp.ghost.example", resolved
 assert resolved.get("source") == "env", resolved
 
+# Wizard deployment_mode persists over compose .env default
+os.environ["WORKFRAME_DEPLOYMENT_MODE"] = "trusted_team"
+stack_config.patch_stack_config({"deployment_mode": "single_user_local"})
+assert stack_config.resolve_deployment_mode() == "single_user_local"
+
 print("stack_config install-window smtp self-check ok")

@@ -1,145 +1,97 @@
-# Reset DOCKER DOGFOOD only ù runtime/ + workframe.db. Never touches source or host Hermes.
+# Dogfood reset = npx create-workframe on Docker. Period.
 #
-# SAFE TO DELETE (this script only):
-#   runtime/Agents/              ? Docker Hermes /opt/data (dogfood)
-#   runtime/Files/               ? Docker /workspace (dogfood artifacts)
-#   runtime/workframe-api-data/  ? auth.db + workframe.db
-#   %LOCALAPPDATA%\hermes  (local AIbert / host Hermes)
-#   projects/Workframe/Workframe/  (frozen meta donor - read-only backup)
+# Tears down any prior install at <InstallRoot>/<ProjectName>, stops legacy
+# infra/compose/workframe if it is running (same port slots), then runs ONLY:
+#   npx create-workframe <ProjectName> --out <InstallRoot>
+#
+# create-workframe scaffolds, pulls Hermes, and launches Phase B (start-install).
+# No manual .env creds, no bootstrap scripts, no compose-up from this repo.
+#
+# OFF LIMITS: %LOCALAPPDATA%\hermes (host Hermes / AIbert)
 #
 # Usage:
-#   .\scripts\workframe\reset-dogfood-docker.ps1 -WhatIf     # preview
-#   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm    # wipe + leave stack down
-#   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm -Up -Prune  # wipe + prune images + fresh up
+#   .\scripts\workframe\reset-dogfood-docker.ps1 -WhatIf
+#   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm
+#   .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm -ProjectName MyBusiness -InstallRoot D:\ab\projects
 #
 param(
+  [string]$ProjectName = 'MyBusiness',
+  [string]$InstallRoot = '',
   [switch]$WhatIf,
-  [switch]$Confirm,
-  [switch]$Up,
-  [switch]$SkipBuild,
-  [switch]$Prune
+  [switch]$Confirm
 )
 
 $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$Runtime = Join-Path $Root 'runtime'
-$Agents = Join-Path $Runtime 'Agents'
-$Files = Join-Path $Runtime 'Files'
-$ApiData = Join-Path $Runtime 'workframe-api-data'
-$Compose = Join-Path $Root 'infra\compose\workframe'
+if (-not $InstallRoot) {
+  $InstallRoot = (Resolve-Path (Join-Path $Root '..')).Path
+}
+$InstallRoot = (Resolve-Path $InstallRoot).Path
+$Target = Join-Path $InstallRoot $ProjectName
+$LegacyCompose = Join-Path $Root 'infra\compose\workframe'
+$CreatePkg = Join-Path $Root 'packages\create-workframe'
 $LocalHermes = Join-Path $env:LOCALAPPDATA 'hermes'
 
-function Trim-DogfoodFiles([string]$FilesDir) {
-  if (-not (Test-Path $FilesDir)) { return }
-  Get-ChildItem $FilesDir -Force | Where-Object { $_.Name -ne 'README.md' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-  foreach ($junk in @('User', 'content')) {
-    $path = Join-Path $FilesDir $junk
-    if (Test-Path $path) { Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue }
-  }
-}
-
-function Trim-DogfoodAgentsRoot([string]$AgentsDir) {
-  if (-not (Test-Path $AgentsDir)) { return }
-  $junk = @('content', 'User', 'pytest_cache', '__pycache__', '.pytest_cache')
-  foreach ($name in $junk) {
-    $path = Join-Path $AgentsDir $name
-    if (Test-Path $path) {
-      Remove-Item -Recurse -Force $path -ErrorAction SilentlyContinue
+function Assert-NotHostHermes([string]$Path) {
+  if (-not (Test-Path $Path)) { return }
+  $item = Get-Item $Path -Force -ErrorAction SilentlyContinue
+  if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+    $junctionTarget = ($item.Target | Out-String).ToLowerInvariant()
+    if ($junctionTarget -match 'hermes|localappdata') {
+      throw "Refusing: $Path is a junction toward host Hermes"
     }
   }
+  $resolved = (Resolve-Path $Path -ErrorAction SilentlyContinue).Path.ToLowerInvariant()
+  $hermes = $LocalHermes.ToLowerInvariant()
+  if ($resolved -and ($resolved -eq $hermes -or $resolved.StartsWith($hermes + '\'))) {
+    throw "Refusing: $Path resolves under host Hermes ($LocalHermes)"
+  }
 }
 
-
-$AllowedRoots = @(
-  (Resolve-Path $Runtime).Path.ToLowerInvariant()
-)
-
-function Assert-DogfoodPath([string]$Path) {
-  $resolved = (Resolve-Path $Path -ErrorAction SilentlyContinue)
-  if (-not $resolved) { return }
-  $norm = $resolved.Path.ToLowerInvariant()
-  foreach ($root in $AllowedRoots) {
-    if ($norm.StartsWith($root)) { return }
-  }
-  throw "Refusing to touch path outside runtime/: $Path"
-}
-
-function Clear-DogfoodComposeInstallCreds([string]$EnvPath) {
-  if (-not (Test-Path $EnvPath)) { return }
-  $blank = @{
-    SMTP_HOST = ''
-    SMTP_PORT = '587'
-    SMTP_SECURE = 'false'
-    SMTP_USER = ''
-    SMTP_PASS = ''
-    SMTP_PASSWORD = ''
-    EMAIL_FROM = ''
-    SMTP_FROM = ''
-    WORKFRAME_GITHUB_OAUTH_CLIENT_ID = ''
-    WORKFRAME_GITHUB_OAUTH_CLIENT_SECRET = ''
-    WORKFRAME_E2E = '0'
-  }
-  $out = foreach ($line in (Get-Content -LiteralPath $EnvPath)) {
-    if ($line -match '^\s*#' -or $line -match '^\s*$') { $line; continue }
-    $hit = $false
-    foreach ($key in $blank.Keys) {
-      if ($line -match "^\s*$([regex]::Escape($key))\s*=") {
-        "$key=$($blank[$key])"
-        $hit = $true
-        break
-      }
-    }
-    if (-not $hit) { $line }
-  }
-  Set-Content -LiteralPath $EnvPath -Value $out -Encoding utf8
-}
-
-function Guard-ForbiddenPaths() {
-  $forbidden = @($LocalHermes)
-  foreach ($f in $forbidden) {
-    if (-not (Test-Path $f)) { continue }
-    foreach ($target in @($Agents, $Files, $ApiData)) {
-      if (-not (Test-Path $target)) { continue }
-      $t = (Resolve-Path $target).Path
-      $item = Get-Item $t -Force -ErrorAction SilentlyContinue
-      if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-        $junctionTarget = (Get-Item $t).Target
-        if ($junctionTarget -and $junctionTarget -match 'hermes|workframe\\workframe') {
-          throw "Refusing: $t is a junction - run isolate-local-runtime.ps1 -Fresh first"
-        }
-      }
-    }
-  }
+function Compose-Down([string]$Dir) {
+  if (-not (Test-Path (Join-Path $Dir 'docker-compose.yml'))) { return }
+  Push-Location $Dir
+  $prevEap = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  docker compose down -v --remove-orphans 2>&1 | Out-Null
+  $ErrorActionPreference = $prevEap
+  Pop-Location
 }
 
 if (-not $WhatIf -and -not $Confirm) {
-  Write-Host @'
+  Write-Host @"
 Dogfood reset requires -Confirm (or -WhatIf to preview).
 
-This deletes ONLY:
-  runtime/Agents, runtime/Files, runtime/workframe-api-data
-  compose .env install creds (SMTP, OAuth app, WORKFRAME_E2E)
+Dogfood reset = npx create-workframe on Docker only.
+Default install: $Target
 
-This does NOT delete:
-  repository source (services, apps, packages, infra)
-  %LOCALAPPDATA%\hermes (host Hermes ù off limits)
-  
-'@
+This script:
+  - stops legacy infra/compose/workframe (if running)
+  - removes the prior $ProjectName install directory
+  - runs npx create-workframe (Phase B installer launches from the package)
+
+This script does NOT touch:
+  - repository source (services, apps, packages)
+  - %LOCALAPPDATA%\hermes (host Hermes ? off limits)
+
+"@
   exit 1
 }
 
-Guard-ForbiddenPaths
-Assert-DogfoodPath $Agents
-Assert-DogfoodPath $Files
-Assert-DogfoodPath $ApiData
+Assert-NotHostHermes $Target
+
+$pkgVersion = 'unknown'
+$pkgJson = Join-Path $CreatePkg 'package.json'
+if (Test-Path $pkgJson) {
+  $pkgVersion = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
+}
 
 Write-Host '=== Dogfood reset plan ==='
-Write-Host "  DELETE  $Agents"
-Write-Host "  DELETE  $Files"
-Write-Host "  DELETE  $ApiData\*"
-Write-Host "  CLEAR   $(Join-Path $Compose '.env') install creds (SMTP/OAuth/E2E)"
-Write-Host "  KEEP    $Root\services, apps, packages"
-Write-Host "  KEEP    $LocalHermes"
+Write-Host "  STOP    legacy compose: $LegacyCompose"
+Write-Host "  REMOVE  $Target"
+Write-Host "  RUN     npx create-workframe@$pkgVersion $ProjectName --out $InstallRoot"
+Write-Host "  KEEP    $Root (source)"
+Write-Host "  KEEP    $LocalHermes (host Hermes)"
 Write-Host ''
 
 if ($WhatIf) {
@@ -147,95 +99,45 @@ if ($WhatIf) {
   exit 0
 }
 
-Write-Host '=== docker compose down ==='
-Push-Location $Compose
-$composeFiles = @('-f', 'docker-compose.yml', '-f', 'docker-compose.dev-authority.yml')
-$downArgs = @('compose') + $composeFiles + @('down', '--remove-orphans')
-if ($Prune) { $downArgs += '--rmi', 'local' }
-docker @downArgs
-if ($Prune) {
-  Write-Host '=== docker prune (dangling images + build cache) ==='
-  docker image prune -f
-  docker builder prune -f
-}
-Pop-Location
-
-Write-Host '=== clear compose install creds (clean install ó no env ghosting) ==='
-Clear-DogfoodComposeInstallCreds (Join-Path $Compose '.env')
-
-Write-Host '=== wipe runtime ==='
-if (Test-Path $Agents) {
-  Remove-Item -Recurse -Force $Agents
-}
-if (Test-Path $Files) {
-  Remove-Item -Recurse -Force $Files
-}
-New-Item -ItemType Directory -Force -Path $Files | Out-Null
-$readmeTemplate = Join-Path $Root 'packages\create-workframe\rules\workspace-README.md'
-$projectName = if ($env:WORKFRAME_PROJECT) { $env:WORKFRAME_PROJECT } else { 'Workframe' }
-if (Test-Path $readmeTemplate) {
-  $readme = (Get-Content $readmeTemplate -Raw).Replace('{projectName}', $projectName)
-  Set-Content -Path (Join-Path $Files 'README.md') -Value $readme -NoNewline
-} else {
-  @"
-# $projectName
-
-Welcome to Workframe - your team's social AI collaboration space.
-
-Use this file to keep a living record of what this project is, who is on the team, sub-projects, agents, kanban guidelines, and anything else newcomers should know. Your Workframe Agent can help you evolve it over time.
-"@ | Set-Content -Path (Join-Path $Files 'README.md')
-}
-New-Item -ItemType Directory -Force -Path (Join-Path $Agents 'profiles') | Out-Null
-
-if (Test-Path $ApiData) {
-  Remove-Item -Recurse -Force (Join-Path $ApiData '*') -ErrorAction SilentlyContinue
-}
-New-Item -ItemType Directory -Force -Path $ApiData | Out-Null
-
-Write-Host '=== runtime wiped (dogfood only) ==='
-
-if (-not $Up) {
-  Write-Host ''
-  Write-Host 'Stack is DOWN. To bring up fresh:'
-  Write-Host "  .\scripts\workframe\reset-dogfood-docker.ps1 -Confirm -Up"
-  exit 0
+if (-not (Test-Path (Join-Path $CreatePkg 'bin\create-workframe.js'))) {
+  throw "Missing installer package at $CreatePkg"
 }
 
-$Seed = Join-Path $Root 'scripts\workframe\seed\profiles\workframe-agent'
-Write-Host '=== bootstrap workframe-agent in empty runtime ==='
-docker run --rm --entrypoint hermes `
-  -v "${Agents}:/opt/data" `
-  -v "${Files}:/workspace" `
-  nousresearch/hermes-agent:latest `
-  profile create workframe-agent --clone --description "Workframe native agent"
-if (Test-Path (Join-Path $Seed 'SOUL.md')) {
-  Copy-Item (Join-Path $Seed 'SOUL.md') (Join-Path $Agents 'profiles\workframe-agent\SOUL.md') -Force
-}
-& (Join-Path $PSScriptRoot 'bootstrap-native-profile.ps1') -AgentsRoot $Agents
+Write-Host '=== stop legacy infra/compose/workframe (free ports) ==='
+Compose-Down $LegacyCompose
 
-if (-not $SkipBuild) {
-  Write-Host '=== build web (workframe + preset assets) ==='
-  Push-Location $Root
-  pnpm --filter @workframe/web build
+Write-Host "=== remove prior $ProjectName install ==="
+Compose-Down $Target
+if (Test-Path $Target) {
+  Remove-Item -Recurse -Force $Target
+}
+
+Write-Host '=== npx create-workframe (only step ? package owns bootstrap + docker) ==='
+Push-Location $InstallRoot
+try {
+  npx --yes --package="$CreatePkg" create-workframe $ProjectName --out $InstallRoot --deploy docker
+  if ($LASTEXITCODE -ne 0) { throw "npx create-workframe failed ($LASTEXITCODE)" }
+}
+finally {
   Pop-Location
 }
 
-Write-Host '=== docker compose up ==='
-Push-Location $Compose
-docker compose -f docker-compose.yml -f docker-compose.dev-authority.yml up -d --build
-Pop-Location
+if (-not (Test-Path (Join-Path $Target 'docker-compose.yml'))) {
+  throw "Install missing after create-workframe: $Target"
+}
 
-Write-Host '=== post-compose trim (Hermes may seed junk on first boot) ==='
-Start-Sleep -Seconds 4
-Trim-DogfoodFiles $Files
-Trim-DogfoodAgentsRoot $Agents
+$uiPort = '18644'
+$apiPort = '19120'
+$envPath = Join-Path $Target '.env'
+if (Test-Path $envPath) {
+  $uiLine = Select-String -Path $envPath -Pattern '^WORKFRAME_UI_PORT=' | Select-Object -Last 1
+  $apiLine = Select-String -Path $envPath -Pattern '^WORKFRAME_API_PORT=' | Select-Object -Last 1
+  if ($uiLine) { $uiPort = $uiLine.Line.Split('=', 2)[1].Trim() }
+  if ($apiLine) { $apiPort = $apiLine.Line.Split('=', 2)[1].Trim() }
+}
 
 Write-Host ''
-Write-Host 'Fresh dogfood ready - test checklist:'
-Write-Host '  1. http://127.0.0.1:18644 - sign in (email OTP); DB wipe forces full onboarding'
-Write-Host '  2. Phase 1: GitHub OAuth (optional skip) + BYOK vs company pays'
-Write-Host '  3. Phase 1/2: workspace keys (company) or personal keys (BYOK)'
-Write-Host '  4. Agent DM: workframe-agent only; Files shows README.md only'
-Write-Host '  5. Hermes bootstrap: nousresearch/hermes-agent:latest (profile.yaml)'
-Write-Host ''
-Write-Host 'Local Hermes NOT touched:' $LocalHermes
+Write-Host 'Dogfood reset complete ? finish setup in the browser (wizard), or it did not boot.'
+Write-Host "  Install dir  $Target"
+Write-Host "  UI           http://127.0.0.1:$uiPort/"
+Write-Host "  API health   http://127.0.0.1:$apiPort/api/health"

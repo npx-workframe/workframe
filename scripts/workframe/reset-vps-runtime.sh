@@ -1,35 +1,89 @@
 #!/usr/bin/env bash
-# Wipe VPS Workframe runtime only — preserves source tree and infra/compose/workframe/.env.
-# Fresh install window; do not use repair-install-complete.mjs for E2E after this.
+# VPS dogfood reset = npx create-workframe on Docker. Period.
+#
+# Wipes prior install at INSTALL_ROOT/PROJECT, stops legacy repo compose if present,
+# then runs ONLY create-workframe (package owns bootstrap + docker + Phase B).
+#
+# Usage:
+#   bash reset-vps-runtime.sh
+#   bash reset-vps-runtime.sh /path/to/create-workframe-0.1.7.tgz
+#
+# Env: WORKFRAME_INSTALL_ROOT (default /opt/workframe)
+#      WORKFRAME_PROJECT_NAME (default MyBusiness)
+#      WORKFRAME_SLOT (default 2)
+#      CREATE_WORKFRAME_VERSION (default 0.1.7) when no pack tarball
 set -euo pipefail
 
-ROOT="${WORKFRAME_REPO_ROOT:-/opt/workframe/repo}"
-COMPOSE_DIR="$ROOT/infra/compose/workframe"
+INSTALL_ROOT="${WORKFRAME_INSTALL_ROOT:-/opt/workframe}"
+PROJECT="${WORKFRAME_PROJECT_NAME:-MyBusiness}"
+SLOT="${WORKFRAME_SLOT:-2}"
+PACK_TGZ="${1:-}"
+INSTALL_DIR="$INSTALL_ROOT/$PROJECT"
+REPO_ROOT="${WORKFRAME_REPO_ROOT:-/opt/workframe/repo}"
 
-[[ -d "$ROOT" ]] || { echo "missing project root: $ROOT"; exit 1; }
+fail() { echo "FAIL: $*" >&2; exit 1; }
+ok() { echo "OK: $*"; }
 
-echo "=== VPS runtime wipe (slot preserved via .env) ==="
-cd "$COMPOSE_DIR"
-docker compose down --remove-orphans || true
+compose_down() {
+  local dir="$1"
+  [[ -f "$dir/docker-compose.yml" ]] || return 0
+  ok "compose down $dir"
+  (cd "$dir" && docker compose down -v --remove-orphans 2>/dev/null) || true
+  for overlay in docker-compose.public.yml docker-compose.dev-authority.yml; do
+    [[ -f "$dir/$overlay" ]] || continue
+    (cd "$dir" && docker compose -f docker-compose.yml -f "$overlay" down -v --remove-orphans 2>/dev/null) || true
+  done
+}
 
-for sub in Agents Files workframe-api-data; do
-  rm -rf "$ROOT/runtime/$sub"
-done
-mkdir -p "$ROOT/runtime/Agents/profiles" "$ROOT/runtime/Files" "$ROOT/runtime/workframe-api-data"
-chmod -R a+rwX "$ROOT/runtime/Agents" "$ROOT/runtime/Files" "$ROOT/runtime/workframe-api-data" 2>/dev/null || true
+echo "=== VPS dogfood reset (create-workframe only) ==="
 
-echo "=== bootstrap workframe-agent ==="
-bash "$ROOT/scripts/workframe/bootstrap-native.sh"
+compose_down "$INSTALL_DIR"
+compose_down "$REPO_ROOT/infra/compose/workframe"
 
-echo "=== docker compose up (rebuild API/supervisor, build UI on server) ==="
-bash "$ROOT/scripts/workframe/vps-deploy.sh"
+if [[ -d "$INSTALL_DIR" ]]; then
+  rm -rf "$INSTALL_DIR"
+  ok "removed $INSTALL_DIR"
+fi
 
-API_PORT=$(grep -E '^WORKFRAME_API_PORT=' "$COMPOSE_DIR/.env" 2>/dev/null | cut -d= -f2 || echo 29120)
-UI_PORT=$(grep -E '^WORKFRAME_UI_PORT=' "$COMPOSE_DIR/.env" 2>/dev/null | cut -d= -f2 || echo 28644)
+mkdir -p "$INSTALL_ROOT"
+
+if [[ -n "$PACK_TGZ" ]]; then
+  [[ -f "$PACK_TGZ" ]] || fail "missing pack: $PACK_TGZ"
+  TMP="$(mktemp -d)"
+  trap 'rm -rf "$TMP"' EXIT
+  tar -xzf "$PACK_TGZ" -C "$TMP"
+  PKG="$TMP/package"
+  [[ -f "$PKG/bin/create-workframe.js" ]] || fail "pack missing bin/create-workframe.js"
+  ok "create-workframe from pack"
+  (
+    cd "$PKG"
+    node bin/create-workframe.js "$PROJECT" \
+      --out "$INSTALL_ROOT" \
+      --slot "$SLOT" \
+      --deploy docker \
+      --force \
+      --run-docker-pull \
+      --allow-install-actions
+  )
+else
+  command -v npx >/dev/null 2>&1 || fail "npx required (or pass pack .tgz)"
+  ok "npx create-workframe@${CREATE_WORKFRAME_VERSION:-0.1.7}"
+  (
+    cd "$INSTALL_ROOT"
+    npx --yes "create-workframe@${CREATE_WORKFRAME_VERSION:-0.1.7}" "$PROJECT" \
+      --out "$INSTALL_ROOT" \
+      --slot "$SLOT" \
+      --deploy docker
+  )
+fi
+
+[[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "install missing after create-workframe: $INSTALL_DIR"
+
+UI_PORT="$(grep -E '^WORKFRAME_UI_PORT=' "$INSTALL_DIR/.env" 2>/dev/null | tail -n1 | cut -d= -f2- || echo 28644)"
+API_PORT="$(grep -E '^WORKFRAME_API_PORT=' "$INSTALL_DIR/.env" 2>/dev/null | tail -n1 | cut -d= -f2- || echo 29120)"
+
 echo ""
-echo "Fresh VPS runtime ready:"
-echo "  UI  http://127.0.0.1:${UI_PORT}/"
-echo "  API http://127.0.0.1:${API_PORT}/api/install/status"
-echo ""
-curl -s "http://127.0.0.1:${API_PORT}/api/install/status"
-echo
+echo "VPS dogfood reset complete — finish wizard in browser or it did not boot."
+echo "  Install dir  $INSTALL_DIR"
+echo "  UI           http://127.0.0.1:${UI_PORT}/"
+echo "  API health   http://127.0.0.1:${API_PORT}/api/health"

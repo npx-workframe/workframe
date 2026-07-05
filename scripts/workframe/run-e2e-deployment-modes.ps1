@@ -1,7 +1,7 @@
 # Run Playwright deployment-mode security tests against a running Docker stack.
-# Default: slot 1 trusted_team @ 127.0.0.1:18644 / API 19120
+# Prerequisite: generated dogfood (reset-dogfood-docker.ps1 -Confirm) @ 127.0.0.1:18644 / API 19120
 #
-# Other modes: set WORKFRAME_DEPLOYMENT_MODE in infra/compose/workframe/.env, recreate API, then:
+# Other modes: set WORKFRAME_DEPLOYMENT_MODE in ../MyBusiness/.env, recreate API, then:
 #   $env:WORKFRAME_E2E_MODE = 'public_multi_user'
 #   powershell -File scripts/workframe/run-e2e-deployment-modes.ps1
 param(

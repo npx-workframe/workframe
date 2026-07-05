@@ -34,20 +34,25 @@ Chain of truth: **source here** → ABKB curated memory → chat hints.
 | Target | What | Edit product code? |
 |--------|------|-------------------|
 | **Source** | This repo | **Yes** — `services/workframe-api/`, `apps/web/src/` |
-| **Dogfood local** | Docker `infra/compose/workframe` → `http://127.0.0.1:18644` | Built artifacts only |
-| **Dogfood VPS** | `/opt/workframe/{InstallName}` from pack | **Never** scp hotfix |
+| **Dogfood local** | `../MyBusiness` from `npx create-workframe` → `http://127.0.0.1:<ui-port>/` | **No** — reset only |
+| **Dogfood VPS** | `/opt/workframe/MyBusiness` from pack/`npx` | **Never** scp hotfix |
 | **Host Hermes** | `%LOCALAPPDATA%\hermes` | **OFF LIMITS** — personal AIbert |
 
-Workframe Hermes = Docker `workframe-gateway`. Never run host `hermes.exe` on `runtime/Agents`.
+**Local dogfood reset:** `.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm`  
+**Release sign-off:** `.\scripts\workframe\sign-off-install.ps1`  
+**DevOps map:** `scripts/workframe/README.md`
 
-## Slots (local)
+`infra/compose/workframe/` is a **reference compose template** (synced to the installer), not the local dogfood runtime.
 
-| Slot | UI | API | Notes |
-|------|-----|-----|-------|
-| 1 — dogfood | `18644` | `19120` | `infra/compose/workframe`, `WORKFRAME_E2E=1` |
-| 2 — VPS tunnel | `28644` | `29120` | `scripts/workframe/open-vps-tunnel.ps1` |
-| 3 — E2E unsafe | `38644` | — | `WORKFRAME_E2E_UNSAFE=1` |
-| 4 — side-pack | varies | — | `workframe-release` skill |
+Workframe Hermes = Docker gateway in the generated install. Never run host `hermes.exe`.
+
+## Slots (local installs — `create-workframe` allocates)
+
+| Slot | UI | API | Typical use |
+|------|-----|-----|-------------|
+| 1 | `18644` | `19120` | Local `MyBusiness` (default when free) |
+| 2 | `28644` | `29120` | VPS `MyBusiness` |
+| 3 | `38644` | `39120` | E2E unsafe (`WORKFRAME_E2E_UNSAFE=1`) |
 
 Use `http://127.0.0.1` not `localhost` for session cookies.
 
@@ -58,7 +63,7 @@ services/workframe-api/ | apps/web/src/
   → pnpm build:web (if UI)
   → node packages/create-workframe/scripts/sync-canonical-to-package.mjs
   → node packages/create-workframe/scripts/bundle-workframe-ui.mjs (if UI)
-  → rebuild dogfood API/supervisor images if BFF changed
+  → rebuild generated install via in-app Update after publish (not infra/compose up)
 ```
 
 **Never backwards:** editing `packages/create-workframe/workframe-api/` or `workframe-ui/public/` alone leaves sandboxes behind.
@@ -74,14 +79,14 @@ services/workframe-api/ | apps/web/src/
 
 Run: `node .harness/verify.mjs` or `pnpm test:ci`.
 
-**Known failing scenarios (2026-07-03):** `installer-ui-bundle` (local), `dogfood-install-gate` (manual install-gate).
+**Known failing scenarios (2026-07-04):** `installer-ui-bundle` (local), `dogfood-install-gate` (run `sign-off-install.ps1` + wizard).
 
 ## Policies enforced (pitfalls)
 
 | Topic | Rule |
 |-------|------|
 | **Installer vs source** | Source first; sync to package; bundle UI for parity |
-| **Sign-off** | Pack → wipe sandbox → `create-workframe` → wizard → chat — dogfood green alone is **not** sign-off |
+| **Sign-off** | `sign-off-install.ps1` → wizard → chat — green CI alone is **not** sign-off |
 | **Routine updates** | In-app Admin → Updates — not wipe per change |
 | **SECURE_MODE** | Supervisor brokers Hermes lifecycle — API has no Docker socket |
 | **Vault** | `WORKFRAME_API_DATA_DIR`; credentials in API vault |

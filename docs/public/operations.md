@@ -2,7 +2,20 @@
 
 Day-to-day running of a Workframe stack: services, updates, backup, and common fixes.
 
-Reference compose: `infra/compose/workframe/docker-compose.yml` (monorepo) or `docker-compose.yml` in a generated project.
+## Dogfood reset (local)
+
+```powershell
+.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm
+```
+
+Install path: `../MyBusiness` (sibling of the workframe repo). **Only** `npx create-workframe` — no manual bootstrap or compose from `infra/`.
+
+DevOps map: [scripts/workframe/README.md](../../scripts/workframe/README.md)
+
+## Stack layout
+
+Generated install: `MyBusiness/docker-compose.yml` + `.env`  
+Reference template (not dogfood): `infra/compose/workframe/docker-compose.yml`
 
 ## Services
 
@@ -100,9 +113,15 @@ After suspected compromise, rotate `WORKFRAME_SUPERVISOR_TOKEN`, `WORKFRAME_API_
 
 ## Public deploy verification
 
+## Public deploy verification (VPS / reference compose)
+
+Run against a **running public install** or reference compose with `.env` configured:
+
 ```bash
-bash scripts/workframe/verify-public-deploy.sh
+bash scripts/workframe/verify-public-deploy.sh /path/to/install-or-compose-dir
 ```
+
+Not part of `install-gate` — dogfood sign-off is wizard + chat on a generated install.
 
 See [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md).
 
@@ -110,18 +129,20 @@ See [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md).
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| UI **403** or empty page | Missing built UI (`apps/web/dist`) | `pnpm build:web` then restart `workframe-ui` |
+| UI **403** or empty page | Stale UI bundle in generated install | `pnpm build:web` + bundle + in-app Update, or reset |
 | Session lost on refresh | `localhost` vs `127.0.0.1` | Use `http://127.0.0.1:<ui-port>` |
 | API won't start (public mode) | Missing SMTP/secrets/HTTPS | Complete [PUBLIC_DEPLOY.md](../../infra/compose/workframe/PUBLIC_DEPLOY.md) checklist |
 | Agent chat errors | No user LLM key | Connect provider in user settings |
 | `docker.sock` on API (public) | Wrong compose overlay | Use `docker-compose.public.yml` overlay |
-| Install wizard stuck on email | SMTP misconfigured | Fix SMTP in wizard or use trusted local mode |
+| Corrupted dogfood / wizard stuck | Bad runtime state | `reset-dogfood-docker.ps1 -Confirm` |
+| Install wizard stuck on email | SMTP misconfigured | Fix SMTP in wizard or use single_user_local mode |
 
-## After monorepo code changes
+Local dogfood is a **generated install** (`../MyBusiness`). Rebuild UI, sync installer, then use **Admin → Updates** on the running install — or `sign-off-install.ps1` for a full reset.
 
-```bash
+```powershell
 pnpm build:web
-docker compose -f infra/compose/workframe/docker-compose.yml restart workframe-api workframe-ui
+node packages/create-workframe/scripts/sync-canonical-to-package.mjs   # if API touched
+node packages/create-workframe/scripts/bundle-workframe-ui.mjs           # if UI touched
 ```
 
 Release checks: [Release verification](./release.md)

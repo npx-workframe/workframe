@@ -15,7 +15,7 @@ Vite · React · TypeScript · Dockview · shadcn/ui · Tailwind · Lucide
 | `pnpm --filter @workframe/web dev` | Vite dev server (HMR) |
 | `pnpm build:web` | Production build → `apps/web/dist` |
 
-Local dogfood mounts `apps/web/dist` in `infra/compose/workframe`.
+Local dogfood is a generated install (`../MyBusiness` via `reset-dogfood-docker.ps1`). UI ships in the npm pack / in-app Updates — not a volume mount from this repo during normal dogfood.
 
 ## Runtime wiring
 

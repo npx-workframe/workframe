@@ -1,4 +1,6 @@
-# Disposable E2E slot 3 — DEV_LOCAL_UNSAFE @ 127.0.0.1:38644. Does not touch slot 1 dogfood.
+# Disposable E2E slot 3 — DEV_LOCAL_UNSAFE @ 127.0.0.1:38644.
+# Playwright CI harness only — uses reference compose overlay, NOT dogfood (MyBusiness slot 1).
+# Dogfood reset: reset-dogfood-docker.ps1 -Confirm
 #
 # Usage:
 #   .\scripts\workframe\e2e-slot3-up.ps1              # up (bootstrap runtime if missing)

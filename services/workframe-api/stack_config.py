@@ -251,18 +251,18 @@ def patch_stack_config(body: dict[str, Any]) -> dict[str, Any]:
 
 
 def resolve_deployment_mode(env_default: str = "trusted_team") -> str:
-    """Explicit WORKFRAME_DEPLOYMENT_MODE env wins; stack_config applies only when env is unset."""
+    """Persisted stack_config deployment_mode wins when set; else WORKFRAME_DEPLOYMENT_MODE env."""
+    try:
+        sc_mode = str(_read_raw().get("deployment_mode") or "").strip().lower()
+        if sc_mode in DEPLOYMENT_MODES:
+            return sc_mode
+    except Exception:
+        pass
     env_raw = (os.environ.get("WORKFRAME_DEPLOYMENT_MODE") or "").strip().lower()
     if env_raw in DEPLOYMENT_MODES:
         return env_raw
     if env_raw:
         return env_raw
-    try:
-        sc_mode = str(get_stack_config().get("deployment_mode") or "").strip().lower()
-        if sc_mode in DEPLOYMENT_MODES:
-            return sc_mode
-    except Exception:
-        pass
     raw = (env_default or "trusted_team").strip().lower()
     return raw if raw in DEPLOYMENT_MODES else "trusted_team"
 

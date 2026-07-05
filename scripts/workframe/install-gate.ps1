@@ -1,4 +1,5 @@
-# Installer sign-off gate — canonical source → pack → scaffold smoke.
+# Installer sign-off gate — canonical source → pack.
+# Dogfood install = reset-dogfood-docker.ps1 (npx create-workframe only).
 # Usage: .\scripts\workframe\install-gate.ps1 [-Quick]
 param([switch]$Quick)
 
@@ -33,13 +34,5 @@ foreach ($path in @('package/scripts/lib/install-identity.mjs', 'package/scripts
 $bootstrap = tar -xOf $archive package/scripts/bootstrap-workspace-link.sh
 if ($bootstrap -match "`r") { throw 'pack bootstrap-workspace-link.sh has CRLF (Alpine sh will fail)' }
 Write-Host 'OK: pack contains installer scripts (LF shell scripts)'
-
-if (-not $Quick -and (Test-Path (Join-Path $Root 'infra\compose\workframe\.env'))) {
-    & bash (Join-Path $Root 'scripts\workframe\verify-public-deploy.sh') (Join-Path $Root 'infra\compose\workframe')
-    if ($LASTEXITCODE -ne 0) { throw 'verify-public-deploy failed' }
-    Write-Host 'OK: verify-public-deploy'
-} else {
-    Write-Host 'OK: skipping verify-public-deploy (-Quick or no compose .env)'
-}
 
 Write-Host 'OK: install gate passed'

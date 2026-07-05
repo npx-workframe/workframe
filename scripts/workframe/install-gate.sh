@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Installer sign-off gate — canonical source → pack → scaffold smoke.
-# The product is create-workframe; dogfood/VPS installs are disposable sandboxes.
+# Installer sign-off gate — canonical source → pack.
+# Dogfood install = reset-dogfood-docker.ps1 (npx create-workframe only), not this script.
 # Usage: bash scripts/workframe/install-gate.sh [--quick]
 set -euo pipefail
 
@@ -42,15 +42,5 @@ if tar -xOf "$ROOT/.install-gate/$PACK_TGZ" package/scripts/bootstrap-workspace-
   fail "pack bootstrap-workspace-link.sh has CRLF (Alpine sh will fail)"
 fi
 ok "pack contains installer scripts (LF shell scripts)"
-
-if [[ "$QUICK" -eq 0 ]] && [[ -f "$ROOT/infra/compose/workframe/.env" ]]; then
-  if bash "$ROOT/scripts/workframe/verify-public-deploy.sh" "$ROOT/infra/compose/workframe"; then
-    ok "verify-public-deploy"
-  else
-    fail "verify-public-deploy failed (stack may be down or misconfigured)"
-  fi
-else
-  ok "skipping verify-public-deploy (--quick or no compose .env)"
-fi
 
 ok "install gate passed"

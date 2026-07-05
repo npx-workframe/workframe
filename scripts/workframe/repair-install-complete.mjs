@@ -2,16 +2,19 @@
 /**
  * Set stack_config.install_complete when workframe.db already has users (production recovery only).
  * Do not use for E2E — use reset-dogfood-docker.ps1 or wipe VPS runtime for a clean install test.
- * Usage: node repair-install-complete.mjs [--data-dir path]
+ * Usage: node repair-install-complete.mjs --data-dir path/to/workframe-api-data
+ * Default data-dir is NOT set — pass MyBusiness API data dir explicitly.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const dataDir = process.argv.includes('--data-dir')
   ? process.argv[process.argv.indexOf('--data-dir') + 1]
-  : path.join(root, 'runtime/workframe-api-data');
+  : null;
+
+if (!dataDir) {
+  console.error('Pass --data-dir <path-to-workframe-api-data> (e.g. ../MyBusiness/workframe-api/data)');
+  process.exit(1);
+}
 const stackPath = path.join(dataDir, 'stack_config.json');
 const dbPath = path.join(dataDir, 'workframe.db');
 

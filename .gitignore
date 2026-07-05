@@ -77,6 +77,7 @@ docs/002*.md
 docs/workframe/
 # internal operator shortcut — not for public repo
 scripts/workframe/isolate-local-runtime.ps1
+scripts/workframe/e2e-smtp.local.env
 
 # install gate output (regenerate locally)
 .install-gate/

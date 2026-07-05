@@ -1,18 +1,21 @@
 # Develop Workframe
 
-Contributor path: clone the monorepo, build the UI, run the reference Docker stack.
+Contributor path: edit source in this monorepo, then prove changes via a **generated dogfood install** (`npx create-workframe`).
 
-```bash
+## Dogfood (local)
+
+```powershell
 git clone https://github.com/npx-workframe/workframe.git
 cd workframe
 pnpm install
-pnpm build:web
-cd infra/compose/workframe
-cp .env.example .env
-docker compose up -d --build
+.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm   # → ../MyBusiness
 ```
 
-UI: `http://127.0.0.1:18644/` (use `127.0.0.1`, not `localhost`)
+Open the UI URL printed by the script (typically `http://127.0.0.1:18644/`). Use `127.0.0.1`, not `localhost`.
+
+**Release sign-off** (build + pack + reset): `.\scripts\workframe\sign-off-install.ps1`
+
+DevOps map: [scripts/workframe/README.md](../../scripts/workframe/README.md)
 
 ## Monorepo layout
 
@@ -20,15 +23,15 @@ UI: `http://127.0.0.1:18644/` (use `127.0.0.1`, not `localhost`)
 apps/web/                      Product UI (Vite/React) — edit here
 services/workframe-api/        API server (Python)
 services/workframe-supervisor/ Secure-mode Docker exec broker
-packages/create-workframe/     npx installer (copies built artifacts into generated projects)
+packages/create-workframe/     npx installer (publish mirror of built artifacts)
 packages/workframe/            lifecycle CLI
-infra/compose/workframe/       Reference Docker stack
-scripts/workframe/             Ops and verification scripts
+infra/compose/workframe/       Reference compose template (not local dogfood)
+scripts/workframe/             Ops scripts — see README.md
 ```
 
-**Generated installs** (`npx create-workframe`) receive copies of API/UI/supervisor from the npm package. Product changes land in this monorepo first, then sync into `packages/create-workframe/` before release.
+**Generated installs** (`npx create-workframe`) receive copies of API/UI/supervisor from the npm package. Product changes land here first, then sync into `packages/create-workframe/` before release.
 
-## Reference stack services
+## Generated install services (typical slot 1)
 
 | Service | Port | Role |
 |---------|------|------|
@@ -38,57 +41,44 @@ scripts/workframe/             Ops and verification scripts
 | workframe-dashboard | 19119 | Hermes dashboard proxy |
 | workframe-supervisor | 18090 | Required when `SECURE_MODE=true` |
 
-## Local security modes
+Ports come from the generated `.env` (`WORKFRAME_SLOT`).
 
-In `infra/compose/workframe/.env`:
+## Security modes
+
+Set in the **generated** install `.env` (wizard may persist to `stack_config.json`):
 
 | Mode | Setting |
 |------|---------|
-| Production-style | `SECURE_MODE=true` (default) |
+| Production-style | `SECURE_MODE=true` (default in generated installs) |
 | Local dev shortcut | `DEV_LOCAL_UNSAFE=true` — **never on a public URL** |
 
 See [Security](./security.md).
 
 ## After code changes
 
-```bash
-pnpm build:web
-docker compose -f infra/compose/workframe/docker-compose.yml restart workframe-api workframe-ui
+```text
+1. Edit apps/web/src/ and/or services/workframe-api/
+2. pnpm build:web (if UI)
+3. sync-canonical-to-package.mjs + bundle-workframe-ui.mjs (if API/UI)
+4. sign-off-install.ps1  OR  in-app Admin → Updates on an existing install
 ```
 
-If API or supervisor code changed, rebuild images:
-
-```bash
-docker compose -f infra/compose/workframe/docker-compose.yml build workframe-api workframe-supervisor
-docker compose -f infra/compose/workframe/docker-compose.yml up -d workframe-api workframe-supervisor
-```
-
-## Canonical edit order (UI + API)
-
-Before release or installer pack:
-
-1. Edit `apps/web/src/` and/or `services/workframe-api/`
-2. `pnpm build:web` if UI touched
-3. `node packages/create-workframe/scripts/sync-canonical-to-package.mjs` if API/supervisor touched
-4. `node packages/create-workframe/scripts/bundle-workframe-ui.mjs` if UI touched
-5. Rebuild Docker API/supervisor images locally to verify
+Routine updates on a running install: **Admin → Updates** in the UI (not reset per change).
 
 Details: [Release verification](./release.md)
 
-## Scaffold smoke test
-
-Generate a scratch project without publishing:
+## Scaffold smoke test (no dogfood reset)
 
 ```bash
-node packages/create-workframe/scripts/new-project.mjs SmokeDemo --out /tmp --force
-cd /tmp/SmokeDemo
-docker compose up -d
-node scripts/workframe.mjs doctor
+node packages/create-workframe/scripts/test-scaffold.mjs
 ```
+
+## Reference compose (advanced)
+
+`infra/compose/workframe/` is a template only. See [infra/compose/workframe/README.md](../../infra/compose/workframe/README.md).
 
 ## Related
 
-- [Contributing](./contributing.md) — issues, PRs, expectations
-- [Release verification](./release.md) — regression scripts before publish
-- [Audit](./audit.md) — security review map
-- [Install](./install.md) — end-user path (different audience)
+- [Contributing](./contributing.md)
+- [Release verification](./release.md)
+- [Install](./install.md) — end-user path

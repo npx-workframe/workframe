@@ -68,9 +68,25 @@ With a configured public overlay and `WORKFRAME_DEPLOYMENT_MODE=public_multi_use
 
 Full sign-off before npm publish:
 
-```bash
-bash scripts/workframe/install-gate.sh   # Windows: install-gate.ps1
+```powershell
+.\scripts\workframe\sign-off-install.ps1
 ```
+
+Build/sync/pack only (no install):
+
+```powershell
+.\scripts\workframe\install-gate.ps1
+```
+
+Dogfood reset only:
+
+```powershell
+.\scripts\workframe\reset-dogfood-docker.ps1 -Confirm
+```
+
+Then complete the **wizard in the browser** and send a test chat. CI green alone is not sign-off.
+
+DevOps map: [scripts/workframe/README.md](../../scripts/workframe/README.md)
 
 ## GitHub → npm (trusted publishing)
 

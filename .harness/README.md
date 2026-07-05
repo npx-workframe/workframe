@@ -15,7 +15,7 @@
 | Owner | Where it runs |
 |-------|----------------|
 | `cursor-cloud` | CI + Cursor cloud agent (`pnpm test:ci`, `.cursor/environment.json`) |
-| `cursor-local` | Your machine (install-gate, UI bundle parity) |
+| `cursor-local` | Your machine (`sign-off-install.ps1`, UI bundle parity) |
 
 ## CI
 
