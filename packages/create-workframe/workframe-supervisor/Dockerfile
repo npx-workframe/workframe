@@ -5,7 +5,7 @@ FROM python:3-alpine
 RUN apk add --no-cache docker-cli docker-cli-compose bash nodejs npm
 
 WORKDIR /app
-COPY server.py profile_secret_policy.py .
+COPY server.py profile_secret_policy.py ./
 
 EXPOSE 8090
 CMD ["python3", "server.py"]

@@ -551,44 +551,11 @@ def _admin_write_allowed(handler: BaseHTTPRequestHandler) -> bool:
 
 
 def _apply_stack_update(target: str) -> dict[str, Any]:
-    workframe_version = ""
-    if target in {"workframe", "all"}:
-        try:
-            workframe_version = str(
-                stack_updates.updates_available().get("workframe", {}).get("latest") or ""
-            ).strip()
-        except Exception:  # noqa: BLE001
-            workframe_version = ""
-    try:
-        return stack_updates.apply_update(target)
-    except ValueError as exc:
-        err = str(exc)
-        if not _supervisor_ready():
-            raise
-        if err not in ("docker_unavailable", "admin_updates_disabled"):
-            raise
-        body: dict[str, Any] = {"target": target}
-        if workframe_version:
-            body["workframe_version"] = workframe_version
-        status, data = _supervisor_request("POST", "/v1/stack.apply", body, timeout=900.0)
-        if status >= 300 or not isinstance(data, dict) or not data.get("ok"):
-            raise ValueError(str((data or {}).get("error") or "supervisor_apply_failed"))
-        return data
+    return stack_updates.apply_update(target)
 
 
 def _restart_stack_gateway() -> dict[str, Any]:
-    try:
-        return stack_updates.restart_gateway()
-    except ValueError as exc:
-        # ponytail: SECURE_MODE API has no docker.sock; supervisor owns gateway restart
-        if str(exc) not in ("docker_unavailable", "admin_updates_disabled") or not _supervisor_ready():
-            raise
-        status, data = _supervisor_request(
-            "POST", "/v1/stack.apply", {"target": "gateway-restart"}, timeout=300.0,
-        )
-        if status >= 300 or not isinstance(data, dict) or not data.get("ok"):
-            raise ValueError(str((data or {}).get("error") or "supervisor_restart_failed"))
-        return data
+    return stack_updates.restart_gateway()
 
 
 def _cors_origin_for(headers=None) -> str:

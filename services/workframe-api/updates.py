@@ -53,6 +53,55 @@ def _npm_latest_version() -> str:
     return str(data.get("version") or "").strip()
 
 
+def _supervisor_tarball_path(package: str, version: str) -> str:
+    """Path on the compose bind mount — supervisor reads /compose even when API lacks that mount."""
+    for raw in (os.environ.get("WORKFRAME_COMPOSE_DIR", ""), "/compose"):
+        root = str(raw or "").strip().rstrip("/")
+        if root and root != ".":
+            return f"{root}/workframe-api/data/.update-staging/{package}-{version}.tgz"
+    data_dir = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data"))
+    return str(data_dir / ".update-staging" / f"{package}-{version}.tgz")
+
+
+def prefetch_workframe_npm_tarball(version: str) -> str:
+    """Download create-workframe pack to API data dir; return supervisor-visible path."""
+    import base64
+    import hashlib
+
+    ver = str(version or "").strip()
+    if not ver:
+        raise ValueError("workframe_version_required")
+    pkg = NPM_PACKAGE
+    try:
+        meta = _http_json(
+            f"https://registry.npmjs.org/{urllib.parse.quote(pkg)}/{urllib.parse.quote(ver)}",
+            timeout=60.0,
+        )
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        raise ValueError(f"npm_fetch_failed:{exc}") from exc
+    dist = meta.get("dist") if isinstance(meta.get("dist"), dict) else {}
+    url = str(dist.get("tarball") or "").strip()
+    integrity = str(dist.get("integrity") or "").strip()
+    if not url:
+        raise ValueError("npm_tarball_url_missing")
+    data_dir = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data"))
+    staging = data_dir / ".update-staging"
+    staging.mkdir(parents=True, exist_ok=True)
+    dest = staging / f"{pkg}-{ver}.tgz"
+    req = urllib.request.Request(url, headers={"User-Agent": "workframe-api"})
+    try:
+        with urllib.request.urlopen(req, timeout=300.0) as resp:
+            body = resp.read()
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise ValueError(f"npm_download_failed:{exc}") from exc
+    if integrity.startswith("sha512-"):
+        actual = "sha512-" + base64.b64encode(hashlib.sha512(body).digest()).decode()
+        if actual != integrity:
+            raise ValueError("npm_integrity_mismatch")
+    dest.write_bytes(body)
+    return _supervisor_tarball_path(pkg, ver)
+
+
 def _docker_hub_digest(repo: str, tag: str) -> str:
     url = f"https://hub.docker.com/v2/repositories/{repo}/tags/{urllib.parse.quote(tag)}"
     data = _http_json(url)
@@ -113,8 +162,11 @@ def _container_image_digest(name: str) -> tuple[str, str]:
 
 def _read_installed_workframe_version(project_root: Path) -> dict[str, str]:
     out = {"api": API_VERSION, "package": "", "manifest_generator": ""}
+    pin = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data")) / "package-version"
+    if pin.is_file():
+        out["package"] = pin.read_text(encoding="utf-8").strip()
     manifest = project_root / "workframe-manifest.json"
-    if manifest.is_file():
+    if not out["package"] and manifest.is_file():
         try:
             data = json.loads(manifest.read_text(encoding="utf-8"))
             out["package"] = str(data.get("package_version") or "")
@@ -404,36 +456,64 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     }
 
 
-def _apply_env_for_target(target: str) -> dict[str, str]:
-    env = os.environ.copy()
-    env.setdefault("WORKFRAME_COMPOSE_DIR", str(_compose_dir()))
-    env.setdefault("WORKFRAME_PROJECT_ROOT", str(_project_root()))
-    if target in {"workframe", "all"}:
-        latest = ""
+def _supervisor_stack_apply(body: dict[str, Any], *, timeout: float = 900.0) -> dict[str, Any]:
+    if not _supervisor_configured():
+        raise ValueError("supervisor_not_configured")
+    base = str(os.environ.get("WORKFRAME_SUPERVISOR_URL", "")).rstrip("/")
+    token = str(os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "")).strip()
+    payload = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(
+        f"{base}/v1/stack.apply",
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "workframe-api",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
         try:
-            latest = str(updates_available().get("workframe", {}).get("latest") or "").strip()
-        except Exception:  # noqa: BLE001
-            latest = ""
-        if latest:
-            env["WORKFRAME_UPDATE_ALLOW_NPM"] = "1"
-            env["WORKFRAME_UPDATE_VERSION"] = latest
-    return env
+            parsed = json.loads(detail)
+            if isinstance(parsed, dict) and parsed.get("error"):
+                raise ValueError(str(parsed["error"])) from exc
+        except json.JSONDecodeError:
+            pass
+        raise ValueError(f"supervisor_apply_failed:{exc.code}") from exc
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        raise ValueError(f"supervisor_apply_failed:{exc}") from exc
+    if not isinstance(data, dict) or not data.get("ok"):
+        raise ValueError(str(data.get("error") or "supervisor_apply_failed"))
+    return data
 
 
-def apply_update(target: str) -> dict[str, Any]:
-    if not _admin_stack_updates_enabled():
-        raise ValueError("admin_updates_disabled")
-    target = str(target or "all").strip().lower()
-    if target not in {"hermes", "workframe", "all"}:
-        raise ValueError("invalid_update_target")
-    _, apply_ready, apply_reason = _update_apply_channel()
-    if not apply_ready:
-        if not Path(DOCKER_SOCK).exists():
-            raise ValueError("docker_unavailable")
-        raise ValueError(str(apply_reason or "docker_apply_unavailable"))
-    if not Path(DOCKER_SOCK).exists():
-        raise ValueError("docker_unavailable")
+def _workframe_update_target_version() -> str:
+    try:
+        return str(updates_available().get("workframe", {}).get("latest") or "").strip()
+    except Exception:  # noqa: BLE001
+        return ""
 
+
+def _visible_tarball_path(package: str, version: str, *, channel: str) -> str:
+    if channel == "supervisor":
+        return _supervisor_tarball_path(package, version)
+    return str(Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data")) / ".update-staging" / f"{package}-{version}.tgz")
+
+
+def _prepare_workframe_update(channel: str) -> tuple[str, str]:
+    version = _workframe_update_target_version()
+    if not version:
+        raise ValueError("workframe_update_version_unavailable")
+    prefetch_workframe_npm_tarball(version)
+    return version, _visible_tarball_path(NPM_PACKAGE, version, channel=channel)
+
+
+def _run_apply_scripts(target: str, env: dict[str, str]) -> dict[str, Any]:
     scripts: list[str] = []
     if target in {"hermes", "all"}:
         script = _script_path("apply-update-hermes.sh")
@@ -445,8 +525,6 @@ def apply_update(target: str) -> dict[str, Any]:
         if not script:
             raise ValueError("update_script_missing:workframe")
         scripts.append(str(script))
-
-    env = _apply_env_for_target(target)
 
     logs: list[str] = []
     for script in scripts:
@@ -461,18 +539,53 @@ def apply_update(target: str) -> dict[str, Any]:
         logs.append(f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}")
         if proc.returncode != 0:
             raise ValueError(f"update_failed:{Path(script).name}")
-
     return {"ok": True, "target": target, "log": "\n".join(logs)[-12000:]}
+
+
+def apply_update(target: str) -> dict[str, Any]:
+    if not _admin_stack_updates_enabled():
+        raise ValueError("admin_updates_disabled")
+    target = str(target or "all").strip().lower()
+    if target not in {"hermes", "workframe", "all"}:
+        raise ValueError("invalid_update_target")
+    channel, apply_ready, apply_reason = _update_apply_channel()
+    if not apply_ready:
+        raise ValueError(str(apply_reason or "docker_apply_unavailable"))
+
+    workframe_version = ""
+    workframe_tarball = ""
+    if target in {"workframe", "all"}:
+        workframe_version, workframe_tarball = _prepare_workframe_update(channel)
+
+    if channel == "supervisor":
+        body: dict[str, Any] = {"target": target}
+        if workframe_version:
+            body["workframe_version"] = workframe_version
+        if workframe_tarball:
+            body["workframe_tarball"] = workframe_tarball
+        return _supervisor_stack_apply(body)
+
+    if not Path(DOCKER_SOCK).exists():
+        raise ValueError("docker_unavailable")
+
+    env = os.environ.copy()
+    env.setdefault("WORKFRAME_COMPOSE_DIR", str(_compose_dir()))
+    env.setdefault("WORKFRAME_PROJECT_ROOT", str(_project_root()))
+    if workframe_version:
+        env["WORKFRAME_UPDATE_VERSION"] = workframe_version
+    if workframe_tarball:
+        env["WORKFRAME_UPDATE_TARBALL"] = workframe_tarball
+    return _run_apply_scripts(target, env)
 
 
 def restart_gateway() -> dict[str, Any]:
     if not _admin_stack_updates_enabled():
         raise ValueError("admin_updates_disabled")
-    _, apply_ready, apply_reason = _update_apply_channel()
+    channel, apply_ready, apply_reason = _update_apply_channel()
     if not apply_ready:
-        if not Path(DOCKER_SOCK).exists():
-            raise ValueError("docker_unavailable")
         raise ValueError(str(apply_reason or "docker_apply_unavailable"))
+    if channel == "supervisor":
+        return _supervisor_stack_apply({"target": "gateway-restart"}, timeout=300.0)
     if not Path(DOCKER_SOCK).exists():
         raise ValueError("docker_unavailable")
     script = _script_path("restart-gateway-hermes.sh")

@@ -43,6 +43,60 @@ _wf_sync_tree() {
   cp -a "${src}/." "${dest}/"
 }
 
+_wf_sync_from_pack_dir() {
+  local pkg="$1"
+  if [[ -d "$pkg/workframe-api" ]]; then
+    echo "Syncing workframe-api -> $API_DIR"
+    _wf_sync_tree "$pkg/workframe-api" "$API_DIR"
+  fi
+  if [[ -d "$pkg/workframe-supervisor" ]]; then
+    echo "Syncing workframe-supervisor -> $SUP_DIR"
+    _wf_sync_tree "$pkg/workframe-supervisor" "$SUP_DIR"
+  fi
+  if [[ -d "$pkg/workframe-ui/public" ]]; then
+    echo "Syncing workframe-ui/public -> $UI_DIR"
+    _wf_sync_tree "$pkg/workframe-ui/public" "$UI_DIR"
+  fi
+  for script in apply-update-hermes.sh apply-update-workframe.sh restart-gateway-hermes.sh compose-docker-host.sh update-hermes.sh; do
+    if [[ -f "$pkg/scripts/$script" ]]; then
+      cp -a "$pkg/scripts/$script" "$SCRIPTS_DIR/$script"
+      chmod +x "$SCRIPTS_DIR/$script" 2>/dev/null || true
+    fi
+  done
+}
+
+_wf_apply_npm_tarball() {
+  local tarball="$1"
+  local ver="${2:-latest}"
+  if ! _wf_npm_integrity_ok "$tarball" "$NPM_PACKAGE" "$ver"; then
+    echo "integrity mismatch for ${NPM_PACKAGE}@${ver}" >&2
+    exit 1
+  fi
+  echo "integrity ok: ${NPM_PACKAGE}@${ver}"
+  local extract_dir
+  extract_dir="$(mktemp -d)"
+  tar -xf "$tarball" -C "$extract_dir"
+  _wf_sync_from_pack_dir "$extract_dir/package"
+  rm -rf "$extract_dir"
+}
+
+_wf_record_package_version() {
+  local ver="$1"
+  [[ -n "$ver" ]] || return 0
+  mkdir -p "$API_DIR/data"
+  printf '%s\n' "$ver" > "$API_DIR/data/package-version"
+  if [[ -f "$PROJECT_ROOT/workframe-manifest.json" ]] && command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+ver = sys.argv[2]
+data = json.loads(p.read_text(encoding="utf-8"))
+data["package_version"] = ver
+data["generator"] = f"create-workframe@{ver}"
+p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")' "$PROJECT_ROOT/workframe-manifest.json" "$ver"
+  fi
+}
+
 _wf_install_paths() {
   local root="$1"
   if [[ -d "$root/services/workframe-api" ]]; then
@@ -88,8 +142,12 @@ echo "Preserves: Agents/, Files/, .env, workframe-api/data, gateway/Hermes profi
 
 TARGET_VERSION="${WORKFRAME_UPDATE_VERSION:-}"
 NPM_PACKAGE="${WORKFRAME_NPM_PACKAGE:-create-workframe}"
+PREFETCH_TARBALL="${WORKFRAME_UPDATE_TARBALL:-}"
 
-if [[ "${WORKFRAME_UPDATE_SKIP_NPM:-1}" == "1" ]] && [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" != "1" ]]; then
+if [[ -n "$PREFETCH_TARBALL" && -f "$PREFETCH_TARBALL" ]]; then
+  echo "Applying API-prefetched tarball: $PREFETCH_TARBALL"
+  _wf_apply_npm_tarball "$PREFETCH_TARBALL" "${TARGET_VERSION:-latest}"
+elif [[ "${WORKFRAME_UPDATE_SKIP_NPM:-1}" == "1" ]] && [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" != "1" ]]; then
   echo "Skipping npm template sync (WORKFRAME_UPDATE_SKIP_NPM=1; set WORKFRAME_UPDATE_ALLOW_NPM=1 to fetch)"
 elif command -v npm >/dev/null 2>&1; then
   if [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" == "1" ]] && [[ -z "$TARGET_VERSION" ]]; then
@@ -99,36 +157,16 @@ elif command -v npm >/dev/null 2>&1; then
   TMP="$(mktemp -d)"
   trap 'rm -rf "$TMP"' EXIT
   echo "Fetching ${NPM_PACKAGE}@${TARGET_VERSION:-latest} from npm..."
-  (cd "$TMP" && npm pack "${NPM_PACKAGE}@${TARGET_VERSION:-latest}" --silent)
+  if ! (cd "$TMP" && npm pack "${NPM_PACKAGE}@${TARGET_VERSION:-latest}" --silent); then
+    echo "npm pack failed (supervisor control-net has no registry access — use API prefetch)" >&2
+    exit 1
+  fi
   TARBALL="$(ls -1 "$TMP"/${NPM_PACKAGE}-*.tgz 2>/dev/null | head -n1 || true)"
   if [[ -n "$TARBALL" ]]; then
-    if ! _wf_npm_integrity_ok "$TARBALL" "$NPM_PACKAGE" "${TARGET_VERSION:-latest}"; then
-      echo "integrity mismatch for ${NPM_PACKAGE}@${TARGET_VERSION:-latest}" >&2
-      exit 1
-    fi
-    echo "integrity ok: ${NPM_PACKAGE}@${TARGET_VERSION:-latest}"
-    tar -xf "$TARBALL" -C "$TMP"
-    PKG="$TMP/package"
-    if [[ -d "$PKG/workframe-api" ]]; then
-      echo "Syncing workframe-api -> $API_DIR"
-      _wf_sync_tree "$PKG/workframe-api" "$API_DIR"
-    fi
-    if [[ -d "$PKG/workframe-supervisor" ]]; then
-      echo "Syncing workframe-supervisor -> $SUP_DIR"
-      _wf_sync_tree "$PKG/workframe-supervisor" "$SUP_DIR"
-    fi
-    if [[ -d "$PKG/workframe-ui/public" ]]; then
-      echo "Syncing workframe-ui/public -> $UI_DIR"
-      _wf_sync_tree "$PKG/workframe-ui/public" "$UI_DIR"
-    fi
-    for script in apply-update-hermes.sh apply-update-workframe.sh restart-gateway-hermes.sh compose-docker-host.sh update-hermes.sh; do
-      if [[ -f "$PKG/scripts/$script" ]]; then
-        cp -a "$PKG/scripts/$script" "$SCRIPTS_DIR/$script"
-        chmod +x "$SCRIPTS_DIR/$script" 2>/dev/null || true
-      fi
-    done
+    _wf_apply_npm_tarball "$TARBALL" "${TARGET_VERSION:-latest}"
   else
-    echo "npm pack produced no tarball — skipping template sync"
+    echo "npm pack produced no tarball — skipping template sync" >&2
+    exit 1
   fi
 else
   echo "Skipping npm template sync (npm missing or WORKFRAME_UPDATE_SKIP_NPM=1)"
@@ -143,5 +181,7 @@ if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
 elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
   workframe_compose up -d --no-deps workframe || workframe_compose restart workframe || true
 fi
+
+_wf_record_package_version "${TARGET_VERSION:-}"
 
 echo "=== Workframe update complete ==="

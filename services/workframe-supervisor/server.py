@@ -60,7 +60,7 @@ def _exec_targets_runtime_profile_secrets(cmd: list[str], acting_profile: str = 
     return exec_blocked_for_profile(cmd, acting_profile)
 
 
-def _stack_apply(target: str, *, workframe_version: str = "") -> dict[str, Any]:
+def _stack_apply(target: str, *, workframe_version: str = "", workframe_tarball: str = "") -> dict[str, Any]:
     target = str(target or "all").strip().lower()
     if target == "gateway-restart":
         script = SCRIPTS_DIR / "restart-gateway-hermes.sh"
@@ -92,7 +92,12 @@ def _stack_apply(target: str, *, workframe_version: str = "") -> dict[str, Any]:
         scripts.append(p)
     env = os.environ.copy()
     version = str(workframe_version or "").strip()
-    if version and target in {"workframe", "all"}:
+    tarball = str(workframe_tarball or "").strip()
+    if tarball and target in {"workframe", "all"}:
+        env["WORKFRAME_UPDATE_TARBALL"] = tarball
+        if version:
+            env["WORKFRAME_UPDATE_VERSION"] = version
+    elif version and target in {"workframe", "all"}:
         env["WORKFRAME_UPDATE_ALLOW_NPM"] = "1"
         env["WORKFRAME_UPDATE_VERSION"] = version
     logs: list[str] = []
@@ -780,8 +785,16 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/v1/stack.apply":
                 target = str(body.get("target") or "all").strip().lower()
                 workframe_version = str(body.get("workframe_version") or "").strip()
+                workframe_tarball = str(body.get("workframe_tarball") or "").strip()
                 try:
-                    return self._json(200, _stack_apply(target, workframe_version=workframe_version))
+                    return self._json(
+                        200,
+                        _stack_apply(
+                            target,
+                            workframe_version=workframe_version,
+                            workframe_tarball=workframe_tarball,
+                        ),
+                    )
                 except ValueError as exc:
                     return self._json(400, {"ok": False, "error": str(exc)})
                 except Exception as exc:  # noqa: BLE001

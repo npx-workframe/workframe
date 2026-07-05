@@ -6,12 +6,18 @@ workframe_compose_prepare() {
   compose_cd=""
   compose_files=()
 
-  # Host-bindings overlay: docker.sock apply from supervisor uses WORKFRAME_HOST_* paths.
+  # Host-bindings overlay: absolute WORKFRAME_HOST_* paths for docker.sock on the real host.
+  # Skip inside supervisor when only the /compose bind mount is visible — host paths become
+  # /compose/D:/... and break build contexts.
   if [[ -n "${WORKFRAME_HOST_COMPOSE_DIR:-}" && -n "${WORKFRAME_COMPOSE_DIR:-}" \
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.yml" \
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]; then
     compose_cd="${WORKFRAME_COMPOSE_DIR}"
-    compose_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
+    if [[ -d "${WORKFRAME_HOST_COMPOSE_DIR}" ]]; then
+      compose_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
+    else
+      compose_files=(-f docker-compose.yml)
+    fi
     return 0
   fi
 

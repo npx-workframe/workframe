@@ -78,13 +78,17 @@ Session binding: [Session architecture](./session-architecture.md).
 
 ### Workframe (API, supervisor, UI)
 
+SECURE_MODE stacks apply Workframe updates through **workframe-api → prefetch npm → workframe-supervisor → docker compose rebuild**. The API container has registry access; supervisor stays on the internal control network and never calls npm directly.
+
 Generated projects include `scripts/workframe/apply-update-workframe.sh`:
 
 ```bash
 bash scripts/workframe/apply-update-workframe.sh
 ```
 
-Preserves `Agents/`, `Files/`, `.env`, and API databases. Rebuilds API/supervisor containers. Optional npm template sync when `WORKFRAME_UPDATE_ALLOW_NPM=1` and `WORKFRAME_UPDATE_VERSION` are set.
+Preserves `Agents/`, `Files/`, `.env`, and API databases. Rebuilds API/supervisor/UI containers. In-app apply sets `WORKFRAME_UPDATE_TARBALL` after the API downloads the pack; manual host runs may set `WORKFRAME_UPDATE_ALLOW_NPM=1` and `WORKFRAME_UPDATE_VERSION` instead.
+
+After a successful apply, `workframe-api/data/package-version` and `workframe-manifest.json` record the installed pack version.
 
 Monorepo developers: pull git, `pnpm build:web`, rebuild/restart compose services — see [Develop](./develop.md).
 
