@@ -21,6 +21,7 @@ from typing import Any, Iterator
 from http.server import BaseHTTPRequestHandler
 
 import concierge
+import lane_bindings
 import llm_error_glossary
 import run_authority
 import run_ledger
@@ -661,11 +662,11 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         except Exception:  # noqa: BLE001
             pass
         try:
-            _srv()._sync_lane_binding(
+            lane_bindings._sync_lane_binding(
                 prof,
                 str(payload.get("source_id") or "ui").strip() or "ui",
                 str(payload.get("client_id") or "default").strip() or "default",
-                _srv()._binding_version(payload.get("binding_version")),
+                lane_bindings._binding_version(payload.get("binding_version")),
                 session_id,
                 f"api:{prof}:{session_id}",
                 str(payload.get("text") or ""),
@@ -679,8 +680,8 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         if latest and latest != session_id:
             source_id = str(payload.get("source_id") or "ui").strip() or "ui"
             client_id = str(payload.get("client_id") or "default").strip() or "default"
-            binding_version = _srv()._binding_version(payload.get("binding_version"))
-            _srv().chat_dispatch({
+            binding_version = lane_bindings._binding_version(payload.get("binding_version"))
+            lane_bindings.chat_dispatch({
                 "profile": prof,
                 "session_id": latest,
                 "gateway_session_id": f"api:{prof}:{latest}",

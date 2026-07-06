@@ -842,10 +842,11 @@
         "services/workframe-api/profile_gateway.py",
         "services/workframe-api/model_surface.py",
         "services/workframe-api/provider_bootstrap.py",
-        "services/workframe-api/chat_stream.py"
+        "services/workframe-api/chat_stream.py",
+        "services/workframe-api/lane_bindings.py"
       ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: Stage 3 partial — chat_stream.py (SSE helpers + stream_profile_chat + live segment reducers); lane bindings (chat_dispatch/_sync_lane_binding) still in server.py; server.py ~12.5k lines." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: Stage 3 complete — lane_bindings.py (profile_chat_session, chat_dispatch, _sync_lane_binding, registry helpers); server.py ~12.2k lines." }
     },
     {
       "id": "WF-033",
