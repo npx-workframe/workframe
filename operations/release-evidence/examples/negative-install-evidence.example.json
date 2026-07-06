@@ -12,7 +12,7 @@
   "timestamp": "2026-07-05T06:45:00Z",
   "commands_redacted": ["create-workframe ../escape", "create-workframe ExistingDir"],
   "step_assertions": [
-    { "id": "matrix_executed", "status": "not_asserted", "note": "WF-019 runner pending" }
+    { "id": "matrix_executed", "status": "asserted", "note": "WF-019 runner" }
   ],
   "cases": [
     {

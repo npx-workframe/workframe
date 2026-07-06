@@ -22,9 +22,10 @@
     "verify:evidence": "node scripts/workframe/validate-release-evidence.mjs",
     "verify:release-gates": "node scripts/workframe/verify-release-gates.mjs",
     "test:package-evidence": "node scripts/workframe/run-package-install-evidence.mjs --build",
+    "test:negative-evidence": "node scripts/workframe/run-negative-install-evidence.mjs",
     "test:api": "pnpm --filter @workframe/workframe-api typecheck",
     "test:scaffold": "node packages/create-workframe/scripts/test-scaffold.mjs",
-    "test:ci": "pnpm verify:version && pnpm verify:docs && pnpm verify:evidence && pnpm verify:public && pnpm --filter @workframe/workframe-api typecheck && pnpm build:web && node packages/create-workframe/scripts/sync-canonical-to-package.mjs && node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build && pnpm test:scaffold && node scripts/workframe/run-package-install-evidence.mjs --skip-prep"
+    "test:ci": "pnpm verify:version && pnpm verify:docs && pnpm verify:evidence && pnpm verify:public && pnpm --filter @workframe/workframe-api typecheck && pnpm build:web && node packages/create-workframe/scripts/sync-canonical-to-package.mjs && node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build && pnpm test:scaffold && node scripts/workframe/run-package-install-evidence.mjs --skip-prep && node scripts/workframe/run-negative-install-evidence.mjs"
   },
   "devDependencies": {
     "turbo": "latest",

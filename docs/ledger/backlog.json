@@ -150,7 +150,7 @@
       "summary": "Manifest provenance, install root ownership, read-only open, mutation plan before update/connect/adopt.",
       "wave": "authority",
       "priority": "P1",
-      "status": "todo",
+      "status": "partial",
       "sources": ["25-audit:P1-7", "25-audit:ticket-7", "RT-08"],
       "acceptance": [
         "Design doc committed",
@@ -158,8 +158,14 @@
         "Update/connect/adopt blocked without explicit authority"
       ],
       "depends_on": ["WF-003"],
+      "evidence": ["docs/ledger/specs/WF-007/spec.md"],
       "owner_role": "design",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "notes": "Design doc + derived tickets (WF-007-impl, WF-019, WF-008). Implementation blocked on authority-impl lane after WF-039."
+      }
     },
     {
       "id": "WF-008",
@@ -201,15 +207,21 @@
       "summary": "Agent rail, chat, files, browser, activity need contracts: reads, writes, authority gate, evidence emitted.",
       "wave": "authority",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P1-10", "workframe-surface-baseline", "RT-09"],
       "acceptance": [
         "Contract table per surface committed",
         "Each surface linked to harness scenario or manual evidence"
       ],
       "depends_on": [],
+      "evidence": ["docs/ledger/specs/WF-010/spec.md"],
       "owner_role": "design",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-011",
@@ -346,12 +358,22 @@
       "summary": "Non-empty target, unsafe names, arbitrary dir deny, missing Docker — mutation hash before/after.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:ticket-3"],
       "acceptance": ["Produces NegativeInstallEvidence JSON", "Temp dir only, no host side effects"],
       "depends_on": ["WF-018"],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "evidence": [
+        "scripts/workframe/run-negative-install-evidence.mjs",
+        "operations/release-evidence/runs/latest-negative-install.json",
+        ".github/workflows/ci.yml"
+      ],
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "completed_at": "2026-07-06",
+        "patch_refs": []
+      }
     },
     {
       "id": "WF-020",
@@ -517,11 +539,20 @@
       "summary": "Consistent terms across docs and code; stop using Hermes profile as catch-all for agent/runtime/authority.",
       "wave": "meta",
       "priority": "P2",
-      "status": "partial",
+      "status": "done",
       "sources": ["north-star:phase-0"],
       "acceptance": ["Glossary in public docs", "New code uses Workframe terms"],
+      "evidence": [
+        "docs/public/glossary.md",
+        "services/workframe-api/domain/"
+      ],
       "owner_role": "docs",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-NS-P1",
@@ -814,7 +845,7 @@
       "summary": "First-principles core: the stable Workframe layer is a small typed domain model (agents as persistent actors, runs as units of authority+economics, leases as scoped credentials, capabilities not ambient authority). Today those concepts live implicitly inside server.py SQLite calls and profile-slug conventions. Define them once — Python dataclasses + JSON schema — so API, UI, and future adapters share one vocabulary.",
       "wave": "authority",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["north-star: Core Doctrine / Target Architecture", "WF-NS-P0", "audit-2026-07-05"],
       "acceptance": [
         "Entities: Cell, User, Workspace, AgentIdentity, RuntimeBinding, Run, RunEvent, Lease, Grant, CredentialRef",
@@ -823,8 +854,19 @@
         "Glossary in docs/public closes WF-NS-P0"
       ],
       "depends_on": [],
+      "evidence": [
+        "services/workframe-api/domain/",
+        "services/workframe-api/test_domain_entities.py",
+        "docs/ledger/specs/WF-039/spec.md",
+        "docs/public/glossary.md"
+      ],
       "owner_role": "design",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-040",
