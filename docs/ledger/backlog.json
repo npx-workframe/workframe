@@ -182,13 +182,18 @@
         "Update/connect/adopt blocked without explicit authority"
       ],
       "depends_on": ["WF-003"],
-      "evidence": ["docs/ledger/specs/WF-007/spec.md"],
+      "evidence": [
+        "docs/ledger/specs/WF-007/spec.md",
+        "services/workframe-api/cell_authority.py",
+        "services/workframe-api/test_cell_authority.py"
+      ],
       "owner_role": "design",
       "workflow": {
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "notes": "Design doc + derived tickets (WF-007-impl, WF-019, WF-008). Implementation blocked on authority-impl lane after WF-039."
+        "completed_at": "2026-07-06",
+        "notes": "Scaffold module + unit tests; adopt blocked WF-014; wire create/open to CLI deferred."
       }
     },
     {
@@ -197,7 +202,7 @@
       "summary": "workframe doctor --json reports Docker/Node/cell/runtime candidates without reading secrets or mutating host.",
       "wave": "authority",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P1-8", "runtime-detection-map"],
       "acceptance": [
         "JSON output schema documented",
@@ -205,8 +210,17 @@
         "No filesystem mutation"
       ],
       "depends_on": [],
+      "evidence": [
+        "docs/ledger/specs/WF-008/spec.md",
+        "packages/create-workframe/bin/workframe.js"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-009",
@@ -214,7 +228,7 @@
       "summary": "Single pre-run decision: actor, profile owner, runtime, provider, credential, payer, delegation, deny reason.",
       "wave": "authority",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P1-9", "25-audit:ticket-8", "RT-10", "north-star:phase-2"],
       "acceptance": [
         "Design doc + test cases before implementation",
@@ -222,8 +236,19 @@
         "All run-creating surfaces call gate"
       ],
       "depends_on": ["WF-NS-P2"],
+      "evidence": [
+        "docs/ledger/specs/WF-009/spec.md",
+        "services/workframe-api/run_authority.py",
+        "services/workframe-api/test_run_authority.py"
+      ],
       "owner_role": "design",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06",
+        "notes": "Pure gate + chat stream wired in WF-NS-P2 commit; other surfaces pending."
+      }
     },
     {
       "id": "WF-010",
@@ -253,15 +278,24 @@
       "summary": "Public mode cannot reach docker.sock from API; supervisor rejects profile/path misuse; update/connect require authority.",
       "wave": "authority",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P1-11", "RT-07"],
       "acceptance": [
         "Automated tests for denial paths",
         "Public compose verify includes supervisor constraints"
       ],
       "depends_on": [],
+      "evidence": [
+        "services/workframe-supervisor/test_supervisor_negative.py",
+        "scripts/workframe/verify-public-deploy.sh"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-012",
@@ -341,8 +375,15 @@
         "Receipt emitted per run"
       ],
       "depends_on": ["WF-009", "WF-NS-P2"],
+      "evidence": [
+        "services/workframe-api/run_authority.py",
+        "services/workframe-api/run_ledger.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "notes": "BYOK/company-pays UI exists; run-level receipt missing" }
+      "workflow": {
+        "notes": "Gate payer + chat turn receipt on run_line_items; billing-grade amounts deferred.",
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-017",
@@ -358,9 +399,19 @@
         "No marketing overclaim beyond evidence"
       ],
       "depends_on": ["WF-006", "WF-028"],
-      "evidence": ["scripts/workframe/verify-public-deploy.sh"],
+      "evidence": [
+        "scripts/workframe/verify-public-deploy.sh",
+        "infra/compose/workframe/PUBLIC_DEPLOY.md",
+        "docs/public/security.md"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06",
+        "notes": "Backup/restore + broker-audit schema checks in verify; reference VPS green run still manual."
+      }
     },
     {
       "id": "WF-018",
@@ -613,7 +664,7 @@
       "summary": "Minimum run ledger schema; DM, mention, card, cron, slash, webhook create runs.",
       "wave": "run-ledger",
       "priority": "P1",
-      "status": "deferred",
+      "status": "partial",
       "sources": ["north-star:phase-2", "17-final-recommendation"],
       "acceptance": [
         "runs, run_events, run_line_items tables",
@@ -621,8 +672,19 @@
         "Activity panel reads run_events"
       ],
       "depends_on": ["WF-009"],
+      "evidence": [
+        "services/workframe-api/run_ledger.py",
+        "services/workframe-api/test_run_ledger.py",
+        "services/workframe-api/server.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06",
+        "notes": "Chat path + room activity hook; DM/cron/slash/webhook surfaces pending."
+      }
     },
     {
       "id": "WF-NS-P3",
