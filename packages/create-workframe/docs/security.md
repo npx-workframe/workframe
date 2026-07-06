@@ -53,7 +53,7 @@ In `public_multi_user`, credential-mediated traffic must not depend on agent coo
 2. Runtime profiles use **lease tokens** (`wf_rt_*`) and internal proxy base URLs for LLM calls.
 3. Integrated action providers use `/internal/action/*` with the same lease model.
 4. Gateway must **not** join the supervisor `control-net` (already enforced in compose).
-5. Optional strict profile (`WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true`) may block **direct** outbound connections to known provider API hostnames so traffic must use the broker — general internet stays open.
+5. Optional strict profile (`WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true`) blocks **direct** outbound connections to known provider API hostnames via the `gateway-egress-guard` iptables sidecar (`docker-compose.egress-broker.yml`) so traffic must use the broker — general internet stays open.
 
 This is **routing and secret placement**, not disabling `terminal` or adding human approval before each tool call. Lease validation on brokered requests is in-process (milliseconds), not an operator gate.
 
@@ -63,7 +63,7 @@ This is **routing and secret placement**, not disabling `terminal` or adding hum
 |------|----------------|----------------------|
 | `trusted_team` / dogfood | Unrestricted | Config + vault + leases (today) |
 | `public_multi_user` | Unrestricted (agents stay capable) | Same broker path; verify script reports posture |
-| `public_multi_user` + `WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true` | Unrestricted except provider-host deny/redirect (planned) | Network-enforced broker path |
+| `public_multi_user` + `WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true` | Unrestricted except provider-host deny via egress-guard sidecar | Network-enforced broker path |
 
 See also [Audit 0027 — Agent Vault comparison](../audits/0027-agent-vault-comparison.md) (advisory; Infisical Agent Vault as a reference pattern, not a required dependency).
 

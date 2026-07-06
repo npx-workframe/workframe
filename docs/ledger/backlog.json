@@ -410,7 +410,7 @@
         "reviewer": null,
         "patch_refs": [],
         "completed_at": "2026-07-06",
-        "notes": "Backup/restore + broker-audit schema checks in verify; reference VPS green run still manual."
+        "notes": "Verified 2026-07-06: verify-public-deploy.sh adds egress-guard, supervisor overlay, broker_audit schema, backup doc checks; reference VPS green run still manual."
       }
     },
     {

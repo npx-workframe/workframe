@@ -75,6 +75,13 @@ cd infra/compose/workframe
 docker compose -f docker-compose.yml -f docker-compose.public.yml up -d --build
 ```
 
+**Optional forced broker egress** (blocks direct provider API hosts from gateway; general internet stays open):
+
+```bash
+# .env: WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true
+docker compose -f docker-compose.yml -f docker-compose.public.yml -f docker-compose.egress-broker.yml up -d --build
+```
+
 **Local development (admin updates from API):**
 
 ```bash
@@ -98,7 +105,8 @@ Manual smoke:
 | Owner/admin UI | Dashboard opens |
 | `docker inspect workframe-gateway` env | No `ZK_AUTH_*`, `WORKFRAME_SUPERVISOR_TOKEN`, `SMTP_PASS` |
 | Gateway → supervisor network | Gateway cannot resolve `workframe-supervisor` |
-| `verify-public-deploy.sh` egress lines | Reports `gateway_egress_posture` and `broker_path` (informational unless `WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true`) |
+| `verify-public-deploy.sh` egress lines | Reports `gateway_egress_posture` and `broker_path`; with `WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true`, requires `docker-compose.egress-broker.yml` + running `gateway-egress-guard` |
+| `verify-public-deploy.sh` broker audit | Checks `broker_audit_events` table in runtime DB when present |
 
 ## Security behavior (public mode)
 
@@ -118,6 +126,21 @@ Manual smoke:
 ## Multi-user isolation
 
 The Hermes gateway container mounts the shared `runtime/Agents` tree. User isolation relies on per-user runtime profiles, role checks in the API, supervisor guards on sensitive profile paths (`profiles/u-*/.env`, `auth.json`), and encrypted credentials — not on disabling the terminal tool.
+
+## Backup and restore
+
+Before upgrades or risky changes, snapshot runtime state:
+
+```bash
+# From repo root — adjust paths for your VPS layout
+tar czf "workframe-backup-$(date +%Y%m%d).tgz" \
+  infra/compose/workframe/.env \
+  runtime/workframe-api-data \
+  runtime/Agents \
+  runtime/Files
+```
+
+Restore: stop compose, extract the archive over the same paths, rotate secrets if compromise is suspected, then `docker compose up -d --build`. See [Rollback](#rollback) below.
 
 ## Rollback
 
