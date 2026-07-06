@@ -724,7 +724,7 @@
       "summary": "~20k lines / 841 KB / 626 top-level defs in one file. Decompose along the seams found in the 2026-07-05 audit. Stdlib-only constraint stays; one extraction per commit; py_compile + test_*.py green after each.",
       "wave": "code-health",
       "priority": "P1",
-      "status": "todo",
+      "status": "partial",
       "sources": ["audit-2026-07-05: def-density map of server.py"],
       "acceptance": [
         "Stage 0: characterization tests for model surface, auth gate, credential resolve (extends WF-034)",
@@ -734,8 +734,11 @@
         "server.py residual under ~3k lines (main, wiring)"
       ],
       "depends_on": ["WF-034", "WF-033"],
+      "evidence": [
+        "services/workframe-api/db_schema.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: server.py ~18859 lines. Already extracted: route_registry.py, profile_config_yaml.py, zk_auth.py, credential_vault.py, install_api.py, stack_config.py, llm_proxy.py, action_proxy.py, domain/ (WF-039 — do not duplicate). Stage 1 targets NOT present: db_schema.py, auth_gate.py, user_prefs.py, rooms.py, kanban_cron.py. Stage 0 partial: test_model_surface_consistency.py (WF-034); no auth_gate/credential-resolve characterization tests." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: server.py ~20400 lines. Extracted: route_registry.py, profile_config_yaml.py, db_schema.py (Sprint G-K). Stage 1 remaining: auth_gate.py, user_prefs.py, rooms.py, kanban_cron.py; base schema + v6-v13 migrations still in server.py." }
     },
     {
       "id": "WF-033",

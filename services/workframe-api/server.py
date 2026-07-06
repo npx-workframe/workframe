@@ -39,6 +39,7 @@ from typing import Any, Iterator
 from email_sender import APP_BASE_URL, send_branded_invite_email, send_email, send_verification_email
 import profile_config_yaml
 import route_registry
+import db_schema
 import stack_config
 import site_meta
 import google_auth
@@ -13610,6 +13611,11 @@ def room_activity_data(
     for prof, sids in session_ids_by_profile.items():
         merged.extend(_message_activity_for_sessions(prof, crew_lookup, sids, ACTIVITY_ROOM_LIMIT))
 
+    try:
+        merged.extend(run_ledger.list_run_events_for_room(room_id, limit=ACTIVITY_ROOM_LIMIT))
+    except Exception:  # noqa: BLE001
+        pass
+
     merged.sort(key=lambda e: e.get("created_at") or "", reverse=True)
     return merged[:ACTIVITY_ROOM_LIMIT]
 
@@ -13886,6 +13892,41 @@ def _log_llm_failure(
         )
 
 
+def _run_authority_context_for_chat(
+    user_id: str,
+    workspace_id: str,
+    provider: str,
+) -> run_authority.RunAuthorityContext:
+    user = str(user_id or "").strip()
+    ws = str(workspace_id or "").strip()
+    provider_name = str(provider or "openrouter").strip().lower()
+    mode = _workspace_credential_mode(None, ws)
+    user_only = _provider_user_only(provider_name)
+    oauth_connected = False
+    oauth_spec = _oauth_llm_provider_spec(provider_name)
+    if oauth_spec and user:
+        oauth_connected = _hermes_oauth_tokens_present(user, _hermes_auth_id_for_spec(oauth_spec))
+    user_resolved = _resolve_credential(user, ws, provider_name, user_only=True) if user else None
+    user_has = bool(user_resolved and _credential_secret(user_resolved, user))
+    ws_has = False
+    if ws and not user_only:
+        ws_resolved = _resolve_credential(user, ws, provider_name, user_only=False)
+        ws_has = bool(ws_resolved and _credential_secret(ws_resolved, user))
+    grantors: dict[str, bool] = {}
+    if user and ws:
+        for grantor_id in _delegation_grantor_ids_for_grantee(user, ws):
+            g_resolved = _resolve_credential(grantor_id, ws, provider_name, user_only=True)
+            grantors[grantor_id] = bool(g_resolved and _credential_secret(g_resolved, grantor_id))
+    return run_authority.RunAuthorityContext(
+        workspace_credential_mode=mode,
+        provider_user_only=user_only,
+        user_has_credential=user_has,
+        workspace_has_credential=ws_has,
+        grantor_has_credential=grantors,
+        oauth_connected=oauth_connected,
+    )
+
+
 def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: dict[str, Any]) -> None:
     _triggering_user = str(payload.get("user_id", "") or "")
     _workspace_id = str(payload.get("workspace_id", "") or "")
@@ -13905,6 +13946,51 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         prof, user_id=_triggering_user, workspace_id=_workspace_id, block=model_block,
     )
     model_used = str(model_block.get("default") or "").strip()
+    _auth_decision: run_authority.RunAuthorityDecision | None = None
+    if _triggering_user:
+        run_ledger.ensure_schema()
+        auth_req = run_authority.chat_run_request(
+            triggering_user_id=_triggering_user,
+            profile_slug=prof,
+            workspace_id=_workspace_id,
+            provider=llm_provider,
+            room_id=_room_id or None,
+        )
+        auth_ctx = _run_authority_context_for_chat(_triggering_user, _workspace_id, llm_provider)
+        _auth_decision = run_authority.evaluate_run_authority(
+            auth_req, auth_ctx, run_id=_turn_run_id,
+        )
+        conn = _workframe_db()
+        try:
+            run_ledger.record_authority_decision(
+                conn,
+                run_id=_turn_run_id,
+                request_surface=auth_req.surface,
+                actor_type=auth_req.actor_type,
+                actor_id=auth_req.actor_id,
+                triggering_user_id=_triggering_user,
+                workspace_id=_workspace_id or "default",
+                agent_id=auth_req.agent_id,
+                runtime_binding_id=auth_req.runtime_binding_id,
+                profile_slug=prof,
+                provider=llm_provider,
+                room_id=_room_id or None,
+                session_id=session_id,
+                decision=_auth_decision,
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        if not _auth_decision.allowed:
+            entry = concierge.respond(text, situation="no_provider")
+            _log_llm_failure(
+                handler,
+                str(_auth_decision.deny_reason or "run_denied"),
+                provider=llm_provider,
+                profile=prof,
+            )
+            _emit_stream_concierge(handler, entry)
+            return
     llm_ready = bool(
         _triggering_user
         and _user_can_use_llm(_triggering_user, _workspace_id, llm_provider)
@@ -13969,6 +14055,8 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         "Content-Type": "application/json",
     }
     req = urllib.request.Request(url, data=upstream_body, headers=headers, method="POST")
+    saw_complete = False
+    complete_text = ""
     try:
         upstream = urllib.request.urlopen(req, timeout=3600)
     except urllib.error.HTTPError as exc:
@@ -13987,8 +14075,6 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
 
     try:
         buffer = b""
-        saw_complete = False
-        complete_text = ""
 
         def _rewrite_event_frame(frame: bytes) -> bytes:
             nonlocal saw_complete, complete_text
@@ -14094,6 +14180,35 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
                 _revoke_turn_credential_lease(_turn_run_id, prof)
             except Exception:  # noqa: BLE001
                 pass
+            if _auth_decision and _auth_decision.allowed:
+                try:
+                    conn = _workframe_db()
+                    try:
+                        existing = run_ledger.get_run(conn, _turn_run_id)
+                        if existing and existing.status == RunStatus.RUNNING:
+                            if saw_complete and complete_text:
+                                run_ledger.complete_run(
+                                    conn,
+                                    _turn_run_id,
+                                    model=model_used,
+                                    provider=llm_provider,
+                                    funding_source=_auth_decision.funding_source,
+                                    payer_user_id=_auth_decision.payer_user_id,
+                                    receipt={
+                                        "session_id": session_id,
+                                        "room_id": _room_id,
+                                        "credential_scope": _auth_decision.credential_scope,
+                                    },
+                                )
+                            else:
+                                run_ledger.fail_run(
+                                    conn, _turn_run_id, reason="stream_incomplete",
+                                )
+                            conn.commit()
+                    finally:
+                        conn.close()
+                except Exception:  # noqa: BLE001
+                    pass
 
     room_id = str(payload.get("room_id") or "").strip()
     if room_id:
@@ -20067,224 +20182,29 @@ def _build_context_package(user_id: str, workspace_id: str, room_id: str | None 
     return ctx
 
 
-# --- Sprint G: Agent runs schema migration ---
+# --- Sprint G–K: schema migrations live in db_schema.py (WF-032) ---
 def _ensure_agent_runs_schema() -> None:
-    """Create or migrate the Workframe agent_runs tracking table.
-
-    Existing Workframe installs may already have a partial agent_runs table from
-    earlier schema work. This migration is idempotent: it creates the table when
-    absent, adds missing columns with SQLite defaults, and records schema
-    migration version 4 once the table has the required tracking fields.
-    """
-    conn = _workframe_db()
-    try:
-        tables = {
-            row["name"]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table'"
-            ).fetchall()
-        }
-        if "agent_runs" not in tables:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS agent_runs (
-                    id TEXT PRIMARY KEY,
-                    agent_profile_id TEXT NOT NULL,
-                    room_id TEXT DEFAULT NULL,
-                    triggered_by_user_id TEXT DEFAULT NULL,
-                    session_id TEXT DEFAULT NULL,
-                    status TEXT NOT NULL DEFAULT 'pending',
-                    trigger_source TEXT NOT NULL DEFAULT 'manual',
-                    prompt_text TEXT DEFAULT '',
-                    result_summary TEXT DEFAULT '',
-                    model_provider TEXT DEFAULT '',
-                    model_name TEXT DEFAULT '',
-                    input_tokens INTEGER DEFAULT 0,
-                    output_tokens INTEGER DEFAULT 0,
-                    cost_usd REAL DEFAULT 0.0,
-                    error_message TEXT DEFAULT '',
-                    started_at TEXT NOT NULL,
-                    completed_at TEXT DEFAULT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    FOREIGN KEY (agent_profile_id) REFERENCES agent_profiles (id),
-                    FOREIGN KEY (room_id) REFERENCES rooms (id),
-                    FOREIGN KEY (triggered_by_user_id) REFERENCES users (id)
-                )
-                """
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_agent_runs_agent "
-                "ON agent_runs(agent_profile_id, created_at DESC)"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_agent_runs_room "
-                "ON agent_runs(room_id, created_at DESC) WHERE room_id IS NOT NULL"
-            )
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(status)")
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_agent_runs_session "
-                "ON agent_runs(session_id) WHERE session_id IS NOT NULL"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_agent_runs_triggered_by "
-                "ON agent_runs(triggered_by_user_id) WHERE triggered_by_user_id IS NOT NULL"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_agent_runs_started_at "
-                "ON agent_runs(started_at DESC)"
-            )
-            conn.execute(
-                "INSERT OR IGNORE INTO schema_migrations "
-                "(version, description, applied_at) VALUES "
-                "('4', 'agent_runs tracking table with trigger, prompt, result, and cost fields', datetime('now'))"
-            )
-            conn.commit()
-            return
-
-        cols = {c["name"] for c in conn.execute("PRAGMA table_info(agent_runs)").fetchall()}
-        column_specs = {
-            "trigger_source": "TEXT NOT NULL DEFAULT 'manual'",
-            "prompt_text": "TEXT DEFAULT ''",
-            "result_summary": "TEXT DEFAULT ''",
-            "model_provider": "TEXT DEFAULT ''",
-            "model_name": "TEXT DEFAULT ''",
-            "input_tokens": "INTEGER DEFAULT 0",
-            "output_tokens": "INTEGER DEFAULT 0",
-            "cost_usd": "REAL DEFAULT 0.0",
-            "error_message": "TEXT DEFAULT ''",
-            "started_at": "TEXT DEFAULT ''",
-            "completed_at": "TEXT DEFAULT NULL",
-            "created_at": "TEXT DEFAULT ''",
-            "updated_at": "TEXT DEFAULT ''",
-        }
-        for column, spec in column_specs.items():
-            if column not in cols:
-                conn.execute(f"ALTER TABLE agent_runs ADD COLUMN {column} {spec}")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_agent_runs_agent "
-            "ON agent_runs(agent_profile_id, created_at DESC)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_agent_runs_room "
-            "ON agent_runs(room_id, created_at DESC) WHERE room_id IS NOT NULL"
-        )
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(status)")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_agent_runs_session "
-            "ON agent_runs(session_id) WHERE session_id IS NOT NULL"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_agent_runs_triggered_by "
-            "ON agent_runs(triggered_by_user_id) WHERE triggered_by_user_id IS NOT NULL"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_agent_runs_started_at "
-            "ON agent_runs(started_at DESC)"
-        )
-        conn.execute(
-            "INSERT OR IGNORE INTO schema_migrations "
-            "(version, description, applied_at) VALUES "
-            "('4', 'agent_runs tracking table with trigger, prompt, result, and cost fields', datetime('now'))"
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    db_schema.ensure_agent_runs_schema(_workframe_db)
 
 
-# --- Sprint H: Invites ---
-def _ensure_invites_schema():
-    """Create workspace_invites table if not exists."""
-    conn = _workframe_db()
-    conn.execute("""CREATE TABLE IF NOT EXISTS workspace_invites (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL,
-        email TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'member',
-        token_hash TEXT NOT NULL,
-        invited_by_user_id TEXT,
-        accepted_by_user_id TEXT,
-        expires_at TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        accepted_at TEXT,
-        deleted_at TEXT
-    )""")
-    conn.commit()
-    conn.close()
+def _ensure_invites_schema() -> None:
+    db_schema.ensure_invites_schema(_workframe_db)
 
 
-# --- Sprint I: Memory ---
-def _ensure_memory_schema():
-    """Create memory_items table if not exists."""
-    conn = _workframe_db()
-    conn.execute("""CREATE TABLE IF NOT EXISTS memory_items (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL,
-        agent_profile_id TEXT,
-        scope TEXT NOT NULL CHECK(scope IN ('workspace', 'agent_profile', 'room', 'user_agent')),
-        room_id TEXT,
-        user_id TEXT,
-        content TEXT NOT NULL,
-        source_message_id TEXT,
-        visibility TEXT NOT NULL DEFAULT 'shared' CHECK(visibility IN ('shared', 'private')),
-        created_by_user_id TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        deleted_at TEXT
-    )""")
-    conn.commit()
-    conn.close()
+def _ensure_memory_schema() -> None:
+    db_schema.ensure_memory_schema(_workframe_db)
 
 
-# --- Sprint J: Provider policies ---
-def _ensure_policies_schema():
-    """Create workspace_provider_policies table if not exists."""
-    conn = _workframe_db()
-    conn.execute("""CREATE TABLE IF NOT EXISTS workspace_provider_policies (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL,
-        provider TEXT NOT NULL,
-        allow_user_credentials INTEGER NOT NULL DEFAULT 1,
-        allow_workspace_fallback INTEGER NOT NULL DEFAULT 1,
-        default_model TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        UNIQUE(workspace_id, provider)
-    )""")
-    conn.commit()
-    conn.close()
+def _ensure_policies_schema() -> None:
+    db_schema.ensure_policies_schema(_workframe_db)
 
 
-# --- User prefs ---
 def _ensure_user_prefs_schema() -> None:
-    """Add users.current_workspace_id for active workspace selection."""
-    conn = _workframe_db()
-    try:
-        cols = {c[1] for c in conn.execute("PRAGMA table_info(users)").fetchall()}
-        if "current_workspace_id" not in cols:
-            conn.execute("ALTER TABLE users ADD COLUMN current_workspace_id TEXT DEFAULT NULL")
-            conn.commit()
-        conn.execute(
-            """
-            UPDATE users
-            SET current_workspace_id = (
-                SELECT wi.workspace_id
-                FROM workspace_invites wi
-                WHERE wi.accepted_by_user_id = users.id
-                  AND wi.accepted_at IS NOT NULL
-                ORDER BY wi.accepted_at DESC
-                LIMIT 1
-            )
-            WHERE COALESCE(current_workspace_id, '') = ''
-              AND EXISTS (
-                SELECT 1 FROM workspace_invites wi
-                WHERE wi.accepted_by_user_id = users.id AND wi.accepted_at IS NOT NULL
-              )
-            """
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    db_schema.ensure_user_prefs_schema(_workframe_db)
+
+
+def _ensure_budgets_grants_schema() -> None:
+    db_schema.ensure_budgets_grants_schema(_workframe_db)
 
 
 def _set_user_current_workspace(user_id: str, workspace_id: str) -> None:
@@ -20337,42 +20257,6 @@ def _primary_workspace_id(user_id: str = "") -> str:
         return str(row["id"]) if row else ""
     finally:
         conn.close()
-
-
-# --- Sprint K: Budgets + Grants ---
-def _ensure_budgets_grants_schema():
-    """Create budget_policies and credential_grants tables if not exists."""
-    conn = _workframe_db()
-    conn.execute("""CREATE TABLE IF NOT EXISTS budget_policies (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL,
-        subject_type TEXT NOT NULL CHECK(subject_type IN ('workspace', 'user', 'agent_profile')),
-        subject_id TEXT,
-        provider TEXT,
-        daily_limit_cents INTEGER,
-        monthly_limit_cents INTEGER,
-        allowed_models TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS credential_grants (
-        id TEXT PRIMARY KEY,
-        credential_binding_id TEXT NOT NULL,
-        granted_by_user_id TEXT NOT NULL,
-        grantee_type TEXT NOT NULL CHECK(grantee_type IN ('user', 'workspace', 'agent_profile', 'room')),
-        grantee_id TEXT NOT NULL,
-        provider TEXT NOT NULL,
-        max_daily_cents INTEGER,
-        max_total_cents INTEGER,
-        allowed_models TEXT,
-        allowed_agent_profile_ids TEXT,
-        allowed_room_ids TEXT,
-        expires_at TEXT,
-        revoked_at TEXT,
-        created_at TEXT NOT NULL
-    )""")
-    conn.commit()
-    conn.close()
 
 
 def _ensure_workframe_db_schema() -> None:
@@ -20459,6 +20343,7 @@ def main() -> None:
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )
     turn_credentials.ensure_schema()
+    run_ledger.ensure_schema()
     for warning in _deployment_security_warnings():
         print(f"  WARN deployment: {warning}", flush=True)
     deploy_errors = _deployment_security_errors()
