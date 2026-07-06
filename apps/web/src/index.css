@@ -1,13 +1,20 @@
 @import 'tailwindcss';
-@import './styles/shadcn-theme.css';
-@import './styles/scroll-area.css';
-@import './styles/highlight-themes.css';
-@import './styles/markdown.css';
-@import './styles/tokens/foundation.css';
-@import './styles/tokens/semantic.css';
-@import './styles/tokens/theme-palette-contract.css';
+@import 'dockview/dist/styles/dockview.css';
+
+/* ── Tokens (dimensions → semantic wiring → contract doc) ───────────────── */
+@import './styles/tokens/tokens.css';
+@import './styles/tokens/shadcn-bridge.css';
+
+/* ── Themes (palette + feel per data-theme) ─────────────────────────────── */
 @import './styles/themes/dark.css';
 @import './styles/themes/neo.css';
+
+/* ── Content / vendor adapters ──────────────────────────────────────────── */
+@import './styles/highlight-themes.css';
+@import './styles/markdown.css';
+
+/* ── Components (layout + structure; color via var() only) ──────────────── */
+@import './styles/scroll-area.css';
 @import './styles/components/toolbar.css';
 @import './styles/components/notices.css';
 @import './styles/components/base.css';

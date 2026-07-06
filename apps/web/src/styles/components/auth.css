@@ -142,7 +142,7 @@
   display: grid;
   gap: 18px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 75%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-heavy);
   background: color-mix(in srgb, var(--wf-surface) 92%, transparent);
 }
 
@@ -268,7 +268,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--wf-muted) 32%, transparent);
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wf-border) 55%, transparent);
+  box-shadow: inset 0 0 0 1px var(--wf-chrome-border);
 }
 
 .wf-boot-screen__bar {
@@ -312,7 +312,7 @@
   text-align: left;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 80%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-soft);
   background: color-mix(in srgb, var(--wf-surface) 92%, transparent);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;

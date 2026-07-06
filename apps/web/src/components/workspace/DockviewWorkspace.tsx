@@ -5,7 +5,6 @@ import {
   type IDockviewPanelProps,
 } from 'dockview'
 import type { DockviewApi } from 'dockview'
-import 'dockview/dist/styles/dockview.css'
 
 import { AgentRailPanel } from '@/components/workspace/panels/AgentRailPanel'
 import { ChatWorkspacePanel } from '@/components/workspace/panels/ChatWorkspacePanel'

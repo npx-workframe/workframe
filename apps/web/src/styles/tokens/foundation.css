@@ -13,7 +13,6 @@
   --wf-panel-header-height-rail-collapsed: 44px;
   --wf-rail-width-collapsed: 48px;
   --wf-rail-cell: 32px;
-  --wf-rail-cell-radius: 8px;
   --wf-rail-cell-gap: 4px;
   --wf-dnd-strip-thickness: 8px;
 
@@ -31,9 +30,9 @@
   --wf-leading-ui: 16px;
   --wf-leading-body: 20px;
   --wf-control: 32px;
-  --wf-radius: 8px;
   --wf-tool-btn-size: 28px;
   --wf-tool-btn-icon: 14px;
+  /* --wf-radius, --wf-rail-cell-radius: per-theme (themes/*.css) */
   --wf-tool-btn-radius: var(--wf-radius);
 
   /* Z-index */

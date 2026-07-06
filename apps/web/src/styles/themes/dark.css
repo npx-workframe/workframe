@@ -1,3 +1,5 @@
+/* Dark theme — palette tokens + control feel */
+
 [data-theme='dark'] {
   color-scheme: dark;
 
@@ -44,8 +46,36 @@
   --wf-notice-info-border: color-mix(in srgb, var(--wf-cyan) 24%, var(--wf-border));
   --wf-status-fg: color-mix(in srgb, var(--wf-text) 72%, var(--wf-muted));
 
+  --wf-error: #ef4444;
+  --wf-error-soft: #f87171;
+  --wf-success: #22c55e;
+  --wf-warning: #f59e0b;
+
+  --wf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --wf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --wf-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --wf-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.18);
+  --wf-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+
+  --wf-chrome-border-solid: var(--wf-border);
+  --wf-chrome-border-whisper: color-mix(in srgb, var(--wf-border) 30%, transparent);
+  --wf-chrome-border-subtle: color-mix(in srgb, var(--wf-border) 40%, transparent);
+  --wf-chrome-border-weak: color-mix(in srgb, var(--wf-border) 45%, transparent);
+  --wf-chrome-border-light: color-mix(in srgb, var(--wf-border) 50%, transparent);
+  --wf-chrome-border: color-mix(in srgb, var(--wf-border) 55%, transparent);
+  --wf-chrome-border-dim: color-mix(in srgb, var(--wf-border) 60%, transparent);
+  --wf-chrome-border-accent: color-mix(in srgb, var(--wf-border) 65%, transparent);
+  --wf-chrome-border-strong: color-mix(in srgb, var(--wf-border) 70%, transparent);
+  --wf-chrome-border-drag: color-mix(in srgb, var(--wf-border) 72%, transparent);
+  --wf-chrome-border-heavy: color-mix(in srgb, var(--wf-border) 75%, transparent);
+  --wf-chrome-border-soft: color-mix(in srgb, var(--wf-border) 80%, transparent);
+  --wf-chrome-border-faint: color-mix(in srgb, var(--wf-border) 85%, transparent);
+  --wf-chrome-border-ghost: color-mix(in srgb, var(--wf-border) 90%, transparent);
+
   --wf-radius: 8px;
   --wf-rail-cell-radius: 8px;
+  --wf-border-width: 1px;
+  --wf-divider-color: color-mix(in srgb, var(--wf-border) 55%, transparent);
 
   --wf-neo-shadow-light: 0 0 0 transparent;
   --wf-neo-shadow-dark: 0 0 0 transparent;

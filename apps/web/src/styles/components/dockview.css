@@ -16,7 +16,7 @@
   width: var(--wf-rail-width-collapsed);
   height: 100%;
   min-height: 0;
-  border-right: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  border-right: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
   background: color-mix(in srgb, var(--wf-surface) 35%, transparent);
   overflow: hidden;
 }
@@ -48,6 +48,16 @@
   --dv-drag-over-background-color: color-mix(in srgb, var(--wf-text) 14%, transparent);
   --dv-drag-over-border-color: color-mix(in srgb, var(--wf-border-strong) 82%, transparent);
   --dv-drag-over-border: none;
+}
+
+.wf-workspace,
+.wf-workspace.dockview-theme-dark,
+.wf-workspace.dockview-theme-light,
+.wf-workspace .dockview-theme-dark,
+.wf-workspace .dockview-theme-light,
+.wf-workspace [class*='dockview-theme-'] {
+  --dv-separator-border: transparent;
+  --dv-tab-divider-color: transparent;
 }
 
 .wf-workspace.dockview-theme-dark,
@@ -236,7 +246,7 @@
   height: 32px;
   padding: 0;
   border: none;
-  border-right: 1px solid color-mix(in srgb, var(--wf-border) 72%, transparent);
+  border-right: var(--wf-border-width, 1px) solid var(--wf-chrome-border-drag);
   border-radius: 0;
   background: transparent !important;
   color: var(--wf-muted);

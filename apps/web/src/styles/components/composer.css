@@ -25,7 +25,7 @@
   min-height: 0;
   height: auto;
   resize: none;
-  border-color: color-mix(in srgb, var(--wf-border) 80%, transparent);
+  border-color: var(--wf-chrome-border-soft);
   background: color-mix(in srgb, var(--wf-bg) 35%, transparent);
   font-size: var(--wf-type-body);
   line-height: var(--wf-leading-body);
@@ -104,7 +104,7 @@
   gap: 8px;
   padding: 8px 12px;
   background: color-mix(in srgb, var(--wf-bg) 35%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--wf-border) 40%, transparent);
+  border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border-subtle);
 }
 
 .wf-popover__label {
@@ -151,7 +151,7 @@
   border-radius: 999px;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
 }
 
 .wf-popover__row-copy {

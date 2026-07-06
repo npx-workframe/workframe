@@ -1,6 +1,6 @@
+/* Neo theme - palette tokens + component chrome (colors, shadows, borders, hovers) */
 [data-theme='neo'] {
   color-scheme: light;
-
   --wf-violet: #7c6a9e;
   --wf-violet-glow: #8b7aad;
   --wf-cyan: #6a8e9e;
@@ -10,7 +10,7 @@
   --wf-bg: #e0e0e6;
   --wf-text: #2a2a32;
   --wf-muted: #7a7a86;
-  --wf-border: rgba(255, 255, 255, 0.6);
+  --wf-border: transparent;
   --wf-border-strong: rgba(0, 0, 0, 0.08);
   --wf-surface: #e0e0e6;
   --wf-surface-soft: rgba(224, 224, 230, 0.82);
@@ -38,6 +38,32 @@
   --wf-notice-info-border: var(--wf-border-strong);
   --wf-status-fg: var(--wf-muted);
 
+  --wf-error: #ef4444;
+  --wf-error-soft: #f87171;
+  --wf-success: #22c55e;
+  --wf-warning: #f59e0b;
+
+  --wf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --wf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --wf-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --wf-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.18);
+  --wf-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+
+  --wf-chrome-border-solid: transparent;
+  --wf-chrome-border-whisper: transparent;
+  --wf-chrome-border-subtle: transparent;
+  --wf-chrome-border-weak: transparent;
+  --wf-chrome-border-light: transparent;
+  --wf-chrome-border: transparent;
+  --wf-chrome-border-dim: transparent;
+  --wf-chrome-border-accent: transparent;
+  --wf-chrome-border-strong: transparent;
+  --wf-chrome-border-drag: transparent;
+  --wf-chrome-border-heavy: transparent;
+  --wf-chrome-border-soft: transparent;
+  --wf-chrome-border-faint: transparent;
+  --wf-chrome-border-ghost: transparent;
+
   --wf-radius: 12px;
   --wf-rail-cell-radius: 12px;
 
@@ -59,10 +85,717 @@
   --wf-control-bg-raised: var(--wf-surface);
   --wf-control-border-ring-closed: #fff;
   --wf-control-border-ring-raised: var(--wf-surface);
+  --wf-border-width: 2px;
+  --wf-divider-color: #fff;
   --wf-control-shadow-flush: none;
   --wf-control-shadow-raised: var(--wf-neo-flat);
   --wf-control-shadow-highlight: var(--wf-neo-highlight);
   --wf-control-shadow-inset: var(--wf-neo-shadow-inset-light), var(--wf-neo-shadow-inset-dark);
   --wf-control-shadow-elevated: var(--wf-neo-shadow-light), var(--wf-neo-shadow-dark);
   --wf-control-shadow-footer: 0 -3px 6px rgba(163, 163, 176, 0.3);
+}
+
+/* ?? Neo component chrome (feel / interaction overrides) ?? */
+
+[data-theme='neo'] .wf-shell {
+  background: var(--wf-bg);
+}
+
+[data-theme='neo'] .wf-shell__header {
+  background: var(--wf-control-bg-raised);
+  border-bottom: none;
+  box-shadow: var(--wf-control-shadow-elevated);
+}
+
+[data-theme='neo'] .wf-shell__main {
+  background: var(--wf-bg);
+}
+
+[data-theme='neo'] .wf-shell__actions {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  padding: 4px 8px;
+  border-radius: var(--wf-radius);
+}
+
+[data-theme='neo'] .wf-theme-switcher__menu {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-elevated);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='neo'] .wf-theme-switcher__trigger {
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-theme='neo'] .wf-theme-switcher__item:hover {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-theme='neo'] .wf-shell-footer {
+  background: var(--wf-control-bg-raised);
+  border-top: none;
+  box-shadow: var(--wf-control-shadow-footer);
+}
+
+[data-theme='neo'] .wf-brand-img--mono {
+  filter: none;
+}
+
+/* ?? Neo interactive controls (flush ? hover up; selected/open stays up; no press latch) ? */
+
+[data-theme='neo'] button.wf-tool-btn:not(:disabled),
+[data-theme='neo'] .wf-panel__control-btn,
+[data-theme='neo'] .wf-agent-rail__section-action,
+[data-theme='neo'] .wf-agent-rail__item,
+[data-theme='neo'] .wf-agent-rail__toggle,
+[data-theme='neo'] .wf-popover__row,
+[data-theme='neo'] .wf-file-tree__row,
+[data-theme='neo'] .wf-activity-tree__row--clickable,
+[data-theme='neo'] .wf-activity-tree__row--group,
+[data-theme='neo'] .wf-activity-tree__chevron-btn,
+[data-theme='neo'] .wf-tool-run__header--button,
+[data-theme='neo'] .wf-thinking__summary,
+[data-theme='neo'] .wf-browser-tabs__close {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  transform: none;
+}
+
+[data-theme='neo'] button.wf-tool-btn:hover:not(:disabled):not([aria-expanded='true']):not(.wf-tool-btn--active),
+[data-theme='neo'] .wf-panel__control-btn:hover:not(:disabled),
+[data-theme='neo'] .wf-agent-rail__section-action:hover,
+[data-theme='neo'] .wf-agent-rail__item:hover:not(.wf-agent-rail__item--active),
+[data-theme='neo'] .wf-agent-rail__toggle:hover,
+[data-theme='neo'] .wf-popover__row:hover:not([data-selected='true']),
+[data-theme='neo'] .wf-file-tree__row:hover:not(.wf-file-tree__row--selected),
+[data-theme='neo'] .wf-activity-tree__row--clickable:hover:not(.wf-activity-tree__row--active),
+[data-theme='neo'] .wf-activity-tree__row--group:hover,
+[data-theme='neo'] .wf-activity-tree__chevron-btn:hover,
+[data-theme='neo'] .wf-thinking:not([open]) .wf-thinking__summary:hover,
+[data-theme='neo'] .wf-composer button.wf-tool-btn:hover:not(:disabled):not([aria-expanded='true']),
+[data-theme='neo'] .wf-browser-tabs__close:hover:not(:disabled):not(.wf-neo-pressed) {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] button.wf-tool-btn.wf-tool-btn--active,
+[data-theme='neo'] .wf-agent-rail__item--active,
+[data-theme='neo'] .wf-file-tree__row--selected,
+[data-theme='neo'] .wf-popover__row[data-selected='true'] {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-activity-tree__row--active,
+[data-theme='neo'] .wf-activity-tree__row--active:hover,
+[data-theme='neo'] .wf-composer button.wf-tool-btn[aria-expanded='true'],
+[data-theme='neo'] .wf-composer button.wf-tool-btn[aria-expanded='true']:hover,
+[data-theme='neo'] .wf-thinking[open],
+[data-theme='neo'] .wf-thinking[open] .wf-thinking__summary,
+[data-theme='neo'] .wf-thinking[open] .wf-thinking__summary:hover {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  color: inherit;
+}
+
+[data-theme='neo'] .wf-tool-run:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])) {
+  background: var(--wf-control-bg-flush);
+  border: var(--wf-border-width, 1px) solid var(--wf-control-border-ring-closed);
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] .wf-tool-run--running:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])),
+[data-theme='neo'] .wf-tool-run--error:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])) {
+  border-color: var(--wf-control-border-ring-closed);
+}
+
+[data-theme='neo'] .wf-tool-run:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])):hover {
+  background: var(--wf-control-bg-raised);
+  border: 1px solid var(--wf-control-border-ring-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-theme='neo'] .wf-tool-run:has(.wf-tool-run__header--button[aria-expanded='true']) {
+  background: var(--wf-control-bg-raised);
+  border: 1px solid var(--wf-control-border-ring-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-theme='neo'] .wf-tool-run__header--button,
+[data-theme='neo'] .wf-tool-run__header--button:hover,
+[data-theme='neo'] .wf-tool-run__header--button[aria-expanded='true'],
+[data-theme='neo'] .wf-tool-run__header--button[aria-expanded='true']:hover,
+[data-theme='neo'] .wf-tool-run__header--button:active {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] .wf-composer button.wf-tool-btn.wf-tool-btn--send,
+[data-theme='neo'] .wf-composer button.wf-tool-btn.wf-tool-btn--send.wf-tool-btn--stop {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-composer button.wf-tool-btn.wf-tool-btn--send:disabled {
+  color: var(--wf-muted);
+  opacity: 0.38;
+}
+
+[data-theme='neo'] button.wf-tool-btn.wf-tool-btn--emphasis {
+  color: var(--wf-cyan);
+}
+
+[data-theme='neo'] .wf-popover {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='neo'] .wf-panel__control-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+[data-theme='neo'] .wf-agent-rail__section-action--icon {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+[data-theme='neo'] button.wf-tool-btn:active:not(:disabled):not(.wf-tool-btn--active):not([aria-expanded='true']),
+[data-theme='neo'] .wf-panel__control-btn:active:not(:disabled),
+[data-theme='neo'] .wf-agent-rail__section-action:active,
+[data-theme='neo'] .wf-agent-rail__item:active:not(.wf-agent-rail__item--active),
+[data-theme='neo'] .wf-popover__row:active,
+[data-theme='neo'] .wf-file-tree__row:active:not(.wf-file-tree__row--selected),
+[data-theme='neo'] .wf-activity-tree__row--clickable:active,
+[data-theme='neo'] .wf-thinking__summary:active,
+[data-theme='neo'] .wf-browser-tabs__add:active:not(:disabled) {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  transform: none;
+}
+
+[data-theme='neo'] .wf-browser-chrome {
+  background: var(--wf-control-bg-flush);
+  border-bottom: none;
+}
+
+[data-theme='neo'] .wf-browser-chrome__toolbar {
+  position: relative;
+  z-index: 1;
+  background: var(--wf-control-bg-raised);
+  border-top: none;
+  box-shadow: var(--wf-control-shadow-highlight);
+}
+
+[data-theme='neo'] .wf-browser-chrome__address {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-inset);
+  border-radius: var(--wf-radius);
+}
+
+[data-theme='neo'] .wf-browser-chrome__address:focus-visible {
+  outline: none;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-theme='neo'] .wf-browser-chrome__modes {
+  border-inline-color: transparent;
+}
+
+[data-theme='neo'] .wf-composer__input {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-inset);
+  border-radius: var(--wf-radius);
+}
+
+[data-theme='neo'] .wf-composer__input:focus-visible {
+  outline: none;
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-theme='neo'] .wf-browser-tabs {
+  align-items: flex-end;
+  overflow: visible;
+}
+
+[data-theme='neo'] .wf-browser-tabs__tab {
+  position: relative;
+  z-index: 0;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  margin: 0;
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  border-radius: var(--wf-radius) var(--wf-radius) 0 0;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+
+[data-theme='neo'] .wf-browser-tabs__tab:hover,
+[data-theme='neo'] .wf-browser-tabs__tab--active {
+  z-index: 2;
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-highlight);
+}
+
+[data-theme='neo'] .wf-browser-tabs__label,
+[data-theme='neo'] .wf-browser-tabs__label:hover,
+[data-theme='neo'] .wf-browser-tabs__label:active {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  height: auto;
+  padding: 0 8px 0 10px;
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  outline: none;
+}
+
+[data-theme='neo'] .wf-browser-tabs__close {
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border-radius: 999px;
+}
+
+[data-theme='neo'] .wf-browser-tabs__close.wf-neo-pressed {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-theme='neo'] .wf-browser-tabs__add {
+  position: relative;
+  z-index: 0;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin: 0 6px 0 2px;
+  padding: 0;
+  border: none;
+  border-radius: var(--wf-radius) var(--wf-radius) 0 0;
+  background: var(--wf-control-bg-flush);
+  box-shadow: var(--wf-control-shadow-flush);
+  color: var(--wf-muted);
+  transition: box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+[data-theme='neo'] .wf-browser-tabs__add:hover:not(:disabled) {
+  z-index: 2;
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-highlight);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-browser-tabs__add:active:not(:disabled) {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  color: var(--wf-muted);
+}
+
+/* ?? Neo forms & overlays (inset inputs; hover pop buttons; rail selected up) ? */
+
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-onboarding-page,
+  .wf-auth,
+  .wf-auth-otp-panel
+) :is(
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']),
+  textarea,
+  select,
+  .wf-dialog-input,
+  .wf-dialog-select__control,
+  .wf-dialog__search
+) {
+  background: var(--wf-control-bg-raised);
+  border: 1px solid transparent;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-onboarding-page,
+  .wf-auth,
+  .wf-auth-otp-panel
+) :is(
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']),
+  textarea,
+  select,
+  .wf-dialog-input,
+  .wf-dialog-select__control,
+  .wf-dialog__search
+):hover:not(:disabled) {
+  background: var(--wf-control-bg-raised);
+  border-color: transparent;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-onboarding-page,
+  .wf-auth,
+  .wf-auth-otp-panel
+) :is(
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']),
+  textarea,
+  select,
+  .wf-dialog-input,
+  .wf-dialog-select__control,
+  .wf-dialog__search
+):focus-visible {
+  outline: none;
+  border-color: transparent;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-theme='neo'] :is(
+  .wf-settings-shell__actions,
+  .wf-settings-shell__rail-footer,
+  .wf-wizard-form-actions,
+  .wf-dialog-footer,
+  .wf-onboarding-wizard__footer,
+  .wf-auth__row,
+  .wf-auth-otp-panel__actions,
+  .wf-provider-connect__editor-actions
+) > button {
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-auth,
+  .wf-auth-otp-panel
+) button:not(.wf-settings-shell__nav-btn):not(.wf-onboarding-wizard__step-btn):not(.wf-dialog-select__control):not(.wf-dialog-select__trigger):not(.wf-dialog-tab):not(.wf-dialog__mode-tab):not(.wf-theme-settings__option):not(.wf-llm-models__slot):not(.wf-llm-models__provider):not(.wf-wizard-subtabs__btn):not(.wf-provider-connect__tab):not(.wf-wizard-mode-card):not(.wf-wizard-choice-card):not(.wf-wizard-preset-chip):not(.wf-dialog__option):not(.wf-dialog-select-list__option):not(.wf-avatar-grid__item):not(.wf-dialog-close) {
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] :is(
+  .wf-settings-shell__actions,
+  .wf-settings-shell__rail-footer,
+  .wf-wizard-form-actions,
+  .wf-dialog-footer,
+  .wf-onboarding-wizard__footer,
+  .wf-auth__row,
+  .wf-auth-otp-panel__actions,
+  .wf-provider-connect__editor-actions
+) > button:hover:not(:disabled),
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-auth,
+  .wf-auth-otp-panel
+) button:not(.wf-settings-shell__nav-btn):not(.wf-onboarding-wizard__step-btn):not(.wf-dialog-select__control):not(.wf-dialog-select__trigger):not(.wf-dialog-tab):not(.wf-dialog__mode-tab):not(.wf-theme-settings__option):not(.wf-llm-models__slot):not(.wf-llm-models__provider):not(.wf-wizard-subtabs__btn):not(.wf-provider-connect__tab):not(.wf-wizard-mode-card):not(.wf-wizard-choice-card):not(.wf-wizard-preset-chip):not(.wf-dialog__option):not(.wf-dialog-select-list__option):not(.wf-avatar-grid__item):not(.wf-dialog-close):hover:not(:disabled) {
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-theme='neo'] :is(
+  .wf-settings-shell__actions,
+  .wf-settings-shell__rail-footer,
+  .wf-wizard-form-actions,
+  .wf-dialog-footer,
+  .wf-onboarding-wizard__footer,
+  .wf-auth__row,
+  .wf-auth-otp-panel__actions,
+  .wf-provider-connect__editor-actions
+) > button.border:hover:not(:disabled),
+[data-theme='neo'] :is(
+  .wf-settings-shell__actions,
+  .wf-settings-shell__rail-footer,
+  .wf-wizard-form-actions,
+  .wf-dialog-footer,
+  .wf-onboarding-wizard__footer,
+  .wf-auth__row,
+  .wf-auth-otp-panel__actions,
+  .wf-provider-connect__editor-actions
+) > button.text-muted-foreground:hover:not(:disabled),
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-auth,
+  .wf-auth-otp-panel
+) button.border:hover:not(:disabled),
+[data-theme='neo'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-auth,
+  .wf-auth-otp-panel
+) button.text-muted-foreground:hover:not(:disabled) {
+  background: var(--wf-control-bg-raised);
+  border-color: var(--wf-control-border-ring-raised);
+}
+
+[data-theme='neo'] .wf-dialog-close {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] .wf-dialog-close:hover {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-settings-shell__nav-btn {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] .wf-settings-shell__nav-btn:hover:not([aria-selected='true']) {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-settings-shell__nav-btn[aria-selected='true'],
+[data-theme='neo'] .wf-settings-shell__nav-btn--solo,
+[data-theme='neo'] .wf-settings-shell__nav-btn--solo:hover {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-onboarding-wizard__steps li {
+  background: var(--wf-control-bg-flush);
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] .wf-onboarding-wizard__steps li.is-current {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-theme='neo'] .wf-onboarding-wizard__steps li.is-clickable:hover {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-theme='neo'] .wf-onboarding-wizard__steps li.is-clickable:hover .wf-onboarding-wizard__step-btn,
+[data-theme='neo'] .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn {
+  background: var(--wf-control-bg-flush);
+}
+
+[data-theme='neo'] :is(
+  .wf-wizard-mode-card,
+  .wf-wizard-choice-card,
+  .wf-wizard-preset-chip,
+  .wf-wizard-subtabs__btn,
+  .wf-provider-connect__tab,
+  .wf-theme-settings__option,
+  .wf-llm-models__slot,
+  .wf-llm-models__provider,
+  .wf-dialog-tab,
+  .wf-dialog__mode-tab,
+  .wf-dialog__option,
+  .wf-dialog-select-list__option,
+  .wf-avatar-grid__item
+) {
+  background: var(--wf-control-bg-flush);
+  border: var(--wf-border-width, 1px) solid var(--wf-control-border-ring-closed);
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] :is(
+  .wf-wizard-mode-card:hover:not(:disabled),
+  .wf-wizard-choice-card:hover,
+  .wf-wizard-preset-chip:hover,
+  .wf-wizard-subtabs__btn:hover,
+  .wf-provider-connect__tab:hover,
+  .wf-theme-settings__option:hover,
+  .wf-theme-settings__option:focus-visible,
+  .wf-llm-models__slot:hover,
+  .wf-llm-models__provider:hover,
+  .wf-dialog-tab:hover,
+  .wf-dialog__mode-tab:hover,
+  .wf-dialog__option:hover,
+  .wf-dialog__option:focus-visible,
+  .wf-dialog-select-list__option:hover,
+  .wf-dialog-select-list__option:focus-visible,
+  .wf-avatar-grid__item:hover
+) {
+  background: var(--wf-control-bg-raised);
+  border-color: var(--wf-control-border-ring-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  opacity: 1;
+  transform: none;
+}
+
+[data-theme='neo'] :is(
+  .wf-wizard-choice-card.is-selected,
+  .wf-wizard-preset-chip.is-active,
+  .wf-wizard-subtabs__btn.is-active,
+  .wf-provider-connect__tab.is-active,
+  .wf-theme-settings__option.is-active,
+  .wf-llm-models__slot.is-active,
+  .wf-llm-models__provider.is-active,
+  .wf-dialog-tab--active,
+  .wf-dialog__mode-tab.is-active,
+  .wf-dialog__option.is-selected,
+  .wf-dialog__option[data-current='true'],
+  .wf-dialog-select-list__option.is-selected,
+  .wf-avatar-grid__item--active
+) {
+  background: var(--wf-control-bg-raised);
+  border-color: var(--wf-control-border-ring-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  opacity: 1;
+  transform: none;
+}
+
+[data-theme='neo'] .wf-auth__card,
+[data-theme='neo'] .wf-auth-otp-panel {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='neo'] .wf-onboarding-wizard {
+  background: var(--wf-bg);
+  border: none;
+  box-shadow: var(--wf-control-shadow-elevated);
+}
+
+[data-theme='neo'] .wf-dialog-content {
+  background: var(--wf-bg);
+  border: none;
+  box-shadow: var(--wf-control-shadow-elevated);
+}
+
+/* ponytail: neo ? dockview inner theme re-applies gray --dv-separator-border; kill library separators */
+[data-theme='neo'] .wf-workspace [class*='dockview-theme-'] {
+  --dv-separator-border: transparent !important;
+  --dv-tab-divider-color: transparent !important;
+}
+
+[data-theme='neo'] .wf-workspace .dv-split-view-container .dv-view:not(:first-child)::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* ponytail: neo column dividers ? 2px white on panel edges (dockview gray separators killed above) */
+[data-theme='neo'] .wf-panel--rail,
+[data-theme='neo'] .wf-rail-fallback {
+  border: none;
+  border-right: var(--wf-border-width) solid var(--wf-divider-color);
+}
+
+[data-theme='neo'] .wf-panel--chat {
+  border: none;
+}
+
+[data-theme='neo'] .wf-panel--files,
+[data-theme='neo'] .wf-panel--browser,
+[data-theme='neo'] .wf-panel--activity {
+  border: none;
+  border-left: var(--wf-border-width) solid var(--wf-divider-color);
+}
+
+[data-theme='neo'] .wf-panel-drag-tab {
+  border: none;
+}
+
+[data-theme='neo'] .wf-workspace .dv-sash.dv-sash-vertical {
+  background: transparent !important;
+}
+
+[data-theme='neo'] .wf-workspace .dv-sash.dv-sash-vertical:hover,
+[data-theme='neo'] .wf-workspace .dv-sash.dv-sash-vertical:active {
+  background: transparent !important;
+}
+
+[data-theme='neo'] .wf-panel__header {
+  border-bottom: var(--wf-border-width) solid var(--wf-divider-color);
+}
+
+[data-theme='neo'] .wf-divider {
+  border-top: var(--wf-border-width) solid var(--wf-divider-color);
+}
+
+[data-theme='neo'] .wf-chat-split__sash::before {
+  height: var(--wf-border-width);
+  background: var(--wf-divider-color);
+}
+
+[data-theme='neo'] .wf-chat-split__sash:hover::before,
+[data-theme='neo'] .wf-chat-split__sash:active::before {
+  height: var(--wf-border-width);
+  background: var(--wf-divider-color);
+}
+
+/* ponytail: neo ? drop gray color-mix chrome borders (browser, composer, shell chrome) */
+[data-theme='neo'] .wf-desktop-titlebar {
+  border-bottom: none;
+}
+
+[data-theme='neo'] .wf-browser-chrome,
+[data-theme='neo'] .wf-browser-chrome__toolbar,
+[data-theme='neo'] .wf-browser-tabs__tab--active,
+[data-theme='neo'] .wf-chat-split__composer,
+[data-theme='neo'] .wf-composer,
+[data-theme='neo'] .wf-composer__input-wrap {
+  border-color: transparent;
+}
+
+[data-theme='neo'] .wf-browser-chrome {
+  border-bottom: none;
+}
+
+[data-theme='neo'] .wf-browser-chrome__toolbar {
+  border-top: none;
+}
+
+[data-theme='neo'] .wf-browser-chrome__modes {
+  border-inline: none;
+}
+
+[data-theme='neo'] .wf-browser-tabs__tab,
+[data-theme='neo'] .wf-browser-tabs__tab--active {
+  border-color: transparent;
 }

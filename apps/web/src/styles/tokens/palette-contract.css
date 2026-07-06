@@ -1,4 +1,4 @@
-/* Theme palette contract — each [data-theme='dark'|'neo'] block must define every token below.
+/* Theme palette contract — each themes/*.css [data-theme] block must define every token below.
    Values differ per theme; names must match for parity. */
 
 /* Palette: --wf-violet, --wf-violet-glow, --wf-cyan, --wf-mint, --wf-ring
@@ -9,7 +9,10 @@
                --wf-grid-image, --wf-grid-mask, --wf-overlay
    Notices: --wf-notice-fg, --wf-notice-muted, --wf-notice-border, --wf-notice-bg,
             --wf-notice-info-bg, --wf-notice-info-border, --wf-status-fg
-   Chrome scale: --wf-radius, --wf-rail-cell-radius
+   Status: --wf-error, --wf-error-soft, --wf-success, --wf-warning
+   Shadows: --wf-shadow-sm, --wf-shadow-md, --wf-shadow-lg, --wf-shadow-xl, --wf-shadow-inset
+   Chrome borders: see tokens/chrome-contract.css
+   Feel: --wf-radius, --wf-rail-cell-radius, --wf-border-width, --wf-divider-color
    Neo shadows (inert in dark): --wf-neo-shadow-light, --wf-neo-shadow-dark,
      --wf-neo-shadow-inset-light, --wf-neo-shadow-inset-dark, --wf-neo-flat, --wf-neo-highlight
    Dialog hovers: --wf-dialog-accent-hover-bg/text/border, --wf-dialog-warn-hover-bg/text/border

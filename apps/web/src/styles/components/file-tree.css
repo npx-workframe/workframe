@@ -7,10 +7,6 @@
   padding: 8px 0 0 8px;
 }
 
-.wf-panel--browser {
-  border-left: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
-}
-
 .wf-panel--browser .wf-browser {
   flex: 1;
   min-height: 0;

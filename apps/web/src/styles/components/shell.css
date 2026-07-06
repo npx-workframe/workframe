@@ -65,7 +65,7 @@
   display: block;
   height: var(--wf-desktop-titlebar-height);
   padding: 0;
-  border-bottom: 1px solid var(--wf-border);
+  border-bottom: var(--wf-border-width, 1px) solid var(--wf-border);
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--wf-bg) 88%, transparent),
@@ -201,7 +201,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 6px clamp(14px, 2.4vw, 24px) 4px;
-  border-bottom: 1px solid var(--wf-border);
+  border-bottom: var(--wf-border-width, 1px) solid var(--wf-border);
   background: linear-gradient(180deg, color-mix(in srgb, var(--wf-bg) 72%, transparent), color-mix(in srgb, var(--wf-bg) 20%, transparent));
   backdrop-filter: blur(30px) saturate(140%);
   z-index: 10;
@@ -382,7 +382,7 @@
   height: var(--wf-footer-height);
   min-height: var(--wf-footer-height);
   padding: 0 10px;
-  border-top: 1px solid var(--wf-border);
+  border-top: var(--wf-border-width, 1px) solid var(--wf-border);
   background: color-mix(in srgb, var(--wf-bg) 78%, transparent);
   backdrop-filter: blur(20px) saturate(140%);
   overflow: hidden;

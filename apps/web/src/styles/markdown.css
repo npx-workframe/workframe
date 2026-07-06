@@ -12,11 +12,11 @@
   --wf-md-link-hover: var(--wf-cyan);
   --wf-md-code-bg: color-mix(in srgb, var(--wf-surface) 78%, transparent);
   --wf-md-pre-bg: color-mix(in srgb, var(--wf-surface) 62%, transparent);
-  --wf-md-pre-border: color-mix(in srgb, var(--wf-border) 90%, transparent);
+  --wf-md-pre-border: var(--wf-chrome-border-ghost);
   --wf-md-quote-border: var(--wf-violet-glow);
   --wf-md-quote-bg: color-mix(in srgb, var(--wf-violet) 8%, transparent);
   --wf-md-table-stripe: color-mix(in srgb, var(--wf-surface) 42%, transparent);
-  --wf-md-hr: color-mix(in srgb, var(--wf-border) 85%, transparent);
+  --wf-md-hr: var(--wf-chrome-border-faint);
   --wf-md-mark-bg: color-mix(in srgb, var(--wf-mint) 22%, transparent);
   --wf-md-kbd-bg: color-mix(in srgb, var(--wf-surface) 88%, transparent);
   --wf-md-kbd-border: color-mix(in srgb, var(--wf-border-strong) 80%, transparent);

@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 80%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-soft);
   border-radius: 12px;
   background: color-mix(in srgb, var(--wf-surface) 92%, transparent);
 }

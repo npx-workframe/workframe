@@ -85,7 +85,7 @@
 .wf-activity-tree__row--leaf:hover,
 .wf-activity-tree__row--clickable:hover {
   background: color-mix(in srgb, var(--wf-surface) 45%, transparent);
-  border-color: color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border-color: var(--wf-chrome-border-strong);
 }
 
 .wf-activity-tree__row--clickable {
@@ -412,7 +412,7 @@
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   border-radius: 10px;
   background: color-mix(in srgb, var(--wf-surface) 88%, transparent);
   color: inherit;

@@ -1,45 +1,18 @@
-/* Workframe semantic tokens — reference palette vars defined per [data-theme] */
+/* Semantic wiring — references palette + chrome tokens defined per themes/*.css */
 
 :root {
-  /* ── Semantic tokens (theme-able) ─────────────────────────────────────────── */
   --wf-accent: var(--wf-violet);
   --wf-accent-foreground: var(--wf-primary-foreground);
-  --wf-error: #ef4444;
-  --wf-error-soft: #f87171;
-  --wf-success: #22c55e;
-  --wf-warning: #f59e0b;
 
-  /* Surfaces */
   --wf-surface-elevated: var(--wf-surface);
   --wf-surface-sunken: color-mix(in srgb, var(--wf-bg) 80%, transparent);
   --wf-overlay-bg: color-mix(in srgb, var(--wf-bg) 48%, transparent);
 
-  /* Shadows */
-  --wf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --wf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
-  --wf-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
-  --wf-shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.18);
-  --wf-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.055);
-
-  /* Focus */
   --wf-focus-ring: 0 0 0 2px var(--wf-ring);
   --wf-focus-offset: 1px;
 
-  /* Input / control */
   --wf-input-height: 32px;
   --wf-input-padding-x: 10px;
-  --wf-input-border: var(--wf-border);
+  --wf-input-border: var(--wf-chrome-border-solid);
   --wf-input-bg: color-mix(in srgb, var(--wf-bg) 80%, transparent);
-
-  /* Control interaction roles (dark + neo palettes override in themes/*.css) */
-  --wf-control-bg-flush: transparent;
-  --wf-control-bg-raised: var(--wf-surface);
-  --wf-control-border-ring-closed: var(--wf-border);
-  --wf-control-border-ring-raised: var(--wf-border);
-  --wf-control-shadow-flush: none;
-  --wf-control-shadow-raised: var(--wf-shadow-md);
-  --wf-control-shadow-highlight: var(--wf-shadow-sm);
-  --wf-control-shadow-inset: var(--wf-shadow-inset);
-  --wf-control-shadow-elevated: var(--wf-shadow-lg);
-  --wf-control-shadow-footer: none;
 }

@@ -30,7 +30,7 @@
 
 .wf-agent-rail__item:hover {
   background: color-mix(in srgb, var(--wf-surface) 45%, transparent);
-  border-color: color-mix(in srgb, var(--wf-border) 80%, transparent);
+  border-color: var(--wf-chrome-border-soft);
 }
 
 .wf-agent-rail__item--active {

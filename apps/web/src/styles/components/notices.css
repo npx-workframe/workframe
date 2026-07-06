@@ -43,7 +43,7 @@
 }
 
 .wf-notice--neutral {
-  border-color: color-mix(in srgb, var(--wf-border) 90%, transparent);
+  border-color: var(--wf-chrome-border-ghost);
   background: color-mix(in srgb, var(--wf-surface-soft) 88%, transparent);
 }
 

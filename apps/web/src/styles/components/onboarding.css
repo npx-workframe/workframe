@@ -49,7 +49,7 @@
   min-height: 0;
   max-height: calc(100dvh - 48px);
   overflow: hidden;
-  border-right: 1px solid color-mix(in srgb, var(--wf-border) 65%, transparent);
+  border-right: var(--wf-border-width, 1px) solid var(--wf-chrome-border-accent);
   background: color-mix(in srgb, var(--wf-surface-soft) 55%, transparent);
 }
 
@@ -264,7 +264,7 @@
 .wf-onboarding-wizard__header {
   flex: 0 0 auto;
   padding: 20px 24px 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
 }
 
 .wf-onboarding-wizard__progress {
@@ -359,7 +359,7 @@
   gap: 14px;
   padding: 24px 22px;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   background: color-mix(in srgb, var(--wf-surface) 94%, transparent);
   box-shadow: 0 24px 80px color-mix(in srgb, #000 35%, transparent);
 }
@@ -427,7 +427,7 @@
   gap: 10px;
   flex: 0 0 auto;
   padding: 12px 24px 20px;
-  border-top: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
   background: color-mix(in srgb, var(--wf-surface) 96%, transparent);
 }
 
@@ -531,7 +531,7 @@
   display: grid;
   gap: 8px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   background: color-mix(in srgb, var(--wf-surface-soft) 50%, transparent);
 }
 
@@ -576,7 +576,7 @@
   font-family: var(--wf-font-mono);
   overflow-x: auto;
   white-space: pre;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   background: color-mix(in srgb, var(--wf-surface-soft) 55%, transparent);
 }
 
@@ -588,7 +588,7 @@
 .wf-publish-card {
   display: block;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   background: color-mix(in srgb, var(--wf-surface-soft) 40%, transparent);
 }
 
@@ -609,14 +609,14 @@
   display: grid;
   gap: 10px;
   padding: 0 16px 14px;
-  border-top: 1px solid color-mix(in srgb, var(--wf-border) 45%, transparent);
+  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border-weak);
 }
 
 .wf-publish-nested {
   margin-top: 4px;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px dashed color-mix(in srgb, var(--wf-border) 60%, transparent);
+  border: var(--wf-border-width, 1px) dashed var(--wf-chrome-border-dim);
   background: color-mix(in srgb, var(--wf-surface) 50%, transparent);
 }
 
@@ -671,7 +671,7 @@
   text-align: left;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 75%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-heavy);
   background: color-mix(in srgb, var(--wf-surface-soft) 45%, transparent);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
@@ -709,7 +709,7 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 75%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-heavy);
   background: color-mix(in srgb, var(--wf-surface-soft) 45%, transparent);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -748,7 +748,7 @@
 
 .wf-wizard-section + .wf-wizard-section {
   padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
 }
 
 .wf-wizard-section__title {
@@ -773,7 +773,7 @@
 .wf-settings-stack .wf-settings-section {
   padding: 16px 18px;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   background: color-mix(in srgb, var(--wf-surface) 94%, transparent);
 }
 
@@ -782,7 +782,7 @@
   gap: 8px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 65%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-accent);
   background: color-mix(in srgb, var(--wf-surface-soft) 55%, transparent);
 }
 
@@ -807,7 +807,7 @@
   text-transform: uppercase;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   color: var(--wf-muted);
 }
 
@@ -836,7 +836,7 @@
 .wf-wizard-preset-chip {
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--wf-border) 75%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-heavy);
   background: color-mix(in srgb, var(--wf-surface-soft) 50%, transparent);
   font-size: 11px;
   font-weight: 600;
@@ -866,7 +866,7 @@
     gap: 12px;
     padding: 12px 20px;
     border-right: none;
-    border-bottom: 1px solid color-mix(in srgb, var(--wf-border) 65%, transparent);
+    border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border-accent);
   }
 
   .wf-onboarding-wizard__nav {
@@ -925,7 +925,7 @@
   list-style: none;
   margin: 0 0 12px;
   padding: 0 0 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
 }
 
 .wf-onboarding-stepper li {
@@ -1003,7 +1003,7 @@
   color: var(--wf-muted);
   border-radius: 10px;
   background: color-mix(in srgb, var(--wf-surface) 90%, transparent);
-  border: 1px solid color-mix(in srgb, var(--wf-border) 65%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-accent);
 }
 
 .wf-onboarding-intro__points li::before {
@@ -1105,7 +1105,7 @@
 }
 
 .wf-sign-in-app {
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   border-radius: 12px;
   background: color-mix(in srgb, var(--wf-surface) 88%, transparent);
   overflow: hidden;
@@ -1199,7 +1199,7 @@
   display: grid;
   gap: 14px;
   padding: 0 16px 16px 60px;
-  border-top: 1px solid color-mix(in srgb, var(--wf-border) 55%, transparent);
+  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
   margin-top: -2px;
   padding-top: 14px;
 }
@@ -1272,7 +1272,7 @@
   gap: 6px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--wf-surface) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--wf-border) 70%, transparent);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
 }
 
 .wf-onboarding-progress li {

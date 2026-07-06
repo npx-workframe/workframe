@@ -1,0 +1,16 @@
+/* Chrome border contract — each themes/*.css block must define:
+   --wf-chrome-border-solid (raw edge / shell)
+   --wf-chrome-border-whisper (30%)
+   --wf-chrome-border-subtle (40%)
+   --wf-chrome-border-weak (45%)
+   --wf-chrome-border-light (50%)
+   --wf-chrome-border (55% — default panel/chrome edge)
+   --wf-chrome-border-dim (60%)
+   --wf-chrome-border-accent (65% — rails, side panes)
+   --wf-chrome-border-strong (70% — cards, controls)
+   --wf-chrome-border-drag (72% — panel drag tab)
+   --wf-chrome-border-heavy (75%)
+   --wf-chrome-border-soft (80%)
+   --wf-chrome-border-faint (85%)
+   --wf-chrome-border-ghost (90% — dividers, sash tint)
+*/
