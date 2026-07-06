@@ -841,10 +841,11 @@
         "services/workframe-api/hermes_profiles.py",
         "services/workframe-api/profile_gateway.py",
         "services/workframe-api/model_surface.py",
-        "services/workframe-api/provider_bootstrap.py"
+        "services/workframe-api/provider_bootstrap.py",
+        "services/workframe-api/chat_stream.py"
       ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: Stage 2 complete — hermes_profiles, profile_gateway, model_surface, provider_bootstrap extracted; server.py ~14.4k lines." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: Stage 3 partial — chat_stream.py (SSE helpers + stream_profile_chat + live segment reducers); lane bindings (chat_dispatch/_sync_lane_binding) still in server.py; server.py ~12.5k lines." }
     },
     {
       "id": "WF-033",
