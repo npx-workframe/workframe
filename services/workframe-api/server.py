@@ -10887,6 +10887,65 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError, OSError):
             return
 
+    def _route_pattern_get_workspace(self, path: str, qs: dict[str, list[str]]) -> None:
+        match = re.fullmatch(r"/api/workspace/([^/]+)", path)
+        if not match:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        user_id = str(getattr(self, "auth_user", "") or "")
+        ws_id = _resolve_wid(match.group(1))
+        if not ws_id:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        self._json(*_get_workspace(ws_id, user_id))
+
+    def _route_pattern_get_workspace_rooms(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) != 4:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        ws_id = _resolve_wid(parts[2])
+        if not ws_id:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        include_members = qs.get("include_members", [""])[0].lower() in {"1", "true", "yes"}
+        self._json(*_list_rooms(ws_id, include_members=include_members))
+
+    def _route_pattern_get_room(self, path: str, qs: dict[str, list[str]]) -> None:
+        rid = path.strip("/").split("/")[-1]
+        self._json(*_get_room(rid))
+
+    def _route_pattern_get_room_members(self, path: str, qs: dict[str, list[str]]) -> None:
+        rid = path.strip("/").split("/")[-2]
+        viewer_id = str(getattr(self, "auth_user", "") or "")
+        try:
+            conn = _workframe_db()
+            conn.row_factory = sqlite3.Row
+            if not _user_can_access_room(conn, rid, viewer_id):
+                conn.close()
+                self._json(403, {"ok": False, "error": "forbidden"})
+                return
+            members = conn.execute(
+                "SELECT * FROM room_memberships WHERE room_id = ? AND deleted_at IS NULL",
+                (rid,),
+            ).fetchall()
+            payload = _enrich_room_members(conn, [dict(m) for m in members])
+            conn.close()
+        except Exception:
+            payload = []
+        self._json(200, {"ok": True, "room_id": rid, "members": payload})
+
+    def _route_pattern_get_workspace_members(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) != 4:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        ws_id = _resolve_wid(parts[2])
+        if not ws_id:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        self._json(*_list_workspace_members(ws_id, self))
+
     def _route_pattern_get_public_branding(self, path: str, qs: dict[str, list[str]]) -> None:
         branding_match = re.fullmatch(r"/api/public/branding/(og|favicon)", path)
         if not branding_match:
@@ -11260,24 +11319,6 @@ class Handler(BaseHTTPRequestHandler):
                         return self._json(400, {"ok": False, "error": "session_id required"})
                     return self._json(200, device_oauth_status(user_id, provider_id, session_id))
 
-            workspace_get_match = re.fullmatch(r"/api/workspace/([^/]+)", path)
-            if workspace_get_match and self.command == "GET":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                ws_id = _resolve_wid(workspace_get_match.group(1))
-                if not ws_id:
-                    return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                return self._json(*_get_workspace(ws_id, user_id))
-
-            # --- Sprint F: Room APIs (GET) ---
-            if path.startswith("/api/workspace/") and path.endswith("/rooms") and self.command == "GET":
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    include_members = qs.get("include_members", [""])[0].lower() in {"1", "true", "yes"}
-                    return self._json(*_list_rooms(ws_id, include_members=include_members))
-
             # --- Sprint F: Room delete (DELETE /api/rooms/:id) ---
             if re.fullmatch(r"/api/rooms/[^/]+", path) and self.command == "DELETE":
                 rid = path.strip("/").split("/")[-1]
@@ -11293,29 +11334,6 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(404, {"ok": False, "error": "room_not_found"})
                 self._log_audit("room_deleted", "room", rid, f"room={rid}")
                 return self._json({"ok": True, "room_id": rid, "status": "deleted"})
-
-            if re.fullmatch(r"/api/rooms/[^/]+", path):
-                rid = path.strip("/").split("/")[-1]
-                return self._json(*_get_room(rid))
-
-            if path.startswith("/api/rooms/") and path.endswith("/members"):
-                rid = path.strip("/").split("/")[-2]
-                viewer_id = str(getattr(self, "auth_user", "") or "")
-                try:
-                    conn = _workframe_db()
-                    conn.row_factory = sqlite3.Row
-                    if not _user_can_access_room(conn, rid, viewer_id):
-                        conn.close()
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    members = conn.execute(
-                        "SELECT * FROM room_memberships WHERE room_id = ? AND deleted_at IS NULL",
-                        (rid,),
-                    ).fetchall()
-                    payload = _enrich_room_members(conn, [dict(m) for m in members])
-                    conn.close()
-                except Exception:
-                    payload = []
-                return self._json(200, {"ok": True, "room_id": rid, "members": payload})
 
             if path.startswith("/api/rooms/") and path.endswith("/live"):
                 rid = path.strip("/").split("/")[-2]
@@ -11468,16 +11486,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not inv:
                         return self._json(404, {"ok": False, "error": "invite_not_found"})
                     return self._json(200, {"ok": True, "invite": dict(inv)})
-
-            # --- Sprint H: Workspace members (GET only, POST/PATCH/DELETE in do_POST) ---
-            if path.startswith("/api/workspace/") and path.endswith("/members"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4 and self.command == "GET":
-                    wid = parts[2]
-                    ws_id = _resolve_wid(wid)
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    return self._json(*_list_workspace_members(ws_id, self))
 
             # --- Sprint I: Memory (GET) ---
             if path.startswith("/api/workspace/") and path.endswith("/memory"):

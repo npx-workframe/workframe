@@ -11,6 +11,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+import cell_authority
+
 HERMES_IMAGE = os.environ.get("WORKFRAME_HERMES_IMAGE", "nousresearch/hermes-agent")
 HERMES_TAG = os.environ.get("WORKFRAME_HERMES_TAG", "latest")
 NPM_PACKAGE = os.environ.get("WORKFRAME_NPM_PACKAGE", "create-workframe")
@@ -545,6 +547,9 @@ def _run_apply_scripts(target: str, env: dict[str, str]) -> dict[str, Any]:
 def apply_update(target: str) -> dict[str, Any]:
     if not _admin_stack_updates_enabled():
         raise ValueError("admin_updates_disabled")
+    open_decision = cell_authority.evaluate_open(_project_root())
+    if open_decision.decision == "deny":
+        raise ValueError(open_decision.reason or "cell_open_denied")
     target = str(target or "all").strip().lower()
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")

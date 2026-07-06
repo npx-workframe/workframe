@@ -157,10 +157,10 @@ ROUTES: tuple[Route, ...] = (
 _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     # method, regex, label, auth, sessionless_ok, install_window [, handler]
     ("GET", r"^/api/public/branding/(og|favicon)$", "/api/public/branding/{kind}", AuthLevel.PUBLIC, False, False, "_route_pattern_get_public_branding"),
-    ("GET", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/workspace/[^/]+/rooms$", "/api/workspace/{id}/rooms", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/rooms/[^/]+/members$", "/api/rooms/{id}/members", AuthLevel.SESSION, False, False),
+    ("GET", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False, "_route_pattern_get_workspace"),
+    ("GET", r"^/api/workspace/[^/]+/rooms$", "/api/workspace/{id}/rooms", AuthLevel.SESSION, False, False, "_route_pattern_get_workspace_rooms"),
+    ("GET", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_get_room"),
+    ("GET", r"^/api/rooms/[^/]+/members$", "/api/rooms/{id}/members", AuthLevel.SESSION, False, False, "_route_pattern_get_room_members"),
     ("GET", r"^/api/rooms/[^/]+/live$", "/api/rooms/{id}/live", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/rooms/[^/]+/activity$", "/api/rooms/{id}/activity", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/workspace/[^/]+/activity$", "/api/workspace/{id}/activity", AuthLevel.SESSION, False, False),
@@ -169,7 +169,7 @@ _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     ("GET", r"^/api/rooms/[^/]+/sessions$", "/api/rooms/{id}/sessions", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/workspace/[^/]+/invites$", "/api/workspace/{id}/invites", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/invites/[^/]+$", "/api/invites/{token}", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/workspace/[^/]+/members$", "/api/workspace/{id}/members", AuthLevel.SESSION, False, False),
+    ("GET", r"^/api/workspace/[^/]+/members$", "/api/workspace/{id}/members", AuthLevel.SESSION, False, False, "_route_pattern_get_workspace_members"),
     ("GET", r"^/api/workspace/[^/]+/memory$", "/api/workspace/{id}/memory", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/workspace/[^/]+/budget$", "/api/workspace/{id}/budget", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/workspace/[^/]+/grants$", "/api/workspace/{id}/grants", AuthLevel.SESSION, False, False),

@@ -132,7 +132,7 @@ assert len(dispatched_post) == 41
 dispatched_patch = [r for r in route_registry.ROUTES if r.method == "PATCH" and r.handler]
 assert len(dispatched_patch) == 4
 pattern_dispatched = [rp for rp in route_registry.ROUTE_PATTERNS if rp.handler]
-assert len(pattern_dispatched) == 8
+assert len(pattern_dispatched) == 13
 
 class _PostStub:
     def __init__(self) -> None:
@@ -161,7 +161,7 @@ assert _get_stub.called
 assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})  # idempotent call ok
 
 assert route_registry.dispatch_pattern(
-    "GET", _get_stub, "/api/workspace/ws-1/rooms", qs={},
+    "GET", _get_stub, "/api/workspace/ws-1/events", qs={},
 ) is False
 
 class _PatchStub:
