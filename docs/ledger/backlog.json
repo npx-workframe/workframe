@@ -381,12 +381,24 @@
       "summary": "Docker boot, health, wizard, BYOK path, first chat, minimal session/receipt evidence.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:ticket-4"],
       "acceptance": ["Produces FirstRunEvidence JSON", "Redacted credential class only"],
       "depends_on": ["WF-002"],
+      "evidence": [
+        "scripts/workframe/run-first-run-evidence.mjs",
+        "operations/release-evidence/runs/latest-first-run.json",
+        "scripts/workframe/verify-release-gates.mjs",
+        "package.json test:first-run-evidence"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "completed_at": "2026-07-06",
+        "patch_refs": [],
+        "notes": "Alan manual dogfood sign-off 2026-07-05; feature_list dogfood-install-gate passes:true"
+      }
     },
     {
       "id": "WF-021",

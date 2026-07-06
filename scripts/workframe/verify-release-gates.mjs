@@ -5,6 +5,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -55,6 +56,25 @@ const checks = {
       reason:
         'sign-off-install.ps1 then complete wizard + chat; set dogfood-install-gate passes:true in .harness/feature_list.json',
     };
+  },
+  'first-run-evidence': () => {
+    const evPath = path.join(root, 'operations/release-evidence/runs/latest-first-run.json');
+    if (fs.existsSync(evPath)) {
+      try {
+        const ev = JSON.parse(fs.readFileSync(evPath, 'utf8'));
+        if (ev.decision === 'allow') {
+          return { ok: true, reason: `FirstRunEvidence @ ${ev.git_ref || 'unknown'}` };
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    const res = spawnSync(process.execPath, [path.join(root, 'scripts/workframe/run-first-run-evidence.mjs')], {
+      encoding: 'utf8',
+      cwd: root,
+    });
+    if (res.status === 0) return { ok: true, reason: 'FirstRunEvidence runner allow' };
+    return { ok: false, reason: 'run-first-run-evidence.mjs or dogfood-install-gate passes:true' };
   },
 };
 

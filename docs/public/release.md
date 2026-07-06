@@ -116,7 +116,12 @@ Runners that emit live JSON:
 node scripts/workframe/run-package-install-evidence.mjs --build
 ```
 
-First-run and negative runners (WF-019–WF-020) are not wired yet.
+First-run and negative runners:
+
+```bash
+node scripts/workframe/run-first-run-evidence.mjs
+node scripts/workframe/run-negative-install-evidence.mjs
+```
 
 ## GitHub → npm (trusted publishing)
 

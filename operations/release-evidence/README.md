@@ -33,6 +33,13 @@ node scripts/workframe/run-package-install-evidence.mjs --build
 # --skip-prep after install-gate / test:ci prep
 ```
 
+Produce first-run and negative evidence:
+
+```bash
+node scripts/workframe/run-first-run-evidence.mjs
+node scripts/workframe/run-negative-install-evidence.mjs
+```
+
 Output default: `runs/latest-package-install.json` (gitignored).
 
 ## Authority
