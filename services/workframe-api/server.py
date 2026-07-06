@@ -53,6 +53,9 @@ import llm_error_glossary
 import openrouter_catalog
 import updates as stack_updates
 import install_api
+import run_authority
+import run_ledger
+from domain.entities import RunStatus
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
 WORKSPACE = Path(os.environ.get("WORKSPACE", "/workspace"))
@@ -867,6 +870,7 @@ def _auth_check(handler: BaseHTTPRequestHandler) -> bool:
         install_window_open=_install_window_open(),
         validate_session=_validate,
         attach_user=_attach,
+        get_workspace_role=lambda: str(getattr(handler, "auth_role", "") or ""),
     )
 
 

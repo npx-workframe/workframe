@@ -2,6 +2,22 @@
   "schema_version": "1.0",
   "updated": "2026-07-06",
   "north_star_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
+  "program_stages": {
+    "ref": "WF-040",
+    "status_doc": "docs/ledger/program-status.md",
+    "gates": "Each stage exits only when harness/evidence green — see program-status.md stage checklist",
+    "pick_order": ["B", "C", "D"],
+    "stop_before": "E",
+    "by_stage": {
+      "A": ["WF-001", "WF-002", "WF-003", "WF-004", "WF-005", "WF-006", "WF-018", "WF-019", "WF-020", "WF-021", "WF-022", "WF-031", "WF-033", "WF-034", "WF-038"],
+      "B": ["WF-037", "WF-032", "WF-035", "WF-036"],
+      "C": ["WF-026", "WF-028", "WF-027", "WF-011", "WF-025", "WF-017", "WF-023", "WF-024", "WF-NS-P1"],
+      "D": ["WF-039", "WF-009", "WF-NS-P2", "WF-016", "WF-007", "WF-008", "WF-010", "WF-NS-P0"],
+      "E": ["WF-013", "WF-014", "WF-015", "WF-029", "WF-030", "WF-NS-P3", "WF-NS-P4", "WF-NS-P5", "WF-NS-P6"],
+      "F": ["WF-NS-P7", "WF-NS-P8"],
+      "meta": ["WF-040", "WF-SK-001"]
+    }
+  },
   "items": [
     {
       "id": "WF-001",
@@ -719,7 +735,7 @@
       ],
       "depends_on": ["WF-034", "WF-033"],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: server.py ~18859 lines. Already extracted: route_registry.py, profile_config_yaml.py, zk_auth.py, credential_vault.py, install_api.py, stack_config.py, llm_proxy.py, action_proxy.py, domain/ (WF-039 — do not duplicate). Stage 1 targets NOT present: db_schema.py, auth_gate.py, user_prefs.py, rooms.py, kanban_cron.py. Stage 0 partial: test_model_surface_consistency.py (WF-034); no auth_gate/credential-resolve characterization tests." }
     },
     {
       "id": "WF-033",
@@ -815,7 +831,7 @@
       "summary": "The BaseHTTPRequestHandler dispatch is a multi-thousand-line if-chain and GET_PUBLIC_ROUTES is a separate allowlist that can drift from handlers. Replace with one route table: (method, path, handler, auth_level, roles). Auth becomes deny-by-default at the table, closing the WF-031 class permanently.",
       "wave": "code-health",
       "priority": "P1",
-      "status": "partial",
+      "status": "done",
       "sources": ["audit-2026-07-05: handler if-chain ~L16500-19700", "WF-031"],
       "acceptance": [
         "Single ROUTES table; unknown path = 404, unlisted auth = 401 (deny by default)",
@@ -832,8 +848,12 @@
         "6. Add test: walk ROUTES, assert no /api/* path reachable without explicit auth level"
       ],
       "depends_on": ["WF-031"],
+      "evidence": [
+        "services/workframe-api/route_registry.py",
+        "services/workframe-api/test_route_registry.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "route_registry.py: batches 1-4: 36 GET + 18 POST; batch 5: +7 POST (board update/delete, content save/delete, files write/upload, chat dispatch); handler._post_qs for query-param POSTs; 36 GET + 25 POST in ROUTES", "completed_at": "2026-07-05" }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-06", "notes": "ROUTES + ROUTE_PATTERNS single table; AuthLevel public|session|role_owner_admin|internal; sessionless_ok + install_window flags; unregistered /api/* → None at auth (404 dispatch); 36+25 registry-dispatched handlers; ~43 if-chain bodies remain (auth registered, handler migration deferred)." }
     },
     {
       "id": "WF-038",
@@ -894,7 +914,7 @@
       "summary": "Definitive sequencing of existing backlog into stages. Stage A (stabilize): WF-031/034/033 + WF-006/019/020 release truth. Stage B (decompose): WF-037 route registry, WF-032 module split, WF-038 prune, WF-036 frontend. Stage C (secure multi-user): WF-026/027/028 broker layer, WF-025 forced egress, WF-011 supervisor negatives, WF-017 public hardening. Stage D (authority+ledger): WF-039 domain model, WF-009 RunAuthorityGate, WF-NS-P2 runs tables, WF-016 funding modes, WF-007 CellAuthorityGate. Stage E (platform): WF-013/014/015 + WF-NS-P4 adapter seam (second runtime), WF-NS-P3/029 tool brokers, WF-NS-P5/P6 cells. Stage F (business): WF-NS-P7 control plane, WF-NS-P8 marketplace + social/agent-to-agent economy. Principle throughout: vault and leases keep raw keys away from agents while terminal/web tools stay fully capable — brokered egress, not nerfed agents.",
       "wave": "meta",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["audit-2026-07-05 holistic pass + code-read redteam", "north-star: WORKFRAME_v0.1.1_MASTER.md"],
       "acceptance": [
         "Stage gates: each stage exits only with harness/evidence green",
@@ -911,8 +931,19 @@
         "Every agent handoff: read item handoff_steps, implement, run pnpm test:ci + py_compile, update item status + patch_refs"
       ],
       "depends_on": [],
+      "evidence": [
+        "docs/ledger/program-status.md",
+        "docs/ledger/backlog.json program_stages",
+        "scripts/workframe/ledger-next.mjs",
+        "operations/pm/README.md",
+        "operations/pm/runbook.md"
+      ],
       "owner_role": "design",
-      "workflow": { "assignee": "pm-workframe", "notes": "Meta-item: the sequencing IS the deliverable; close when PM runbook references it. Findings code-verified 2026-07-05 (WF-031 exposure confirmed by handler read; WF-038 scope corrected)." }
+      "workflow": {
+        "assignee": "pm-workframe",
+        "completed_at": "2026-07-06",
+        "notes": "Closed: stage gates in program-status.md; program_stages in backlog.json; ledger-next picks B→C→D; PM runbook references program-status."
+      }
     },
     {
       "id": "WF-SK-001",

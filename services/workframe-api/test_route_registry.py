@@ -12,17 +12,18 @@ sys.path.insert(0, str(ROOT))
 
 import route_registry  # noqa: E402
 
-# Auth level coverage
+# Auth level coverage (4-value enum)
 assert route_registry.resolve_auth_level("GET", "/api/health") == route_registry.AuthLevel.PUBLIC
 assert route_registry.resolve_auth_level("GET", "/api/meta") == route_registry.AuthLevel.PUBLIC
-assert route_registry.resolve_auth_level("GET", "/api/snapshot") == route_registry.AuthLevel.SINGLE_USER_GET
-assert route_registry.resolve_auth_level("POST", "/api/auth/start") == route_registry.AuthLevel.AUTH_FLOW
+assert route_registry.resolve_auth_level("GET", "/api/snapshot") == route_registry.AuthLevel.SESSION
+assert route_registry.resolve_auth_level("POST", "/api/auth/start") == route_registry.AuthLevel.PUBLIC
 assert route_registry.resolve_auth_level("GET", "/api/me") == route_registry.AuthLevel.SESSION
-assert route_registry.resolve_auth_level("GET", "/api/activity/detail") == route_registry.AuthLevel.SESSION
+assert route_registry.resolve_auth_level("GET", "/api/admin/vault/status") == route_registry.AuthLevel.ROLE_OWNER_ADMIN
+assert route_registry.resolve_auth_level("GET", "/api/workspace/default/rooms") == route_registry.AuthLevel.SESSION
 
-# Unknown /api paths require session (deny when anonymous)
-assert route_registry.resolve_auth_level("GET", "/api/not-a-real-handler") == route_registry.AuthLevel.SESSION
-assert not route_registry.authorize_request(
+# Unknown /api paths are unregistered → None (404 at dispatch, not auth-gated)
+assert route_registry.resolve_auth_level("GET", "/api/not-a-real-handler") is None
+assert route_registry.authorize_request(
     "GET",
     "/api/not-a-real-handler",
     "",
@@ -33,39 +34,52 @@ assert not route_registry.authorize_request(
     attach_user=lambda _u: None,
 )
 
-# ROUTES table: auth tier matches resolve_auth_level
-auth_mismatch: list[str] = []
-for route in route_registry.ROUTES:
-    resolved = route_registry.resolve_auth_level(route.method, route.path)
-    if resolved != route.auth:
-        auth_mismatch.append(f"{route.method} {route.path}: table={route.auth} resolved={resolved}")
-assert not auth_mismatch, f"route auth mismatch: {auth_mismatch}"
+# Registered session route without session → 401
+assert not route_registry.authorize_request(
+    "GET",
+    "/api/me",
+    "",
+    deployment_mode="trusted_team",
+    dev_local_unsafe=False,
+    install_window_open=False,
+    validate_session=lambda _s: None,
+    attach_user=lambda _u: None,
+)
 
-# ROUTES handlers exist on server.Handler
+# ROUTES table: dispatched routes have handlers on server.Handler
 server_src = (ROOT / "server.py").read_text(encoding="utf-8")
 missing_handlers: list[str] = []
 for route in route_registry.ROUTES:
+    if not route.handler:
+        continue
     if f"def {route.handler}(" not in server_src:
         missing_handlers.append(f"{route.method} {route.path} -> {route.handler}")
 assert not missing_handlers, f"missing handler methods: {missing_handlers}"
 
-# Remaining if-chain GET paths still map to a known auth tier
+# Every if-chain literal /api path must be registered with explicit auth
 handler_paths = set(re.findall(r'if path == "(/api/[^"]+)"', server_src))
 handler_paths |= set(re.findall(r"if path == \'(/api/[^\']+)\'", server_src))
-unmapped: list[str] = []
+unregistered: list[str] = []
 for p in sorted(handler_paths):
-    level = route_registry.resolve_auth_level("GET", p)
-    if level not in (
-        route_registry.AuthLevel.PUBLIC,
-        route_registry.AuthLevel.SINGLE_USER_GET,
-        route_registry.AuthLevel.SESSION,
-        route_registry.AuthLevel.INSTALL,
-        route_registry.AuthLevel.AUTH_FLOW,
-    ):
-        unmapped.append(p)
-assert not unmapped, f"unmapped auth levels: {unmapped}"
+    if route_registry.lookup_auth("GET", p) is None and route_registry.lookup_auth("POST", p) is None:
+        unregistered.append(p)
+assert not unregistered, f"unregistered auth for if-chain paths: {unregistered}"
 
-# trusted_team: data GETs need session (not anonymous), not a hard deny
+# Pattern-backed routes from startswith / fullmatch in do_GET/do_POST
+_pattern_probes = [
+    ("GET", "/api/public/branding/og"),
+    ("GET", "/api/workspace/ws-1/rooms"),
+    ("GET", "/api/rooms/room-1/messages"),
+    ("POST", "/api/rooms/room-1/messages/send"),
+    ("PATCH", "/api/workspace/ws-1"),
+    ("DELETE", "/api/memory/mem-1"),
+]
+for method, path in _pattern_probes:
+    assert route_registry.lookup_auth(method, path) is not None, f"missing pattern auth: {method} {path}"
+
+# sessionless_ok data GETs
+snap = route_registry.lookup_auth("GET", "/api/snapshot")
+assert snap is not None and snap.sessionless_ok
 assert not route_registry.authorize_request(
     "GET",
     "/api/agents",
@@ -87,10 +101,34 @@ assert route_registry.authorize_request(
     attach_user=lambda _u: None,
 )
 
-data_read_get = [r for r in route_registry.ROUTES if r.method == "GET"]
-assert len(data_read_get) == 36
-registry_post = [r for r in route_registry.ROUTES if r.method == "POST"]
-assert len(registry_post) == 25
+# owner/admin gate
+assert not route_registry.authorize_request(
+    "GET",
+    "/api/admin/vault/status",
+    "sid-ok",
+    deployment_mode="trusted_team",
+    dev_local_unsafe=False,
+    install_window_open=False,
+    validate_session=lambda s: {"user_id": "u1"} if s == "sid-ok" else None,
+    attach_user=lambda _u: None,
+    get_workspace_role=lambda: "member",
+)
+assert route_registry.authorize_request(
+    "GET",
+    "/api/admin/vault/status",
+    "sid-ok",
+    deployment_mode="trusted_team",
+    dev_local_unsafe=False,
+    install_window_open=False,
+    validate_session=lambda s: {"user_id": "u1"} if s == "sid-ok" else None,
+    attach_user=lambda _u: None,
+    get_workspace_role=lambda: "owner",
+)
+
+dispatched_get = [r for r in route_registry.ROUTES if r.method == "GET" and r.handler]
+assert len(dispatched_get) == 36
+dispatched_post = [r for r in route_registry.ROUTES if r.method == "POST" and r.handler]
+assert len(dispatched_post) == 25
 
 class _PostStub:
     def __init__(self) -> None:
@@ -105,5 +143,10 @@ _stub = _PostStub()
 assert route_registry.dispatch_post(_stub, "/api/auth/start", {"email": "a@b.c"})
 assert _stub.called and _stub.body == {"email": "a@b.c"}
 assert not route_registry.dispatch_post(_stub, "/api/not-registered", {})
+
+# No legacy frozenset allowlists
+assert not hasattr(route_registry, "GET_ALWAYS_PUBLIC_ROUTES")
+assert not hasattr(route_registry, "GET_SINGLE_USER_PUBLIC_ROUTES")
+assert not hasattr(route_registry, "GET_PUBLIC_ROUTES")
 
 print("route registry self-check ok")
