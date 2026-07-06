@@ -20,9 +20,10 @@ gateway_container_name() {
 }
 
 report_egress_posture() {
-  local gw force_broker gw_on_control internal_control
+  local gw force_broker gw_on_control internal_control egress_overlay
   gw="$(gateway_container_name)"
   force_broker="$(env_val WORKFRAME_FORCE_AGENT_EGRESS_BROKER)"
+  egress_overlay="$COMPOSE_DIR/docker-compose.egress-broker.yml"
 
   if grep -A30 '^  gateway:' "$COMPOSE_FILE" | grep -q 'control-net'; then
     gw_on_control=yes
@@ -48,7 +49,15 @@ report_egress_posture() {
     if echo "$nets" | grep -qi 'control'; then
       fail "running gateway is attached to a control network"
     fi
-    info "egress gateway_egress_posture=unrestricted_general (broker for LLM/action providers)"
+    if [[ "$force_broker" =~ ^(1|true|yes|on)$ ]]; then
+      if docker inspect workframe-gateway-egress-guard >/dev/null 2>&1; then
+        info "egress gateway_egress_posture=provider_hosts_blocked (egress-guard sidecar)"
+      else
+        fail "WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true but gateway-egress-guard is not running"
+      fi
+    else
+      info "egress gateway_egress_posture=unrestricted_general (broker for LLM/action providers)"
+    fi
   else
     info "egress gateway_egress_posture=unknown (gateway container not running)"
   fi
@@ -58,9 +67,58 @@ report_egress_posture() {
   info "egress broker_latency=per-request lease validation (no human approval gate)"
 
   if [[ "$force_broker" =~ ^(1|true|yes|on)$ ]]; then
-    fail "WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true is set but provider-host egress enforcement is not implemented yet"
+    [[ -f "$egress_overlay" ]] || fail "missing $egress_overlay (required when WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true)"
+    grep -q 'gateway-egress-guard' "$egress_overlay" || fail "egress overlay missing gateway-egress-guard service"
+    ok "forced broker egress overlay present"
   fi
   ok "egress posture reported"
+}
+
+report_supervisor_constraints() {
+  local public_overlay="$COMPOSE_DIR/docker-compose.public.yml"
+  if [[ -f "$public_overlay" ]]; then
+    grep -q 'WORKFRAME_SUPERVISOR_ALLOW_RAW_EXEC=0' "$public_overlay" \
+      || fail "docker-compose.public.yml must set WORKFRAME_SUPERVISOR_ALLOW_RAW_EXEC=0"
+    if grep -A30 '^  workframe-api:' "$public_overlay" | grep -q '/var/run/docker.sock'; then
+      fail "docker-compose.public.yml must not mount docker.sock on workframe-api"
+    fi
+    ok "supervisor public overlay constraints"
+  else
+    warn "docker-compose.public.yml missing — skipping supervisor overlay checks"
+  fi
+}
+
+report_broker_audit_schema() {
+  local data_dir
+  data_dir="$(cd "$ROOT" && pwd)/runtime/workframe-api-data"
+  if [[ ! -d "$data_dir" ]]; then
+    info "broker_audit schema=skipped (no runtime/workframe-api-data)"
+    return
+  fi
+  python3 - "$data_dir" <<'PY' || fail "broker_audit_events table missing (run API once or apply migration)"
+import sqlite3, sys
+from pathlib import Path
+db = Path(sys.argv[1]) / "workframe.db"
+if not db.is_file():
+    print("skip: no workframe.db yet")
+    raise SystemExit(0)
+conn = sqlite3.connect(str(db))
+row = conn.execute(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='broker_audit_events'"
+).fetchone()
+conn.close()
+if not row:
+    raise SystemExit(1)
+PY
+  ok "broker audit schema"
+}
+
+report_backup_restore_evidence() {
+  local backup_doc="$ROOT/infra/compose/workframe/PUBLIC_DEPLOY.md"
+  [[ -f "$backup_doc" ]] || fail "missing PUBLIC_DEPLOY.md backup section"
+  grep -qi 'backup' "$backup_doc" || fail "PUBLIC_DEPLOY.md missing backup guidance"
+  grep -qi 'rollback\|restore' "$backup_doc" || fail "PUBLIC_DEPLOY.md missing restore/rollback guidance"
+  ok "backup/restore documented"
 }
 
 [[ -f "$ENV_FILE" ]] || fail "missing $ENV_FILE"
@@ -157,5 +215,9 @@ else
 fi
 
 report_egress_posture
+
+report_supervisor_constraints
+report_broker_audit_schema
+report_backup_restore_evidence
 
 ok "public_multi_user preflight passed"

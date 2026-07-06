@@ -539,7 +539,7 @@
       "summary": "Network-level forced broker for public_multi_user — deny direct provider egress from gateway.",
       "wave": "broker",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["audit-0027:critical-3", "north-star:egress-policy", "17-final-recommendation"],
       "acceptance": [
         "Compose/network policy blocks direct provider hosts from gateway",
@@ -548,8 +548,18 @@
         "verify passes when flag true and enforcement active"
       ],
       "depends_on": ["WF-026"],
+      "evidence": [
+        "infra/compose/workframe/docker-compose.egress-broker.yml",
+        "scripts/workframe/gateway-egress-iptables.sh",
+        "services/workframe-api/egress_policy.py",
+        "scripts/workframe/verify-public-deploy.sh"
+      ],
       "owner_role": "implementer",
-      "workflow": { "notes": "Verify fails if flag set today — intentional until built" }
+      "workflow": {
+        "completed_at": "2026-07-06",
+        "patch_refs": [],
+        "notes": "iptables sidecar shares gateway netns; verify checks overlay + running guard when flag set."
+      }
     },
     {
       "id": "WF-026",
@@ -557,7 +567,7 @@
       "summary": "Extract lease validation and authorization from llm_proxy.py for reuse by action_proxy and future brokers.",
       "wave": "broker",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["audit-0027:high-4", "north-star:phase-3"],
       "acceptance": [
         "credential_broker.py or equivalent module",
@@ -565,8 +575,19 @@
         "No behavior regression in LLM path"
       ],
       "depends_on": [],
+      "evidence": [
+        "services/workframe-api/credential_broker.py",
+        "services/workframe-api/llm_proxy.py",
+        "services/workframe-api/action_proxy.py",
+        "services/workframe-api/turn_credentials.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-027",
@@ -574,12 +595,21 @@
       "summary": "Timestamped attributable events for brokered requests (user, workspace, profile, run, provider, host, status, deny reason).",
       "wave": "broker",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["audit-0027:high-5", "north-star:AuditEvent"],
       "acceptance": ["Events persisted or logged in structured form", "Queryable for public deploy audit"],
       "depends_on": ["WF-026"],
+      "evidence": [
+        "services/workframe-api/broker_audit.py",
+        "services/workframe-api/credential_broker.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-028",
@@ -587,12 +617,18 @@
       "summary": "Tests for expired, revoked, provider/profile mismatch, missing proxy token/header.",
       "wave": "broker",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["audit-0027:high-6"],
       "acceptance": ["test_* or harness scenarios cover all rejection cases"],
       "depends_on": [],
+      "evidence": ["services/workframe-api/test_credential_lease_matrix.py"],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-06"
+      }
     },
     {
       "id": "WF-029",
