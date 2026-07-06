@@ -84,15 +84,23 @@
       "summary": "Until CellAuthorityGate exists, public install claim is clean empty target only; deny with no mutation.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "partial",
+      "status": "done",
       "sources": ["25-audit:P0-4", "RT-01"],
       "acceptance": [
         "NegativeInstallEvidence proves no mutation on deny",
         "Public docs scope install claim to empty target"
       ],
       "depends_on": ["WF-019"],
+      "evidence": [
+        "scripts/workframe/run-negative-install-evidence.mjs",
+        "docs/public/install.md"
+      ],
       "owner_role": "implementer",
-      "workflow": { "notes": "validateProjectName exists; full evidence runner missing" }
+      "workflow": {
+        "completed_at": "2026-07-06",
+        "patch_refs": [],
+        "notes": "NegativeInstallEvidence matrix green; install.md scopes empty-target claim"
+      }
     },
     {
       "id": "WF-005",

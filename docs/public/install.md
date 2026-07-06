@@ -11,6 +11,16 @@ docker compose up -d --build
 
 Open the URL printed by the wizard or shown in `docker compose` output (typically `http://127.0.0.1:<ui-port>/`). Use **`127.0.0.1`**, not `localhost`, for stable session cookies on local installs.
 
+## Install target (v0.1.x release scope)
+
+`create-workframe` scaffolds into an **empty** target directory. If the project folder already exists, the CLI denies unless you pass `--force` (overwrite of a validated scaffold path only).
+
+Release evidence (`NegativeInstallEvidence`) proves deny paths do **not** mutate foreign directories. Until `CellAuthorityGate` exists, treat **empty-target create** as the only supported install claim — not update-in-place or adopt-existing-cell flows.
+
+```bash
+npx create-workframe@0.1.12 MyProject    # MyProject/ must not exist yet
+```
+
 ## Generated project layout
 
 ```text
