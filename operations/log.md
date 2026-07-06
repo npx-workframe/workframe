@@ -4,6 +4,22 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-06T18:15-03:00 | pm-workframe | WF-040 done — program_stages in backlog.json; ledger-next picks B→C→D (WF-037 next); PM README/runbook reference program-status.md.
+2026-07-06T17:50-03:00 | verify-matrix | Full matrix @ 9a06d88: 16 pass / 1 fail / 2 skip. FAIL: package-install-evidence --skip-prep (ui_bundle_identity stale UI). Evidence: operations/release-evidence/runs/latest-verify-matrix.json. WF-019/020/005 green; WF-021 runner fails without bundle prep.
+2026-07-06T18:12-03:00 | pm-workframe | lane-c-broker partial — WF-026→025 done on lane-d-authority; WF-017 partial (VPS run manual).
+2026-07-06T18:08-03:00 | pm-workframe | lane-d-authority partial — 5 commits on branch; WF-009/008 done; run ledger + cell scaffold landed; merge lane-d-authority → main pending.
+2026-07-06T18:02-03:00 | pm-workframe | lane-b-api — WF-037 done (2651025), WF-032 partial db_schema (bca2747); broker/authority unblocked for server.py wiring.
+2026-07-06T17:59-03:00 | pm-workframe | Dispatch copy-ux agent — strings only; wizard first, settings mirror, errors/feedback; no layout/CSS.
+2026-07-06T17:53-03:00 | pm-workframe | Push-to-deferred dispatch — 4 lanes: B (037/032), C (broker), D (NS-P2/009/007/008/016), meta WF-040.
+2026-07-06T18:10-03:00 | pm-workframe | verify-matrix 16/1/2 — WF-021 ui_bundle stale without sync+bundle; all subagent lanes closed; next WF-037 impl.
+2026-07-06T18:05-03:00 | doc-audit | program-status.md refreshed — Stage A complete; B WF-037 partial; backlog.md pointer updated; verify:docs/version green.
+2026-07-06T17:48-03:00 | pm-workframe | api-decompose verify — WF-037 stays partial (no commit); WF-032 gap documented; stash wf037-verify optional.
+2026-07-06T17:47-03:00 | pm-workframe | Stage A closed — WF-006/019/020/004 done (release-truth subagent); Wave 2 unblocked on broker lane after B1.
+2026-07-06T17:46-03:00 | pm-workframe | Spawn doc-audit + verify-matrix subagents — document program state vs backlog; run full verify matrix.
+2026-07-06T17:44-03:00 | pm-workframe | Agent discipline: verify-first, backlog may be stale, no arbitrary changes, no UI — relayed to active subagents.
+2026-07-06T17:43-03:00 | pm-workframe | Alan constraint: NO UI changes — frontend lane cancelled; WF-036/WF-012 out of scope for push-to-deferred.
+2026-07-06T17:40-03:00 | pm-workframe | Dispatch 4 subagents — Stages A→D push until deferred threshold; lanes: release-truth, api-decompose, domain-design, frontend.
+2026-07-06T17:37-03:00 | pm-workframe | Session open — orient backlog (50 items: 13 done, 7 partial, 18 todo, 12 deferred); ledger-next WF-006; uncommitted cosmetic UI lane on main.
 2026-07-05T06:02-03:00 | pm-workframe | WF-037 partial — route_registry.py + auth gate; commit 317aea4.
 2026-07-05T05:50-03:00 | pm-workframe | Wave A checkpoint — WF-031/034/038 done, WF-033 partial; 4 commits (da30d00..539f5ae); orchestration.md live.
 2026-07-05T04:56-03:00 | pm-workframe | Dogfood sign-off done (Alan) — WF-002 done; harness dogfood-install-gate + installer-ui-bundle passes:true.
@@ -39,3 +55,4 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 2026-07-04T11:45-03:00 | Red Team | created docs/living-audit/red-team-12-evidence-authority-collapse.md challenging overloaded PackageTruthGate evidence and release-claim scope; no product source code changed.
 2026-07-04T12:05-03:00 | Manual Audit | created docs/living-audit/25-audit.md consolidating the 24-run rail plus fresh source sampling; no product source code changed.
 2026-07-04T23:50-03:00 | DevOps | consolidated dogfood doctrine: reset = npx create-workframe MyBusiness only; scripts/workframe/README.md; deprecated legacy compose/runtime paths.
+2026-07-06T18:00-03:00 | Copy | wizard/settings/error copy pass; docs/ledger/copy-style-notes.md term map (BYOK, company-pays, Workframe admin).

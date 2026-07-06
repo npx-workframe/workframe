@@ -43,7 +43,7 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   no_session: { message: 'You are not signed in.', hint: 'Sign in and try again.' },
   install_closed: {
     message: 'Install setup is already finished.',
-    hint: 'Open the main app at / or finish user onboarding in Settings.',
+    hint: 'Open the main app or finish user onboarding in Settings.',
   },
   oauth_start_failed: {
     message: 'Could not start provider sign-in inside the gateway.',
@@ -63,7 +63,7 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   },
   forbidden: { message: 'You do not have permission for this action.' },
   room_access_denied: { message: 'You cannot access this room.' },
-  room_not_found: { message: 'Room not found.', hint: 'Refresh the workspace list.' },
+  room_not_found: { message: 'Room not found.', hint: 'Refresh the room list or open another chat.' },
   room_not_agent_chat: { message: 'This room is not an agent chat.' },
   profile_not_installed: { message: 'Agent profile is not installed on this stack.' },
   unknown_profile: { message: 'Unknown agent profile.' },
@@ -88,7 +88,7 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   },
   provider_invalid_key: {
     message: 'Your API key was rejected by the provider.',
-    hint: 'Reset the key at your provider and paste it again under Connected accounts.',
+    hint: 'Reset the key at your provider, then paste it again under Settings → Provider keys.',
     actionLabel: 'Update API key',
   },
   provider_no_credits: {
@@ -103,7 +103,7 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   },
   concierge_add_keys: {
     message: 'Connect an LLM provider to enable chat.',
-    hint: 'OpenRouter is the fastest path — paste your API key under Connected accounts.',
+    hint: 'OpenRouter is the fastest path — paste your API key under Settings → Provider keys.',
     actionLabel: 'Add API key',
   },
   concierge_change_model: {
@@ -113,7 +113,7 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   },
   no_llm_provider_for_user: {
     message: 'No model provider is connected for your account.',
-    hint: 'Add an OpenRouter or other LLM key under Connect accounts.',
+    hint: 'Add an OpenRouter or other LLM key under Settings → Provider keys.',
     actionLabel: 'Connect provider',
   },
   unauthorized: { message: 'Authentication required.', hint: 'Sign in and try again.' },
@@ -123,13 +123,13 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   },
   private_workspace: {
     message: 'This Workframe is private.',
-    hint: 'Contact your workspace admin for an invite link.',
+    hint: 'Contact your Workframe admin for an invite link.',
   },
 }
 
 function humanizeCode(code: string): string {
   const trimmed = code.trim()
-  if (!trimmed) return 'Something went wrong.'
+  if (!trimmed) return 'An unexpected error occurred.'
   if (CODE_COPY[trimmed]) return CODE_COPY[trimmed].message
   if (/^[a-z][a-z0-9_]*$/.test(trimmed)) {
     return trimmed.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()) + '.'
@@ -188,7 +188,7 @@ export function noticeFromStreamPayload(data: Record<string, unknown>): Workfram
   return {
     tone: 'caution',
     code: code || undefined,
-    message: message || 'Something went wrong.',
+    message: message || 'An unexpected error occurred.',
     hint,
     actionLabel: String(data.action_label || copy?.actionLabel || '').trim() || undefined,
     action,
@@ -277,7 +277,7 @@ export function formatWorkframeError(err: unknown, context?: string): WorkframeN
   if (!raw || raw === 'Error' || raw === 'HTTP undefined') {
     return {
       tone: 'caution',
-      message: prefix + (context ? 'Something went wrong.' : 'Something went wrong.'),
+      message: prefix + (context ? 'An unexpected error occurred.' : 'An unexpected error occurred.'),
       hint: 'Check the browser network tab or API logs for details.',
     }
   }
@@ -415,7 +415,7 @@ export function streamErrorText(payload: Record<string, unknown>): string {
     return noticeMessage({
       tone: 'caution',
       message: 'The agent could not reach the model provider.',
-      hint: 'Check API keys in Profile → Model keys and the model in Settings.',
+      hint: 'Check API keys in Settings → Provider keys and the model in Agent Settings.',
       actionLabel: 'Connect provider',
     })
   }
@@ -444,7 +444,7 @@ export function emptyAgentReplyText(options?: { streamError?: string; llmReady?:
   return noticeMessage({
     tone: 'caution',
     message: 'The agent returned no reply.',
-    hint: 'The model gateway may have rejected the request — try sending again. If it persists, check Profile → Model keys and the model in Settings.',
+    hint: 'The model gateway may have rejected the request — try sending again. If it persists, check Settings → Provider keys and the model in Agent Settings.',
     actionLabel: 'Connect provider',
   })
 }

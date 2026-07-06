@@ -24,7 +24,7 @@ export function ProviderRequiredDialog({
       onClose={() => onOpenChange(false)}
       title="Connect provider"
       sectionLabel="Provider keys"
-      summary={errorMessage?.trim() || 'Add an LLM key to continue chatting.'}
+      summary={errorMessage?.trim() || 'Connect an LLM provider to start chatting.'}
       titleId="wf-provider-required-title"
       sheetClassName="wf-dialog-content--settings-compact"
       actions={

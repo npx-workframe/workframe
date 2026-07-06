@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -65,7 +66,7 @@ export function emailOtpCopy(step: EmailOtpStep, email: string, devOtpHint: stri
     return `Enter the six-digit code sent to ${email}.`
   }
   return purpose === 'register'
-    ? 'Register with your email to become the workspace owner.'
+    ? 'Register with your email to become the Workframe admin.'
     : 'Sign in with your email to open Workframe.'
 }
 
@@ -307,55 +308,44 @@ export function EmailOtpVerification({
       return (
         <>
           {googleOAuthEnabled && onGoogleSignInRef.current ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="wf-wizard-btn wf-wizard-btn--secondary"
-              disabled={busy}
-              onClick={() => onGoogleSignInRef.current?.()}
-            >
+            <WfActionButton wizardSize disabled={busy} onClick={() => onGoogleSignInRef.current?.()}>
               Continue with Google
-            </Button>
+            </WfActionButton>
           ) : null}
-          <Button
+          <WfActionButton
+            wizardSize
+            tone="primary"
             type="submit"
             form="wf-email-otp-email-form"
-            className="wf-wizard-btn wf-wizard-btn--primary"
             disabled={busy || !email.trim()}
           >
             {busy ? 'Sending…' : 'Send code'}
-          </Button>
+          </WfActionButton>
         </>
       )
     }
     return (
       <>
-        <Button
+        <WfActionButton
+          wizardSize
+          tone="primary"
           type="submit"
           form="wf-email-otp-code-form"
-          className="wf-wizard-btn wf-wizard-btn--primary"
           disabled={busy || otp.length !== OTP_LENGTH}
         >
           {step === 'verifying' || busy ? 'Verifying…' : 'Verify code'}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          className="wf-wizard-btn wf-wizard-btn--ghost"
-          disabled={busy}
-          onClick={() => setStep('email')}
-        >
+        </WfActionButton>
+        <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
           Use another email
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="wf-wizard-btn wf-wizard-btn--secondary"
+        </WfActionButton>
+        <WfActionButton
+          wizardSize
+          tone={resendCooldown > 0 ? 'inactive' : 'default'}
           onClick={() => void handleResend()}
           disabled={busy || resendCooldown > 0}
         >
           {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-        </Button>
+        </WfActionButton>
       </>
     )
   }, [useFooter, step, busy, email, otp.length, resendCooldown, googleOAuthEnabled])
@@ -378,7 +368,7 @@ export function EmailOtpVerification({
       {step === 'email' ? (
         <form id="wf-email-otp-email-form" className="wf-auth__form" onSubmit={handleEmailSubmit}>
           {purpose === 'register' ? (
-            <p className="wf-auth__muted">This registers you as the workspace owner.</p>
+            <p className="wf-auth__muted">This registers you as the Workframe admin.</p>
           ) : null}
           <div className="wf-auth__field">
             <Label htmlFor={emailInputId}>Email</Label>
@@ -458,36 +448,30 @@ export function EmailOtpVerification({
             {!useFooter ? (
               <div className={wizardOtp ? 'wf-auth-otp-panel__actions' : undefined}>
                 <div className="wf-auth__row">
-                  <Button
+                  <WfActionButton
+                    wizardSize
+                    tone="primary"
                     type="submit"
-                    className="wf-wizard-btn wf-wizard-btn--primary"
                     disabled={busy || otp.length !== OTP_LENGTH}
                   >
                     {step === 'verifying' || busy ? 'Verifying…' : 'Verify code'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="wf-wizard-btn wf-wizard-btn--ghost"
-                    disabled={busy}
-                    onClick={() => setStep('email')}
-                  >
+                  </WfActionButton>
+                  <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
                     Use another email
-                  </Button>
+                  </WfActionButton>
                 </div>
                 <div className={`wf-auth__row${wizardOtp ? ' wf-auth-otp-panel__resend' : ' wf-auth__row--between'}`}>
                   <span className="wf-auth__muted">
                     {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : 'Need a fresh code?'}
                   </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="wf-wizard-btn wf-wizard-btn--secondary"
+                  <WfActionButton
+                    wizardSize
+                    tone={resendCooldown > 0 ? 'inactive' : 'default'}
                     onClick={() => void handleResend()}
                     disabled={busy || resendCooldown > 0}
                   >
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-                  </Button>
+                  </WfActionButton>
                 </div>
               </div>
             ) : (
