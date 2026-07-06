@@ -8,6 +8,7 @@ import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { SettingsSection } from '@/components/settings/SettingsSection'
 import { DialogField } from '@/components/dialogs/DialogField'
 import { DialogSelect } from '@/components/dialogs/DialogSelect'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -171,7 +172,6 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
           const savedAvatar = detail.avatar_url || detail.avatar_id || ''
           setAvatarUrl(savedAvatar ? agentAvatarPickerValue(savedAvatar) : '')
           setAvatarFileName('')
-          setAgentTab('identity')
         }
         return
       }
@@ -194,7 +194,6 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
       setProjectRoomTopic(activeRoom.topic ?? '')
       setProjectRoomAvatarUrl(logoAvatarPickerValue(activeRoom.avatar_url ?? ''))
       setProjectRoomAvatarFileName('')
-      setProjectTab('details')
       setAddMemberUserId('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings')
@@ -205,13 +204,16 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
 
   useEffect(() => {
     if (!open) return
-    void load()
-  }, [load, open])
+    setAgentTab(initialAgentTab ?? 'identity')
+    setProjectTab('details')
+    setError('')
+    setStatus('')
+  }, [open, initialAgentTab])
 
   useEffect(() => {
-    if (!open || !initialAgentTab) return
-    setAgentTab(initialAgentTab)
-  }, [open, initialAgentTab])
+    if (!open) return
+    void load()
+  }, [load, open])
 
   const title = mode === 'agent' ? 'Agent settings' : mode === 'project' ? 'Project settings' : 'Conversation'
 
@@ -244,7 +246,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
         role,
         ...(avatar ?? {}),
       })
-      setStatus('Agent identity saved.')
+      setStatus('Identity saved — your changes are live for this agent.')
       reloadCrew()
       await load()
     } catch (err) {
@@ -266,7 +268,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
         })
       }
       await saveProfileSoul(agentProfile, soul)
-      setStatus('Instructions saved.')
+      setStatus('Instructions saved — the agent will use them on the next turn.')
       await load()
     } catch (err) {
       setError(formatWorkframeErrorMessage(err, 'Save SOUL'))
@@ -341,6 +343,59 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
 
   const agentFieldsDisabled = loading || busy || !canManageWorkspace
   const projectFieldsDisabled = loading || busy || !canManageWorkspace
+
+  const footerActions = useMemo(() => {
+    if (mode === 'agent' && agentTab === 'identity') {
+      return (
+        <WfActionButton
+          type="button"
+          tone="primary"
+          onClick={() => void saveAgentIdentity()}
+          disabled={agentFieldsDisabled}
+        >
+          <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+          {busy ? 'Saving…' : 'Save changes'}
+        </WfActionButton>
+      )
+    }
+    if (mode === 'agent' && agentTab === 'instructions') {
+      return (
+        <WfActionButton
+          type="button"
+          tone="primary"
+          onClick={() => void saveAgentSoul()}
+          disabled={agentFieldsDisabled}
+        >
+          <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+          {busy ? 'Saving…' : 'Save instructions'}
+        </WfActionButton>
+      )
+    }
+    if (mode === 'project' && projectTab === 'details') {
+      return (
+        <WfActionButton
+          type="button"
+          tone="primary"
+          onClick={() => void saveProjectDetails()}
+          disabled={projectFieldsDisabled}
+        >
+          <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+          {busy ? 'Saving…' : 'Save project'}
+        </WfActionButton>
+      )
+    }
+    return null
+  }, [
+    agentFieldsDisabled,
+    agentTab,
+    busy,
+    mode,
+    projectFieldsDisabled,
+    projectTab,
+    saveAgentIdentity,
+    saveAgentSoul,
+    saveProjectDetails,
+  ])
   const canEditAgentModels = Boolean(me?.user_id && modelsProfile)
 
   const projectAvatarDisplayUrl = useMemo(() => {
@@ -393,7 +448,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
               ? [
                   { id: 'details', label: 'Project Details' },
                   { id: 'members', label: 'Project Members' },
-                  { id: 'agents', label: 'Workspace Agents' },
+                  { id: 'agents', label: 'Workframe agents' },
                 ]
               : undefined
         }
@@ -409,6 +464,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
         }
         loading={loading}
         contentFill={mode === 'agent' && agentTab === 'models'}
+        actions={footerActions}
       >
         <div
           className={cn(
@@ -422,18 +478,6 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
           {mode === 'agent' ? (
             agentTab === 'identity' ? (
               <div className="space-y-4" role="tabpanel">
-                <div className="flex items-center justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="default"
-                    onClick={() => void saveAgentIdentity()}
-                    disabled={agentFieldsDisabled}
-                  >
-                    <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                    {busy ? 'Saving…' : 'Save changes'}
-                  </Button>
-                </div>
-
                 {error ? <WorkframeNotice message={error} /> : null}
                 {status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -471,18 +515,6 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
               </div>
             ) : agentTab === 'instructions' ? (
               <div className="space-y-4" role="tabpanel">
-                <div className="flex items-center justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="default"
-                    onClick={() => void saveAgentSoul()}
-                    disabled={agentFieldsDisabled}
-                  >
-                    <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                    {busy ? 'Saving…' : 'Save instructions'}
-                  </Button>
-                </div>
-
                 {error ? <WorkframeNotice message={error} /> : null}
                 {status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -514,8 +546,14 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                     profile={modelsProfile}
                     workspaceId={me?.workspace_id}
                     embedded
-                    onError={setError}
-                    onChanged={() => void load()}
+                    onError={(message) => {
+                      setError(message)
+                      setStatus('')
+                    }}
+                    onStatus={(message) => {
+                      setError('')
+                      setStatus(message)
+                    }}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">
@@ -529,18 +567,6 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
           {mode === 'project' && activeRoom ? (
             projectTab === 'details' ? (
               <div className="space-y-4" role="tabpanel">
-                <div className="flex items-center justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="default"
-                    onClick={() => void saveProjectDetails()}
-                    disabled={projectFieldsDisabled}
-                  >
-                    <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                    {busy ? 'Saving…' : 'Save project'}
-                  </Button>
-                </div>
-
                 {error ? <WorkframeNotice message={error} /> : null}
                 {status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -597,7 +623,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                         className="flex-1"
                         value={addMemberUserId}
                         onValueChange={setAddMemberUserId}
-                        placeholder="Workspace member"
+                        placeholder="Team member"
                         disabled={busy}
                         options={addableMembers.map((member) => ({
                           value: member.user_id,

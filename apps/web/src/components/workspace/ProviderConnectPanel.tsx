@@ -270,7 +270,7 @@ export function ProviderConnectPanel({
           ) : (
             <>
               Keys here are <strong>yours</strong> — agents, kanban, and dev actions bill and authenticate as you.
-              Workspace bot tokens and OAuth apps are configured in Workframe integrations.
+              Workframe bot tokens and OAuth apps are configured under Workframe Settings → Integrations.
             </>
           )}
         </p>

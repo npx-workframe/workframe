@@ -8,6 +8,7 @@ import { WorkspaceMessagingPanel } from '@/components/onboarding/WorkspaceMessag
 import { SiteBrandingFields } from '@/components/settings/SiteBrandingFields'
 import { SettingsSection } from '@/components/settings/SettingsSection'
 import { SmtpSettingsFields } from '@/components/settings/SmtpSettingsFields'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
 import { ReducedProfileCard } from '@/components/ui/ReducedProfileCard'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
@@ -87,7 +88,7 @@ export function WorkframeSettingsSheet({
       setDescription(detail.workspace.description ?? '')
       setAvatarUrl(logoAvatarPickerValue(detail.workspace.avatar_url ?? ''))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load workframe')
+      setError(err instanceof Error ? err.message : 'Could not load Workframe settings')
     } finally {
       setLoading(false)
     }
@@ -158,7 +159,7 @@ export function WorkframeSettingsSheet({
         ...(logo ?? {}),
       })
       setWorkspace(result.workspace)
-      setStatus('Workframe saved.')
+      setStatus('Workframe profile saved.')
       onChanged?.()
       await load()
     } catch (err) {
@@ -181,10 +182,10 @@ export function WorkframeSettingsSheet({
         smtpSaveRef.current?.() ?? Promise.resolve(true),
       ])
       if (results.some((ok) => !ok)) {
-        setError('Some integration settings could not be saved. Check the messages above.')
+        setError('Some integration settings could not be saved. Review the messages above and try again.')
         return
       }
-      setStatus('Integrations saved.')
+      setStatus('Integrations saved. Changes apply on the next agent run.')
       await load()
       onChanged?.()
     } catch (err) {
@@ -205,7 +206,7 @@ export function WorkframeSettingsSheet({
       await load()
       onChanged?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove member')
+      setError(err instanceof Error ? err.message : 'Could not remove member')
     } finally {
       setBusyUserId('')
     }
@@ -236,27 +237,26 @@ export function WorkframeSettingsSheet({
       ]}
       activeTab={tab}
       onTabChange={(next) => setTab(next as WorkframeTab)}
+      actions={
+        tab === 'workframe' && canManage ? (
+          <WfActionButton
+            type="button"
+            tone="primary"
+            onClick={() => void saveWorkframe()}
+            disabled={fieldsDisabled}
+          >
+            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+            {saving ? 'Saving…' : 'Save changes'}
+          </WfActionButton>
+        ) : null
+      }
       footer={
-        <p className="wf-user-settings__hint m-0">Workspace ID: {workspaceId}</p>
+        <p className="wf-user-settings__hint m-0">Workframe ID: {workspaceId}</p>
       }
     >
       <div className="wf-workframe-settings space-y-4">
         {tab === 'workframe' ? (
           <div className="space-y-4" role="tabpanel">
-            {canManage ? (
-              <div className="flex items-center justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={() => void saveWorkframe()}
-                  disabled={fieldsDisabled}
-                >
-                  <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                  {saving ? 'Saving…' : 'Save changes'}
-                </Button>
-              </div>
-            ) : null}
-
             {error ? <WorkframeNotice message={error} /> : null}
             {status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -285,7 +285,7 @@ export function WorkframeSettingsSheet({
                   value: description,
                   onChange: setDescription,
                   rows: 4,
-                  placeholder: 'What this workframe is for',
+                  placeholder: 'What this Workframe is for',
                 }}
               />
             </div>
@@ -293,14 +293,14 @@ export function WorkframeSettingsSheet({
             {canManage ? (
               <SettingsSection
                 title="Web presence"
-                hint="OG link previews, PWA install name, favicon, and theme color for this deployment."
+                hint="Link previews, PWA install name, favicon, and theme color for this Workframe."
               >
                 <SiteBrandingFields disabled={fieldsDisabled} onStatus={setStatus} />
               </SettingsSection>
             ) : null}
 
             {!canManage ? (
-              <p className="wf-user-settings__hint">Workspace admin can edit workframe details.</p>
+              <p className="wf-user-settings__hint">Only a Workframe admin can edit these details.</p>
             ) : null}
           </div>
         ) : null}
@@ -309,9 +309,9 @@ export function WorkframeSettingsSheet({
           <div className="space-y-4" role="tabpanel">
             {canManage ? (
               <div className="flex items-center justify-end gap-3">
-                <Button type="button" variant="default" onClick={onInviteClick}>
+                <WfActionButton type="button" tone="primary" onClick={onInviteClick}>
                   Invite member
-                </Button>
+                </WfActionButton>
               </div>
             ) : null}
 
@@ -353,7 +353,7 @@ export function WorkframeSettingsSheet({
               </div>
             ) : (
               <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
-                No members loaded.
+                No members yet.
               </p>
             )}
           </div>
@@ -372,9 +372,9 @@ export function WorkframeSettingsSheet({
         {tab === 'invites' && canManage ? (
           <div className="space-y-4" role="tabpanel">
             <div className="flex items-center justify-end gap-3">
-              <Button type="button" variant="default" onClick={onInviteClick}>
+              <WfActionButton type="button" tone="primary" onClick={onInviteClick}>
                 Invite member
-              </Button>
+              </WfActionButton>
             </div>
 
             {error ? <WorkframeNotice message={error} /> : null}
@@ -404,15 +404,15 @@ export function WorkframeSettingsSheet({
         {tab === 'integrations' && canManage ? (
           <div className="space-y-4" role="tabpanel">
             <div className="flex items-center justify-end gap-3">
-              <Button
+              <WfActionButton
                 type="button"
-                variant="default"
+                tone="primary"
                 onClick={() => void saveIntegrations()}
                 disabled={fieldsDisabled}
               >
                 <Save className="w-4 h-4 mr-2" aria-hidden="true" />
                 {saving ? 'Saving…' : 'Save all'}
-              </Button>
+              </WfActionButton>
             </div>
 
             {error ? <WorkframeNotice message={error} /> : null}
@@ -421,7 +421,7 @@ export function WorkframeSettingsSheet({
             <div className="wf-wizard-panel wf-onboarding-form space-y-8">
               <SettingsSection
                 title="Email delivery"
-                hint="SMTP for invites, OTP, and notifications. Password is vault-encrypted on the stack."
+                hint="SMTP for invites, sign-in codes, and notifications. Password is vault-encrypted on the stack."
               >
                 <SmtpSettingsFields
                   disabled={fieldsDisabled}
@@ -446,7 +446,7 @@ export function WorkframeSettingsSheet({
 
               <SettingsSection
                 title="Sign-in apps"
-                hint="Stack OAuth apps for member sign-in — Google, GitHub, Discord, and Telegram Login."
+                hint="OAuth apps for member sign-in — Google, GitHub, Discord, and Telegram Login."
               >
                 <AdminOAuthSetup
                   disabled={fieldsDisabled}
@@ -458,7 +458,7 @@ export function WorkframeSettingsSheet({
 
               <SettingsSection
                 title="Agent messaging"
-                hint="Shared Hermes bot tokens and home channels — separate from member sign-in OAuth."
+                hint="Shared bot tokens and home channels for Discord and Telegram — separate from member sign-in OAuth."
               >
                 <WorkspaceMessagingPanel
                   workspaceId={workspaceId}

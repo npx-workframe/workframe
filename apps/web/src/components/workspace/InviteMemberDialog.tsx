@@ -68,7 +68,7 @@ export function InviteMemberDialog({
         onOpenChange(false)
         reset()
       }}
-      title="Add contact"
+      title="Invite teammate"
       sectionLabel="Invite details"
       summary={`Invite to ${workspaceName}`}
       titleId="wf-invite-member-title"
@@ -89,7 +89,7 @@ export function InviteMemberDialog({
         {status ? <WorkframeStatusNotice message={status} /> : null}
 
         <div className="wf-wizard-panel wf-onboarding-form">
-          <DialogField label="Email" htmlFor="wf-invite-email" hint="They sign in with OTP and accept the invite.">
+          <DialogField label="Email" htmlFor="wf-invite-email" hint="They sign in with a verification code and accept the invite.">
             <Input
               id="wf-invite-email"
               className="wf-dialog-input"

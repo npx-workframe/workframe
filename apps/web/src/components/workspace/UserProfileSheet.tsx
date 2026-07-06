@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { LogOut, Save } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
@@ -49,16 +49,21 @@ export function UserProfileSheet({
 
   useEffect(() => {
     if (!open) return
+    setTab(initialTab)
+    if (initialTab === 'connect') {
+      setConnectTab(initialConnectTab === 'messaging' ? 'messaging' : 'providers')
+    }
+    setError('')
+    setStatus('')
+  }, [open, initialTab, initialConnectTab])
+
+  useEffect(() => {
+    if (!open) return
     let cancelled = false
 
     async function load() {
       setLoading(true)
       setError('')
-      setStatus('')
-      setTab(initialTab)
-      if (initialTab === 'connect') {
-        setConnectTab(initialConnectTab === 'messaging' ? 'messaging' : 'providers')
-      }
       try {
         const me = await workframeAuthApi.getMe()
         if (cancelled) return
@@ -91,7 +96,7 @@ export function UserProfileSheet({
     return () => {
       cancelled = true
     }
-  }, [open, initialTab, initialConnectTab])
+  }, [open])
 
   const summary = useMemo(() => {
     if (!profile) return ''
@@ -119,7 +124,7 @@ export function UserProfileSheet({
       })
       setProfile(result)
       setAvatarUrl(userAvatarPickerValue(result.user.avatar_url ?? avatarUrl))
-      setStatus('Profile saved.')
+      setStatus('Profile saved. Your identity updates are live.')
     } catch (err) {
       setStatus('')
       setError(formatWorkframeErrorMessage(err, 'Save profile'))
@@ -155,18 +160,30 @@ export function UserProfileSheet({
       ]}
       activeTab={tab}
       onTabChange={(next) => setTab(next as ProfileTab)}
+      actions={
+        tab === 'profile' ? (
+          <WfActionButton
+            type="button"
+            tone="primary"
+            onClick={() => void saveProfile()}
+            disabled={profileFieldsDisabled}
+          >
+            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+            {savingProfile ? 'Saving…' : 'Save changes'}
+          </WfActionButton>
+        ) : null
+      }
       footer={
         onLogout ? (
-          <Button
+          <WfActionButton
             type="button"
-            variant="outline"
             className="w-full justify-start gap-2"
             disabled={loggingOut}
             onClick={() => void handleLogout()}
           >
             <LogOut className="w-4 h-4" aria-hidden="true" />
             {loggingOut ? 'Signing out…' : 'Log out'}
-          </Button>
+          </WfActionButton>
         ) : null
       }
     >
@@ -176,18 +193,6 @@ export function UserProfileSheet({
 
         {tab === 'profile' ? (
           <div className="space-y-4" role="tabpanel">
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="default"
-                onClick={() => void saveProfile()}
-                disabled={profileFieldsDisabled}
-              >
-                <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                {savingProfile ? 'Saving…' : 'Save changes'}
-              </Button>
-            </div>
-
             {error ? <WorkframeNotice message={error} /> : null}
             {status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -225,11 +230,11 @@ export function UserProfileSheet({
             {status ? <WorkframeStatusNotice message={status} /> : null}
 
             <div className="wf-wizard-panel wf-onboarding-form">
-              <div className="wf-wizard-subtabs" role="tablist" aria-label="Connected account sections">
+              <div className="wf-wizard-subtabs" role="tablist" aria-label="Model keys sections">
                 {(
                   [
-                    ['providers', 'LLM Providers'],
-                    ['messaging', 'Messaging'],
+                    ['providers', 'Provider keys'],
+                    ['messaging', 'Linked accounts'],
                   ] as const
                 ).map(([id, label]) => (
                   <button
@@ -253,10 +258,16 @@ export function UserProfileSheet({
                   categories={['llm', 'dev', 'search']}
                   hint="none"
                   layout="stack"
-                  onStatus={setStatus}
-                  onError={setError}
+                  onError={(message) => {
+                    setError(message)
+                    setStatus('')
+                  }}
+                  onStatus={(message) => {
+                    setError('')
+                    setStatus(message)
+                  }}
                   onConnected={() => {
-                    setStatus('Provider connected — configure models per agent in Agent Settings.')
+                    setStatus('Provider connected. Choose a model per agent in Agent Settings.')
                   }}
                 />
               ) : null}
@@ -266,7 +277,7 @@ export function UserProfileSheet({
                   embedded
                   workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
                   disabled={loading}
-                  onLinked={() => setStatus('Messaging account linked.')}
+                  onLinked={() => setStatus('Account linked.')}
                 />
               ) : null}
             </div>

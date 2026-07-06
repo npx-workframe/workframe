@@ -70,7 +70,7 @@ function projectColor(slug: string): string {
   return PROJECT_COLORS[hash] ?? PROJECT_COLORS[0]
 }
 
-export function AgentRailPanel({ api }: IDockviewPanelProps) {
+export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {}) {
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   const { crew, error, reload: reloadCrew } = useCrew(projectName)
   const { activeProfile, setActiveRoute } = useAgentRoute()
@@ -128,7 +128,7 @@ export function AgentRailPanel({ api }: IDockviewPanelProps) {
       setWorkspaceRooms(nextRooms)
       writeCachedRooms(workspaceId, nextRooms)
     } catch (err) {
-      setWorkspaceError(formatWorkframeErrorMessage(err, 'Load workspace'))
+      setWorkspaceError(formatWorkframeErrorMessage(err, 'Load Workframe'))
       if (!workspaceRooms.length) {
         setWorkspaceMembers([])
         setWorkspaceRooms([])

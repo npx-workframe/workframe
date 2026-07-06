@@ -85,7 +85,12 @@ export function SmtpSettingsFields({ disabled, onBindSave, onError }: SmtpSettin
           />
         </div>
         <div className="wf-dialog-field">
-          <Label htmlFor="wf-smtp-settings-port">Port</Label>
+          <div className="wf-dialog-field__label-row">
+            <Label htmlFor="wf-smtp-settings-port">Port</Label>
+            <span className="wf-dialog-field__hint wf-dialog-field__hint--inline">
+              465 SSL · 587 STARTTLS
+            </span>
+          </div>
           <Input
             id="wf-smtp-settings-port"
             value={port}

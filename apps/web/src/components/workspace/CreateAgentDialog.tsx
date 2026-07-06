@@ -26,7 +26,7 @@ const STEP_LABELS: Record<string, string> = {
   bootstrap_dm_lane: 'Open agent chat',
   room_chat_bind: 'Bind chat session',
   seed_user_soul: 'Save instructions',
-  register_route: 'Register in workspace',
+  register_route: 'Register in Workframe',
   assign_avatar: 'Assign avatar',
 }
 
@@ -159,7 +159,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
       return
     }
     if (!workspaceId) {
-      setError('Workspace not loaded — close and try again')
+      setError('Workframe not loaded — close this dialog and try again.')
       return
     }
     setBusy(true)
@@ -217,7 +217,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
       tabs={[
         { id: 'identity', label: 'Identity & Bio' },
         { id: 'instructions', label: 'Instructions' },
-        { id: 'model', label: 'LLM Models' },
+        { id: 'model', label: 'LLM models' },
       ]}
       activeTab={tab}
       onTabChange={(next) => setTab(next as DialogTab)}

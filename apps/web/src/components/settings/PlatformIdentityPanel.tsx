@@ -22,11 +22,11 @@ const PLATFORM_META: Record<
 > = {
   discord: {
     label: 'Discord',
-    blurb: 'OAuth account for messaging identity and bot allowlists.',
+    blurb: 'Link your Discord account for messaging identity and bot allowlists.',
   },
   telegram: {
     label: 'Telegram',
-    blurb: 'Login widget for messaging identity and bot allowlists.',
+    blurb: 'Link your Telegram account for messaging identity and bot allowlists.',
   },
 }
 
@@ -45,9 +45,9 @@ function platformState(configured: boolean, linkedId: string): { text: string; l
 function platformDetail(configured: boolean, linkedId: string, embedded: boolean): string {
   if (linkedId) return `ID ${linkedId}`
   if (!configured) {
-    return embedded ? 'Ask admin to enable.' : 'Not enabled on this workframe yet. Ask your admin to turn it on under Workframe → Integrations.'
+    return embedded ? 'Ask your admin to enable sign-in.' : 'Not enabled on this Workframe yet. Ask your admin to turn it on under Workframe Settings → Integrations.'
   }
-  return embedded ? 'Not linked' : 'Connect below to link your personal account.'
+  return embedded ? 'Not linked yet' : 'Connect below to link your personal account.'
 }
 
 export function PlatformIdentityPanel({
@@ -99,7 +99,7 @@ export function PlatformIdentityPanel({
         setError(result.message || result.error || 'Could not start Discord connect')
         return
       }
-      setStatus('Discord connect started — finish in the opened window.')
+      setStatus('Discord connect started — finish authorization in the window that opened.')
       await reload()
       onLinked?.()
     } catch (err) {
