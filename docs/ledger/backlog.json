@@ -193,7 +193,7 @@
         "reviewer": null,
         "patch_refs": [],
         "completed_at": "2026-07-06",
-        "notes": "Scaffold module + unit tests; adopt blocked WF-014; wire create/open to CLI deferred."
+        "notes": "Verified 2026-07-06: test_cell_authority.py green; scaffold + unit tests. Gap: wire create/open to CLI (WF-014)."
       }
     },
     {

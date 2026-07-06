@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-06T19:39-03:00 | pm-workframe | WF-007 verified — test_cell_authority.py green; CLI wire deferred WF-014.
 2026-07-06T19:38-03:00 | pm-workframe | WF-016 verified — test_run_authority.py green; billing amounts deferred.
 2026-07-06T19:35-03:00 | pm-workframe | WF-035 partial — _log_handler_error on auth/vault/provider-sync paths.
 2026-07-06T19:30-03:00 | pm-workframe | WF-037 batch 3 — bootstrap/hermes/supervisor/audit + 8 pattern handlers; 55+41+4 exact dispatch; zero if path == chains.
