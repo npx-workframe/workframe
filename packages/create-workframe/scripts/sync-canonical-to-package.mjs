@@ -110,6 +110,7 @@ const applyScripts = [
   'setup-stack-secrets.sh',
   'bootstrap-workspace-link.sh',
   'verify-public-deploy.sh',
+  'gateway-egress-iptables.sh',
   'fix-zk-encryption-key.sh',
   'set-compose-public-url.mjs',
   'ensure-compose-host-paths.mjs',

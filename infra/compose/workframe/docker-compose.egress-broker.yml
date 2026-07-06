@@ -1,0 +1,24 @@
+# Forced broker egress overlay — block direct provider API hosts from gateway.
+# Usage (public): docker compose -f docker-compose.yml -f docker-compose.public.yml -f docker-compose.egress-broker.yml up -d
+# Requires WORKFRAME_FORCE_AGENT_EGRESS_BROKER=true in .env
+name: workframe
+
+services:
+  gateway-egress-guard:
+    image: alpine:3.20
+    container_name: workframe-gateway-egress-guard
+    restart: unless-stopped
+    network_mode: "service:gateway"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ../../../scripts/workframe/gateway-egress-iptables.sh:/opt/egress.sh:ro
+    environment:
+      - WORKFRAME_API_HOST=workframe-api
+      - WORKFRAME_BROKERED_PROVIDER_HOSTS=openrouter.ai api.openai.com api.anthropic.com generativelanguage.googleapis.com api.deepseek.com api.github.com api.vercel.com api.netlify.com
+    command: ["sh", "/opt/egress.sh"]
+    depends_on:
+      - gateway
+    labels:
+      com.workframe.project: "${WORKFRAME_PROJECT:-Workframe}"
+      com.workframe.role: gateway-egress-guard
