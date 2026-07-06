@@ -33,6 +33,9 @@ jobs:
       - name: Version agreement
         run: node scripts/workframe/verify-version-agreement.mjs
 
+      - name: Docs claim gate
+        run: node scripts/workframe/verify-docs-claims.mjs
+
       - name: Release evidence fixtures
         run: node scripts/workframe/validate-release-evidence.mjs
 

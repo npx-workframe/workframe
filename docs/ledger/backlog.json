@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-07-05",
+  "updated": "2026-07-06",
   "north_star_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "items": [
     {
@@ -122,7 +122,7 @@
       "summary": "Public docs must only claim what evidence proves; flag adapter/Electron/public-VPS overclaims.",
       "wave": "release-truth",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P0-6", "25-audit:ticket-6", "RT-09"],
       "acceptance": [
         "Verifier scans docs/public for unsupported claims",
@@ -131,7 +131,18 @@
       ],
       "depends_on": [],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "evidence": [
+        "scripts/workframe/verify-docs-claims.mjs",
+        "operations/release-scope.json",
+        "docs/ledger/specs/WF-006/spec.md",
+        ".github/workflows/ci.yml"
+      ],
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "completed_at": "2026-07-06",
+        "patch_refs": []
+      }
     },
     {
       "id": "WF-007",

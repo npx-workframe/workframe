@@ -1,0 +1,78 @@
+{
+  "schema_version": "0.1",
+  "release_line": "0.1.x",
+  "proven": [
+    "empty-target create-workframe scaffold",
+    "managed Hermes Docker compose stack",
+    "single_user_local wizard and BYOK first chat (maintainer dogfood evidence)"
+  ],
+  "not_proven_without_qualifier": [
+    "executable runtime or engine adapters beyond managed Hermes Docker",
+    "Electron-native installer or desktop-first setup",
+    "host Hermes adoption or import",
+    "second runtime execution",
+    "public VPS production-ready without separate hardening evidence",
+    "company-pays or hybrid runtime execution at release gate"
+  ],
+  "qualifier_patterns": [
+    "\\bplanned\\b",
+    "\\bexperimental\\b",
+    "\\bmanual\\b",
+    "\\bnot yet\\b",
+    "\\bnot wired\\b",
+    "\\bdeferred\\b",
+    "\\bfuture\\b",
+    "\\bmay become\\b",
+    "\\brough edges\\b",
+    "\\brequires separate\\b",
+    "\\bchecklist\\b",
+    "\\bsee \\[PUBLIC_DEPLOY",
+    "\\bhardening\\b",
+    "\\bWF-\\d+",
+    "\\bmaintainer\\b",
+    "\\b0\\.1\\.x\\b"
+  ],
+  "scan_roots": ["docs/public", "README.md"],
+  "claim_rules": [
+    {
+      "id": "runtime_adapter_executable",
+      "pattern": "\\bruntime adapters?\\b",
+      "message": "Runtime adapters are not release-proven; mark planned/experimental or remove executable implication."
+    },
+    {
+      "id": "engine_adapter_executable",
+      "pattern": "\\bengine adapters?\\b",
+      "message": "Engine adapters beyond Hermes are not release-proven."
+    },
+    {
+      "id": "second_runtime",
+      "pattern": "\\bsecond runtime\\b",
+      "message": "Second runtime is deferred; qualify as planned/experimental."
+    },
+    {
+      "id": "electron_native",
+      "pattern": "\\bElectron(-native)?\\b",
+      "message": "Electron setup is not release-proven in v0.1.x."
+    },
+    {
+      "id": "host_hermes_adopt",
+      "pattern": "\\bhost Hermes (adopt|import|setup)\\b",
+      "message": "Host Hermes adoption is not release-proven."
+    },
+    {
+      "id": "cli_runtime_runnable",
+      "pattern": "\\b(Codex CLI|Claude CLI|Claude Code|OpenCode)\\b.*\\b(through Workframe|runs? in Workframe|executable)\\b",
+      "message": "Non-Hermes CLIs are not runnable through Workframe in v0.1.x."
+    },
+    {
+      "id": "vps_production_ready",
+      "pattern": "\\b(public VPS|VPS deploy).{0,40}\\bproduction[- ]ready\\b",
+      "message": "Public VPS production-ready claim exceeds release evidence."
+    },
+    {
+      "id": "production_ready_public",
+      "pattern": "\\bproduction[- ]ready\\b.{0,40}\\b(public|VPS|multi-user)\\b",
+      "message": "Public production-ready claim exceeds release evidence."
+    }
+  ]
+}
