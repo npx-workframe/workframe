@@ -75,6 +75,23 @@ _SRV_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     (r"(?<![.\w])_gateway_lifecycle_lock\b", "_srv()._gateway_lifecycle_lock"),
     (r"(?<![.\w])profile_gateway_lifecycle\(", "_srv().profile_gateway_lifecycle("),
     (r"(?<![.\w])profile_gateway_stop\(", "_srv().profile_gateway_stop("),
+    (r"(?<![.\w])openrouter_catalog\.", "openrouter_catalog."),
+    (r"(?<![.\w])_provider_display_label\(", "_srv()._provider_display_label("),
+    (r"(?<![.\w])_user_llm_providers_for_picker\(", "_srv()._user_llm_providers_for_picker("),
+    (r"(?<![.\w])_user_can_use_llm\(", "_srv()._user_can_use_llm("),
+    (r"(?<![.\w])_oauth_llm_provider_spec\(", "_srv()._oauth_llm_provider_spec("),
+    (r"(?<![.\w])_profile_llm_proxy_matches_billing\(", "_srv()._profile_llm_proxy_matches_billing("),
+    (r"(?<![.\w])_reload_runtime_profile_gateway\(", "_srv()._reload_runtime_profile_gateway("),
+    (r"(?<![.\w])_schedule_gateway_reload\(", "_srv()._schedule_gateway_reload("),
+    (r"(?<![.\w])_latest_session_id\(", "_srv()._latest_session_id("),
+    (r"(?<![.\w])_read_model_from_config\(", "_srv()._read_model_from_config("),
+    (r"(?<![.\w])_parse_model_fields_from_yaml\(", "_srv()._parse_model_fields_from_yaml("),
+    (r"(?<![.\w])_ensure_gateway_config_file\(", "_srv()._ensure_gateway_config_file("),
+    (r"(?<![.\w])_normalize_profile_config_yaml\(", "_srv()._normalize_profile_config_yaml("),
+    (r"\bPROVIDER_CONNECT_CATALOG\b", "_srv().PROVIDER_CONNECT_CATALOG"),
+    (r"\bHERMES_DEFAULT_PRIMARY\b", "_srv().HERMES_DEFAULT_PRIMARY"),
+    (r"\bHERMES_DEFAULT_FALLBACK_CHAIN\b", "_srv().HERMES_DEFAULT_FALLBACK_CHAIN"),
+    (r"\bPROVIDER_MVP_MODELS\b", "_srv().PROVIDER_MVP_MODELS"),
 )
 
 
