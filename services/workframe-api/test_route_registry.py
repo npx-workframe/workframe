@@ -132,7 +132,7 @@ assert len(dispatched_post) == 41
 dispatched_patch = [r for r in route_registry.ROUTES if r.method == "PATCH" and r.handler]
 assert len(dispatched_patch) == 4
 pattern_dispatched = [rp for rp in route_registry.ROUTE_PATTERNS if rp.handler]
-assert len(pattern_dispatched) == 13
+assert len(pattern_dispatched) == 29
 
 class _PostStub:
     def __init__(self) -> None:
@@ -151,9 +151,13 @@ assert not route_registry.dispatch_post(_stub, "/api/not-registered", {})
 class _GetStub:
     def __init__(self) -> None:
         self.called = False
+        self.pattern_called = False
 
     def _route_get_admin_vault_status(self, qs: dict) -> None:
         self.called = True
+
+    def _route_pattern_get_workspace_events(self, path: str, qs: dict) -> None:
+        self.pattern_called = True
 
 _get_stub = _GetStub()
 assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})
@@ -162,7 +166,8 @@ assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})  # 
 
 assert route_registry.dispatch_pattern(
     "GET", _get_stub, "/api/workspace/ws-1/events", qs={},
-) is False
+) is True
+assert _get_stub.pattern_called
 
 class _PatchStub:
     def __init__(self) -> None:

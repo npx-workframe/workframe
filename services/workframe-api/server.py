@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Workframe API - fast Hermes-native backend for Workframe UI.
 
@@ -417,7 +417,7 @@ AVATAR_CATALOG_JSON = _CATALOG_DIR / "avatar-catalog.json"
 USER_AVATAR_CATALOG_JSON = _CATALOG_DIR / "user-avatar-catalog.json"
 LOGO_CATALOG_JSON = _CATALOG_DIR / "logo-catalog.json"
 def _lane_registry_json() -> Path:
-    # ponytail: must follow DATA_DIR — tests patch DATA_DIR after import
+    # ponytail: must follow DATA_DIR â€” tests patch DATA_DIR after import
     return DATA_DIR / "lane-registry.json"
 DOCKER_SOCK = os.environ.get("DOCKER_SOCK", "/var/run/docker.sock")
 GATEWAY_CONTAINER_NAME = os.environ.get("WORKFRAME_GATEWAY_CONTAINER", "workframe-gateway")
@@ -466,7 +466,7 @@ def _install_window_open() -> bool:
 
 
 def _install_complete() -> bool:
-  """Stack install wizard finished — distinct from per-user onboarding gates."""
+  """Stack install wizard finished â€” distinct from per-user onboarding gates."""
   return not _install_window_open()
 
 
@@ -544,8 +544,8 @@ def _admin_write_allowed(handler: BaseHTTPRequestHandler) -> bool:
     return handler.headers.get("X-Workframe-Local", "").strip() == "1"
 
 
-def _apply_stack_update(target: str) -> dict[str, Any]:
-    return stack_updates.apply_update(target)
+def _apply_stack_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
+    return stack_updates.apply_update(target, user_ack=user_ack)
 
 
 def _restart_stack_gateway() -> dict[str, Any]:
@@ -923,7 +923,7 @@ def _upsert_env_secret(env_path: Path, key: str, value: str) -> None:
 def _publish_profile_gateway_secrets(profile: str) -> None:
     """Hermes gateway runs as uid hermes; API container writes bind-mount files as root.
 
-    Runtime profiles only ever get wf_rt_* lease tokens or auth.json pool metadata —
+    Runtime profiles only ever get wf_rt_* lease tokens or auth.json pool metadata â€”
     never raw upstream keys. chmod so the gateway can read overlays; supervisor still
     blocks agent shell exec against these paths.
     """
@@ -1211,7 +1211,7 @@ def _set_primary_messaging_platforms(enabled: dict[str, bool]) -> tuple[bool, st
 
 
 def _sync_workspace_messaging_gateway(workspace_id: str) -> dict[str, Any]:
-    """Vault → primary profile .env overlay + platform toggles + gateway restart."""
+    """Vault â†’ primary profile .env overlay + platform toggles + gateway restart."""
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id:
         return {"ok": False, "error": "workspace_id_required"}
@@ -1276,7 +1276,7 @@ PROVIDER_CONNECT_CATALOG: tuple[dict[str, Any], ...] = (
         "category": "llm",
         "connect_mode": "api_key",
         "env_var": "OPENROUTER_API_KEY",
-        "description": "Primary LLM router — any model via one API key.",
+        "description": "Primary LLM router â€” any model via one API key.",
     },
     {
         "id": "anthropic",
@@ -1368,7 +1368,7 @@ PROVIDER_CONNECT_CATALOG: tuple[dict[str, Any], ...] = (
         "oauth_provider": "github",
         "hermes_auth_id": "github",
         "user_only": True,
-        "description": "OAuth (admin registers app) or fine-grained PAT — repo push and GitHub API.",
+        "description": "OAuth (admin registers app) or fine-grained PAT â€” repo push and GitHub API.",
     },
     {
         "id": "stripe",
@@ -1378,7 +1378,7 @@ PROVIDER_CONNECT_CATALOG: tuple[dict[str, Any], ...] = (
         "env_var": "STRIPE_SECRET_KEY",
         "oauth_provider": "stripe",
         "user_only": True,
-        "description": "Connect your Stripe account — charges, customers, and billing tools.",
+        "description": "Connect your Stripe account â€” charges, customers, and billing tools.",
     },
     {
         "id": "vercel",
@@ -1412,7 +1412,7 @@ STRIPE_CONNECT_SCOPES = "read_write"
 
 
 def _stripe_connect_app_config() -> dict[str, str]:
-    """Stack Stripe Connect app — platform secret never leaves the BFF."""
+    """Stack Stripe Connect app â€” platform secret never leaves the BFF."""
     stack_st = stack_config.resolved_stripe_connect()
     if stack_st.get("client_id") and stack_st.get("client_secret"):
         return stack_st
@@ -1491,7 +1491,7 @@ def _parse_workspace_settings(row: sqlite3.Row | dict[str, Any]) -> dict[str, An
 
 
 def _github_oauth_app_config(workspace_id: str = "") -> dict[str, str]:
-    """Stack or workspace GitHub OAuth app — client secret never leaves the BFF."""
+    """Stack or workspace GitHub OAuth app â€” client secret never leaves the BFF."""
     workspace = str(workspace_id or "").strip()
     if workspace:
         try:
@@ -1633,7 +1633,7 @@ def _start_github_oauth(user_id: str, workspace_id: str, spec: dict[str, Any]) -
         return {
             "ok": False,
             "error": "github_oauth_not_configured",
-            "message": "Workframe admin must register a GitHub OAuth app under Workframe → Integrations.",
+            "message": "Workframe admin must register a GitHub OAuth app under Workframe â†’ Integrations.",
         }
     state = secrets.token_urlsafe(24)
     verifier, challenge = _pkce_pair()
@@ -1742,7 +1742,7 @@ def _start_stripe_oauth(user_id: str, workspace_id: str, spec: dict[str, Any]) -
         return {
             "ok": False,
             "error": "stripe_connect_not_configured",
-            "message": "Workframe admin must register Stripe Connect under Workframe → Integrations.",
+            "message": "Workframe admin must register Stripe Connect under Workframe â†’ Integrations.",
         }
     state = secrets.token_urlsafe(24)
     _store_oauth_pending(state, user_id, "stripe", "", workspace_id)
@@ -2144,7 +2144,7 @@ def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> boo
     prof = resolve_hermes_profile(profile)
     auth = _load_profile_auth_json(prof)
     if _extract_oauth_block_from_auth(auth, hermes_auth_id):
-        # ponytail: steady-state turns — skip user auth read when profile already has oauth
+        # ponytail: steady-state turns â€” skip user auth read when profile already has oauth
         return False
     user_auth = _load_user_hermes_auth(user_id)
     if not isinstance(user_auth, dict):
@@ -2770,7 +2770,7 @@ def _provision_agent_dm_runtimes(
     agent_profile_id: str,
     user_ids: list[str],
 ) -> None:
-    """Create u-* runtime profiles when an agent DM room is created — install/onboarding only, not bind."""
+    """Create u-* runtime profiles when an agent DM room is created â€” install/onboarding only, not bind."""
     workspace_id = str(workspace_id or "").strip()
     agent_profile_id = str(agent_profile_id or "").strip()
     if not workspace_id or not agent_profile_id:
@@ -2854,7 +2854,7 @@ def _iter_agent_dm_runtime_slots(conn: sqlite3.Connection) -> list[dict[str, str
 
 
 def doctor_audit_agent_dm_runtimes() -> dict[str, Any]:
-    """Report missing u-* runtimes for agent DM rooms — no mutations."""
+    """Report missing u-* runtimes for agent DM rooms â€” no mutations."""
     conn = _workframe_db()
     try:
         slots = _iter_agent_dm_runtime_slots(conn)
@@ -2870,7 +2870,7 @@ def doctor_audit_agent_dm_runtimes() -> dict[str, Any]:
 
 
 def doctor_repair_agent_dm_runtimes(*, repair: bool = True) -> dict[str, Any]:
-    """Explicit repair — provision missing u-* runtimes for agent DM rooms."""
+    """Explicit repair â€” provision missing u-* runtimes for agent DM rooms."""
     conn = _workframe_db()
     try:
         slots = _iter_agent_dm_runtime_slots(conn)
@@ -2920,7 +2920,7 @@ def bootstrap_agent_dm_lane(
     tagline: str = "",
     created_by: str = "",
 ) -> dict[str, Any]:
-    """Provision u-* runtime, model/proxy, DM room, and optional session bind — install/create-agent parity."""
+    """Provision u-* runtime, model/proxy, DM room, and optional session bind â€” install/create-agent parity."""
     user_id = str(user_id or "").strip()
     workspace_id = str(workspace_id or "").strip()
     if not _native_profile_present():
@@ -3119,10 +3119,10 @@ def _runtime_profile_slug(user_id: str, template_slug: str) -> str:
 
 
 # Credential payer audit (owner-pays vs acting-user-pays):
-# - kanban_proxy_create_task / _refresh_active_kanban_assignee_credentials → profile owner
-# - ensure_runtime_profile / _prepare_runtime_profile_credentials → profile owner at create
-# - profile_chat_message / stream_profile_chat / _overlay_chat_llm_env → acting user (payer)
-# - room @mention turn (_run_room_agent_turn) → triggered_by_user_id (mention author pays)
+# - kanban_proxy_create_task / _refresh_active_kanban_assignee_credentials â†’ profile owner
+# - ensure_runtime_profile / _prepare_runtime_profile_credentials â†’ profile owner at create
+# - profile_chat_message / stream_profile_chat / _overlay_chat_llm_env â†’ acting user (payer)
+# - room @mention turn (_run_room_agent_turn) â†’ triggered_by_user_id (mention author pays)
 def _prepare_runtime_profile_credentials(
     runtime: str,
     user_id: str,
@@ -3223,14 +3223,14 @@ def _runtime_display_label(user_id: str, template_slug: str, workspace_id: str =
 
 
 def _cohort_alias(user_id: str, template_slug: str) -> str:
-    """Human alias for docs/prompts — not the Hermes profile dir slug."""
+    """Human alias for docs/prompts â€” not the Hermes profile dir slug."""
     template = safe_profile_slug(template_slug)
     short = _profile_slug(template).replace("_", "-")
     return f"{_user_handle(user_id)}-{short}"
 
 
 def resolve_runtime_assignee(template_slug: str, user_id: str, workspace_id: str = "") -> str:
-    """Map template specialist slug → per-user runtime profile (has overlaid credentials)."""
+    """Map template specialist slug â†’ per-user runtime profile (has overlaid credentials)."""
     user_id = str(user_id or "").strip()
     template = safe_profile_slug(str(template_slug or "").strip())
     if not user_id:
@@ -3525,12 +3525,12 @@ def _cohort_manifest_markdown(user_id: str, cohort: list[dict[str, Any]]) -> str
         "",
         "## Rules",
         "",
-        "- Use **runtime_slug** (column below) for kanban `--assignee`, cron agent targets, and `delegate_task` profile — never bare template names like `architect`.",
-        "- Template profiles (`architect`, `dev`, …) are shared disks **without your API keys**; workers exit immediately.",
+        "- Use **runtime_slug** (column below) for kanban `--assignee`, cron agent targets, and `delegate_task` profile â€” never bare template names like `architect`.",
+        "- Template profiles (`architect`, `dev`, â€¦) are shared disks **without your API keys**; workers exit immediately.",
         "- Only interact with profiles listed here. Do not read other users' `u-*` profile `.env` files.",
-        "- Valid kanban `workspace_kind`: `scratch`, `dir:/absolute/path`, `worktree` — not `project`.",
+        "- Valid kanban `workspace_kind`: `scratch`, `dir:/absolute/path`, `worktree` â€” not `project`.",
         "- Kanban workers must call `kanban_complete` or `kanban_block` before exit.",
-        "- Hermes CLI: `/opt/hermes/.venv/bin/hermes -p <runtime_slug> …`",
+        "- Hermes CLI: `/opt/hermes/.venv/bin/hermes -p <runtime_slug> â€¦`",
         "",
         "## Your agents",
         "",
@@ -3662,7 +3662,7 @@ def _invalidate_session_info_cache(profile: str = "", session_id: str = "") -> N
 
 
 def _is_user_credential_home_slug(slug: str) -> bool:
-    """UUID dirs under profiles/ hold per-user keys — not Hermes agent profiles."""
+    """UUID dirs under profiles/ hold per-user keys â€” not Hermes agent profiles."""
     return bool(_AGENT_PROFILE_UUID_RE.fullmatch(str(slug or "").strip()))
 
 
@@ -3693,7 +3693,7 @@ def _register_runtime_profile(runtime: str, template: str) -> None:
     out_l = out.lower()
     if "already exists" in out_l:
         if _profile_config_path(runtime) is not None:
-            return  # ponytail: Hermes registry + on-disk clone — adopt, don't recreate
+            return  # ponytail: Hermes registry + on-disk clone â€” adopt, don't recreate
         _purge_runtime_profile(runtime)
         code, out = _gateway_exec(_primary_profile(), cmd)
         if code == 0:
@@ -3750,7 +3750,7 @@ def _ensure_profile_terminal_cwd(profile: str, *, cwd: str = "/workspace") -> No
 
 
 def _backfill_runtime_identity(runtime: str, template: str) -> None:
-    """Fill missing SOUL/skills from template — credentials overlay never touches these."""
+    """Fill missing SOUL/skills from template â€” credentials overlay never touches these."""
     runtime = safe_profile_slug(runtime)
     template = safe_profile_slug(template)
     rdir = _profile_dir(runtime)
@@ -3843,7 +3843,7 @@ def ensure_runtime_profile(
         if not _profile_toolsets_ready(runtime, _chat_toolsets_for_profile(runtime)):
             _ensure_profile_toolsets(runtime)
         _ensure_profile_terminal_cwd(runtime)
-        # ponytail: do not re-sync template model on every bind — destroys per-user reconcile
+        # ponytail: do not re-sync template model on every bind â€” destroys per-user reconcile
         return
     _purge_runtime_profile(runtime)
     _register_runtime_profile(runtime, template)
@@ -3875,7 +3875,7 @@ def _resolve_chat_hermes_profile(
     room_id: str = "",
     workspace_id: str = "",
 ) -> str:
-    """Agent DM → per-user runtime profile; spaces and lanes keep the template slug."""
+    """Agent DM â†’ per-user runtime profile; spaces and lanes keep the template slug."""
     template = resolve_validated_profile(template_slug)
     room_id = str(room_id or "").strip()
     user_id = str(user_id or "").strip()
@@ -3908,7 +3908,7 @@ def _resolve_chat_hermes_profile(
 
 
 def _is_space_room(room_type: str, agent_profile_id: str | None = None) -> bool:
-    # ponytail: agent_profile_id ignored — legacy rows may still carry it; type defines a space.
+    # ponytail: agent_profile_id ignored â€” legacy rows may still carry it; type defines a space.
     _ = agent_profile_id
     return str(room_type or "") in {"channel", "group"}
 
@@ -4533,8 +4533,8 @@ def _invoke_room_agent_mention(
         err_text = str(exc)
         if "no_llm_provider_for_user" in err_text:
             reply = (
-                "I can't reply yet — the member who @mentioned me needs to connect an LLM provider "
-                "(Profile → Connect accounts → OpenRouter or another model provider)."
+                "I can't reply yet â€” the member who @mentioned me needs to connect an LLM provider "
+                "(Profile â†’ Connect accounts â†’ OpenRouter or another model provider)."
             )
         else:
             reply = err_text
@@ -4926,8 +4926,8 @@ TREE_SKIP_NAMES = {
     "dist",
     "build",
     "coverage",
-    "users",  # ponytail: legacy scaffold dir — hide if present
-    "content",  # ponytail: legacy nested tree — hide if present
+    "users",  # ponytail: legacy scaffold dir â€” hide if present
+    "content",  # ponytail: legacy nested tree â€” hide if present
 }
 
 PROTECTED_WORKSPACE_FILE_NAMES = {"AGENTS.md", ".hermes.md"}
@@ -5021,7 +5021,7 @@ def _read_model_from_config(profile: str) -> tuple[str, str]:
 def _ro_sqlite(db_path: Path) -> sqlite3.Connection | None:
     if not db_path.is_file():
         return None
-    # Hermes keeps state.db open — immutable snapshot reads work while the gateway writes.
+    # Hermes keeps state.db open â€” immutable snapshot reads work while the gateway writes.
     uri_candidates = [
         f"file:{db_path.as_posix()}?immutable=1",
         f"file://{db_path.as_posix()}?immutable=1",
@@ -5279,7 +5279,7 @@ def _normalize_agent_avatar_patch(
     avatar_url: str = "",
     avatar_id: str = "",
 ) -> dict[str, str]:
-    """Persist stable catalog id + nginx path — not vite hash or absolute origin."""
+    """Persist stable catalog id + nginx path â€” not vite hash or absolute origin."""
     return _normalize_catalog_avatar_patch(
         _load_avatar_catalog(),
         avatar_url,
@@ -5402,7 +5402,7 @@ def _upsert_agent_registry_row(profile: str, patch: dict[str, Any]) -> None:
 
 
 def _avatar_id_for_display_name(display_name: str) -> str:
-    """Map a chosen agent name to catalog id when labels match (e.g. Ada → ada)."""
+    """Map a chosen agent name to catalog id when labels match (e.g. Ada â†’ ada)."""
     needle = str(display_name or "").strip().lower()
     if not needle:
         return ""
@@ -5464,7 +5464,7 @@ def _agent_registry_row(profile: str) -> dict[str, Any]:
 
 
 def _workspace_agent_identities(workspace_id: str | None = None) -> dict[str, dict[str, Any]]:
-    """Slug → display_name/tagline/role/avatar from agent_profiles + registry."""
+    """Slug â†’ display_name/tagline/role/avatar from agent_profiles + registry."""
     identities: dict[str, dict[str, Any]] = {}
     try:
         conn = _workframe_db()
@@ -5759,7 +5759,7 @@ def _tool_call_label(tool_name: str, args: dict[str, Any]) -> str:
         if cmd:
             cmd_str = str(cmd).strip()
             if len(cmd_str) > 40:
-                return f"terminal: {cmd_str[:37]}…"
+                return f"terminal: {cmd_str[:37]}â€¦"
             return f"terminal: {cmd_str}"
         return "terminal"
 
@@ -5768,7 +5768,7 @@ def _tool_call_label(tool_name: str, args: dict[str, Any]) -> str:
         if query:
             q = str(query).strip()
             if len(q) > 35:
-                return f"search: {q[:32]}…"
+                return f"search: {q[:32]}â€¦"
             return f"search: {q}"
         return "search"
 
@@ -5785,7 +5785,7 @@ def _tool_call_label(tool_name: str, args: dict[str, Any]) -> str:
             parsed = urlparse(str(url))
             host = parsed.netloc or str(url)
             if len(host) > 30:
-                return f"browser: {host[:27]}…"
+                return f"browser: {host[:27]}â€¦"
             return f"browser: {host}"
         return "browser"
 
@@ -5794,7 +5794,7 @@ def _tool_call_label(tool_name: str, args: dict[str, Any]) -> str:
         if goal:
             g = str(goal).strip()
             if len(g) > 35:
-                return f"delegate: {g[:32]}…"
+                return f"delegate: {g[:32]}â€¦"
             return f"delegate: {g}"
         return "delegate"
 
@@ -5809,7 +5809,7 @@ def _tool_call_label(tool_name: str, args: dict[str, Any]) -> str:
         first_key = next(iter(args))
         first_val = str(args[first_key])
         if len(first_val) > 30:
-            first_val = first_val[:27] + "…"
+            first_val = first_val[:27] + "â€¦"
         return f"{tool_name}: {first_val}"
 
     return tool_name
@@ -5921,7 +5921,7 @@ def _kanban_activity(
             assignee = str(r["assignee"] or "kanban")
             member = crew_lookup.get(assignee.lower()) or crew_lookup.get(_profile_slug(assignee).lower())
             agent = _resolve_agent(member, _profile_display_name(assignee) if assignee != "kanban" else "Kanban")
-            desc = f"{r['title'] or 'task'} · {r['kind']}"
+            desc = f"{r['title'] or 'task'} Â· {r['kind']}"
             if len(desc) > 140:
                 desc = desc[:137] + "..."
             st = str(r["status"] or r["kind"] or "event").lower()
@@ -6173,7 +6173,7 @@ def activity_detail(profile: str, tool_call_id: str, session_id: str, message_id
                 "output_tokens": session_row["output_tokens"] or 0,
             }
 
-        # 4. Run duration (response.timestamp - request.timestamp) — the time the
+        # 4. Run duration (response.timestamp - request.timestamp) â€” the time the
         # tool call took. Falls back to None if either timestamp is missing.
         result["run_duration_seconds"] = None
         req_ts = result.get("request", {}).get("timestamp") if result.get("request") else None
@@ -6512,7 +6512,7 @@ def file_raw(rel: str) -> tuple[bytes, str]:
 
 
 _USER_IMAGE_RE = re.compile(
-    r"\[User attached image:\s*([^\]]+)\]|📎\s*Attached image:\s*(\S+)",
+    r"\[User attached image:\s*([^\]]+)\]|ðŸ“Ž\s*Attached image:\s*(\S+)",
     re.IGNORECASE,
 )
 
@@ -6690,7 +6690,7 @@ def _llm_attribution_for_profile(profile: str, session_model: str = "") -> tuple
 
 
 def _latest_session_id(profile: str) -> str:
-    """Most recent session — prefer active (ended_at IS NULL), then by started_at."""
+    """Most recent session â€” prefer active (ended_at IS NULL), then by started_at."""
     db = _profile_dir(profile) / "state.db"
     conn = _ro_sqlite_live(db)
     if not conn:
@@ -6761,7 +6761,7 @@ def _is_blank_session_title(title: str) -> bool:
 
 
 def _resolved_session_title(hermes_prof: str, session_id: str, fallback: str = "") -> str:
-    """Hermes state.db title, else room_sessions / default — not the (untitled) sentinel."""
+    """Hermes state.db title, else room_sessions / default â€” not the (untitled) sentinel."""
     info = _session_info(hermes_prof, session_id)
     title = str(info.get("title") or "").strip()
     if not _is_blank_session_title(title):
@@ -6795,7 +6795,7 @@ def _ensure_hermes_session_title(profile: str, session_id: str, title: str) -> N
 
 
 def _session_info_display(profile: str, session_id: str, fallback: str = "") -> dict[str, Any]:
-    """Like _session_info but title is never blank — for API responses that show humans a label."""
+    """Like _session_info but title is never blank â€” for API responses that show humans a label."""
     info = _session_info(profile, session_id)
     title = _resolved_session_title(profile, session_id, fallback)
     info["title"] = title if not _is_blank_session_title(title) else "(untitled)"
@@ -6803,7 +6803,7 @@ def _session_info_display(profile: str, session_id: str, fallback: str = "") -> 
 
 
 def _latest_api_session_id(profile: str) -> str:
-    """Most recent api_server session — prefer active, then by started_at."""
+    """Most recent api_server session â€” prefer active, then by started_at."""
     db = _profile_dir(profile) / "state.db"
     conn = _ro_sqlite_live(db)
     if not conn:
@@ -6904,7 +6904,7 @@ def chat_bootstrap(profile: str, persistent: str = "", source_id: str = "ui") ->
 
 
 def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> dict[str, Any]:
-    """Recent chat turns for one Hermes session — grouped agent turns with segments."""
+    """Recent chat turns for one Hermes session â€” grouped agent turns with segments."""
     sid = (session_id or "").strip() or _latest_session_id(profile)
     session = _session_info(profile, sid) if sid else {}
     db = _profile_dir(profile) / "state.db"
@@ -7019,7 +7019,7 @@ def _docker_request(method: str, path: str, body: dict[str, Any] | None = None) 
 
 
 def _gateway_container_exec(cmd: list[str]) -> tuple[int, str]:
-    """Run a command in the gateway container — via supervisor in SECURE_MODE."""
+    """Run a command in the gateway container â€” via supervisor in SECURE_MODE."""
     if SECURE_MODE:
         return _supervisor_container_exec(cmd)
     return _docker_exec(GATEWAY_CONTAINER_NAME, cmd)
@@ -7037,7 +7037,7 @@ def _hermes_agent_version() -> str:
 
 
 def _gateway_container_exec_detached(cmd: list[str]) -> tuple[int, str]:
-    """Detached gateway exec — long-running jobs survive after exec returns."""
+    """Detached gateway exec â€” long-running jobs survive after exec returns."""
     if SECURE_MODE:
         return _supervisor_container_exec(cmd, detach=True)
     return _docker_exec_detached(GATEWAY_CONTAINER_NAME, cmd)
@@ -7237,7 +7237,7 @@ def _upsert_model_default_header(
             wrote = True
             continue
         if in_model and in_headers and not wrote:
-            # ponytail: sibling model keys + top-level keys end the headers block — append before them
+            # ponytail: sibling model keys + top-level keys end the headers block â€” append before them
             ends_headers = bool(
                 stripped and not line.startswith(("    ", "\t")) and not stripped.startswith("#")
             )
@@ -7408,7 +7408,7 @@ def _profile_llm_proxy_ready(profile: str, provider: str) -> bool:
 
 
 def _ensure_profile_llm_proxy(profile: str, provider: str) -> None:
-    """Point Hermes at the internal LLM proxy (create/lease paths only — skip when ready)."""
+    """Point Hermes at the internal LLM proxy (create/lease paths only â€” skip when ready)."""
     llm_provider = str(provider or "openrouter").strip().lower()
     prof = safe_profile_slug(profile)
     if _oauth_llm_provider_spec(llm_provider):
@@ -7600,7 +7600,7 @@ def _apply_turn_credential_lease(
         provider=provider,
         binding_id=binding_id,
     ):
-        # ponytail: hot path — skip yaml/env rewrite when lease still valid
+        # ponytail: hot path â€” skip yaml/env rewrite when lease still valid
         if _is_runtime_profile_slug(prof) and existing_token:
             if _read_config_model_api_key(prof) != existing_token:
                 _sync_profile_model_api_key(prof, existing_token)
@@ -7703,7 +7703,7 @@ def _revoke_turn_credential_lease(run_id: str, profile: str) -> None:
 
 
 def _require_user_provider(user_id: str, workspace_id: str, provider: str) -> dict[str, Any]:
-    """LLM billing uses the signed-in user's key only — same rule for chat and runtime agents."""
+    """LLM billing uses the signed-in user's key only â€” same rule for chat and runtime agents."""
     return _require_runtime_owner_provider(user_id, workspace_id, provider)
 
 
@@ -7734,13 +7734,13 @@ def _require_runtime_owner_provider(user_id: str, workspace_id: str, provider: s
         return resolved
     if _workspace_credential_mode(None, workspace_id) != "workspace":
         raise ValueError(
-            "no_llm_provider_for_user: Connect an LLM provider under Profile → Connected accts before chatting with agents."
+            "no_llm_provider_for_user: Connect an LLM provider under Profile â†’ Connected accts before chatting with agents."
         )
     resolved = _resolve_credential(user_id, workspace_id, provider, user_only=False)
     if resolved and _credential_secret(resolved, user_id):
         return resolved
     raise ValueError(
-        "no_llm_provider_for_user: Connect an LLM provider under Profile → Connected accts before chatting with agents."
+        "no_llm_provider_for_user: Connect an LLM provider under Profile â†’ Connected accts before chatting with agents."
     )
 
 
@@ -7907,7 +7907,7 @@ def ensure_profile_api(
 
 
 def room_chat_bind(room_id: str, payload: dict[str, Any], user_id: str = "") -> dict[str, Any]:
-    """Room-scoped bind — identity from room.agent_profile_id, not the URL."""
+    """Room-scoped bind â€” identity from room.agent_profile_id, not the URL."""
     body = dict(payload or {})
     body["room_id"] = str(room_id or "").strip()
     return profile_chat_bind("", body, user_id)
@@ -7926,7 +7926,7 @@ def profile_chat_bind(profile: str, payload: dict[str, Any], user_id: str = "") 
         )
     workspace_id = str(session.get("workspace_id") or payload.get("workspace_id") or "").strip()
     history = chat_messages(hermes_prof, sid)
-    # ponytail: cohort manifest is lazy — GET /api/me/cohort; bind must stay fast
+    # ponytail: cohort manifest is lazy â€” GET /api/me/cohort; bind must stay fast
     cohort: list[dict[str, Any]] = []
     display_name = (
         _runtime_display_label(user_id, template_prof, workspace_id)
@@ -8128,9 +8128,9 @@ def _room_session_activity_label(
 ) -> str:
     base = str(title or room_name or "Session").strip()
     if msg_count > 0:
-        return f"{base} · {msg_count} message{'s' if msg_count != 1 else ''}"
+        return f"{base} Â· {msg_count} message{'s' if msg_count != 1 else ''}"
     if status == "active":
-        return f"{base} · active"
+        return f"{base} Â· active"
     return base
 
 
@@ -8671,7 +8671,7 @@ def _dashboard_get(path: str) -> Any:
 
 
 def hermes_skills() -> list[dict[str, Any]]:
-    """Installed skills from Hermes dashboard — same source as TUI /skills."""
+    """Installed skills from Hermes dashboard â€” same source as TUI /skills."""
     try:
         data = _dashboard_get("/api/skills")
     except ValueError:
@@ -8681,7 +8681,7 @@ def hermes_skills() -> list[dict[str, Any]]:
 
 # Cache the set of installed skill names so /api/hermes/commands/exec
 # can recognise `/skillname` even though skills aren't in the static
-# command catalog. The cache TTL is short — a minute is plenty for
+# command catalog. The cache TTL is short â€” a minute is plenty for
 # "user clicked a skill, BFF looks it up". Install/uninstall flows
 # invalidate naturally within the window.
 _skill_name_cache: dict[str, Any] = {"names": None, "expires_at": 0.0}
@@ -8893,7 +8893,7 @@ HERMES_COMMANDS: list[dict[str, Any]] = [
 
 def _resolve_command(token: str) -> dict[str, Any] | None:
     """Resolve a slash token (with or without leading /) to a wired
-    catalog entry. Wip commands are internal-only — they live in
+    catalog entry. Wip commands are internal-only â€” they live in
     `HERMES_COMMANDS` for the team to track progress, but `_resolve_command`
     treats them as not-found so the user can never accidentally invoke
     something that isn't wired end-to-end.
@@ -8944,9 +8944,9 @@ def hermes_usage() -> dict[str, Any]:
             "ok": True,
             "profile": profile,
             "session": {
-                "id": str(session_id)[:12] + "…",
+                "id": str(session_id)[:12] + "â€¦",
                 "title": row["title"] or "(untitled)",
-                "model": row["model"] or "—",
+                "model": row["model"] or "â€”",
                 "message_count": int(row["message_count"] or 0),
                 "tool_call_count": int(row["tool_call_count"] or 0),
                 "input_tokens": input_tokens,
@@ -8971,7 +8971,7 @@ def hermes_gateway_exec(
     """Execute a slash command through the Hermes CLI.
 
     Runs `hermes -p {profile} {cmd}` via Docker exec in the gateway
-    container. This bypasses the streaming chat endpoint — slash commands
+    container. This bypasses the streaming chat endpoint â€” slash commands
     are processed synchronously by the CLI's command handler and the
     output is returned immediately.
     """
@@ -9049,7 +9049,7 @@ def hermes_profile() -> dict[str, Any]:
         try:
             info = _session_info(profile, session_id)
             session_info = {
-                "id": str(session_id)[:12] + "…",
+                "id": str(session_id)[:12] + "â€¦",
                 "title": info.get("session_title", ""),
                 "message_count": info.get("message_count", 0),
                 "model": info.get("model", ""),
@@ -9271,7 +9271,7 @@ def hermes_insights() -> dict[str, Any]:
 
 
 def hermes_gquota() -> dict[str, Any]:
-    """Google Gemini quota info — stub until Google API is configured."""
+    """Google Gemini quota info â€” stub until Google API is configured."""
     profile = _primary_profile()
     if not profile:
         return {"ok": False, "error": "no active profile"}
@@ -9286,7 +9286,7 @@ def hermes_gquota() -> dict[str, Any]:
 def hermes_commands_catalog() -> dict[str, Any]:
     """Categorized slash command catalog for the Workframe composer palette.
 
-    `wip` commands are an internal tracker — they exist in
+    `wip` commands are an internal tracker â€” they exist in
     `HERMES_COMMANDS` so the team can see what's still to wire, but
     they aren't returned here. The UI never sees a half-implemented
     command; either it's wired end-to-end or it's invisible.
@@ -9352,7 +9352,7 @@ def hermes_commands_exec(line: str) -> dict[str, Any]:
                 "dispatched": "gateway",
                 "command": token,
                 "args": rest,
-                "message": f"Skill: {skill_name} — gateway dispatch coming in Slice 2",
+                "message": f"Skill: {skill_name} â€” gateway dispatch coming in Slice 2",
             }
         return {
             "ok": False,
@@ -9366,7 +9366,7 @@ def hermes_commands_exec(line: str) -> dict[str, Any]:
             "dispatched": "noop",
             "command": entry["name"],
             "args": rest,
-            "message": "Not yet wired in Workframe — see M2 in the Workframe roadmap.",
+            "message": "Not yet wired in Workframe â€” see M2 in the Workframe roadmap.",
         }
     if dispatch.startswith("client:"):
         return {
@@ -10679,8 +10679,13 @@ class Handler(BaseHTTPRequestHandler):
         if target not in {"hermes", "workframe", "all"}:
             self._json(400, {"ok": False, "error": "invalid_target"})
             return
+        user_ack = body.get("user_ack") is True or str(body.get("user_ack") or "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
         try:
-            result = _apply_stack_update(target)
+            result = _apply_stack_update(target, user_ack=user_ack)
             self._log_audit("stack_update_apply", "stack", target, str(result.get("ok")))
             self._json(200 if result.get("ok") else 500, result)
         except (OSError, RuntimeError, ValueError) as exc:
@@ -10768,7 +10773,7 @@ class Handler(BaseHTTPRequestHandler):
         self._log_audit("vault_wipe", "vault", "secrets", f"deleted={deleted}")
         self._json(200, {"ok": True, "deleted": deleted, **credential_vault.vault_status()})
 
-    # WF-037 batch 3 — bootstrap, hermes profiles, supervisor, audit, pattern routes
+    # WF-037 batch 3 â€” bootstrap, hermes profiles, supervisor, audit, pattern routes
     _HERMES_PROFILE_RESERVED = frozenset({"status", "create", "start", "stop", "delete", "disable"})
 
     def _route_get_chat_bootstrap(self, qs: dict[str, list[str]]) -> None:
@@ -11023,6 +11028,392 @@ class Handler(BaseHTTPRequestHandler):
                 {"source_id": source_id, "client_id": client_id, "new_session": False},
             ),
         )
+
+    def _route_pattern_get_me_oauth_status(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "status":
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            provider_id = parts[3]
+            session_id = str(qs.get("session_id", [""])[0] or "").strip()
+            if not session_id:
+                self._json(400, {"ok": False, "error": "session_id required"})
+                return
+            self._json(200, device_oauth_status(user_id, provider_id, session_id))
+
+    def _route_pattern_get_room_live(self, path: str, qs: dict[str, list[str]]) -> None:
+        rid = path.strip("/").split("/")[-2]
+        user_id = str(getattr(self, "auth_user", "") or "")
+        try:
+            conn = _workframe_db()
+            if not _user_can_access_room(conn, rid, user_id):
+                conn.close()
+                self._json(403, {"ok": False, "error": "forbidden"})
+                return
+            conn.close()
+        except Exception:
+            self._json(500, {"ok": False, "error": "db_error"})
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        cors_origin = _cors_origin_for(self.headers)
+        if cors_origin:
+            self.send_header("Access-Control-Allow-Origin", cors_origin)
+        self.send_header("Vary", "Origin")
+        self.end_headers()
+        sub = _room_live_subscribe(rid)
+        try:
+            for turn in _room_live_active_for_room(rid):
+                payload = json.dumps(turn)
+                self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            while True:
+                try:
+                    line = sub.get(timeout=15)
+                    self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                except queue.Empty:
+                    heartbeat = json.dumps(
+                        {"type": "heartbeat", "room_id": rid, "ts": int(time.time())}
+                    )
+                    self.wfile.write(f"data: {heartbeat}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+        finally:
+            _room_live_unsubscribe(rid, sub)
+
+    def _route_pattern_get_room_activity(self, path: str, qs: dict[str, list[str]]) -> None:
+        rid = path.strip("/").split("/")[-2]
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        try:
+            activity = room_activity_data(rid, user_id)
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        self._json(200, {"ok": True, "room_id": rid, "activity": activity})
+
+    def _route_pattern_get_workspace_activity(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            wid = _resolve_wid(parts[2])
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            if not wid:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                activity = workspace_activity_data(wid, user_id)
+            except ValueError as exc:
+                self._json(400, {"ok": False, "error": str(exc)})
+                return
+            self._json(200, {"ok": True, "workspace_id": wid, "activity": activity})
+
+    def _route_pattern_get_workspace_kanban_tasks(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 5:
+            wid = _resolve_wid(parts[2])
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            if not wid:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                payload = kanban_proxy_list_tasks(wid, user_id)
+            except PermissionError as exc:
+                self._json(403, {"ok": False, "error": str(exc)})
+                return
+            self._json(200, payload)
+
+    def _route_pattern_get_workspace_delegation_grants(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            wid = _resolve_wid(parts[2])
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            if not wid:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                payload = list_delegation_grants(wid, user_id)
+            except PermissionError as exc:
+                self._json(403, {"ok": False, "error": str(exc)})
+                return
+            self._json(200, payload)
+
+    def _route_pattern_get_room_sessions(self, path: str, qs: dict[str, list[str]]) -> None:
+        rid = path.strip("/").split("/")[-2]
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        try:
+            payload = list_room_sessions(rid, user_id)
+        except ValueError as exc:
+            err = str(exc)
+            if "not_found" in err:
+                self._json(404, {"ok": False, "error": err})
+                return
+            if "denied" in err or "forbidden" in err:
+                self._json(403, {"ok": False, "error": err})
+                return
+            self._json(400, {"ok": False, "error": err})
+            return
+        self._json(200, payload)
+
+    def _route_pattern_get_workspace_invites(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            wid = parts[2]
+            ws_id = _resolve_wid(wid)
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                invites = conn.execute(
+                    "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
+                    (ws_id,)).fetchall()
+                conn.close()
+            except Exception:
+                invites = []
+            self._json(200, {"ok": True, "invites": [dict(i) for i in invites]})
+
+    def _route_pattern_get_invite(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 3:
+            token = parts[2]
+            token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+            try:
+                conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                inv = conn.execute(
+                    "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE token_hash = ? AND deleted_at IS NULL",
+                    (token_hash,)).fetchone()
+                conn.close()
+            except Exception:
+                inv = None
+            if not inv:
+                self._json(404, {"ok": False, "error": "invite_not_found"})
+                return
+            self._json(200, {"ok": True, "invite": dict(inv)})
+
+    def _route_pattern_get_workspace_memory(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            wid = parts[2]
+            ws_id = _resolve_wid(wid)
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                items = conn.execute(
+                    "SELECT * FROM memory_items WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
+                    (ws_id,)).fetchall()
+                conn.close()
+            except Exception:
+                items = []
+            self._json(200, {"ok": True, "items": [dict(i) for i in items]})
+
+    def _route_pattern_get_workspace_budget(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            ws_id = _resolve_wid(parts[2])
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                policies = conn.execute(
+                    "SELECT * FROM budget_policies WHERE workspace_id = ? ORDER BY created_at DESC",
+                    (ws_id,)).fetchall()
+                conn.close()
+            except Exception:
+                policies = []
+            self._json(200, {"ok": True, "budget_policies": [dict(p) for p in policies]})
+
+    def _route_pattern_get_workspace_grants(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            ws_id = _resolve_wid(parts[2])
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            try:
+                conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                grants = conn.execute(
+                    "SELECT cg.*, cb.provider AS binding_provider FROM credential_grants cg LEFT JOIN credential_bindings cb ON cb.id = cg.credential_binding_id WHERE cb.workspace_id = ? OR cg.grantee_id = ? ORDER BY cg.created_at DESC",
+                    (ws_id, ws_id)).fetchall()
+                conn.close()
+            except Exception:
+                grants = []
+            self._json(200, {"ok": True, "grants": [dict(g) for g in grants]})
+
+    def _route_pattern_get_room_messages(self, path: str, qs: dict[str, list[str]]) -> None:
+        slug_or_id = path.strip("/").split("/")[-2]
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        limit = int(qs.get("limit", ["50"])[0])
+        offset = int(qs.get("offset", ["0"])[0])
+        try:
+            conn = _workframe_db()
+            room = conn.execute(
+                "SELECT id FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL",
+                (slug_or_id, slug_or_id),
+            ).fetchone()
+            if not room:
+                conn.close()
+                self._json(404, {"error": "room_not_found"})
+                return
+            rid = room["id"]
+            if not _user_can_access_room(conn, rid, user_id):
+                conn.close()
+                self._json(403, {"ok": False, "error": "forbidden"})
+                return
+            messages = conn.execute(
+                """
+                SELECT * FROM (
+                    SELECT * FROM messages
+                    WHERE room_id = ? AND deleted_at IS NULL
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                ) AS recent
+                ORDER BY created_at ASC
+                """,
+                (rid, limit, offset),
+            ).fetchall()
+            total = conn.execute(
+                "SELECT COUNT(*) FROM messages WHERE room_id = ? AND deleted_at IS NULL",
+                (rid,),
+            ).fetchone()[0]
+            payload = _enrich_room_messages(conn, messages)
+            conn.close()
+        except Exception:
+            messages = []
+            total = 0
+            payload = []
+        self._json(200, {"ok": True, "messages": payload, "total": total, "limit": limit, "offset": offset})
+
+    def _route_pattern_get_workspace_events(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) >= 4:
+            wid = parts[2]
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
+            cors_origin = _cors_origin_for(self.headers)
+            if cors_origin:
+                self.send_header("Access-Control-Allow-Origin", cors_origin)
+            self.send_header("Vary", "Origin")
+            self.end_headers()
+            last_revision = ""
+            last_heartbeat = time.time()
+            try:
+                while True:
+                    try:
+                        conn = _workframe_db()
+                        revision = _workspace_sse_revision(conn, wid)
+                        conn.close()
+                    except Exception:
+                        revision = "error"
+                    if revision != last_revision:
+                        payload = json.dumps(_workspace_event_payload(wid, revision))
+                        self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                        last_revision = revision
+                        last_heartbeat = time.time()
+                    elif time.time() - last_heartbeat >= 15:
+                        heartbeat = json.dumps({"type": "heartbeat", "workspace_id": wid, "ts": int(time.time())})
+                        self.wfile.write(f"data: {heartbeat}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                        last_heartbeat = time.time()
+                    time.sleep(1)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+
+    def _route_pattern_get_workspace_credentials(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            ws_id = _resolve_wid(parts[2])
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            if not _role_allows(self, OWNER_ADMIN_ROLES):
+                self._json(403, {"ok": False, "error": "forbidden"})
+                return
+            try:
+                conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    """SELECT id, workspace_id, user_id, agent_profile_id, provider,
+                              credential_type, credential_ref, label, is_active,
+                              expires_at, created_by, created_at, updated_at
+                       FROM credential_bindings
+                       WHERE workspace_id = ? AND deleted_at IS NULL
+                       ORDER BY created_at DESC""",
+                    (ws_id,),
+                ).fetchall()
+                conn.close()
+            except sqlite3.Error as exc:
+                self._json(500, {"ok": False, "error": str(exc)})
+                return
+            self._json(200, {
+                "ok": True,
+                "scope": "workspace",
+                "workspace_id": ws_id,
+                "credentials": [dict(r) for r in rows],
+            })
+
+    def _route_pattern_get_agent_credentials(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) == 4:
+            agent_id = parts[2]
+            if not _role_allows(self, OWNER_ADMIN_ROLES):
+                self._json(403, {"ok": False, "error": "forbidden"})
+                return
+            try:
+                conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    """SELECT id, workspace_id, user_id, agent_profile_id, provider,
+                          credential_type, credential_ref, label, is_active,
+                          expires_at, created_by, created_at, updated_at
+                       FROM credential_bindings
+                       WHERE agent_profile_id = ? AND deleted_at IS NULL
+                       ORDER BY created_at DESC""",
+                    (agent_id,),
+                ).fetchall()
+                conn.close()
+            except sqlite3.Error as exc:
+                self._json(500, {"ok": False, "error": str(exc)})
+                return
+            self._json(200, {
+                "ok": True,
+                "scope": "agent_profile",
+                "agent_profile_id": agent_id,
+                "credentials": [dict(r) for r in rows],
+            })
 
     def _route_post_hermes_profiles_create(self, body: dict) -> None:
         if not _check_auth(self):
@@ -11284,7 +11675,7 @@ class Handler(BaseHTTPRequestHandler):
         if self._handle_internal_action_proxy("GET", path):
             return
 
-        # Auth middleware — returns 401 if session required and missing/invalid.
+        # Auth middleware â€” returns 401 if session required and missing/invalid.
         # In DEV_LOCAL_UNSAFE mode this is a no-op.
         if not _auth_check(self):
             return self._json(401, {"ok": False, "error": "no_session"})
@@ -11307,18 +11698,6 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith("/assets/"):
                 return self._file_public(path.lstrip("/"))
 
-            if path.startswith("/api/me/oauth/") and path.endswith("/status"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "status":
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    provider_id = parts[3]
-                    session_id = str(qs.get("session_id", [""])[0] or "").strip()
-                    if not session_id:
-                        return self._json(400, {"ok": False, "error": "session_id required"})
-                    return self._json(200, device_oauth_status(user_id, provider_id, session_id))
-
             # --- Sprint F: Room delete (DELETE /api/rooms/:id) ---
             if re.fullmatch(r"/api/rooms/[^/]+", path) and self.command == "DELETE":
                 rid = path.strip("/").split("/")[-1]
@@ -11334,359 +11713,6 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(404, {"ok": False, "error": "room_not_found"})
                 self._log_audit("room_deleted", "room", rid, f"room={rid}")
                 return self._json({"ok": True, "room_id": rid, "status": "deleted"})
-
-            if path.startswith("/api/rooms/") and path.endswith("/live"):
-                rid = path.strip("/").split("/")[-2]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                try:
-                    conn = _workframe_db()
-                    if not _user_can_access_room(conn, rid, user_id):
-                        conn.close()
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    conn.close()
-                except Exception:
-                    return self._json(500, {"ok": False, "error": "db_error"})
-                self.send_response(200)
-                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "keep-alive")
-                cors_origin = _cors_origin_for(self.headers)
-                if cors_origin:
-                    self.send_header("Access-Control-Allow-Origin", cors_origin)
-                self.send_header("Vary", "Origin")
-                self.end_headers()
-                sub = _room_live_subscribe(rid)
-                try:
-                    for turn in _room_live_active_for_room(rid):
-                        payload = json.dumps(turn)
-                        self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
-                        self.wfile.flush()
-                    while True:
-                        try:
-                            line = sub.get(timeout=15)
-                            self.wfile.write(f"data: {line}\n\n".encode("utf-8"))
-                            self.wfile.flush()
-                        except queue.Empty:
-                            heartbeat = json.dumps(
-                                {"type": "heartbeat", "room_id": rid, "ts": int(time.time())}
-                            )
-                            self.wfile.write(f"data: {heartbeat}\n\n".encode("utf-8"))
-                            self.wfile.flush()
-                except (BrokenPipeError, ConnectionResetError, OSError):
-                    pass
-                finally:
-                    _room_live_unsubscribe(rid, sub)
-                return
-
-            if path.startswith("/api/rooms/") and path.endswith("/activity"):
-                rid = path.strip("/").split("/")[-2]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    activity = room_activity_data(rid, user_id)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-                return self._json(200, {"ok": True, "room_id": rid, "activity": activity})
-
-            if path.startswith("/api/workspace/") and path.endswith("/activity"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    wid = _resolve_wid(parts[2])
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    if not wid:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        activity = workspace_activity_data(wid, user_id)
-                    except ValueError as exc:
-                        return self._json(400, {"ok": False, "error": str(exc)})
-                    return self._json(200, {"ok": True, "workspace_id": wid, "activity": activity})
-
-            if path.startswith("/api/workspace/") and path.endswith("/kanban/tasks"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 5:
-                    wid = _resolve_wid(parts[2])
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    if not wid:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        payload = kanban_proxy_list_tasks(wid, user_id)
-                    except PermissionError as exc:
-                        return self._json(403, {"ok": False, "error": str(exc)})
-                    return self._json(200, payload)
-
-            if path.startswith("/api/workspace/") and path.endswith("/delegation-grants"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    wid = _resolve_wid(parts[2])
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    if not wid:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        payload = list_delegation_grants(wid, user_id)
-                    except PermissionError as exc:
-                        return self._json(403, {"ok": False, "error": str(exc)})
-                    return self._json(200, payload)
-
-            if path.startswith("/api/rooms/") and path.endswith("/sessions"):
-                rid = path.strip("/").split("/")[-2]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    payload = list_room_sessions(rid, user_id)
-                except ValueError as exc:
-                    err = str(exc)
-                    if "not_found" in err:
-                        return self._json(404, {"ok": False, "error": err})
-                    if "denied" in err or "forbidden" in err:
-                        return self._json(403, {"ok": False, "error": err})
-                    return self._json(400, {"ok": False, "error": err})
-                return self._json(200, payload)
-
-            # --- Sprint H: Invites (GET) ---
-            if path.startswith("/api/workspace/") and path.endswith("/invites"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    wid = parts[2]
-                    ws_id = _resolve_wid(wid)
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        invites = conn.execute(
-                            "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
-                            (ws_id,)).fetchall()
-                        conn.close()
-                    except Exception:
-                        invites = []
-                    return self._json(200, {"ok": True, "invites": [dict(i) for i in invites]})
-
-            if path.startswith("/api/invites/"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 3:
-                    token = parts[2]
-                    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        inv = conn.execute(
-                            "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE token_hash = ? AND deleted_at IS NULL",
-                            (token_hash,)).fetchone()
-                        conn.close()
-                    except Exception:
-                        inv = None
-                    if not inv:
-                        return self._json(404, {"ok": False, "error": "invite_not_found"})
-                    return self._json(200, {"ok": True, "invite": dict(inv)})
-
-            # --- Sprint I: Memory (GET) ---
-            if path.startswith("/api/workspace/") and path.endswith("/memory"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    wid = parts[2]
-                    ws_id = _resolve_wid(wid)
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        items = conn.execute(
-                            "SELECT * FROM memory_items WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
-                            (ws_id,)).fetchall()
-                        conn.close()
-                    except Exception:
-                        items = []
-                    return self._json(200, {"ok": True, "items": [dict(i) for i in items]})
-
-            # --- Sprint K: Budgets + Grants (GET) ---
-            if path.startswith("/api/workspace/") and path.endswith("/budget"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        policies = conn.execute(
-                            "SELECT * FROM budget_policies WHERE workspace_id = ? ORDER BY created_at DESC",
-                            (ws_id,)).fetchall()
-                        conn.close()
-                    except Exception:
-                        policies = []
-                    return self._json(200, {"ok": True, "budget_policies": [dict(p) for p in policies]})
-
-            if path.startswith("/api/workspace/") and path.endswith("/grants"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        grants = conn.execute(
-                            "SELECT cg.*, cb.provider AS binding_provider FROM credential_grants cg LEFT JOIN credential_bindings cb ON cb.id = cg.credential_binding_id WHERE cb.workspace_id = ? OR cg.grantee_id = ? ORDER BY cg.created_at DESC",
-                            (ws_id, ws_id)).fetchall()
-                        conn.close()
-                    except Exception:
-                        grants = []
-                    return self._json(200, {"ok": True, "grants": [dict(g) for g in grants]})
-
-            # --- Sprint F: Message APIs (GET) ---
-            if path.startswith("/api/rooms/") and path.endswith("/messages"):
-                slug_or_id = path.strip("/").split("/")[-2]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                limit = int(qs.get("limit", ["50"])[0])
-                offset = int(qs.get("offset", ["0"])[0])
-                try:
-                    conn = _workframe_db()
-                    room = conn.execute(
-                        "SELECT id FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL",
-                        (slug_or_id, slug_or_id),
-                    ).fetchone()
-                    if not room:
-                        conn.close()
-                        return self._json(404, {"error": "room_not_found"})
-                    rid = room["id"]
-                    if not _user_can_access_room(conn, rid, user_id):
-                        conn.close()
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    messages = conn.execute(
-                        """
-                        SELECT * FROM (
-                            SELECT * FROM messages
-                            WHERE room_id = ? AND deleted_at IS NULL
-                            ORDER BY created_at DESC
-                            LIMIT ? OFFSET ?
-                        ) AS recent
-                        ORDER BY created_at ASC
-                        """,
-                        (rid, limit, offset),
-                    ).fetchall()
-                    total = conn.execute(
-                        "SELECT COUNT(*) FROM messages WHERE room_id = ? AND deleted_at IS NULL",
-                        (rid,),
-                    ).fetchone()[0]
-                    payload = _enrich_room_messages(conn, messages)
-                    conn.close()
-                except Exception:
-                    messages = []
-                    total = 0
-                    payload = []
-                return self._json(200, {"ok": True, "messages": payload, "total": total, "limit": limit, "offset": offset})
-
-            # --- Sprint F: Workspace event stream (SSE) ---
-            if path.startswith("/api/workspace/") and path.endswith("/events"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 4:
-                    wid = parts[2]
-                    self.send_response(200)
-                    self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-                    self.send_header("Cache-Control", "no-cache")
-                    self.send_header("Connection", "keep-alive")
-                    cors_origin = _cors_origin_for(self.headers)
-                    if cors_origin:
-                        self.send_header("Access-Control-Allow-Origin", cors_origin)
-                    self.send_header("Vary", "Origin")
-                    self.end_headers()
-                    last_revision = ""
-                    last_heartbeat = time.time()
-                    try:
-                        while True:
-                            try:
-                                conn = _workframe_db()
-                                revision = _workspace_sse_revision(conn, wid)
-                                conn.close()
-                            except Exception:
-                                revision = "error"
-                            if revision != last_revision:
-                                payload = json.dumps(_workspace_event_payload(wid, revision))
-                                self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
-                                self.wfile.flush()
-                                last_revision = revision
-                                last_heartbeat = time.time()
-                            elif time.time() - last_heartbeat >= 15:
-                                heartbeat = json.dumps({"type": "heartbeat", "workspace_id": wid, "ts": int(time.time())})
-                                self.wfile.write(f"data: {heartbeat}\n\n".encode("utf-8"))
-                                self.wfile.flush()
-                                last_heartbeat = time.time()
-                            time.sleep(1)
-                    except (BrokenPipeError, ConnectionResetError, OSError):
-                        pass
-                    return
-
-            # --- Credential listing (GET) ---
-
-            # GET /api/workspace/:wid/credentials
-            if path.startswith("/api/workspace") and path.endswith("/credentials") and self.command == "GET":
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    try:
-                        conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        rows = conn.execute(
-                            """SELECT id, workspace_id, user_id, agent_profile_id, provider,
-                                      credential_type, credential_ref, label, is_active,
-                                      expires_at, created_by, created_at, updated_at
-                               FROM credential_bindings
-                               WHERE workspace_id = ? AND deleted_at IS NULL
-                               ORDER BY created_at DESC""",
-                            (ws_id,),
-                        ).fetchall()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"ok": False, "error": str(exc)})
-                    return self._json(200, {
-                        "ok": True,
-                        "scope": "workspace",
-                        "workspace_id": ws_id,
-                        "credentials": [dict(r) for r in rows],
-                    })
-
-            # GET /api/agents/:agentId/credentials — agent-profile-scoped
-            if path.startswith("/api/agents/") and path.endswith("/credentials") and self.command == "GET":
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    agent_id = parts[2]
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    try:
-                        conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        rows = conn.execute(
-                            """SELECT id, workspace_id, user_id, agent_profile_id, provider,
-                                  credential_type, credential_ref, label, is_active,
-                                  expires_at, created_by, created_at, updated_at
-                               FROM credential_bindings
-                               WHERE agent_profile_id = ? AND deleted_at IS NULL
-                               ORDER BY created_at DESC""",
-                            (agent_id,),
-                        ).fetchall()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"ok": False, "error": str(exc)})
-                    return self._json(200, {
-                        "ok": True,
-                        "scope": "agent_profile",
-                        "agent_profile_id": agent_id,
-                        "credentials": [dict(r) for r in rows],
-                    })
 
             return self._json(404, {"error": "not found"})
         except ValueError as exc:
@@ -11935,7 +11961,7 @@ class Handler(BaseHTTPRequestHandler):
 
         body = self._read_json() if self.headers.get("Content-Length") else {}
 
-        # DELETE /api/workspace/:wid/members — direct soft-delete
+        # DELETE /api/workspace/:wid/members â€” direct soft-delete
         if path.startswith("/api/workspace/") and path.endswith("/members"):
             parts = path.strip("/").split("/")
             if len(parts) == 4:
@@ -12019,7 +12045,7 @@ class Handler(BaseHTTPRequestHandler):
         if SECURE_MODE and not _is_json_content_type(ct):
             return self._json(415, {"error": "Content-Type must be application/json"})
 
-        # Auth middleware — returns 401 if session required and missing/invalid.
+        # Auth middleware â€” returns 401 if session required and missing/invalid.
         if not _auth_check(self):
             return self._json(401, {"ok": False, "error": "no_session"})
 
@@ -12166,7 +12192,7 @@ class Handler(BaseHTTPRequestHandler):
                         "credentials": [dict(r) for r in rows],
                     })
 
-            # GET /api/agents/:agentId/credentials — agent-profile-scoped credentials
+            # GET /api/agents/:agentId/credentials â€” agent-profile-scoped credentials
             if path.startswith("/api/agents/") and path.endswith("/credentials") and self.command == "GET":
                 parts = path.strip("/").split("/")
                 if len(parts) == 4:
@@ -12962,7 +12988,7 @@ def _resolve_credential(
     Resolution order:
     1. User-owned credential for this user + provider (if active and not expired)
     2. Workspace credential for this workspace + provider (if active and not expired)
-       — skipped when user_only=True (dev/github/vercel tenancy)
+       â€” skipped when user_only=True (dev/github/vercel tenancy)
     3. None (caller uses profile config fallback)
     """
     user = str(user_id or "").strip()
@@ -13221,7 +13247,7 @@ def _build_context_package(user_id: str, workspace_id: str, room_id: str | None 
     return ctx
 
 
-# --- Sprint G–K: schema migrations live in db_schema.py (WF-032) ---
+# --- Sprint Gâ€“K: schema migrations live in db_schema.py (WF-032) ---
 def _ensure_agent_runs_schema() -> None:
     db_schema.ensure_agent_runs_schema(_workframe_db)
 
@@ -13276,7 +13302,7 @@ def _resolve_current_workspace(user_id: str, workspaces: list[dict[str, Any]]) -
 
 
 def _primary_workspace_id(user_id: str = "") -> str:
-    """Default workspace id for this install — one DB lookup, ponytail constant for single-ws dogfood."""
+    """Default workspace id for this install â€” one DB lookup, ponytail constant for single-ws dogfood."""
     user_id = str(user_id or "").strip()
     if user_id:
         workspaces = _get_user_workspaces(user_id)
@@ -13299,19 +13325,19 @@ def _primary_workspace_id(user_id: str = "") -> str:
 
 
 def _ensure_workframe_db_schema() -> None:
-    """Base workframe.db tables (users, workspaces, schema_migrations, …)."""
+    """Base workframe.db tables (users, workspaces, schema_migrations, â€¦)."""
     db_schema.ensure_workframe_db_schema(_workframe_db)
 
 
 def _ensure_workspace_readme() -> None:
-    """Seed README.md and AGENTS.md when workspace is empty — matches create-workframe scaffold."""
+    """Seed README.md and AGENTS.md when workspace is empty â€” matches create-workframe scaffold."""
     try:
         WORKSPACE.mkdir(parents=True, exist_ok=True)
         readme = WORKSPACE / "README.md"
         if not readme.is_file():
             readme.write_text(
                 f"# {PROJECT_NAME}\n\n"
-                "Welcome to Workframe — your team's social AI collaboration space.\n\n"
+                "Welcome to Workframe â€” your team's social AI collaboration space.\n\n"
                 "Use this file to keep a living record of what this project is, who is on the team, "
                 "sub-projects, agents, kanban guidelines, and anything else newcomers should know.\n",
                 encoding="utf-8",
@@ -13322,21 +13348,21 @@ def _ensure_workspace_readme() -> None:
         native = _native_display_name()
         native_slug = str(NATIVE_PROFILE or "workframe-agent").strip() or "workframe-agent"
         agents.write_text(
-            f"# AGENTS — {PROJECT_NAME}\n\n"
-            "Shared project workspace (`/workspace` → `/opt/data/workspace`). "
+            f"# AGENTS â€” {PROJECT_NAME}\n\n"
+            "Shared project workspace (`/workspace` â†’ `/opt/data/workspace`). "
             "All users and agents persist deliverables here.\n\n"
             f"## Native agent\n\n"
-            f"**{native}** (`{native_slug}`) — concierge and orchestrator.\n\n"
+            f"**{native}** (`{native_slug}`) â€” concierge and orchestrator.\n\n"
             "## Layout\n\n"
             "| Path | Role |\n"
             "|------|------|\n"
-            "| `/workspace/` (here) | Project artifacts — source of truth for files |\n"
-            "| `/opt/data/profiles/<slug>/` | Hermes profile home — SOUL, skills, credentials |\n\n"
+            "| `/workspace/` (here) | Project artifacts â€” source of truth for files |\n"
+            "| `/opt/data/profiles/<slug>/` | Hermes profile home â€” SOUL, skills, credentials |\n\n"
             "## Rules\n\n"
             "- **All deliverables** (HTML, code, docs, assets) go under `/workspace/`, never profile home.\n"
             "- Use subfolders (`/workspace/games/`, `/workspace/docs/`) to stay organized.\n"
-            "- Profile `AGENTS.md` / `SOUL.md` are identity and tooling — not project output.\n"
-            "- Credentials never in chat — use Workframe secure UI.\n"
+            "- Profile `AGENTS.md` / `SOUL.md` are identity and tooling â€” not project output.\n"
+            "- Credentials never in chat â€” use Workframe secure UI.\n"
             "- Chat is intake; `/workspace` is the system of record.\n",
             encoding="utf-8",
         )
@@ -13358,7 +13384,7 @@ def _assert_api_module_contract() -> None:
         raise SystemExit(
             "stale workframe-api install: route_registry missing "
             + ", ".join(missing)
-            + " — re-sync services/workframe-api to the install mount"
+            + " â€” re-sync services/workframe-api to the install mount"
         )
 
 
