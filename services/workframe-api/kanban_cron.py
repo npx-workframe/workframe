@@ -143,7 +143,7 @@ def ensure_workspace_kanban_board(workspace_id: str) -> str:
         if not board_slug:
             board_slug = f"ws-{workspace_id[:8].lower()}"
         display_name = str(ws["display_name"] or board_slug)
-        now = _utc_now()
+        now = _srv()._utc_now()
         conn.execute(
             """
             INSERT INTO workspace_kanban_boards (
@@ -155,7 +155,7 @@ def ensure_workspace_kanban_board(workspace_id: str) -> str:
         conn.commit()
     finally:
         conn.close()
-    primary = _primary_profile()
+    primary = _srv()._primary_profile()
     if primary:
         code, out = _srv()._gateway_exec(
             primary,

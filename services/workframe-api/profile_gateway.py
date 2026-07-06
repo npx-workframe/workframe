@@ -84,7 +84,7 @@ def _configure_profile_api(profile: str) -> tuple[bool, str, int]:
     _srv()._normalize_profile_config_yaml(profile)
     prof = _srv().resolve_hermes_profile(profile)
     port = _profile_api_port(prof)
-    cfg_path = _profile_gateway_config_path(prof)
+    cfg_path = _srv()._profile_gateway_config_path(prof)
     if cfg_path is None:
         return False, f"profile not found: {prof}", port
     try:
@@ -276,7 +276,7 @@ def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[st
                     (room_id,),
                 ).fetchone()
                 if room and _srv()._is_space_room(str(room["room_type"]), room["agent_profile_id"]):
-                    transcript = _room_recent_transcript(conn, room_id)
+                    transcript = _srv()._room_recent_transcript(conn, room_id)
                     message = (
                         "You are in a group chat. Reply only to the message that @mentioned you.\n\n"
                         f"Recent messages:\n{transcript}\n\n"
@@ -287,7 +287,7 @@ def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[st
         except Exception:  # noqa: BLE001
             pass
     payload: dict[str, Any] = {"message": message}
-    soul = _profile_soul_text(profile)
+    soul = _srv()._profile_soul_text(profile)
     if soul:
         payload["instructions"] = soul
     return payload

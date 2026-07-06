@@ -450,9 +450,9 @@ def _apply_profile_identity(
     if user_soul.strip():
         patch["user_soul"] = user_soul.strip()
     if patch.get("display_name"):
-        aid = _avatar_id_for_display_name(str(patch["display_name"]))
+        aid = _srv()._avatar_id_for_display_name(str(patch["display_name"]))
         if aid:
-            patch.update(_normalize_agent_avatar_patch("", aid))
+            patch.update(_srv()._normalize_agent_avatar_patch("", aid))
     if patch:
         _srv()._upsert_agent_registry_row(prof, patch)
 
@@ -1141,10 +1141,10 @@ def profile_create(
     
     # 2. Start the gateway for this profile
     try:
-        ok, out, port = _configure_profile_api(prof)
+        ok, out, port = _srv()._configure_profile_api(prof)
         results["steps"].append({"step": "configure_api", "ok": ok, "api_port": port, "output": out.strip()})
         if ok:
-            ok2, out2 = _patch_profile_gateway_run_script(prof)
+            ok2, out2 = _srv()._patch_profile_gateway_run_script(prof)
             results["steps"].append({"step": "patch_run_script", "ok": ok2, "output": out2.strip()})
     except Exception as exc:
         results["steps"].append({"step": "configure_api", "ok": False, "error": str(exc)})
@@ -1158,7 +1158,7 @@ def profile_create(
             except Exception as exc:
                 results["steps"].append({"step": "set_model", "ok": False, "error": str(exc)})
         try:
-            state = profile_gateway_lifecycle(prof, "start")
+            state = _srv().profile_gateway_lifecycle(prof, "start")
             results["steps"].append({"step": "gateway_start", "ok": True, "state": state})
         except Exception as exc:
             results["steps"].append({"step": "gateway_start", "ok": False, "error": str(exc)})
@@ -1179,7 +1179,7 @@ def profile_create(
         results["registry"] = registry_patch
 
     try:
-        avatar = _assign_agent_avatar(
+        avatar = _srv()._assign_agent_avatar(
             prof,
             display_name=display_name.strip() or child_label,
         )
@@ -1188,7 +1188,7 @@ def profile_create(
     except Exception as exc:
         results["steps"].append({"step": "assign_avatar", "ok": False, "error": str(exc)})
 
-    explicit_avatar = _normalize_agent_avatar_patch(avatar_url, avatar_id)
+    explicit_avatar = _srv()._normalize_agent_avatar_patch(avatar_url, avatar_id)
     if explicit_avatar.get("avatar_url") or explicit_avatar.get("avatar_id"):
         _srv()._upsert_agent_registry_row(
             prof,

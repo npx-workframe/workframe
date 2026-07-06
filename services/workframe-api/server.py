@@ -753,9 +753,9 @@ _workspace_tree_cache: dict[str, Any] = {
 }
 _workspace_event_lock = threading.Lock()
 _workspace_event_state: dict[str, int] = {"version": 0}
-_room_live_lock = threading.Lock()
-_room_live_queues: dict[str, list[queue.SimpleQueue[str]]] = {}
-_room_live_turns: dict[str, dict[str, Any]] = {}
+_room_live_lock = rooms._room_live_lock
+_room_live_queues = rooms._room_live_queues
+_room_live_turns = rooms._room_live_turns
 _gateway_lifecycle_lock = threading.Lock()
 
 
@@ -13336,6 +13336,24 @@ def _ensure_workspace_readme() -> None:
         pass
 
 
+def _assert_api_module_contract() -> None:
+    """ponytail: fail fast when dogfood mounts a mismatched API file set."""
+    required = (
+        "dispatch_get",
+        "dispatch_post",
+        "dispatch_patch",
+        "dispatch_pattern",
+        "ROUTE_PATTERNS",
+    )
+    missing = [name for name in required if not hasattr(route_registry, name)]
+    if missing:
+        raise SystemExit(
+            "stale workframe-api install: route_registry missing "
+            + ", ".join(missing)
+            + " — re-sync services/workframe-api to the install mount"
+        )
+
+
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     _ensure_workspace_readme()
@@ -13343,6 +13361,7 @@ def main() -> None:
         _ensure_profile_terminal_cwd(NATIVE_PROFILE)
     if not PUBLIC_DIR.is_dir():
         raise SystemExit(f"Missing public dir: {PUBLIC_DIR}")
+    _assert_api_module_contract()
     _ensure_workframe_db_schema()
     _ensure_default_workspace()
     # Sprint G-K: Ensure all schemas are up to date

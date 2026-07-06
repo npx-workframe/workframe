@@ -6,6 +6,7 @@ import os
 import queue
 import re
 import sqlite3
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -14,6 +15,12 @@ from typing import Any
 from http.server import BaseHTTPRequestHandler
 
 import user_prefs
+import zk_auth as _zk
+from auth_gate import OWNER_ADMIN_ROLES, SECURE_MODE, role_allows as _role_allows
+
+_room_live_lock = threading.Lock()
+_room_live_queues: dict[str, list[queue.SimpleQueue[str]]] = {}
+_room_live_turns: dict[str, dict[str, Any]] = {}
 
 
 def _srv():
@@ -125,7 +132,7 @@ def _workspace_payload(row: sqlite3.Row, *, viewer_role: str = "") -> dict[str, 
             str(gh.get("client_secret") or "").strip()
             or (not gh and stack_gh.get("client_secret"))
         )
-        integrations["messaging"] = _workspace_messaging_integrations_payload(str(row["id"]), settings)
+        integrations["messaging"] = _srv()._workspace_messaging_integrations_payload(str(row["id"]), settings)
     payload["integrations"] = integrations
     payload["credential_mode"] = str(settings.get("credential_mode") or "byok").strip() or "byok"
     payload["tagline"] = str(settings.get("tagline") or "")
@@ -301,15 +308,15 @@ def _resolve_workspace_integrations_role(
                 (now, mem["id"]),
             )
         role = "owner"
-    elif not owner_id and _install_window_open():
-        if _promote_workspace_owner_if_unclaimed(conn, workspace_id, user_id):
+    elif not owner_id and _srv()._install_window_open():
+        if _srv()._promote_workspace_owner_if_unclaimed(conn, workspace_id, user_id):
             role = _srv()._workspace_member_role(conn, workspace_id, user_id)
 
     if role in OWNER_ADMIN_ROLES:
         return role
     if (
         role
-        and _install_window_open()
+        and _srv()._install_window_open()
         and set(body.keys()) <= _ONBOARDING_PROGRESS_KEYS
     ):
         return role
@@ -371,7 +378,7 @@ def _list_workspace_members(
                     payload["tagline"] = str(prof["tagline"])
                 zk_avatar = str(prof.get("avatar_url") or "").strip()
                 if zk_avatar:
-                    payload["avatar_url"] = _normalize_user_avatar_url(zk_avatar)
+                    payload["avatar_url"] = _srv()._normalize_user_avatar_url(zk_avatar)
             members.append(payload)
         return 200, {
             "ok": True,
@@ -648,6 +655,7 @@ def _ensure_workspace_agent_profile_row(
     slug = str(slug or "").strip()
     if not slug:
         return None
+    conn: sqlite3.Connection | None = None
     try:
         conn = _srv()._workframe_db()
         ws_id = str(workspace_id or "").strip()
@@ -666,7 +674,6 @@ def _ensure_workspace_agent_profile_row(
                 """,
             ).fetchone()
         if not ws:
-            conn.close()
             return None
         ws_id = str(ws["id"])
         existing = conn.execute(
@@ -692,17 +699,16 @@ def _ensure_workspace_agent_profile_row(
                     f"UPDATE agent_profiles SET {', '.join(sets)}, updated_at = ? WHERE workspace_id = ? AND slug = ? AND deleted_at IS NULL",
                     vals,
                 )
-            _add_workspace_agents_to_space_rooms(conn, ws_id, agent_id)
+            _srv()._add_workspace_agents_to_space_rooms(conn, ws_id, agent_id)
             conn.commit()
-            conn.close()
             return agent_id
         agent_id = str(uuid.uuid4())
         now = str(int(time.time()))
-        reg = _agent_registry_row(slug)
+        reg = _srv()._agent_registry_row(slug)
         avatar_url = str(reg.get("avatar_url") or "").strip() or None
         if not avatar_url and not reg.get("avatar_id"):
             try:
-                picked = _assign_agent_avatar(slug)
+                picked = _srv()._assign_agent_avatar(slug)
                 avatar_url = picked.get("avatar_url")
             except Exception:
                 avatar_url = None
@@ -727,11 +733,13 @@ def _ensure_workspace_agent_profile_row(
             ),
         )
         conn.commit()
-        _add_workspace_agents_to_space_rooms(conn, ws_id, agent_id)
-        conn.close()
+        _srv()._add_workspace_agents_to_space_rooms(conn, ws_id, agent_id)
         return agent_id
     except Exception:
         return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def _room_api_payload(conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
@@ -944,7 +952,7 @@ def _patch_workspace(workspace_id: str, body: dict[str, Any], user_id: str) -> t
         sets.append("updated_at = ?")
         vals.extend([now_ts, workspace_id])
         conn.execute(f"UPDATE workspaces SET {', '.join(sets)} WHERE id = ?", vals)
-        _sync_workspace_home_room(conn, workspace_id)
+        _srv()._sync_workspace_home_room(conn, workspace_id)
         conn.commit()
         row = conn.execute(
             "SELECT * FROM workspaces WHERE id = ? AND deleted_at IS NULL",
@@ -977,7 +985,7 @@ def _patch_workspace_integrations(
             return 404, {"ok": False, "error": "workspace_not_found"}
         role = _resolve_workspace_integrations_role(conn, workspace_id, user_id, body)
         if role not in OWNER_ADMIN_ROLES and not (
-            role and _install_window_open() and set(body.keys()) <= _ONBOARDING_PROGRESS_KEYS
+            role and _srv()._install_window_open() and set(body.keys()) <= _ONBOARDING_PROGRESS_KEYS
         ):
             return 403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"}
         row = conn.execute(
@@ -1013,7 +1021,7 @@ def _patch_workspace_integrations(
         )
         conn.commit()
         if "messaging" in body:
-            sync_result = _sync_workspace_messaging_gateway(workspace_id)
+            sync_result = _srv()._sync_workspace_messaging_gateway(workspace_id)
             if not sync_result.get("ok"):
                 return 500, {"ok": False, "error": sync_result.get("error") or "messaging_sync_failed"}
         updated = conn.execute(
@@ -1180,7 +1188,7 @@ def _create_room(workspace_id: str, body: dict[str, Any], created_by: str) -> tu
         if explicit_avatar:
             explicit_avatar = _srv()._normalize_logo_url(explicit_avatar)
         room_avatar_url = explicit_avatar or (
-            _pick_logo_url() if _srv()._is_space_room(room_type, agent_profile_id) else ""
+            _srv()._pick_logo_url() if _srv()._is_space_room(room_type, agent_profile_id) else ""
         )
         conn.execute(
             """
@@ -1227,10 +1235,10 @@ def _create_room(workspace_id: str, body: dict[str, Any], created_by: str) -> tu
                 (workspace_id,),
             ).fetchall()
             for agent in agents:
-                _ensure_agent_in_space_room(conn, rid, str(agent["id"]))
-            _add_workspace_members_to_space_room(conn, workspace_id, rid)
+                _srv()._ensure_agent_in_space_room(conn, rid, str(agent["id"]))
+            _srv()._add_workspace_members_to_space_room(conn, workspace_id, rid)
         elif room_type == "direct" and agent_profile_id and direct_member_ids:
-            _provision_agent_dm_runtimes(workspace_id, agent_profile_id, direct_member_ids)
+            _srv()._provision_agent_dm_runtimes(workspace_id, agent_profile_id, direct_member_ids)
         conn.commit()
         row = conn.execute(
             """
