@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-06T19:35-03:00 | pm-workframe | WF-035 partial — _log_handler_error on auth/vault/provider-sync paths.
 2026-07-06T19:30-03:00 | pm-workframe | WF-037 batch 3 — bootstrap/hermes/supervisor/audit + 8 pattern handlers; 55+41+4 exact dispatch; zero if path == chains.
 2026-07-06T18:15-03:00 | pm-workframe | WF-040 done — program_stages in backlog.json; ledger-next picks B→C→D (WF-037 next); PM README/runbook reference program-status.md.
 2026-07-06T17:50-03:00 | verify-matrix | Full matrix @ 9a06d88: 16 pass / 1 fail / 2 skip. FAIL: package-install-evidence --skip-prep (ui_bundle_identity stale UI). Evidence: operations/release-evidence/runs/latest-verify-matrix.json. WF-019/020/005 green; WF-021 runner fails without bundle prep.

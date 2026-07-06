@@ -92,6 +92,11 @@ _run_authority_context_for_chat = chat_stream._run_authority_context_for_chat
 stream_profile_chat = chat_stream.stream_profile_chat
 
 
+def _log_handler_error(route: str, exc: BaseException) -> None:
+    """WF-035: stderr context for auth/vault/provider-sync handler failures."""
+    print(f"workframe-api [{route}] {type(exc).__name__}: {exc}", file=sys.stderr)
+
+
 # WF-032: provider_bootstrap re-exports
 _load_profile_auth_json = provider_bootstrap._load_profile_auth_json
 _provider_pool_entry = provider_bootstrap._provider_pool_entry
@@ -1257,7 +1262,8 @@ def _sync_workspace_messaging_gateway(workspace_id: str) -> dict[str, Any]:
         return {"ok": False, "error": f"messaging_platform_config_failed: {out}"}
     try:
         restart = _restart_stack_gateway()
-    except ValueError as exc:
+    except (ValueError, OSError, RuntimeError) as exc:
+        _log_handler_error("_sync_workspace_messaging_gateway restart", exc)
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "gateway": restart}
 
@@ -9849,7 +9855,8 @@ class Handler(BaseHTTPRequestHandler):
         email = "owner@local.workframe"
         try:
             result = _zk.create_session_for_email(email)
-        except Exception as exc:
+        except (RuntimeError, OSError, sqlite3.Error) as exc:
+            _log_handler_error("POST /api/auth/local-bootstrap", exc)
             self._json(500, {"ok": False, "error": str(exc)})
             return
         user_id = str(result["user_id"])
@@ -9986,7 +9993,8 @@ class Handler(BaseHTTPRequestHandler):
                 dev_local_unsafe=DEV_LOCAL_UNSAFE,
                 expose_otp=expose_otp,
             )
-        except Exception as exc:
+        except (RuntimeError, OSError, sqlite3.Error) as exc:
+            _log_handler_error("POST /api/auth/start", exc)
             self._json(500, {"ok": False, "error": str(exc)})
             return
         if not DEV_LOCAL_UNSAFE and not expose_otp:
@@ -10019,7 +10027,8 @@ class Handler(BaseHTTPRequestHandler):
             self._log_audit("login_failed", "user", email, f"verify failed: {exc}")
             self._json(401, {"ok": False, "error": str(exc)})
             return
-        except Exception as exc:
+        except (RuntimeError, OSError, sqlite3.Error) as exc:
+            _log_handler_error("POST /api/auth/verify", exc)
             self._json(500, {"ok": False, "error": str(exc)})
             return
         use_secure = _session_cookie_secure()
@@ -10049,8 +10058,8 @@ class Handler(BaseHTTPRequestHandler):
         if sid:
             try:
                 _zk.logout_session(sid)
-            except Exception:
-                pass
+            except (RuntimeError, OSError, sqlite3.Error) as exc:
+                _log_handler_error("POST /api/auth/logout", exc)
         use_secure = _session_cookie_secure()
         cookie_val = _zk.clear_session_cookie(secure=use_secure)
         self._log_audit("logout", "session", sid, f"user={user_id}")
@@ -10085,7 +10094,8 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as exc:
             self._json(401, {"ok": False, "error": str(exc)})
             return
-        except Exception as exc:
+        except (RuntimeError, OSError, sqlite3.Error) as exc:
+            _log_handler_error("POST /api/auth/refresh", exc)
             self._json(500, {"ok": False, "error": str(exc)})
             return
         use_secure = _session_cookie_secure()
@@ -10179,7 +10189,10 @@ class Handler(BaseHTTPRequestHandler):
             )
             if secret_probe:
                 health = openrouter_catalog.probe_account(secret_probe)
-        _bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
+        try:
+            _bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
+        except (OSError, RuntimeError, ValueError) as exc:
+            _log_handler_error("POST /api/me/credentials provider bootstrap", exc)
         self._json(200, {
             "ok": True,
             "credential_id": cred_id,
@@ -10515,7 +10528,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Access-Control-Allow-Origin", cors_origin)
                 self.send_header("Vary", "Origin")
             self.end_headers()
-        except Exception as exc:
+        except (RuntimeError, OSError, ValueError) as exc:
+            _log_handler_error("GET /api/auth/google/callback", exc)
             self._json(401, {"ok": False, "error": str(exc)})
 
     def _route_get_oauth_github_callback(self, qs: dict[str, list[str]]) -> None:
@@ -10669,7 +10683,8 @@ class Handler(BaseHTTPRequestHandler):
             result = _apply_stack_update(target)
             self._log_audit("stack_update_apply", "stack", target, str(result.get("ok")))
             self._json(200 if result.get("ok") else 500, result)
-        except Exception as exc:  # noqa: BLE001
+        except (OSError, RuntimeError, ValueError) as exc:
+            _log_handler_error("POST /api/admin/updates/apply", exc)
             self._json(500, {"ok": False, "error": str(exc)})
 
     def _route_post_admin_stack_restart_gateway(self, body: dict) -> None:
@@ -10683,7 +10698,8 @@ class Handler(BaseHTTPRequestHandler):
             result = _restart_stack_gateway()
             self._log_audit("stack_restart_gateway", "stack", "gateway", str(result.get("ok")))
             self._json(200 if result.get("ok") else 500, result)
-        except Exception as exc:  # noqa: BLE001
+        except (OSError, RuntimeError, ValueError) as exc:
+            _log_handler_error("POST /api/admin/stack/restart-gateway", exc)
             self._json(500, {"ok": False, "error": str(exc)})
 
     def _route_post_admin_vault_init(self, body: dict) -> None:
@@ -10703,7 +10719,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, **status})
         except ValueError as exc:
             self._json(400, {"ok": False, "error": str(exc)})
-        except Exception as exc:  # noqa: BLE001
+        except (RuntimeError, OSError) as exc:
+            _log_handler_error("POST /api/admin/vault/init", exc)
             self._json(500, {"ok": False, "error": str(exc)})
 
     def _route_post_admin_vault_unlock(self, body: dict) -> None:
@@ -10721,7 +10738,8 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as exc:
             self._log_audit("vault_unlock_failed", "vault", "meta", str(exc))
             self._json(403, {"ok": False, "error": str(exc)})
-        except Exception as exc:  # noqa: BLE001
+        except (RuntimeError, OSError) as exc:
+            _log_handler_error("POST /api/admin/vault/unlock", exc)
             self._json(500, {"ok": False, "error": str(exc)})
 
     def _route_post_admin_vault_seal(self, body: dict) -> None:
@@ -12060,7 +12078,10 @@ class Handler(BaseHTTPRequestHandler):
                         return self._json(400, {"error": str(exc)})
                     cred_id = str(payload["credential_id"])
                     self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
-                    _bootstrap_model_after_llm_connect("", ws_id, provider)
+                    try:
+                        _bootstrap_model_after_llm_connect("", ws_id, provider)
+                    except (OSError, RuntimeError, ValueError) as exc:
+                        _log_handler_error("POST workspace credentials/store bootstrap", exc)
                     if str(spec.get("category") or "") == "messaging":
                         sync_result = _sync_workspace_messaging_gateway(ws_id)
                         if not sync_result.get("ok"):
