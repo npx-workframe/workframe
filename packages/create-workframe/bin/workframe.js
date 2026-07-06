@@ -3,7 +3,7 @@
  * workframe — lifecycle CLI for generated Workframe projects.
  *
  * Commands:
- *   workframe doctor [--repair]  Diagnose stack; --repair provisions missing agent DM runtimes
+ *   workframe doctor [--repair] [--json]  Diagnose stack; --json mutation-free report
  *   workframe setup      Open Hermes setup (credentials)
  *   workframe stop       Stop all stack containers
  *   workframe start      Start the full stack (docker compose up -d)
@@ -53,9 +53,137 @@ function doctorAgentDmRuntimes(root, { repair = false } = {}) {
   return dockerCompose(root, ['exec', '-T', 'workframe-api', 'python3', '-c', py], { stdio: 'pipe' });
 }
 
+function redactPath(root, absolutePath) {
+  try {
+    const rel = path.relative(root, absolutePath);
+    if (!rel || rel.startsWith('..')) return path.basename(absolutePath);
+    return rel.split(path.sep).join('/');
+  } catch {
+    return path.basename(String(absolutePath || ''));
+  }
+}
+
+function nodeVersion() {
+  const res = spawnSync(process.execPath, ['-v'], { encoding: 'utf8' });
+  if (res.status !== 0) return null;
+  return (res.stdout || res.stderr || '').trim() || null;
+}
+
+function buildDoctorJsonReport(root, manifest, issues, checks) {
+  const decision = issues.length === 0
+    ? 'healthy'
+    : checks.docker?.status === 'fail'
+      ? 'needs_user_action'
+      : 'unhealthy';
+  return {
+    schema_version: '0.1',
+    advisory_only: true,
+    decision,
+    project: {
+      name: manifest?.project_name || path.basename(root),
+      package_version: manifest?.package_version || null,
+    },
+    checks,
+    issues,
+  };
+}
+
+function collectDoctorChecks(root, manifest) {
+  const checks = {};
+  const issues = [];
+
+  const dockerCheck = spawnSync('docker', ['info'], { encoding: 'utf8' });
+  if (dockerCheck.status !== 0) {
+    checks.docker = { status: 'fail', note: 'Docker not running or not installed' };
+    issues.push('Docker is not running or not installed.');
+  } else {
+    checks.docker = { status: 'ok', note: 'docker info succeeded' };
+  }
+
+  const nodeVer = nodeVersion();
+  checks.node = {
+    status: nodeVer ? 'ok' : 'skip',
+    version: nodeVer,
+  };
+
+  if (!manifest) {
+    checks.manifest = { status: 'fail', stack: null };
+    issues.push('No workframe-manifest.json found.');
+  } else {
+    checks.manifest = {
+      status: 'ok',
+      stack: manifest.docker?.stack || null,
+    };
+  }
+
+  const layout = { workspace: 'missing', runtime: 'missing' };
+  for (const dir of ['Files', 'Agents']) {
+    if (fs.existsSync(path.join(root, dir))) {
+      layout[dir === 'Files' ? 'workspace' : 'runtime'] = 'ok';
+    } else {
+      issues.push(`${dir}/ directory missing.`);
+    }
+  }
+  checks.layout = { status: layout.workspace === 'ok' && layout.runtime === 'ok' ? 'ok' : 'fail', ...layout };
+
+  checks.cell = {
+    deployment_mode: manifest?.security?.deployment_mode || manifest?.deployment_mode || null,
+    install_id_redacted: manifest?.install_id ? String(manifest.install_id).slice(0, 8) + '…' : null,
+    manifest_path: redactPath(root, path.join(root, 'workframe-manifest.json')),
+  };
+
+  const runtimeCandidates = [];
+  if (manifest && checks.docker?.status === 'ok') {
+    const ps = dockerCompose(root, ['ps', '--format', 'json'], { stdio: 'pipe' });
+    if (ps.status === 0 && ps.stdout) {
+      try {
+        const raw = ps.stdout.trim();
+        const containers = raw.startsWith('[')
+          ? JSON.parse(raw)
+          : raw.split('\n').filter(Boolean).map((line) => JSON.parse(line));
+        for (const name of ['gateway', 'workframe-api', 'workframe']) {
+          const container = containers.find((c) => c.Name?.includes(name) || c.Service === name);
+          runtimeCandidates.push({
+            kind: name === 'gateway' ? 'hermes_managed' : 'workframe_service',
+            service: name,
+            status: container ? (container.State === 'running' ? 'running' : container.State || 'unknown') : 'stopped',
+          });
+          if (!container || container.State !== 'running') {
+            issues.push(`${name} container not running.`);
+          }
+        }
+      } catch {
+        runtimeCandidates.push({ kind: 'hermes_managed', service: 'gateway', status: 'unknown' });
+      }
+    }
+  } else {
+    runtimeCandidates.push({ kind: 'hermes_managed', service: 'gateway', status: 'unknown', note: 'docker unavailable' });
+  }
+  checks.runtime_candidates = runtimeCandidates;
+
+  if (!fs.existsSync(path.join(root, '.env'))) {
+    issues.push('.env file missing.');
+  }
+  if (!fs.existsSync(path.join(root, 'docker-compose.yml'))) {
+    issues.push('docker-compose.yml missing.');
+  }
+
+  return { checks, issues };
+}
+
 function cmdDoctor(root, extraArgs = []) {
   const repair = extraArgs.includes('--repair');
+  const jsonMode = extraArgs.includes('--json');
   const manifest = readManifest(root);
+
+  if (jsonMode) {
+    const { checks, issues } = collectDoctorChecks(root, manifest);
+    const report = buildDoctorJsonReport(root, manifest, issues, checks);
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(report.decision === 'healthy' ? 0 : 1);
+    return;
+  }
+
   const issues = [];
 
   console.log(repair ? 'workframe doctor --repair' : 'workframe doctor');
@@ -287,7 +415,7 @@ function usage() {
   console.log(`workframe — lifecycle CLI for Workframe projects
 
 Usage:
-  workframe doctor [--repair]     Diagnose stack; --repair provisions missing agent DM runtimes
+  workframe doctor [--repair] [--json]  Diagnose stack; --json mutation-free report
   workframe setup               Open Hermes setup (credentials)
   workframe start               Start the full stack (docker compose up -d)
   workframe stop                Stop all stack containers
