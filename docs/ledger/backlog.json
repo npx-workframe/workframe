@@ -381,7 +381,7 @@
       ],
       "owner_role": "implementer",
       "workflow": {
-        "notes": "Gate payer + chat turn receipt on run_line_items; billing-grade amounts deferred.",
+        "notes": "Verified 2026-07-06: test_run_authority.py green; payer + chat turn receipt on run_line_items. Gap: billing-grade amounts.",
         "completed_at": "2026-07-06"
       }
     },

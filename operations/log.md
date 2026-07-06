@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-06T19:38-03:00 | pm-workframe | WF-016 verified — test_run_authority.py green; billing amounts deferred.
 2026-07-06T19:35-03:00 | pm-workframe | WF-035 partial — _log_handler_error on auth/vault/provider-sync paths.
 2026-07-06T19:30-03:00 | pm-workframe | WF-037 batch 3 — bootstrap/hermes/supervisor/audit + 8 pattern handlers; 55+41+4 exact dispatch; zero if path == chains.
 2026-07-06T18:15-03:00 | pm-workframe | WF-040 done — program_stages in backlog.json; ledger-next picks B→C→D (WF-037 next); PM README/runbook reference program-status.md.
