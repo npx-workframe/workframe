@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const py = process.env.PYTHON || 'python';
 const steps = [
-  ['-m', 'py_compile', 'server.py', 'zk_auth.py', 'email_sender.py', 'profile_config_yaml.py', 'route_registry.py', 'domain/entities.py', 'domain/__init__.py'],
+  ['-m', 'py_compile', 'server.py', 'zk_auth.py', 'email_sender.py', 'profile_config_yaml.py', 'route_registry.py', 'auth_gate.py', 'user_prefs.py', 'rooms.py', 'kanban_cron.py', 'hermes_profiles.py', 'db_schema.py', 'domain/entities.py', 'domain/__init__.py'],
   ['test_public_routes.py'],
   ['test_route_registry.py'],
   ['test_billing_provider.py'],
