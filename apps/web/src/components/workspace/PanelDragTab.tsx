@@ -56,7 +56,7 @@ export function PanelDragTab({
       {...rest}
       className={cn(
         'wf-panel-drag-tab',
-        (hovered || pressed) && 'wf-panel-drag-tab--active',
+        (hovered || pressed) && 'wf-panel-drag-tab--interacting',
         className,
       )}
       data-panel-id={panelId}
@@ -73,6 +73,7 @@ export function PanelDragTab({
       ) : (
         <Icon className="wf-panel-drag-tab__icon" aria-hidden="true" />
       )}
+      <span className="wf-panel-drag-tab__label">{api.title}</span>
     </div>
   )
 }

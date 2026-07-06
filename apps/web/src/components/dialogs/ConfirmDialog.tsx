@@ -20,7 +20,6 @@ export function ConfirmDialog({
   description,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
-  confirmVariant = 'accent',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -43,7 +42,7 @@ export function ConfirmDialog({
       footer={
         <>
           <DialogCancelButton onClick={handleCancel}>{cancelLabel}</DialogCancelButton>
-          <DialogConfirmButton variant={confirmVariant} onClick={handleConfirm}>
+          <DialogConfirmButton onClick={handleConfirm}>
             {confirmLabel}
           </DialogConfirmButton>
         </>

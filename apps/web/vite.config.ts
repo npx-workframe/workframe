@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
-    base: './',
+    // ponytail: '/' for nginx/docker SPA (nested paths like /dev/buttons); dev server tolerates either
+    base: mode === 'workframe' ? '/' : './',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

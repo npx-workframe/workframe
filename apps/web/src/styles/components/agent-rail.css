@@ -3,8 +3,8 @@
 .wf-agent-rail {
   display: flex;
   flex-direction: column;
-  gap: var(--wf-space-1);
-  padding: var(--wf-space-2);
+  gap: var(--wf-gap);
+  padding: var(--wf-gap);
   min-height: min-content;
   width: 100%;
   min-width: 0;
@@ -14,28 +14,20 @@
 .wf-agent-rail__item {
   display: flex;
   align-items: center;
-  gap: var(--wf-space-2);
+  gap: var(--wf-gap);
   width: 100%;
   min-width: 0;
   min-height: var(--wf-control);
-  padding: var(--wf-space-1);
-  border: 1px solid transparent;
-  border-radius: var(--wf-radius);
-  background: transparent;
+  padding: var(--wf-gap-tight);
+  border-radius: var(--wf-radius-row);
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.wf-agent-rail__item:hover {
-  background: color-mix(in srgb, var(--wf-surface) 45%, transparent);
-  border-color: var(--wf-chrome-border-soft);
-}
-
-.wf-agent-rail__item--active {
-  background: color-mix(in srgb, var(--wf-violet-glow) 12%, transparent);
-  border-color: color-mix(in srgb, var(--wf-violet-glow) 45%, var(--wf-border));
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
 }
 
 .wf-agent-rail--collapsed {
@@ -49,12 +41,18 @@
   flex-shrink: 0;
   margin-left: auto;
   padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
+  border-radius: var(--wf-radius-icon-btn);
   color: var(--wf-muted);
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.wf-agent-rail__toggle:hover {
+  color: var(--wf-control-fg-hover, var(--wf-text));
 }
 
 .wf-panel--rail-expanded .wf-agent-rail__toggle {
@@ -65,11 +63,6 @@
 .wf-panel--rail-expanded .wf-agent-rail__toggle svg {
   width: 14px;
   height: 14px;
-}
-
-.wf-agent-rail__toggle:hover {
-  background: color-mix(in srgb, var(--wf-surface) 55%, transparent);
-  color: var(--wf-text);
 }
 
 .wf-agent-rail__toggle:focus-visible {
@@ -119,12 +112,12 @@
 .wf-agent-rail__shortcuts {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--wf-gap-tight);
   width: 100%;
 }
 
 .wf-agent-rail__shortcuts-divider {
-  margin: 6px 0 2px;
+  margin: var(--wf-gap-tight) 0;
 }
 
 .wf-agent-rail__item--shortcut {
@@ -138,7 +131,7 @@
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: var(--wf-radius);
+  border-radius: var(--wf-radius-row);
   background: color-mix(in srgb, var(--wf-surface) 55%, transparent);
   color: var(--wf-muted);
 }

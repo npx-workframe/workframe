@@ -1,12 +1,10 @@
 import { PANEL_IDS } from '@/lib/panelControlConfig'
-import { RAIL_WIDTH } from '@/components/workspace/railLayout'
 
 /** Approximate dockview sash width between adjacent groups. */
 export const WF_LAYOUT_SASH_WIDTH = 4
 
-/** Left → right panel order (includes Workframe rail). */
+/** Left → right dockview panel order (rail is outside dockview). */
 export const WORKSPACE_PANEL_ORDER = [
-  PANEL_IDS.crew,
   PANEL_IDS.chat,
   PANEL_IDS.files,
   PANEL_IDS.browser,
@@ -14,12 +12,7 @@ export const WORKSPACE_PANEL_ORDER = [
 ] as const
 
 /** Main canvas panels only (excludes Workframe rail). */
-export const WF_MAIN_PANEL_ORDER = [
-  PANEL_IDS.chat,
-  PANEL_IDS.files,
-  PANEL_IDS.browser,
-  PANEL_IDS.activity,
-] as const
+export const WF_MAIN_PANEL_ORDER = WORKSPACE_PANEL_ORDER
 
 export type MainPanelId = (typeof WF_MAIN_PANEL_ORDER)[number]
 
@@ -38,7 +31,7 @@ export const WF_PANEL_RULES: Record<MainPanelId, PanelWidthRule> = {
     initial: 480,
     preferred: 480,
     min: 360,
-    max: 720,
+    max: Number.POSITIVE_INFINITY,
     stretchable: true,
   },
   [PANEL_IDS.files]: {
@@ -72,7 +65,6 @@ export function isMainPanelId(id: string): id is MainPanelId {
 }
 
 export function panelInitial(panelId: string): number | null {
-  if (panelId === PANEL_IDS.crew) return RAIL_WIDTH.expanded
   if (isMainPanelId(panelId)) return WF_PANEL_RULES[panelId].initial
   return null
 }

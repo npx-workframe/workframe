@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 type PanelHeaderProps = {
   label?: string
   panelId: string
-  api: IDockviewPanelProps['api']
+  api?: IDockviewPanelProps['api']
   className?: string
   showLabel?: boolean
   showControls?: boolean

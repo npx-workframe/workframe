@@ -4,11 +4,11 @@ button.wf-tool-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--wf-gap-tight);
   min-width: 0;
   height: var(--wf-tool-btn-size);
   min-height: var(--wf-tool-btn-size);
-  padding-inline: 8px;
+  padding-inline: var(--wf-gap);
   border: 1px solid transparent;
   border-radius: var(--wf-tool-btn-radius);
   background: transparent;
@@ -51,6 +51,7 @@ button.wf-tool-btn:disabled {
 button.wf-tool-btn.wf-tool-btn--icon {
   width: var(--wf-tool-btn-size);
   padding-inline: 0;
+  border-radius: var(--wf-radius-icon-btn);
 }
 
 button.wf-tool-btn.wf-tool-btn--text {

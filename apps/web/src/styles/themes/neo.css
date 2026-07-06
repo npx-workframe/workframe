@@ -64,8 +64,18 @@
   --wf-chrome-border-faint: transparent;
   --wf-chrome-border-ghost: transparent;
 
-  --wf-radius: 12px;
-  --wf-rail-cell-radius: 12px;
+  --wf-radius-knob-sm: 4px;
+  --wf-radius-knob-md: 4px;
+  --wf-radius-knob-lg: 12px;
+  --wf-radius-avatar: var(--wf-radius-knob-lg);
+  --wf-radius-control: var(--wf-radius-knob-sm);
+  --wf-radius-row: var(--wf-radius-knob-sm);
+  --wf-radius-icon-btn: 50%;
+  --wf-radius-surface: var(--wf-radius-knob-lg);
+  --wf-radius-tool-btn: var(--wf-radius-row);
+  --wf-radius-panel-control: var(--wf-radius-icon-btn);
+  --wf-radius-browser-toolbar-btn: var(--wf-radius-icon-btn);
+  --wf-rail-cell-radius: var(--wf-radius-icon-btn);
 
   --wf-neo-shadow-light: 6px 6px 12px rgba(163, 163, 176, 0.6);
   --wf-neo-shadow-dark: -6px -6px 12px rgba(255, 255, 255, 0.9);
@@ -93,6 +103,35 @@
   --wf-control-shadow-inset: var(--wf-neo-shadow-inset-light), var(--wf-neo-shadow-inset-dark);
   --wf-control-shadow-elevated: var(--wf-neo-shadow-light), var(--wf-neo-shadow-dark);
   --wf-control-shadow-footer: 0 -3px 6px rgba(163, 163, 176, 0.3);
+  --wf-dnd-indicator-bg: rgba(255, 255, 255, 0.5);
+  --wf-dnd-indicator-border: #fff;
+
+  /* Neo relief control chrome */
+  --wf-control-border-width: 0px;
+  --wf-control-border-color: transparent;
+  --wf-control-border-color-hover: transparent;
+  --wf-control-border-color-active: transparent;
+  --wf-control-border-color-inactive: transparent;
+  --wf-control-bg: transparent;
+  --wf-control-bg-hover: var(--wf-control-bg-raised);
+  --wf-control-bg-active: var(--wf-control-bg-raised);
+  --wf-control-shadow: none;
+  --wf-control-shadow-hover: var(--wf-control-shadow-raised);
+  --wf-control-shadow-active: var(--wf-control-shadow-raised);
+  --wf-control-fg-inactive: var(--wf-muted);
+
+  /* Neo action buttons — flush default, pop up on hover / when primary */
+  --wf-btn-border-width: 0;
+  --wf-btn-border-color: transparent;
+  --wf-btn-border-color-hover: transparent;
+  --wf-btn-border-color-primary: transparent;
+  --wf-btn-border-color-inactive: transparent;
+  --wf-btn-bg-hover: var(--wf-control-bg-raised);
+  --wf-btn-bg-primary: var(--wf-control-bg-raised);
+  --wf-btn-shadow-hover: var(--wf-control-shadow-raised);
+  --wf-btn-shadow-primary: var(--wf-control-shadow-raised);
+  --wf-btn-fg-inactive: var(--wf-muted);
+  --wf-icon-control-border-width: 0;
 }
 
 /* ?? Neo component chrome (feel / interaction overrides) ?? */
@@ -114,8 +153,8 @@
 [data-theme='neo'] .wf-shell__actions {
   background: var(--wf-control-bg-raised);
   box-shadow: var(--wf-control-shadow-raised);
-  padding: 4px 8px;
-  border-radius: var(--wf-radius);
+  padding: var(--wf-gap-tight) var(--wf-gap);
+  border-radius: var(--wf-radius-surface);
 }
 
 [data-theme='neo'] .wf-theme-switcher__menu {
@@ -130,11 +169,6 @@
   box-shadow: var(--wf-control-shadow-raised);
 }
 
-[data-theme='neo'] .wf-theme-switcher__item:hover {
-  background: var(--wf-control-bg-raised);
-  box-shadow: var(--wf-control-shadow-raised);
-}
-
 [data-theme='neo'] .wf-shell-footer {
   background: var(--wf-control-bg-raised);
   border-top: none;
@@ -145,55 +179,7 @@
   filter: none;
 }
 
-/* ?? Neo interactive controls (flush ? hover up; selected/open stays up; no press latch) ? */
-
-[data-theme='neo'] button.wf-tool-btn:not(:disabled),
-[data-theme='neo'] .wf-panel__control-btn,
-[data-theme='neo'] .wf-agent-rail__section-action,
-[data-theme='neo'] .wf-agent-rail__item,
-[data-theme='neo'] .wf-agent-rail__toggle,
-[data-theme='neo'] .wf-popover__row,
-[data-theme='neo'] .wf-file-tree__row,
-[data-theme='neo'] .wf-activity-tree__row--clickable,
-[data-theme='neo'] .wf-activity-tree__row--group,
-[data-theme='neo'] .wf-activity-tree__chevron-btn,
-[data-theme='neo'] .wf-tool-run__header--button,
-[data-theme='neo'] .wf-thinking__summary,
-[data-theme='neo'] .wf-browser-tabs__close {
-  background: var(--wf-control-bg-flush);
-  border: none;
-  box-shadow: var(--wf-control-shadow-flush);
-  transform: none;
-}
-
-[data-theme='neo'] button.wf-tool-btn:hover:not(:disabled):not([aria-expanded='true']):not(.wf-tool-btn--active),
-[data-theme='neo'] .wf-panel__control-btn:hover:not(:disabled),
-[data-theme='neo'] .wf-agent-rail__section-action:hover,
-[data-theme='neo'] .wf-agent-rail__item:hover:not(.wf-agent-rail__item--active),
-[data-theme='neo'] .wf-agent-rail__toggle:hover,
-[data-theme='neo'] .wf-popover__row:hover:not([data-selected='true']),
-[data-theme='neo'] .wf-file-tree__row:hover:not(.wf-file-tree__row--selected),
-[data-theme='neo'] .wf-activity-tree__row--clickable:hover:not(.wf-activity-tree__row--active),
-[data-theme='neo'] .wf-activity-tree__row--group:hover,
-[data-theme='neo'] .wf-activity-tree__chevron-btn:hover,
-[data-theme='neo'] .wf-thinking:not([open]) .wf-thinking__summary:hover,
-[data-theme='neo'] .wf-composer button.wf-tool-btn:hover:not(:disabled):not([aria-expanded='true']),
-[data-theme='neo'] .wf-browser-tabs__close:hover:not(:disabled):not(.wf-neo-pressed) {
-  background: var(--wf-control-bg-raised);
-  border: none;
-  box-shadow: var(--wf-control-shadow-raised);
-  color: var(--wf-text);
-}
-
-[data-theme='neo'] button.wf-tool-btn.wf-tool-btn--active,
-[data-theme='neo'] .wf-agent-rail__item--active,
-[data-theme='neo'] .wf-file-tree__row--selected,
-[data-theme='neo'] .wf-popover__row[data-selected='true'] {
-  background: var(--wf-control-bg-raised);
-  border: none;
-  box-shadow: var(--wf-control-shadow-raised);
-  color: var(--wf-text);
-}
+/* Neo interactive — special cases; shared rows/buttons use controls.css + --wf-control-* tokens */
 
 [data-theme='neo'] .wf-activity-tree__row--active,
 [data-theme='neo'] .wf-activity-tree__row--active:hover,
@@ -266,32 +252,22 @@
   -webkit-backdrop-filter: none;
 }
 
-[data-theme='neo'] .wf-panel__control-btn {
+[data-theme='neo'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
   width: 22px;
   height: 22px;
-  border-radius: 999px;
-}
-
-[data-theme='neo'] .wf-agent-rail__section-action--icon {
-  width: 24px;
-  height: 24px;
   padding: 0;
-  border-radius: 6px;
-}
-
-[data-theme='neo'] button.wf-tool-btn:active:not(:disabled):not(.wf-tool-btn--active):not([aria-expanded='true']),
-[data-theme='neo'] .wf-panel__control-btn:active:not(:disabled),
-[data-theme='neo'] .wf-agent-rail__section-action:active,
-[data-theme='neo'] .wf-agent-rail__item:active:not(.wf-agent-rail__item--active),
-[data-theme='neo'] .wf-popover__row:active,
-[data-theme='neo'] .wf-file-tree__row:active:not(.wf-file-tree__row--selected),
-[data-theme='neo'] .wf-activity-tree__row--clickable:active,
-[data-theme='neo'] .wf-thinking__summary:active,
-[data-theme='neo'] .wf-browser-tabs__add:active:not(:disabled) {
+  border-radius: var(--wf-radius-icon-btn);
   background: var(--wf-control-bg-flush);
   border: none;
   box-shadow: var(--wf-control-shadow-flush);
-  transform: none;
+  color: var(--wf-muted);
+}
+
+[data-theme='neo'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled) {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
 }
 
 [data-theme='neo'] .wf-browser-chrome {
@@ -311,7 +287,7 @@
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-control-shadow-inset);
-  border-radius: var(--wf-radius);
+  border-radius: var(--wf-radius-surface);
 }
 
 [data-theme='neo'] .wf-browser-chrome__address:focus-visible {
@@ -327,7 +303,7 @@
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-control-shadow-inset);
-  border-radius: var(--wf-radius);
+  border-radius: var(--wf-radius-surface);
 }
 
 [data-theme='neo'] .wf-composer__input:focus-visible {
@@ -354,7 +330,7 @@
   background: var(--wf-control-bg-flush);
   border: none;
   box-shadow: var(--wf-control-shadow-flush);
-  border-radius: var(--wf-radius) var(--wf-radius) 0 0;
+  border-radius: var(--wf-radius-browser-tab) var(--wf-radius-browser-tab) 0 0;
   transition: box-shadow 0.12s ease, background 0.12s ease;
 }
 
@@ -385,7 +361,6 @@
   width: 20px;
   height: 20px;
   margin-right: 4px;
-  border-radius: 999px;
 }
 
 [data-theme='neo'] .wf-browser-tabs__close.wf-neo-pressed {
@@ -406,7 +381,7 @@
   margin: 0 6px 0 2px;
   padding: 0;
   border: none;
-  border-radius: var(--wf-radius) var(--wf-radius) 0 0;
+  border-radius: var(--wf-radius-browser-tab) var(--wf-radius-browser-tab) 0 0;
   background: var(--wf-control-bg-flush);
   box-shadow: var(--wf-control-shadow-flush);
   color: var(--wf-muted);
@@ -505,7 +480,7 @@
   .wf-onboarding-wizard,
   .wf-auth,
   .wf-auth-otp-panel
-) button:not(.wf-settings-shell__nav-btn):not(.wf-onboarding-wizard__step-btn):not(.wf-dialog-select__control):not(.wf-dialog-select__trigger):not(.wf-dialog-tab):not(.wf-dialog__mode-tab):not(.wf-theme-settings__option):not(.wf-llm-models__slot):not(.wf-llm-models__provider):not(.wf-wizard-subtabs__btn):not(.wf-provider-connect__tab):not(.wf-wizard-mode-card):not(.wf-wizard-choice-card):not(.wf-wizard-preset-chip):not(.wf-dialog__option):not(.wf-dialog-select-list__option):not(.wf-avatar-grid__item):not(.wf-dialog-close) {
+) button:not(.wf-action-btn):not(.wf-settings-shell__nav-btn):not(.wf-onboarding-wizard__step-btn):not(.wf-dialog-select__control):not(.wf-dialog-select__trigger):not(.wf-dialog-tab):not(.wf-dialog__mode-tab):not(.wf-theme-settings__option):not(.wf-theme-switcher__item):not(.wf-llm-models__slot):not(.wf-llm-models__provider):not(.wf-wizard-subtabs__btn):not(.wf-provider-connect__tab):not(.wf-wizard-mode-card):not(.wf-wizard-choice-card):not(.wf-wizard-preset-chip):not(.wf-dialog__option):not(.wf-dialog-select-list__option):not(.wf-avatar-grid__item):not(.wf-dialog-close) {
   box-shadow: var(--wf-control-shadow-flush);
 }
 
@@ -524,7 +499,7 @@
   .wf-onboarding-wizard,
   .wf-auth,
   .wf-auth-otp-panel
-) button:not(.wf-settings-shell__nav-btn):not(.wf-onboarding-wizard__step-btn):not(.wf-dialog-select__control):not(.wf-dialog-select__trigger):not(.wf-dialog-tab):not(.wf-dialog__mode-tab):not(.wf-theme-settings__option):not(.wf-llm-models__slot):not(.wf-llm-models__provider):not(.wf-wizard-subtabs__btn):not(.wf-provider-connect__tab):not(.wf-wizard-mode-card):not(.wf-wizard-choice-card):not(.wf-wizard-preset-chip):not(.wf-dialog__option):not(.wf-dialog-select-list__option):not(.wf-avatar-grid__item):not(.wf-dialog-close):hover:not(:disabled) {
+) button:not(.wf-action-btn):not(.wf-settings-shell__nav-btn):not(.wf-onboarding-wizard__step-btn):not(.wf-dialog-select__control):not(.wf-dialog-select__trigger):not(.wf-dialog-tab):not(.wf-dialog__mode-tab):not(.wf-theme-settings__option):not(.wf-theme-switcher__item):not(.wf-llm-models__slot):not(.wf-llm-models__provider):not(.wf-wizard-subtabs__btn):not(.wf-provider-connect__tab):not(.wf-wizard-mode-card):not(.wf-wizard-choice-card):not(.wf-wizard-preset-chip):not(.wf-dialog__option):not(.wf-dialog-select-list__option):not(.wf-avatar-grid__item):not(.wf-dialog-close):hover:not(:disabled) {
   box-shadow: var(--wf-control-shadow-raised);
 }
 
@@ -610,7 +585,7 @@
   color: var(--wf-text);
 }
 
-[data-theme='neo'] .wf-onboarding-wizard__steps li.is-clickable:hover {
+[data-theme='neo'] .wf-onboarding-wizard__steps li.is-clickable:not(.is-current):hover {
   background: var(--wf-control-bg-raised);
   box-shadow: var(--wf-control-shadow-raised);
 }
@@ -626,7 +601,6 @@
   .wf-wizard-preset-chip,
   .wf-wizard-subtabs__btn,
   .wf-provider-connect__tab,
-  .wf-theme-settings__option,
   .wf-llm-models__slot,
   .wf-llm-models__provider,
   .wf-dialog-tab,
@@ -636,30 +610,28 @@
   .wf-avatar-grid__item
 ) {
   background: var(--wf-control-bg-flush);
-  border: var(--wf-border-width, 1px) solid var(--wf-control-border-ring-closed);
+  border: none;
   box-shadow: var(--wf-control-shadow-flush);
 }
 
 [data-theme='neo'] :is(
   .wf-wizard-mode-card:hover:not(:disabled),
-  .wf-wizard-choice-card:hover,
-  .wf-wizard-preset-chip:hover,
-  .wf-wizard-subtabs__btn:hover,
-  .wf-provider-connect__tab:hover,
-  .wf-theme-settings__option:hover,
-  .wf-theme-settings__option:focus-visible,
-  .wf-llm-models__slot:hover,
-  .wf-llm-models__provider:hover,
-  .wf-dialog-tab:hover,
-  .wf-dialog__mode-tab:hover,
-  .wf-dialog__option:hover,
-  .wf-dialog__option:focus-visible,
-  .wf-dialog-select-list__option:hover,
-  .wf-dialog-select-list__option:focus-visible,
-  .wf-avatar-grid__item:hover
+  .wf-wizard-choice-card:hover:not(.is-selected),
+  .wf-wizard-preset-chip:hover:not(.is-active),
+  .wf-wizard-subtabs__btn:hover:not(.is-active),
+  .wf-provider-connect__tab:hover:not(.is-active),
+  .wf-llm-models__slot:hover:not(.is-active),
+  .wf-llm-models__provider:hover:not(.is-active),
+  .wf-dialog-tab:hover:not(.wf-dialog-tab--active),
+  .wf-dialog__mode-tab:hover:not(.is-active),
+  .wf-dialog__option:hover:not(.is-selected):not([data-current='true']),
+  .wf-dialog__option:focus-visible:not(.is-selected):not([data-current='true']),
+  .wf-dialog-select-list__option:hover:not(.is-selected),
+  .wf-dialog-select-list__option:focus-visible:not(.is-selected),
+  .wf-avatar-grid__item:hover:not(.wf-avatar-grid__item--active)
 ) {
   background: var(--wf-control-bg-raised);
-  border-color: var(--wf-control-border-ring-raised);
+  border: none;
   box-shadow: var(--wf-control-shadow-raised);
   opacity: 1;
   transform: none;
@@ -670,7 +642,6 @@
   .wf-wizard-preset-chip.is-active,
   .wf-wizard-subtabs__btn.is-active,
   .wf-provider-connect__tab.is-active,
-  .wf-theme-settings__option.is-active,
   .wf-llm-models__slot.is-active,
   .wf-llm-models__provider.is-active,
   .wf-dialog-tab--active,
@@ -681,10 +652,29 @@
   .wf-avatar-grid__item--active
 ) {
   background: var(--wf-control-bg-raised);
-  border-color: var(--wf-control-border-ring-raised);
+  border: none;
   box-shadow: var(--wf-control-shadow-raised);
   opacity: 1;
   transform: none;
+}
+
+[data-theme='neo'] :is(
+  .wf-wizard-choice-card.is-selected,
+  .wf-wizard-preset-chip.is-active,
+  .wf-wizard-subtabs__btn.is-active,
+  .wf-provider-connect__tab.is-active,
+  .wf-llm-models__slot.is-active,
+  .wf-llm-models__provider.is-active,
+  .wf-dialog-tab--active,
+  .wf-dialog__mode-tab.is-active,
+  .wf-dialog__option.is-selected,
+  .wf-dialog__option[data-current='true'],
+  .wf-dialog-select-list__option.is-selected,
+  .wf-avatar-grid__item--active
+):hover {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
 }
 
 [data-theme='neo'] .wf-auth__card,
@@ -708,18 +698,13 @@
   box-shadow: var(--wf-control-shadow-elevated);
 }
 
-/* ponytail: neo ? dockview inner theme re-applies gray --dv-separator-border; kill library separators */
+/* ponytail: neo ? dockview separators/sashes use themed divider (panel edge borders removed below) */
 [data-theme='neo'] .wf-workspace [class*='dockview-theme-'] {
-  --dv-separator-border: transparent !important;
-  --dv-tab-divider-color: transparent !important;
+  --dv-separator-border: var(--wf-divider-color) !important;
+  --dv-sash-color: transparent !important;
+  --dv-active-sash-color: transparent !important;
 }
 
-[data-theme='neo'] .wf-workspace .dv-split-view-container .dv-view:not(:first-child)::before {
-  content: none !important;
-  display: none !important;
-}
-
-/* ponytail: neo column dividers ? 2px white on panel edges (dockview gray separators killed above) */
 [data-theme='neo'] .wf-panel--rail,
 [data-theme='neo'] .wf-rail-fallback {
   border: none;
@@ -734,20 +719,25 @@
 [data-theme='neo'] .wf-panel--browser,
 [data-theme='neo'] .wf-panel--activity {
   border: none;
-  border-left: var(--wf-border-width) solid var(--wf-divider-color);
+}
+
+[data-theme='dark'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab,
+[data-theme='dark'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab--interacting {
+  background: var(--wf-surface) !important;
 }
 
 [data-theme='neo'] .wf-panel-drag-tab {
   border: none;
 }
 
-[data-theme='neo'] .wf-workspace .dv-sash.dv-sash-vertical {
-  background: transparent !important;
+[data-theme='neo'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab,
+[data-theme='neo'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab--interacting {
+  background: #fff !important;
+  box-shadow: none;
 }
 
-[data-theme='neo'] .wf-workspace .dv-sash.dv-sash-vertical:hover,
-[data-theme='neo'] .wf-workspace .dv-sash.dv-sash-vertical:active {
-  background: transparent !important;
+[data-theme='neo'] .wf-panel-drag-tab__label {
+  color: var(--wf-muted);
 }
 
 [data-theme='neo'] .wf-panel__header {

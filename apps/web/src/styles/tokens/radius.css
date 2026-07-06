@@ -1,0 +1,34 @@
+/* Radius knobs → component tokens. Themes set --wf-radius-knob-* (and optional overrides). */
+
+:root {
+  --wf-radius-knob-sm: 4px;
+  --wf-radius-knob-md: 8px;
+  --wf-radius-knob-lg: 12px;
+  --wf-radius-pill: 999px;
+
+  --wf-radius-xs: var(--wf-radius-knob-sm);
+  --wf-radius-sm: var(--wf-radius-knob-md);
+  --wf-radius-md: var(--wf-radius-knob-lg);
+
+  --wf-radius-avatar: var(--wf-radius-xs);
+  --wf-radius-control: var(--wf-radius-sm);
+  --wf-radius-row: var(--wf-radius-knob-sm);
+  --wf-radius-icon-btn: 50%;
+  --wf-radius-surface: var(--wf-radius-md);
+  --wf-radius-tool-btn: var(--wf-radius-control);
+  --wf-radius-panel-control: var(--wf-radius-control);
+  --wf-radius-browser-toolbar-btn: var(--wf-radius-tool-btn);
+  --wf-radius-browser-tab: var(--wf-radius-row);
+
+  /* Overlay shells (wizard, auth card, dialog content) */
+  --wf-radius-shell: var(--wf-radius-surface);
+  --wf-radius-card: var(--wf-radius-surface);
+  --wf-radius-logo: var(--wf-radius-control);
+  --wf-radius-tab-strip: var(--wf-radius-control) var(--wf-radius-control) 0 0;
+  --wf-radius-inset: var(--wf-radius-sm);
+
+  /* Legacy aliases */
+  --wf-radius: var(--wf-radius-shell);
+  --wf-rail-cell-radius: var(--wf-radius-control);
+  --wf-tool-btn-radius: var(--wf-radius-tool-btn);
+}

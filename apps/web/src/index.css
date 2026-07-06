@@ -18,6 +18,8 @@
 @import './styles/components/toolbar.css';
 @import './styles/components/notices.css';
 @import './styles/components/base.css';
+@import './styles/components/controls.css';
+@import './styles/components/action-btn.css';
 @import './styles/components/atmosphere.css';
 @import './styles/components/shell.css';
 @import './styles/components/dockview.css';
@@ -34,6 +36,7 @@
 @import './styles/components/auth.css';
 @import './styles/components/onboarding.css';
 @import './styles/components/stack-updates.css';
+@import './styles/components/btn-showcase.css';
 
 /* Single-line truncation inside flex/grid rows */
 .wf-truncate {

@@ -68,6 +68,7 @@ export function ChatWorkspacePanel({ api }: IDockviewPanelProps) {
         label="Chat"
         panelId={PANEL_IDS.chat}
         api={api}
+        showLabel={false}
         leading={newSessionControl}
         settingsOpen={settingsOpen}
         onSettingsOpenChange={setSettingsOpen}

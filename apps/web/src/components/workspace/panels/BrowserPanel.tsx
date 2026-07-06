@@ -13,12 +13,7 @@ export function BrowserPanel({ api }: IDockviewPanelProps) {
 
   return (
     <PanelShell className="wf-panel--browser wf-panel--dockable">
-      <PanelHeader
-        label="Browser"
-        panelId={PANEL_IDS.browser}
-        api={api}
-        externalHref={externalHref}
-      />
+      <PanelHeader label="Browser" panelId={PANEL_IDS.browser} api={api} showLabel={false} externalHref={externalHref} />
       <BrowserWorkspace />
     </PanelShell>
   )

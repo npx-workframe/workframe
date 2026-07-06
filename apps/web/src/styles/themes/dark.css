@@ -72,10 +72,18 @@
   --wf-chrome-border-faint: color-mix(in srgb, var(--wf-border) 85%, transparent);
   --wf-chrome-border-ghost: color-mix(in srgb, var(--wf-border) 90%, transparent);
 
-  --wf-radius: 8px;
-  --wf-rail-cell-radius: 8px;
+  --wf-radius-knob-sm: 4px;
+  --wf-radius-knob-md: 8px;
+  --wf-radius-knob-lg: 8px;
+  --wf-radius-avatar: var(--wf-radius-knob-sm);
+  --wf-radius-control: var(--wf-radius-knob-md);
+  --wf-radius-row: var(--wf-radius-knob-sm);
+  --wf-radius-icon-btn: var(--wf-radius-knob-sm);
+  --wf-radius-surface: var(--wf-radius-knob-lg);
+  --wf-radius-panel-control: var(--wf-radius-icon-btn);
+  --wf-rail-cell-radius: var(--wf-radius-icon-btn);
   --wf-border-width: 1px;
-  --wf-divider-color: color-mix(in srgb, var(--wf-border) 55%, transparent);
+  --wf-divider-color: rgba(255, 255, 255, 0.1);
 
   --wf-neo-shadow-light: 0 0 0 transparent;
   --wf-neo-shadow-dark: 0 0 0 transparent;
@@ -101,4 +109,57 @@
   --wf-control-shadow-inset: var(--wf-shadow-inset);
   --wf-control-shadow-elevated: var(--wf-shadow-lg);
   --wf-control-shadow-footer: none;
+
+  /* Dark glass control chrome */
+  --wf-control-border-color: rgba(255, 255, 255, 0.1);
+  --wf-control-border-color-inactive: rgba(255, 255, 255, 0.05);
+  --wf-control-border-color-hover: transparent;
+  --wf-control-border-color-active: transparent;
+  --wf-control-bg-hover: rgba(255, 255, 255, 0.1);
+  --wf-control-bg-active: rgba(255, 255, 255, 0.1);
+  --wf-control-fg-inactive: color-mix(in srgb, var(--wf-muted) 68%, transparent);
+
+  /* Dark scrollbar — slightly brighter thumb on glass panels */
+  --wf-scrollbar-thumb: color-mix(in srgb, var(--wf-muted) 32%, transparent);
+  --wf-scrollbar-thumb-hover: color-mix(in srgb, var(--wf-muted) 50%, transparent);
+
+  /* Dark action buttons — thin glass border; fill on hover / primary */
+  --wf-btn-border-width: 1px;
+  --wf-btn-border-color: rgba(255, 255, 255, 0.1);
+  --wf-btn-border-color-inactive: rgba(255, 255, 255, 0.05);
+  --wf-btn-border-color-hover: transparent;
+  --wf-btn-border-color-primary: transparent;
+  --wf-btn-bg-hover: rgba(255, 255, 255, 0.1);
+  --wf-btn-bg-primary: rgba(255, 255, 255, 0.1);
+  --wf-btn-fg-inactive: color-mix(in srgb, var(--wf-muted) 68%, transparent);
+  --wf-icon-control-border-width: 0;
+}
+
+[data-theme='dark'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
+  border-width: 0;
+  box-shadow: none;
+}
+
+[data-theme='dark'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .wf-theme-switcher__menu {
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-chrome-border-strong);
+  box-shadow: var(--wf-shadow-lg);
+}
+
+[data-theme='dark'] .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']) {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']):hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+  box-shadow: none;
 }

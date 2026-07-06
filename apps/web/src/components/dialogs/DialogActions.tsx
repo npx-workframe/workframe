@@ -1,34 +1,16 @@
 import type { ComponentProps } from 'react'
 
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { cn } from '@/lib/utils'
 
-type DialogActionButtonProps = ComponentProps<typeof Button>
+type DialogActionButtonProps = Omit<ComponentProps<typeof WfActionButton>, 'tone' | 'wizardSize'>
 
 export function DialogCancelButton({ className, ...props }: DialogActionButtonProps) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="dialog"
-      className={cn('wf-dialog-btn', className)}
-      {...props}
-    />
-  )
+  return <WfActionButton type="button" wizardSize className={cn(className)} {...props} />
 }
 
-export function DialogConfirmButton({
-  className,
-  variant = 'accent',
-  ...props
-}: DialogActionButtonProps) {
+export function DialogConfirmButton({ className, ...props }: DialogActionButtonProps) {
   return (
-    <Button
-      type="button"
-      variant={variant}
-      size="dialog"
-      className={cn('wf-dialog-btn', className)}
-      {...props}
-    />
+    <WfActionButton type="button" tone="primary" wizardSize className={cn(className)} {...props} />
   )
 }

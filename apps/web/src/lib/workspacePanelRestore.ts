@@ -7,7 +7,6 @@ import { isMainPanelId } from '@/lib/workspaceLayoutTokens'
 import { isWorkspacePanelId, WORKSPACE_PANEL_ORDER } from '@/lib/railPanelShortcuts'
 
 const PANEL_COMPONENTS = {
-  [PANEL_IDS.crew]: 'agentRail',
   [PANEL_IDS.chat]: 'chatWorkspace',
   [PANEL_IDS.files]: 'filesExplorer',
   [PANEL_IDS.browser]: 'browser',
@@ -97,12 +96,12 @@ export function setupWorkspacePanelTracking(
 
   const disposables = [
     api.onDidRemovePanel((panel) => {
-      if (!isWorkspacePanelId(panel.id) || panel.id === PANEL_IDS.crew) return
+      if (!isWorkspacePanelId(panel.id)) return
       tracking.onPanelClosed(panel.id)
       scheduleLayout()
     }),
     api.onDidAddPanel((panel) => {
-      if (!isWorkspacePanelId(panel.id) || panel.id === PANEL_IDS.crew) return
+      if (!isWorkspacePanelId(panel.id)) return
       tracking.onPanelOpened(panel.id)
       scheduleLayout(isMainPanelId(panel.id) ? panel.id : undefined)
     }),

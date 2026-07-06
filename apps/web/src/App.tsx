@@ -15,6 +15,7 @@ import { useSiteMeta } from '@/hooks/useSiteMeta'
 import { useWorkspaceBranding } from '@/hooks/useWorkspaceBranding'
 import { getInitialTheme, applyTheme } from '@/lib/theme'
 import { isElectronRuntime } from '@/lib/runtime'
+import { ButtonShowcasePage } from '@/pages/dev/ButtonShowcasePage'
 import { WORKFRAME_SESSION_EXPIRED } from '@/lib/authenticatedFetch'
 import { clearStoredSessionTokens } from '@/lib/workframeSession'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -47,7 +48,18 @@ function WorkframeShell({ projectName, onLogout }: { projectName: string; onLogo
   )
 }
 
+function isButtonShowcasePath(): boolean {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('wf-dev') === 'buttons') return true
+  const path = window.location.pathname
+  return path === '/dev/buttons' || path.endsWith('/dev/buttons')
+}
+
 function App() {
+  if (isButtonShowcasePath()) {
+    return <ButtonShowcasePage />
+  }
+
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   useSiteMeta()
   const inviteToken = useMemo(() => {

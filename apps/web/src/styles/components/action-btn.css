@@ -1,0 +1,103 @@
+/* Consolidated dialog / wizard action buttons (wf-action-btn) */
+
+.wf-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wf-gap);
+  min-height: var(--wf-input-height);
+  padding: 0 12px;
+  border-radius: var(--wf-radius-control);
+  border-width: var(--wf-btn-border-width);
+  border-style: var(--wf-btn-border-style);
+  border-color: var(--wf-btn-border-color);
+  background: var(--wf-btn-bg);
+  box-shadow: var(--wf-btn-shadow);
+  color: var(--wf-btn-fg);
+  font-family: var(--wf-font-sans);
+  font-size: var(--wf-type-ui);
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.wf-action-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--wf-btn-shadow), var(--wf-focus-ring);
+}
+
+.wf-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Default — hover raises (neo) or fills (dark) */
+.wf-action-btn:not([data-tone='inactive']):not([data-tone='primary']):hover:not(:disabled) {
+  background: var(--wf-btn-bg-hover);
+  border-color: var(--wf-btn-border-color-hover);
+  box-shadow: var(--wf-btn-shadow-hover);
+}
+
+/* Inactive — low contrast, no hover change */
+.wf-action-btn[data-tone='inactive'] {
+  color: var(--wf-btn-fg-inactive);
+  border-color: var(--wf-btn-border-color-inactive);
+}
+
+.wf-action-btn[data-tone='inactive']:hover:not(:disabled) {
+  background: var(--wf-btn-bg);
+  border-color: var(--wf-btn-border-color-inactive);
+  box-shadow: var(--wf-btn-shadow);
+  color: var(--wf-btn-fg-inactive);
+}
+
+/* Primary — raised/filled by default; hover stays same */
+.wf-action-btn[data-tone='primary'] {
+  background: var(--wf-btn-bg-primary);
+  border-color: var(--wf-btn-border-color-primary);
+  box-shadow: var(--wf-btn-shadow-primary);
+}
+
+.wf-action-btn[data-tone='primary']:hover:not(:disabled) {
+  background: var(--wf-btn-bg-primary);
+  border-color: var(--wf-btn-border-color-primary);
+  box-shadow: var(--wf-btn-shadow-primary);
+}
+
+/* Wizard footprint — pairs with wf-action-btn */
+.wf-wizard-btn.wf-action-btn {
+  min-width: 7.5rem;
+}
+
+.wf-wizard-footer-actions__btn.wf-wizard-btn.wf-action-btn {
+  min-width: 11.5rem;
+}
+
+/* ponytail: reset shadcn Button when paired with wf-action-btn modifiers */
+button.wf-action-btn.bg-primary,
+button.wf-action-btn.border,
+button.wf-action-btn.text-muted-foreground {
+  background: var(--wf-btn-bg);
+  border-color: var(--wf-btn-border-color);
+  box-shadow: var(--wf-btn-shadow);
+  color: var(--wf-btn-fg);
+}
+
+button.wf-action-btn[data-tone='primary'].bg-primary {
+  background: var(--wf-btn-bg-primary);
+  border-color: var(--wf-btn-border-color-primary);
+  box-shadow: var(--wf-btn-shadow-primary);
+  color: var(--wf-btn-fg);
+}
+
+button.wf-action-btn[data-tone='primary'].bg-primary:hover:not(:disabled) {
+  background: var(--wf-btn-bg-primary);
+  border-color: var(--wf-btn-border-color-primary);
+  box-shadow: var(--wf-btn-shadow-primary);
+}

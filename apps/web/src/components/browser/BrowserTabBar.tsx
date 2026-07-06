@@ -28,16 +28,14 @@ export function BrowserTabBar() {
             >
               {isDirty ? `${tab.title} •` : tab.title}
             </button>
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
               className="wf-browser-tabs__close"
               onClick={() => closeTab(tab.id)}
               aria-label={`Close ${tab.title}`}
             >
               <X aria-hidden="true" />
-            </Button>
+            </button>
           </div>
         )
       })}

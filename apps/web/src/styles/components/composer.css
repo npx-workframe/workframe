@@ -5,8 +5,8 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: var(--wf-space-2);
-  gap: var(--wf-space-2);
+  padding: var(--wf-gap);
+  gap: var(--wf-gap);
   position: relative;
 }
 
@@ -40,14 +40,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--wf-gap);
   flex-shrink: 0;
 }
 
 .wf-composer__toolbar-start {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--wf-gap-tight);
   min-width: 0;
   flex: 1;
 }
@@ -55,7 +55,7 @@
 .wf-composer__slash-menus {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--wf-gap-tight);
 }
 
 .wf-composer__model-trigger {
@@ -80,7 +80,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid color-mix(in srgb, var(--wf-border-strong) 80%, transparent);
-  border-radius: var(--wf-radius);
+  border-radius: var(--wf-radius-surface);
   box-shadow:
     var(--wf-shadow-xl),
     0 0 0 1px color-mix(in srgb, var(--wf-text) 4%, transparent) inset;
@@ -135,14 +135,19 @@
   width: 100%;
   min-width: 0;
   padding: 8px 12px;
-  background: transparent;
-  border: 0;
-  border-left: 2px solid transparent;
+  border-radius: var(--wf-radius-control);
   text-align: left;
   cursor: pointer;
   color: inherit;
   font: inherit;
-  transition: background-color 80ms ease, border-color 80ms ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.wf-popover__row:focus-visible {
+  outline: none;
 }
 
 .wf-popover__row-avatar {
@@ -160,18 +165,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-
-.wf-popover__row:hover,
-.wf-popover__row:focus-visible,
-.wf-popover__row[data-selected='true'] {
-  background: color-mix(in srgb, var(--wf-accent) 22%, transparent);
-  outline: none;
-}
-
-.wf-popover__row[data-selected='true'] {
-  border-left-color: color-mix(in srgb, var(--wf-violet-glow) 80%, transparent);
-  background: color-mix(in srgb, var(--wf-violet-glow) 12%, transparent);
 }
 
 .wf-popover__row-header {

@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { Label } from '@/components/ui/label'
 import { providerIconForId } from '@/lib/workframeAssets'
@@ -99,17 +99,17 @@ export function ProviderOptionRow({
             </div>
           ))}
           <div className="wf-provider-connect__editor-actions">
-            <Button type="button" variant="outline" className="wf-wizard-btn wf-wizard-btn--secondary" onClick={onCancel}>
+            <WfActionButton wizardSize onClick={onCancel}>
               Cancel
-            </Button>
+            </WfActionButton>
             {showPatFallback && row.oauth_configured && onOAuth ? (
-              <Button type="button" variant="outline" className="wf-wizard-btn wf-wizard-btn--secondary" disabled={isBusy} onClick={onOAuth}>
+              <WfActionButton wizardSize disabled={isBusy} onClick={onOAuth}>
                 OAuth instead
-              </Button>
+              </WfActionButton>
             ) : null}
-            <Button type="button" className="wf-wizard-btn wf-wizard-btn--primary" disabled={isBusy || !secretDraft.trim()} onClick={onSave}>
+            <WfActionButton wizardSize tone="primary" disabled={isBusy || !secretDraft.trim()} onClick={onSave}>
               {isBusy ? 'Saving…' : 'Save'}
-            </Button>
+            </WfActionButton>
           </div>
         </div>
       ) : null}

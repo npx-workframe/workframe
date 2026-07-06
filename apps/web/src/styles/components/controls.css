@@ -1,0 +1,130 @@
+/* ── Shared interactive control chrome (rail, navigator, activity, wizard nav) ─ */
+
+:is(
+  .wf-agent-rail__item,
+  .wf-agent-rail__toggle,
+  .wf-agent-rail__section-action--icon,
+  .wf-browser-tabs__close,
+  .wf-file-tree__row,
+  .wf-activity-tree__row--clickable,
+  .wf-activity-tree__row--group,
+  .wf-activity-tree__chevron-btn,
+  .wf-onboarding-wizard__step-btn,
+  .wf-settings-shell__nav-btn,
+  .wf-theme-switcher__item,
+  .wf-theme-settings__option,
+  button.wf-tool-btn,
+  .wf-panel__control-btn,
+  .wf-popover__row,
+  .wf-dialog-select-list__option,
+  .wf-dialog__option
+) {
+  background: var(--wf-control-bg);
+  border-width: var(--wf-control-border-width);
+  border-style: var(--wf-control-border-style);
+  border-color: var(--wf-control-border-color);
+  box-shadow: var(--wf-control-shadow);
+  color: var(--wf-control-fg, inherit);
+}
+
+:is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
+  border-width: var(--wf-icon-control-border-width);
+  border-radius: var(--wf-radius-icon-btn);
+}
+
+:is(
+  .wf-agent-rail__item,
+  .wf-file-tree__row,
+  .wf-activity-tree__row--clickable,
+  .wf-activity-tree__row--group,
+  .wf-onboarding-wizard__step-btn,
+  .wf-settings-shell__nav-btn,
+  .wf-theme-switcher__item,
+  .wf-theme-settings__option,
+  button.wf-tool-btn,
+  .wf-panel__control-btn,
+  .wf-popover__row,
+  .wf-dialog-select-list__option,
+  .wf-dialog__option
+):hover:not(:disabled):not([aria-disabled='true']):not(.wf-agent-rail__item--active):not(.wf-file-tree__row--selected):not(.wf-activity-tree__row--active):not([aria-selected='true']):not([aria-current='true']):not(.is-active):not(.is-selected):not([data-selected='true']):not([data-current='true']):not(.wf-tool-btn--active):not([aria-expanded='true']) {
+  background: var(--wf-control-bg-hover);
+  border-color: var(--wf-control-border-color-hover);
+  box-shadow: var(--wf-control-shadow-hover);
+  color: var(--wf-control-fg-hover, var(--wf-text));
+}
+
+:is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled):not([aria-disabled='true']):not([aria-expanded='true']) {
+  background: var(--wf-control-bg-hover);
+  border-color: var(--wf-control-border-color-hover);
+  box-shadow: var(--wf-control-shadow-hover);
+  color: var(--wf-control-fg-hover, var(--wf-text));
+}
+
+.wf-onboarding-wizard__steps li.is-clickable:not(.is-current) .wf-onboarding-wizard__step-btn:hover {
+  background: var(--wf-control-bg-hover);
+  border-color: var(--wf-control-border-color-hover);
+  box-shadow: var(--wf-control-shadow-hover);
+  color: var(--wf-control-fg-hover, var(--wf-text));
+}
+
+:is(
+  .wf-agent-rail__item--active,
+  .wf-file-tree__row--selected,
+  .wf-activity-tree__row--active,
+  .wf-popover__row[data-selected='true'],
+  button.wf-tool-btn.wf-tool-btn--active,
+  .wf-settings-shell__nav-btn[aria-selected='true'],
+  .wf-settings-shell__nav-btn--solo,
+  .wf-theme-switcher__item[aria-current='true'],
+  .wf-theme-settings__option.is-active,
+  .wf-dialog__option.is-selected,
+  .wf-dialog__option[data-current='true'],
+  .wf-dialog-select-list__option.is-selected
+) {
+  background: var(--wf-control-bg-active);
+  border-color: var(--wf-control-border-color-active);
+  box-shadow: var(--wf-control-shadow-active);
+  color: var(--wf-control-fg-hover, var(--wf-text));
+}
+
+.wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn {
+  background: var(--wf-control-bg-active);
+  border-color: var(--wf-control-border-color-active);
+  box-shadow: var(--wf-control-shadow-active);
+  color: var(--wf-control-fg-hover, var(--wf-text));
+}
+
+:is(
+  .wf-agent-rail__item--active,
+  .wf-file-tree__row--selected,
+  .wf-activity-tree__row--active,
+  .wf-popover__row[data-selected='true'],
+  button.wf-tool-btn.wf-tool-btn--active,
+  .wf-settings-shell__nav-btn[aria-selected='true'],
+  .wf-settings-shell__nav-btn--solo,
+  .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn,
+  .wf-theme-switcher__item[aria-current='true'],
+  .wf-theme-settings__option.is-active,
+  .wf-dialog__option.is-selected,
+  .wf-dialog__option[data-current='true'],
+  .wf-dialog-select-list__option.is-selected
+):hover {
+  background: var(--wf-control-bg-active);
+  border-color: var(--wf-control-border-color-active);
+  box-shadow: var(--wf-control-shadow-active);
+}
+
+.wf-onboarding-wizard__steps li:not(.is-clickable):not(.is-current) .wf-onboarding-wizard__step-btn,
+.wf-agent-rail__item:disabled,
+.wf-agent-rail__item[aria-disabled='true'] {
+  color: var(--wf-control-fg-inactive);
+}
+
+.wf-onboarding-wizard__steps li:not(.is-clickable):not(.is-current) .wf-onboarding-wizard__step-btn:hover,
+.wf-agent-rail__item:disabled:hover,
+.wf-agent-rail__item[aria-disabled='true']:hover {
+  background: var(--wf-control-bg);
+  border-color: var(--wf-control-border-color-inactive);
+  box-shadow: var(--wf-control-shadow);
+  color: var(--wf-control-fg-inactive);
+}

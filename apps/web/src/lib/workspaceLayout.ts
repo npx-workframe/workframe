@@ -74,11 +74,10 @@ function measure(api: DockviewApi, state: WorkspaceLayoutState, fallbackEl?: HTM
   const workspaceWidth = resolveWorkspaceWidth(api, fallbackEl)
   if (workspaceWidth <= 0) return null
 
-  const crewPanel = getPanel(api, PANEL_IDS.crew)
-  const railWidth = crewPanel ? railWidthForState(state) : 0
+  const railWidth = railWidthForState(state)
   const visible = WF_MAIN_PANEL_ORDER.filter((id) => Boolean(getPanel(api, id)))
-  const sashCount = sashCountFor(Boolean(crewPanel), visible.length)
-  const canvas = canvasFromWorkspace(workspaceWidth, railWidth, sashCount)
+  const sashCount = sashCountFor(visible.length)
+  const canvas = canvasFromWorkspace(workspaceWidth, sashCount)
 
   return { workspaceWidth, railWidth, canvas, visible }
 }
@@ -89,33 +88,11 @@ function setGroupWidth(panel: IDockviewPanel | undefined, width: number) {
   panel.group.api.setSize({ width: rounded })
 }
 
-/** Workframe rail is binary: 52px collapsed or 200px expanded — pin exact width. */
-function configureCrewPanel(panel: IDockviewPanel, target: number) {
-  const width =
-    target <= RAIL_WIDTH.collapsed ? RAIL_WIDTH.collapsed : RAIL_WIDTH.expanded
-
-  panel.group.api.setConstraints({
-    minimumWidth: width,
-    maximumWidth: width,
-  })
-  setGroupWidth(panel, width)
-}
-
-function enforceCrewRailWidth(api: DockviewApi, state: WorkspaceLayoutState) {
-  const crewPanel = getPanel(api, PANEL_IDS.crew)
-  if (!crewPanel) return
-  const target = railWidthForState(state)
-  const current = readGroupWidth(crewPanel)
-  if (current === null || Math.abs(current - target) > 1) {
-    configureCrewPanel(crewPanel, target)
-  }
-}
-
 function configureMainPanel(panel: IDockviewPanel, panelId: MainPanelId, width: number) {
   const rule = panelRule(panelId)
   panel.group.api.setConstraints({
     minimumWidth: rule.min,
-    maximumWidth: panelId === PANEL_IDS.chat ? rule.max : undefined,
+    maximumWidth: Number.isFinite(rule.max) ? rule.max : undefined,
   })
   setGroupWidth(panel, width)
 }
@@ -143,7 +120,6 @@ export class WorkspaceLayoutController {
 
   setRailExpanded(expanded: boolean) {
     this.state.railExpanded = expanded
-    enforceCrewRailWidth(this.api, this.state)
     this.layout('rail')
   }
 
@@ -206,8 +182,6 @@ export class WorkspaceLayoutController {
     const measureCtx = measure(this.api, this.state, this.root)
     if (!measureCtx) return
 
-    enforceCrewRailWidth(this.api, this.state)
-
     if (Math.abs(measureCtx.canvas - this.lastCanvasWidth) >= 2) {
       this.layout('viewport')
       return
@@ -222,11 +196,6 @@ export class WorkspaceLayoutController {
   private apply(measureCtx: LayoutMeasure, targets: Partial<Record<MainPanelId, number>>) {
     this.applying = true
     try {
-      const crewPanel = getPanel(this.api, PANEL_IDS.crew)
-      if (crewPanel) {
-        configureCrewPanel(crewPanel, measureCtx.railWidth)
-      }
-
       for (const id of measureCtx.visible) {
         const panel = getPanel(this.api, id)
         if (!panel) continue
@@ -292,18 +261,14 @@ export function getInitialPanelOptions(panelId: string) {
     panelInitial(panelId) ??
     (panelId === PANEL_IDS.browser ? WF_PANEL_RULES[PANEL_IDS.browser].initial : 120)
 
-  if (isMainPanelId(panelId)) {
-    const rule = panelRule(panelId)
-    return {
-      minimumWidth: rule.min,
-      maximumWidth: panelId === PANEL_IDS.chat ? rule.max : undefined,
-      initialWidth: initial,
-    }
+  if (!isMainPanelId(panelId)) {
+    return { initialWidth: initial }
   }
 
+  const rule = panelRule(panelId)
   return {
-    minimumWidth: RAIL_WIDTH.expanded,
-    maximumWidth: RAIL_WIDTH.expanded,
-    initialWidth: RAIL_WIDTH.expanded,
+    minimumWidth: rule.min,
+    maximumWidth: Number.isFinite(rule.max) ? rule.max : undefined,
+    initialWidth: initial,
   }
 }

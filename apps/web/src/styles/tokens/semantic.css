@@ -15,4 +15,39 @@
   --wf-input-padding-x: 10px;
   --wf-input-border: var(--wf-chrome-border-solid);
   --wf-input-bg: color-mix(in srgb, var(--wf-bg) 80%, transparent);
+
+  /* Interactive control chrome — themes set per palette (neo relief vs dark glass) */
+  --wf-control-fg: inherit;
+  --wf-control-fg-hover: var(--wf-text);
+  --wf-control-fg-inactive: var(--wf-muted);
+  --wf-control-bg: transparent;
+  --wf-control-bg-hover: transparent;
+  --wf-control-bg-active: transparent;
+  --wf-control-border-width: 1px;
+  --wf-control-border-style: solid;
+  --wf-control-border-color: transparent;
+  --wf-control-border-color-hover: transparent;
+  --wf-control-border-color-active: transparent;
+  --wf-control-border-color-inactive: transparent;
+  --wf-control-shadow: none;
+  --wf-control-shadow-hover: none;
+  --wf-control-shadow-active: none;
+
+  /* Dialog / wizard action buttons — themes set neo relief vs dark glass */
+  --wf-btn-fg: var(--wf-text);
+  --wf-btn-fg-inactive: var(--wf-muted);
+  --wf-btn-bg: transparent;
+  --wf-btn-bg-hover: transparent;
+  --wf-btn-bg-primary: transparent;
+  --wf-btn-border-width: 0;
+  --wf-btn-border-style: solid;
+  --wf-btn-border-color: transparent;
+  --wf-btn-border-color-hover: transparent;
+  --wf-btn-border-color-primary: transparent;
+  --wf-btn-border-color-inactive: transparent;
+  --wf-btn-shadow: none;
+  --wf-btn-shadow-hover: none;
+  --wf-btn-shadow-primary: none;
+  --wf-icon-control-size: var(--wf-panel-header-control-size);
+  --wf-icon-control-border-width: var(--wf-control-border-width);
 }

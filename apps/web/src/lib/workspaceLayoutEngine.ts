@@ -227,13 +227,19 @@ export function clearFlexManualOnViewport(state: WorkspaceLayoutState) {
   }
 }
 
-export function sashCountFor(crewPresent: boolean, mainCount: number) {
-  return (crewPresent ? 1 : 0) + Math.max(0, mainCount - 1)
+export function sashCountFor(mainCount: number) {
+  return Math.max(0, mainCount - 1)
 }
 
-export function canvasFromWorkspace(workspaceWidth: number, railWidth: number, sashCount: number) {
+export function canvasFromWorkspace(workspaceWidth: number, sashCount: number) {
   return Math.max(
     WF_PANEL_RULES[PANEL_IDS.chat].min,
-    workspaceWidth - railWidth - sashCount * WF_LAYOUT_SASH_WIDTH,
+    workspaceWidth - sashCount * WF_LAYOUT_SASH_WIDTH,
   )
+}
+
+// ponytail: layout math sanity — external rail does not consume dockview sash slots
+if (import.meta.env.DEV) {
+  console.assert(sashCountFor(4) === 3)
+  console.assert(canvasFromWorkspace(1000, 3) === 1000 - 3 * WF_LAYOUT_SASH_WIDTH)
 }

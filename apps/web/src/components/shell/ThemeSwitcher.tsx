@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { useTheme } from '@/hooks/useTheme'
 import { THEME_OPTIONS } from '@/lib/themeOptions'
 
@@ -26,10 +26,8 @@ export function ThemeSwitcher() {
 
   return (
     <div className="wf-theme-switcher" ref={ref}>
-      <Button
+      <WfActionButton
         type="button"
-        variant="outline"
-        size="sm"
         className="wf-theme-switcher__trigger"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -39,7 +37,7 @@ export function ThemeSwitcher() {
         <current.icon aria-hidden="true" />
         <span>{current.label}</span>
         <ChevronDown aria-hidden="true" className={open ? 'wf-theme-switcher__chevron--open' : ''} />
-      </Button>
+      </WfActionButton>
 
       {open ? (
         <ul className="wf-theme-switcher__menu" role="listbox" aria-label="Theme">
@@ -48,6 +46,7 @@ export function ThemeSwitcher() {
               <button
                 type="button"
                 className="wf-theme-switcher__item"
+                aria-current={theme === value ? 'true' : undefined}
                 onClick={() => {
                   setTheme(value)
                   setOpen(false)

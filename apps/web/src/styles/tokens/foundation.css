@@ -11,10 +11,29 @@
   --wf-footer-height: 28px;
   --wf-panel-header-height: 32px;
   --wf-panel-header-height-rail-collapsed: 44px;
-  --wf-rail-width-collapsed: 48px;
+  --wf-panel-header-control-size: 22px;
+  --wf-panel-header-inner-height: calc(var(--wf-panel-header-height) - var(--wf-border-width, 1px));
+  --wf-rail-width-collapsed: 52px;
+  --wf-rail-width-expanded: 200px;
   --wf-rail-cell: 32px;
-  --wf-rail-cell-gap: 4px;
-  --wf-dnd-strip-thickness: 8px;
+  --wf-gap-tight: var(--wf-space-1);
+  --wf-gap: var(--wf-space-2);
+  --wf-panel-stack-gap: var(--wf-space-4);
+  --wf-rail-list-gap: var(--wf-gap);
+  --wf-rail-inset-gutter: var(--wf-gap);
+  --wf-rail-cell-gap: var(--wf-gap-tight);
+
+  /* Scrollbar + scroll gutter (scroll-area.css consumes these) */
+  --wf-scrollbar-size: 5px;
+  --wf-scrollbar-thumb: color-mix(in srgb, var(--wf-muted) 24%, transparent);
+  --wf-scrollbar-thumb-hover: color-mix(in srgb, var(--wf-muted) 42%, transparent);
+  --wf-scrollbar-track: transparent;
+  --wf-scroll-gutter-inline: var(--wf-gap);
+  --wf-scroll-gutter-block: var(--wf-space-4);
+  --wf-scroll-gutter-inline-h: var(--wf-space-4);
+  --wf-scroll-gutter-block-h: var(--wf-gap);
+  --wf-dnd-indicator-bg: color-mix(in srgb, var(--wf-text) 14%, transparent);
+  --wf-dnd-indicator-border: color-mix(in srgb, var(--wf-border-strong) 82%, transparent);
 
   /* ponytail: 4px spacing grid + compact type scale for workspace chrome */
   --wf-space-1: 4px;
@@ -29,11 +48,11 @@
   --wf-leading-micro: 12px;
   --wf-leading-ui: 16px;
   --wf-leading-body: 20px;
+  --wf-leading-caption: var(--wf-leading-ui);
   --wf-control: 32px;
   --wf-tool-btn-size: 28px;
   --wf-tool-btn-icon: 14px;
-  /* --wf-radius, --wf-rail-cell-radius: per-theme (themes/*.css) */
-  --wf-tool-btn-radius: var(--wf-radius);
+  /* --wf-radius-* knobs: tokens/radius.css + themes/*.css */
 
   /* Z-index */
   --wf-z-dropdown: 9999;

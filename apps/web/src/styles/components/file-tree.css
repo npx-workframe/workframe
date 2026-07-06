@@ -4,7 +4,7 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
-  padding: 8px 0 0 8px;
+  padding: var(--wf-gap) 0 0 var(--wf-gap);
 }
 
 .wf-panel--browser .wf-browser {

@@ -33,8 +33,8 @@ html:has(.wf-desktop-frame) .wf-dialog-overlay {
   overflow: hidden;
   translate: -50% -50%;
   padding: 1.25rem 1.25rem 1rem;
-  border-radius: var(--wf-radius);
-  border: 1px solid color-mix(in srgb, var(--wf-border-strong) 85%, transparent);
+  border-radius: var(--wf-radius-shell);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   background: color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg));
   box-shadow: var(--wf-shadow-xl);
 }
@@ -58,6 +58,18 @@ html:has(.wf-desktop-frame) .wf-dialog-overlay {
 
 .wf-dialog-content[data-state='closed'] {
   animation: wf-dialog-zoom-out 0.14s ease-in;
+}
+
+/* Shared overlay chrome (settings dialog shell, onboarding wizard) */
+.wf-settings-shell__rail,
+.wf-onboarding-wizard__rail {
+  border-right: var(--wf-border-width, 1px) solid var(--wf-chrome-border-accent);
+  background: color-mix(in srgb, var(--wf-surface-soft) 55%, transparent);
+}
+
+.wf-settings-shell__main,
+.wf-onboarding-wizard__panel {
+  background: color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg));
 }
 
 .wf-dialog-close {
@@ -207,7 +219,7 @@ html:has(.wf-desktop-frame) .wf-dialog-overlay {
 
 .wf-dialog-field__hint--inline {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   line-height: 1.3;
   text-align: right;
   flex-shrink: 0;
@@ -312,7 +324,7 @@ textarea.wf-dialog-input {
   align-items: flex-start !important;
   min-height: auto;
   padding: 8px 10px 8px 28px !important;
-  border-radius: calc(var(--wf-radius) - 2px);
+  border-radius: var(--wf-radius-control);
   font-size: var(--wf-type-ui);
   color: var(--wf-text);
 }
@@ -334,14 +346,14 @@ textarea.wf-dialog-input {
 }
 
 .wf-dialog-select__item-label {
-  font-size: 13px;
+  font-size: var(--wf-type-body);
   font-weight: 600;
   line-height: 1.35;
   color: var(--wf-text);
 }
 
 .wf-dialog-select__item-hint {
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   line-height: 1.4;
   color: var(--wf-muted);
 }
@@ -394,11 +406,12 @@ textarea.wf-dialog-input {
   border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
 }
 
-.wf-dialog-tab {
+.wf-dialog-tab,
+.wf-settings-dialog__tab {
   padding: 6px 10px;
   border: none;
   border-bottom: 2px solid transparent;
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--wf-radius-tab-strip);
   background: transparent;
   color: var(--wf-muted);
   font-size: var(--wf-type-ui);
@@ -411,17 +424,20 @@ textarea.wf-dialog-input {
     border-color 0.15s ease;
 }
 
-.wf-dialog-tab:hover {
+.wf-dialog-tab:hover,
+.wf-settings-dialog__tab:hover {
   color: var(--wf-text);
   background: color-mix(in srgb, var(--wf-surface) 45%, transparent);
 }
 
-.wf-dialog-tab--active {
+.wf-dialog-tab--active,
+.wf-settings-dialog__tab--active {
   color: var(--wf-text);
   border-bottom-color: var(--wf-violet-glow);
 }
 
-.wf-dialog-tab:focus-visible {
+.wf-dialog-tab:focus-visible,
+.wf-settings-dialog__tab:focus-visible {
   outline: 2px solid var(--wf-ring);
   outline-offset: 1px;
 }
@@ -569,7 +585,7 @@ textarea.wf-dialog-input {
 
 .wf-dialog-checklist__hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   line-height: 1.45;
   color: var(--wf-muted);
 }
@@ -617,7 +633,7 @@ textarea.wf-dialog-input {
 
 .wf-dialog-select-list__label {
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--wf-type-body);
   font-weight: 600;
   color: var(--wf-text);
   overflow: hidden;
@@ -626,7 +642,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-dialog-select-list__hint {
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   line-height: 1.45;
   color: var(--wf-muted);
 }
@@ -676,7 +692,7 @@ textarea.wf-dialog-input {
 .wf-dialog__group-label {
   margin: 4px 0 2px;
   font-family: var(--wf-font-mono);
-  font-size: 9px;
+  font-size: var(--wf-type-micro);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -691,21 +707,21 @@ textarea.wf-dialog-input {
 
 .wf-dialog__empty-title {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--wf-type-body);
   font-weight: 600;
   color: var(--wf-text);
 }
 
 .wf-dialog__empty-copy {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   line-height: 1.4;
   color: var(--wf-muted);
 }
 
 .wf-dialog__code {
   font-family: var(--wf-font-mono);
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
 }
 
 .wf-dialog__option {
@@ -720,7 +736,7 @@ textarea.wf-dialog-input {
   text-align: left;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--wf-radius-inset);
   cursor: pointer;
   color: inherit;
   font: inherit;
@@ -740,7 +756,7 @@ textarea.wf-dialog-input {
 
 .wf-dialog__option-label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--wf-type-body);
   color: var(--wf-text);
 }
 
@@ -752,12 +768,12 @@ textarea.wf-dialog-input {
 
 .wf-dialog__option-id {
   font-family: var(--wf-font-mono);
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   color: var(--wf-muted);
 }
 
 .wf-dialog__option-desc {
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   line-height: 1.35;
   color: var(--wf-muted);
 }
@@ -769,7 +785,7 @@ textarea.wf-dialog-input {
   display: inline-block;
   width: fit-content;
   padding: 1px var(--wf-space-1);
-  border-radius: 999px;
+  border-radius: var(--wf-radius-pill);
   font-size: var(--wf-type-micro);
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -797,7 +813,7 @@ textarea.wf-dialog-input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   font-weight: 500;
 }
 
@@ -853,10 +869,10 @@ textarea.wf-dialog-input {
   gap: 6px;
   padding: 5px 10px;
   border: var(--wf-border-width, 1px) solid var(--wf-border);
-  border-radius: 999px;
+  border-radius: var(--wf-radius-pill);
   background: transparent;
   color: var(--wf-muted);
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   font-weight: 500;
   cursor: pointer;
 }
@@ -880,7 +896,7 @@ textarea.wf-dialog-input {
   max-height: min(420px, 52vh);
   overflow-y: auto;
   border: var(--wf-border-width, 1px) solid var(--wf-border);
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   padding: 8px;
   background: color-mix(in srgb, var(--wf-surface) 94%, transparent);
 }
@@ -911,7 +927,7 @@ textarea.wf-dialog-input {
   gap: 2px;
   padding: 8px 10px;
   border: var(--wf-border-width, 1px) solid var(--wf-border);
-  border-radius: 8px;
+  border-radius: var(--wf-radius-row);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -932,7 +948,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-llm-models__slot-label {
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -940,7 +956,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-llm-models__slot-value {
-  font-size: 13px;
+  font-size: var(--wf-type-body);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -986,7 +1002,7 @@ textarea.wf-dialog-input {
   gap: 2px;
   padding: 8px 10px;
   border: var(--wf-border-width, 1px) solid var(--wf-border);
-  border-radius: 8px;
+  border-radius: var(--wf-radius-control);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -1000,7 +1016,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-model-slots__label {
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1008,7 +1024,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-model-slots__value {
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1021,7 +1037,7 @@ textarea.wf-dialog-input {
   padding: 0;
   background: transparent;
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   transition: opacity 0.15s ease;
 }
 
@@ -1033,14 +1049,14 @@ textarea.wf-dialog-input {
 
 .wf-dialog__hint {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   line-height: 1.4;
   color: var(--wf-muted);
 }
 
 .wf-dialog__code {
   padding: 0 var(--wf-space-1);
-  border-radius: 3px;
+  border-radius: var(--wf-radius-xs);
   background: color-mix(in srgb, var(--wf-muted) 14%, transparent);
   font-family: var(--wf-font-mono);
   font-size: var(--wf-type-micro);
@@ -1088,7 +1104,7 @@ textarea.wf-dialog-input {
   min-width: 18px;
   height: var(--wf-leading-ui);
   padding: 0 var(--wf-space-1);
-  border-radius: 999px;
+  border-radius: var(--wf-radius-pill);
   background: color-mix(in srgb, var(--wf-accent) 30%, transparent);
   color: var(--wf-text);
   font-family: var(--wf-font-mono);
@@ -1104,7 +1120,7 @@ textarea.wf-dialog-input {
 
 .wf-dialog__chain-header {
   font-family: var(--wf-font-mono);
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1113,7 +1129,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-dialog__chain-empty {
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   color: var(--wf-muted);
   margin: 0;
 }
@@ -1145,17 +1161,17 @@ textarea.wf-dialog-input {
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: var(--wf-radius-pill);
   background: color-mix(in srgb, var(--wf-violet-glow) 28%, transparent);
   color: var(--wf-text);
   font-family: var(--wf-font-mono);
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   font-weight: 700;
 }
 
 .wf-dialog__chain-provider {
   font-family: var(--wf-font-mono);
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1164,13 +1180,13 @@ textarea.wf-dialog-input {
 
 .wf-dialog__chain-model {
   font-family: var(--wf-font-mono);
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   color: var(--wf-text);
   text-align: right;
 }
 
 .wf-dialog__chain-hint {
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   line-height: 1.4;
   color: var(--wf-muted);
   margin: 4px 0 0;
@@ -1178,7 +1194,7 @@ textarea.wf-dialog-input {
 
 .wf-dialog__connected-providers {
   margin: 0 0 var(--wf-space-2);
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   line-height: 1.4;
   color: var(--wf-muted);
 }
@@ -1211,20 +1227,20 @@ textarea.wf-dialog-input {
 .wf-dialog--profile .wf-dialog__profile { padding: 4px 0; }
 .wf-dialog__profile-name {
   font-family: var(--wf-font-mono);
-  font-size: 14px;
+  font-size: var(--wf-type-body);
   font-weight: 700;
   color: var(--wf-text);
   margin: 0 0 6px;
 }
 .wf-dialog__profile-desc {
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   line-height: 1.4;
   color: var(--wf-muted);
   margin: 0 0 8px;
 }
 .wf-dialog__profile-state {
   font-family: var(--wf-font-mono);
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1235,7 +1251,7 @@ textarea.wf-dialog-input {
 /* Insights dialog tables */
 .wf-dialog__section-label {
   font-family: var(--wf-font-mono);
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1245,13 +1261,13 @@ textarea.wf-dialog-input {
 .wf-dialog__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: var(--wf-type-caption);
   margin: 0 0 8px;
 }
 .wf-dialog__table th {
   text-align: left;
   font-family: var(--wf-font-mono);
-  font-size: 9px;
+  font-size: var(--wf-type-micro);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1304,7 +1320,7 @@ textarea.wf-dialog-input {
   gap: 4px 16px;
   margin: 0;
   padding: 0;
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
 }
 
 .wf-dialog__status-row {
@@ -1313,7 +1329,7 @@ textarea.wf-dialog-input {
 
 .wf-dialog__status dt {
   font-family: var(--wf-font-mono);
-  font-size: 10px;
+  font-size: var(--wf-type-meta);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1324,7 +1340,7 @@ textarea.wf-dialog-input {
 .wf-dialog__status dd {
   margin: 0;
   font-family: var(--wf-font-mono);
-  font-size: 12px;
+  font-size: var(--wf-type-ui);
   color: var(--wf-text);
   word-break: break-all;
 }

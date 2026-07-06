@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 type PanelHeaderControlsProps = {
   panelId: string
   panelLabel: string
-  api: IDockviewPanelProps['api']
+  api?: IDockviewPanelProps['api']
   className?: string
   externalHref?: string
   settingsOpen?: boolean
@@ -39,19 +39,22 @@ export function PanelHeaderControls({
 }: PanelHeaderControlsProps) {
   const config = getPanelControlsConfig(panelId)
   const resolvedExternalHref = externalHref ?? config.externalHref?.()
-  const actions = orderPanelActions(config.actions).filter(
-    (action) => action !== 'external' || Boolean(resolvedExternalHref),
-  )
+  const actions = orderPanelActions(config.actions).filter((action) => {
+    if (action === 'external' && !resolvedExternalHref) return false
+    if ((action === 'close' || action === 'expand') && !api) return false
+    return true
+  })
   const [settingsOpenInternal, setSettingsOpenInternal] = useState(false)
   const settingsOpen = settingsOpenProp ?? settingsOpenInternal
   const setSettingsOpen = onSettingsOpenChange ?? setSettingsOpenInternal
-  const [maximized, setMaximized] = useState(() => api.isMaximized())
+  const [maximized, setMaximized] = useState(() => api?.isMaximized() ?? false)
 
   const onClose = useCallback(() => {
-    api.close()
+    api?.close()
   }, [api])
 
   const onExpand = useCallback(() => {
+    if (!api) return
     if (api.isMaximized()) {
       api.exitMaximized()
       setMaximized(false)

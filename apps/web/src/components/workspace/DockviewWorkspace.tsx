@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import {
   DockviewReact,
   type DockviewReadyEvent,
@@ -7,6 +7,7 @@ import {
 import type { DockviewApi } from 'dockview'
 
 import { AgentRailPanel } from '@/components/workspace/panels/AgentRailPanel'
+import { RAIL_WIDTH } from '@/components/workspace/railLayout'
 import { ChatWorkspacePanel } from '@/components/workspace/panels/ChatWorkspacePanel'
 import { FilesExplorerPanel } from '@/components/workspace/panels/FilesExplorerPanel'
 import { ActivityPanel } from '@/components/workspace/panels/ActivityPanel'
@@ -19,32 +20,17 @@ import { useTheme } from '@/hooks/useTheme'
 import { getInitialPanelOptions } from '@/lib/workspaceLayout'
 import {
   setupWorkspaceDnd,
-  WORKFRAME_DND_OVERLAY,
+  WORKFRAME_DND_EDGES,
 } from '@/lib/workspaceDndPolicy'
 import { cn } from '@/lib/utils'
 
-const DOCKVIEW_DND_THEME = {
-  dndOverlayMounting: 'relative' as const,
-  dndPanelOverlay: 'content' as const,
-  dndTabIndicator: 'line' as const,
-}
-
-function initWorkspace(event: DockviewReadyEvent) {
+function initWorkspace(event: DockviewReadyEvent, canvasEl: HTMLElement | null) {
   const api = event.api
-
-  const agentPanel = api.addPanel({
-    id: PANEL_IDS.crew,
-    component: 'agentRail',
-    title: panelDisplayTitle(PANEL_IDS.crew),
-    ...getInitialPanelOptions(PANEL_IDS.crew),
-  })
-  agentPanel.group.api.locked = true
 
   const chatPanel = api.addPanel({
     id: PANEL_IDS.chat,
     component: 'chatWorkspace',
     title: 'Chat',
-    position: { referencePanel: agentPanel, direction: 'right' },
     ...getInitialPanelOptions(PANEL_IDS.chat),
   })
 
@@ -72,7 +58,7 @@ function initWorkspace(event: DockviewReadyEvent) {
     ...getInitialPanelOptions(PANEL_IDS.activity),
   })
 
-  setupWorkspaceDnd(api)
+  setupWorkspaceDnd(api, canvasEl)
 }
 
 function projectNameFromEnv() {
@@ -81,7 +67,8 @@ function projectNameFromEnv() {
 
 export function DockviewWorkspace() {
   const { theme } = useTheme()
-  const { registerWorkspaceApi } = useWorkspacePanels()
+  const { railExpanded, registerWorkspaceApi } = useWorkspacePanels()
+  const railWidth = railExpanded ? RAIL_WIDTH.expanded : RAIL_WIDTH.collapsed
 
   const apiRef = useRef<DockviewApi | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
@@ -90,7 +77,6 @@ export function DockviewWorkspace() {
   const components = useMemo(
     () =>
       ({
-        agentRail: AgentRailPanel,
         chatWorkspace: ChatWorkspacePanel,
         activity: ActivityPanel,
         filesExplorer: FilesExplorerPanel,
@@ -101,7 +87,7 @@ export function DockviewWorkspace() {
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
-      initWorkspace(event)
+      initWorkspace(event, workspaceRef.current)
       apiRef.current = event.api
       teardownRef.current?.()
       teardownRef.current = registerWorkspaceApi(
@@ -121,7 +107,13 @@ export function DockviewWorkspace() {
   }, [])
 
   return (
-    <div className="wf-workspace-shell">
+    <div
+      className="wf-workspace-shell"
+      style={{ '--wf-rail-width': `${railWidth}px` } as CSSProperties}
+    >
+      <aside className="wf-rail-fallback" aria-label="Workspace rail">
+        <AgentRailPanel />
+      </aside>
       <div
         ref={workspaceRef}
         className={cn(
@@ -134,18 +126,16 @@ export function DockviewWorkspace() {
           components={components}
           defaultTabComponent={PanelDragTab}
           onReady={onReady}
-          hideBorders
-          dndEdges={WORKFRAME_DND_OVERLAY}
+          dndEdges={WORKFRAME_DND_EDGES}
           theme={{
-            ...DOCKVIEW_DND_THEME,
+            dndTabIndicator: 'line',
+            dndOverlayMounting: 'relative',
             ...(theme === 'dark'
               ? { name: 'wf-dark', className: 'dockview-theme-dark' }
               : { name: 'wf-light', className: 'dockview-theme-light' }),
           }}
         />
       </div>
-
-
     </div>
   )
 }

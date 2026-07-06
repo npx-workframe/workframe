@@ -13,7 +13,7 @@ export function FilesExplorerPanel({ api }: IDockviewPanelProps) {
 
   return (
     <PanelShell className="wf-panel--files wf-panel--dockable">
-      <PanelHeader label={NAVIGATOR_PANEL_LABEL} panelId={PANEL_IDS.files} api={api} />
+      <PanelHeader label={NAVIGATOR_PANEL_LABEL} panelId={PANEL_IDS.files} api={api} showLabel={false} />
       <ProjectFileTree projectName={projectName} />
     </PanelShell>
   )

@@ -31,6 +31,7 @@ type ModelPickerPanelProps = {
   /** Draft fallback chain while picking models before a profile exists. */
   onFallbacksDraftChange?: (chain: FallbackEntry[]) => void
   onError?: (message: string) => void
+  onStatus?: (message: string) => void
   onLoaded?: (data: HermesModelsResponse) => void
 }
 
@@ -71,6 +72,12 @@ function providerBucketKey(provider: string): string {
   return k
 }
 
+function slotStatusMessage(slot: ModelSlot, modelId: string, data: HermesModelsResponse | null): string {
+  const label = SLOT_META.find((entry) => entry.id === slot)?.label ?? 'Model'
+  const name = modelLabel(data, modelId)
+  return `${label} set to ${name}.`
+}
+
 export function ModelPickerPanel({
   profile,
   workspaceId,
@@ -81,6 +88,7 @@ export function ModelPickerPanel({
   onChanged,
   onFallbacksDraftChange,
   onError,
+  onStatus,
   onLoaded,
 }: ModelPickerPanelProps) {
   const [data, setData] = useState<HermesModelsResponse | null>(null)
@@ -96,8 +104,10 @@ export function ModelPickerPanel({
     null,
   ])
   const onErrorRef = useRef(onError)
+  const onStatusRef = useRef(onStatus)
   const onLoadedRef = useRef(onLoaded)
   onErrorRef.current = onError
+  onStatusRef.current = onStatus
   onLoadedRef.current = onLoaded
 
   useEffect(() => {
@@ -257,6 +267,7 @@ export function ModelPickerPanel({
             return
           }
           onChanged?.(res.model ?? trimmed)
+          onStatusRef.current?.(slotStatusMessage('primary', res.model ?? trimmed, data))
           await refreshModels()
         } catch (err) {
           onError?.(err instanceof Error ? err.message : 'set failed')
@@ -280,6 +291,7 @@ export function ModelPickerPanel({
       updateDraftFallbacks(next)
       const chain = next.filter((item): item is FallbackEntry => Boolean(item?.provider && item?.model))
       await applyFallbackChain(chain)
+      onStatusRef.current?.(slotStatusMessage(activeSlot, trimmed, data))
       return
     }
 
@@ -308,6 +320,7 @@ export function ModelPickerPanel({
         const saved = res.model ?? trimmed
         setData({ ...data, primary: saved })
         onChanged?.(saved)
+        onStatusRef.current?.(slotStatusMessage('primary', saved, data))
         invalidateWorkframeMetaCache()
         await refreshModels()
       } catch (err) {
@@ -335,6 +348,7 @@ export function ModelPickerPanel({
     const next = slots.filter((item): item is FallbackEntry => Boolean(item?.provider && item?.model))
     setPending(trimmed)
     await applyFallbackChain(next)
+    onStatusRef.current?.(slotStatusMessage(activeSlot, trimmed, data))
   }
 
   if (loading) {

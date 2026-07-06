@@ -12,11 +12,14 @@
    Status: --wf-error, --wf-error-soft, --wf-success, --wf-warning
    Shadows: --wf-shadow-sm, --wf-shadow-md, --wf-shadow-lg, --wf-shadow-xl, --wf-shadow-inset
    Chrome borders: see tokens/chrome-contract.css
-   Feel: --wf-radius, --wf-rail-cell-radius, --wf-border-width, --wf-divider-color
+   Feel: --wf-radius-knob-sm/md/lg, --wf-radius-avatar/control/surface/tool-btn,
+         --wf-radius-shell/card/logo/tab-strip/inset (overlay surfaces),
+         --wf-gap-tight, --wf-gap, --wf-border-width, --wf-divider-color
    Neo shadows (inert in dark): --wf-neo-shadow-light, --wf-neo-shadow-dark,
      --wf-neo-shadow-inset-light, --wf-neo-shadow-inset-dark, --wf-neo-flat, --wf-neo-highlight
    Dialog hovers: --wf-dialog-accent-hover-bg/text/border, --wf-dialog-warn-hover-bg/text/border
-   Controls: --wf-control-bg-flush, --wf-control-bg-raised, --wf-control-border-ring-closed,
+   Controls: --wf-control-bg/flg/border/shadow (+ hover, active, inactive variants),
+     --wf-scrollbar-size/thumb/thumb-hover/track,
      --wf-control-border-ring-raised, --wf-control-shadow-flush, --wf-control-shadow-raised,
      --wf-control-shadow-highlight, --wf-control-shadow-inset, --wf-control-shadow-elevated,
      --wf-control-shadow-footer */
