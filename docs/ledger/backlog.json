@@ -834,10 +834,11 @@
       "depends_on": ["WF-034", "WF-033"],
       "evidence": [
         "services/workframe-api/db_schema.py",
-        "services/workframe-api/auth_gate.py"
+        "services/workframe-api/auth_gate.py",
+        "services/workframe-api/user_prefs.py"
       ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: auth_gate.py extracted (session, CORS/host, deployment mode). Stage 1 remaining: user_prefs.py, rooms.py, kanban_cron.py; base WORKFRAME_DB_SCHEMA + v6-v13 migrations still in server.py." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: auth_gate.py + user_prefs.py extracted. Stage 1 remaining: rooms.py, kanban_cron.py; base WORKFRAME_DB_SCHEMA + v6-v13 migrations still in server.py." }
     },
     {
       "id": "WF-033",
