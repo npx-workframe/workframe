@@ -126,9 +126,9 @@ assert route_registry.authorize_request(
 )
 
 dispatched_get = [r for r in route_registry.ROUTES if r.method == "GET" and r.handler]
-assert len(dispatched_get) == 36
+assert len(dispatched_get) == 47
 dispatched_post = [r for r in route_registry.ROUTES if r.method == "POST" and r.handler]
-assert len(dispatched_post) == 25
+assert len(dispatched_post) == 36
 
 class _PostStub:
     def __init__(self) -> None:
@@ -143,6 +143,18 @@ _stub = _PostStub()
 assert route_registry.dispatch_post(_stub, "/api/auth/start", {"email": "a@b.c"})
 assert _stub.called and _stub.body == {"email": "a@b.c"}
 assert not route_registry.dispatch_post(_stub, "/api/not-registered", {})
+
+class _GetStub:
+    def __init__(self) -> None:
+        self.called = False
+
+    def _route_get_admin_vault_status(self, qs: dict) -> None:
+        self.called = True
+
+_get_stub = _GetStub()
+assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})
+assert _get_stub.called
+assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})  # idempotent call ok
 
 # No legacy frozenset allowlists
 assert not hasattr(route_registry, "GET_ALWAYS_PUBLIC_ROUTES")

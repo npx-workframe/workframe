@@ -942,7 +942,7 @@
       "summary": "The BaseHTTPRequestHandler dispatch is a multi-thousand-line if-chain and GET_PUBLIC_ROUTES is a separate allowlist that can drift from handlers. Replace with one route table: (method, path, handler, auth_level, roles). Auth becomes deny-by-default at the table, closing the WF-031 class permanently.",
       "wave": "code-health",
       "priority": "P1",
-      "status": "done",
+      "status": "partial",
       "sources": ["audit-2026-07-05: handler if-chain ~L16500-19700", "WF-031"],
       "acceptance": [
         "Single ROUTES table; unknown path = 404, unlisted auth = 401 (deny by default)",
@@ -964,7 +964,7 @@
         "services/workframe-api/test_route_registry.py"
       ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-06", "notes": "ROUTES + ROUTE_PATTERNS single table; AuthLevel public|session|role_owner_admin|internal; sessionless_ok + install_window flags; unregistered /api/* → None at auth (404 dispatch); 36+25 registry-dispatched handlers; ~43 if-chain bodies remain (auth registered, handler migration deferred)." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "ROUTES + ROUTE_PATTERNS single table; AuthLevel public|session|role_owner_admin|internal; 47 GET + 36 POST registry-dispatched (batch 2: +22 admin/install/oauth); ~16 exact if-chain paths + pattern routes remain; server ~12.2k lines." }
     },
     {
       "id": "WF-038",

@@ -10415,6 +10415,341 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(200, chat_dispatch(body))
 
+    # WF-037 admin/install/oauth GET handlers (batch 2)
+    def _route_get_admin_vault_status(self, qs: dict[str, list[str]]) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        self._json(200, {"ok": True, **credential_vault.vault_status()})
+
+    def _route_get_doctor_agent_dm_runtimes(self, qs: dict[str, list[str]]) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        self._json(200, doctor_audit_agent_dm_runtimes())
+
+    def _route_get_admin_updates(self, qs: dict[str, list[str]]) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        desktop_version = str((qs.get("desktop_version") or [""])[0] or "").strip()
+        try:
+            self._json(
+                200,
+                stack_updates.updates_available(
+                    desktop_version=desktop_version,
+                    hermes_agent_version=_hermes_agent_version(),
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json(500, {"ok": False, "error": str(exc)})
+
+    def _route_get_auth_hermes_dashboard_gate(self, qs: dict[str, list[str]]) -> None:
+        status = _hermes_dashboard_gate_status(self)
+        if status == 204:
+            self.send_response(204)
+            self.end_headers()
+            return
+        self._json(403, {"ok": False, "error": "dashboard_forbidden"})
+
+    def _route_get_install_stack(self, qs: dict[str, list[str]]) -> None:
+        if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        self._json(200, {"ok": True, **stack_config.public_stack_payload()})
+
+    def _route_get_install_url_test(self, qs: dict[str, list[str]]) -> None:
+        if not _install_window_open():
+            self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
+        self._json(200, install_api.url_test(str(url)))
+
+    def _route_get_install_publish_hints(self, qs: dict[str, list[str]]) -> None:
+        if not _install_window_open():
+            self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
+        self._json(200, install_api.publish_hints_payload(str(url)))
+
+    def _route_get_auth_google_callback(self, qs: dict[str, list[str]]) -> None:
+        code = (qs.get("code") or [""])[0]
+        state = (qs.get("state") or [""])[0]
+        if not code or not state:
+            self._json(400, {"ok": False, "error": "missing code or state"})
+            return
+        try:
+            profile = google_auth.exchange_google_code(code, state)
+            invite_token = str(profile.get("invite_token") or "")
+            allowed, deny_meta = _email_allowed_to_authenticate(profile["email"])
+            if not allowed and not _invite_token_allows_email(invite_token, profile["email"]):
+                self._log_audit(
+                    "login_denied_private",
+                    "user",
+                    profile["email"],
+                    str(deny_meta.get("error") or ""),
+                )
+                self._json(403, {"ok": False, **deny_meta})
+                return
+            result = _zk.create_session_for_email(profile["email"])
+            self.auth_user = result["user_id"]
+            self._ensure_user(
+                result["user_id"],
+                profile.get("display_name") or profile["email"],
+                profile["email"],
+            )
+            invite_token = str(profile.get("invite_token") or "")
+            use_secure = _session_cookie_secure()
+            cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
+            redirect_to = f"{APP_BASE_URL.rstrip('/')}/onboarding"
+            if invite_token:
+                redirect_to = (
+                    f"{APP_BASE_URL.rstrip('/')}/?invite_token="
+                    f"{urllib.parse.quote(invite_token)}&email={urllib.parse.quote(profile['email'])}"
+                )
+            self.send_response(302)
+            self.send_header("Location", redirect_to)
+            self.send_header("Set-Cookie", cookie_val)
+            cors_origin = _cors_origin_for(self.headers)
+            if cors_origin:
+                self.send_header("Access-Control-Allow-Origin", cors_origin)
+                self.send_header("Vary", "Origin")
+            self.end_headers()
+        except Exception as exc:
+            self._json(401, {"ok": False, "error": str(exc)})
+
+    def _route_get_oauth_github_callback(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        code = qs.get("code", [""])[0]
+        state = qs.get("state", [""])[0]
+        result = _complete_github_oauth(user_id, str(code or ""), str(state or ""))
+        status = "ok" if result.get("ok") else "error"
+        message = urllib.parse.quote(str(result.get("error") or "connected"))
+        location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=github&status={status}&message={message}"
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.end_headers()
+
+    def _route_get_oauth_discord_callback(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        code = qs.get("code", [""])[0]
+        state = qs.get("state", [""])[0]
+        result = _complete_discord_oauth(user_id, str(code or ""), str(state or ""))
+        status = "ok" if result.get("ok") else "error"
+        message = urllib.parse.quote(str(result.get("error") or "connected"))
+        location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=discord&status={status}&message={message}"
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.end_headers()
+
+    def _route_get_oauth_stripe_callback(self, qs: dict[str, list[str]]) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        code = qs.get("code", [""])[0]
+        state = qs.get("state", [""])[0]
+        result = _complete_stripe_oauth(user_id, str(code or ""), str(state or ""))
+        status = "ok" if result.get("ok") else "error"
+        message = urllib.parse.quote(str(result.get("error") or "connected"))
+        location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=stripe&status={status}&message={message}"
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.end_headers()
+
+    # WF-037 admin/install POST handlers (batch 2)
+    def _route_post_install_email_test(self, body: dict) -> None:
+        if not _install_window_open():
+            self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        try:
+            to_email = str(body.get("email", "")).strip()
+            result = install_api.smtp_test_send(to_email)
+            self._json(200, result)
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
+        except Exception as exc:
+            self._json(500, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
+
+    def _route_post_install_url_test(self, body: dict) -> None:
+        if not _install_window_open():
+            self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        url = str(body.get("url") or body.get("app_base_url") or "").strip()
+        self._json(200, install_api.url_test(url))
+
+    def _route_post_install_setup_https(self, body: dict) -> None:
+        if not _install_window_open():
+            self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        try:
+            host, port = install_api.normalize_setup_https(
+                str(body.get("host") or body.get("url") or body.get("app_base_url") or ""),
+                body.get("port"),
+            )
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        if not _supervisor_ready():
+            self._json(503, {"ok": False, "error": "supervisor_unavailable"})
+            return
+        status, data = _supervisor_request(
+            "POST",
+            "/v1/host.setup_public_https",
+            {"host": host, "port": port},
+            timeout=600.0,
+        )
+        if status < 400:
+            sync = _maybe_sync_compose_public_url(f"https://{host}")
+            if isinstance(data, dict) and sync:
+                data = {**data, "compose_sync": sync}
+        self._json(status, data if isinstance(data, dict) else {"ok": False, "error": "invalid_response"})
+
+    def _route_post_install_complete(self, body: dict) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "").strip()
+        if not user_id and DEPLOYMENT_MODE != "single_user_local":
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        self._json(200, self._complete_install(user_id, body))
+
+    def _route_post_install_stack_branding_asset(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        kind = str(body.get("kind") or "").strip().lower()
+        if kind not in {"og", "favicon"}:
+            self._json(400, {"ok": False, "error": "invalid_kind"})
+            return
+        raw_b64 = str(body.get("data_base64") or "").strip()
+        if raw_b64.startswith("data:"):
+            header, _, encoded = raw_b64.partition(",")
+            content_type = header.split(";")[0].replace("data:", "").strip()
+            raw_b64 = encoded
+        else:
+            content_type = str(body.get("content_type") or "").strip()
+        try:
+            data = base64.b64decode(raw_b64, validate=False)
+        except Exception:
+            self._json(400, {"ok": False, "error": "invalid_base64"})
+            return
+        try:
+            site_meta.save_branding_asset(kind, data, content_type)
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        meta = _public_site_meta_payload()
+        self._json(
+            200,
+            {
+                "ok": True,
+                "kind": kind,
+                "og_image": meta.get("og_image"),
+                "favicon": meta.get("favicon"),
+            },
+        )
+
+    def _route_post_admin_updates_apply(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        if not _admin_write_allowed(self):
+            self._json(403, {"ok": False, "error": "admin_write_forbidden", "hint": "X-Workframe-Local required in dev-unsafe"})
+            return
+        target = str(body.get("target") or "all").strip().lower()
+        if target not in {"hermes", "workframe", "all"}:
+            self._json(400, {"ok": False, "error": "invalid_target"})
+            return
+        try:
+            result = _apply_stack_update(target)
+            self._log_audit("stack_update_apply", "stack", target, str(result.get("ok")))
+            self._json(200 if result.get("ok") else 500, result)
+        except Exception as exc:  # noqa: BLE001
+            self._json(500, {"ok": False, "error": str(exc)})
+
+    def _route_post_admin_stack_restart_gateway(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        if not _admin_write_allowed(self):
+            self._json(403, {"ok": False, "error": "admin_write_forbidden", "hint": "X-Workframe-Local required in dev-unsafe"})
+            return
+        try:
+            result = _restart_stack_gateway()
+            self._log_audit("stack_restart_gateway", "stack", "gateway", str(result.get("ok")))
+            self._json(200 if result.get("ok") else 500, result)
+        except Exception as exc:  # noqa: BLE001
+            self._json(500, {"ok": False, "error": str(exc)})
+
+    def _route_post_admin_vault_init(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        if not _admin_write_allowed(self):
+            self._json(403, {"ok": False, "error": "admin_write_forbidden"})
+            return
+        passphrase = str(body.get("passphrase") or "").strip()
+        if not passphrase:
+            self._json(400, {"ok": False, "error": "passphrase required"})
+            return
+        try:
+            status = credential_vault.init_vault_passphrase(passphrase)
+            self._log_audit("vault_passphrase_init", "vault", "meta", "passphrase_enabled")
+            self._json(200, {"ok": True, **status})
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+        except Exception as exc:  # noqa: BLE001
+            self._json(500, {"ok": False, "error": str(exc)})
+
+    def _route_post_admin_vault_unlock(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        passphrase = str(body.get("passphrase") or "").strip()
+        if not passphrase:
+            self._json(400, {"ok": False, "error": "passphrase required"})
+            return
+        try:
+            status = credential_vault.unlock_vault(passphrase)
+            self._log_audit("vault_unlock", "vault", "meta", "unsealed")
+            self._json(200, {"ok": True, **status})
+        except ValueError as exc:
+            self._log_audit("vault_unlock_failed", "vault", "meta", str(exc))
+            self._json(403, {"ok": False, "error": str(exc)})
+        except Exception as exc:  # noqa: BLE001
+            self._json(500, {"ok": False, "error": str(exc)})
+
+    def _route_post_admin_vault_seal(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        if not _admin_write_allowed(self):
+            self._json(403, {"ok": False, "error": "admin_write_forbidden"})
+            return
+        status = credential_vault.seal_vault()
+        self._log_audit("vault_seal", "vault", "meta", "sealed")
+        self._json(200, {"ok": True, **status})
+
+    def _route_post_admin_vault_wipe(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        if not _admin_write_allowed(self):
+            self._json(403, {"ok": False, "error": "admin_write_forbidden"})
+            return
+        if not body.get("confirm"):
+            self._json(400, {"ok": False, "error": "confirm required"})
+            return
+        deleted = credential_vault.wipe_all_secrets()
+        credential_vault.seal_vault()
+        self._log_audit("vault_wipe", "vault", "secrets", f"deleted={deleted}")
+        self._json(200, {"ok": True, "deleted": deleted, **credential_vault.vault_status()})
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -10445,35 +10780,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file_public("index.html")
             if path.startswith("/assets/"):
                 return self._file_public(path.lstrip("/"))
-            if path == "/api/admin/vault/status":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                return self._json(200, {"ok": True, **credential_vault.vault_status()})
-            if path == "/api/doctor/agent-dm-runtimes":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                return self._json(200, doctor_audit_agent_dm_runtimes())
-            if path == "/api/admin/updates":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                desktop_version = str((qs.get("desktop_version") or [""])[0] or "").strip()
-                try:
-                    return self._json(
-                        200,
-                        stack_updates.updates_available(
-                            desktop_version=desktop_version,
-                            hermes_agent_version=_hermes_agent_version(),
-                        ),
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    return self._json(500, {"ok": False, "error": str(exc)})
-            if path == "/api/auth/hermes-dashboard-gate":
-                status = _hermes_dashboard_gate_status(self)
-                if status == 204:
-                    self.send_response(204)
-                    self.end_headers()
-                    return
-                return self._json(403, {"ok": False, "error": "dashboard_forbidden"})
             branding_match = re.fullmatch(r"/api/public/branding/(og|favicon)", path)
             if branding_match:
                 asset = site_meta.branding_asset_bytes(branding_match.group(1))
@@ -10482,67 +10788,7 @@ class Handler(BaseHTTPRequestHandler):
                 data, ctype = asset
                 self._send(200, data, ctype)
                 return
-            if path == "/api/install/stack":
-                if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                return self._json(200, {"ok": True, **stack_config.public_stack_payload()})
-            if path == "/api/install/url/test":
-                if not _install_window_open():
-                    return self._json(403, {"ok": False, "error": "install_closed"})
-                qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
-                return self._json(200, install_api.url_test(str(url)))
-            if path == "/api/install/publish-hints":
-                if not _install_window_open():
-                    return self._json(403, {"ok": False, "error": "install_closed"})
-                qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
-                return self._json(200, install_api.publish_hints_payload(str(url)))
-            if path == "/api/auth/google/callback":
-                qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                code = (qs.get("code") or [""])[0]
-                state = (qs.get("state") or [""])[0]
-                if not code or not state:
-                    return self._json(400, {"ok": False, "error": "missing code or state"})
-                try:
-                    profile = google_auth.exchange_google_code(code, state)
-                    invite_token = str(profile.get("invite_token") or "")
-                    allowed, deny_meta = _email_allowed_to_authenticate(profile["email"])
-                    if not allowed and not _invite_token_allows_email(invite_token, profile["email"]):
-                        self._log_audit(
-                            "login_denied_private",
-                            "user",
-                            profile["email"],
-                            str(deny_meta.get("error") or ""),
-                        )
-                        return self._json(403, {"ok": False, **deny_meta})
-                    result = _zk.create_session_for_email(profile["email"])
-                    self.auth_user = result["user_id"]
-                    self._ensure_user(
-                        result["user_id"],
-                        profile.get("display_name") or profile["email"],
-                        profile["email"],
-                    )
-                    invite_token = str(profile.get("invite_token") or "")
-                    use_secure = _session_cookie_secure()
-                    cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
-                    redirect_to = f"{APP_BASE_URL.rstrip('/')}/onboarding"
-                    if invite_token:
-                        redirect_to = (
-                            f"{APP_BASE_URL.rstrip('/')}/?invite_token="
-                            f"{urllib.parse.quote(invite_token)}&email={urllib.parse.quote(profile['email'])}"
-                        )
-                    self.send_response(302)
-                    self.send_header("Location", redirect_to)
-                    self.send_header("Set-Cookie", cookie_val)
-                    cors_origin = _cors_origin_for(self.headers)
-                    if cors_origin:
-                        self.send_header("Access-Control-Allow-Origin", cors_origin)
-                        self.send_header("Vary", "Origin")
-                    self.end_headers()
-                    return
-                except Exception as exc:
-                    return self._json(401, {"ok": False, "error": str(exc)})
+
             if path.startswith("/api/me/oauth/") and path.endswith("/status"):
                 parts = path.strip("/").split("/")
                 if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "status":
@@ -10554,51 +10800,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not session_id:
                         return self._json(400, {"ok": False, "error": "session_id required"})
                     return self._json(200, device_oauth_status(user_id, provider_id, session_id))
-
-            if path == "/api/oauth/github/callback":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                code = qs.get("code", [""])[0]
-                state = qs.get("state", [""])[0]
-                result = _complete_github_oauth(user_id, str(code or ""), str(state or ""))
-                status = "ok" if result.get("ok") else "error"
-                message = urllib.parse.quote(str(result.get("error") or "connected"))
-                location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=github&status={status}&message={message}"
-                self.send_response(302)
-                self.send_header("Location", location)
-                self.end_headers()
-                return
-
-            if path == "/api/oauth/discord/callback":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                code = qs.get("code", [""])[0]
-                state = qs.get("state", [""])[0]
-                result = _complete_discord_oauth(user_id, str(code or ""), str(state or ""))
-                status = "ok" if result.get("ok") else "error"
-                message = urllib.parse.quote(str(result.get("error") or "connected"))
-                location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=discord&status={status}&message={message}"
-                self.send_response(302)
-                self.send_header("Location", location)
-                self.end_headers()
-                return
-
-            if path == "/api/oauth/stripe/callback":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                code = qs.get("code", [""])[0]
-                state = qs.get("state", [""])[0]
-                result = _complete_stripe_oauth(user_id, str(code or ""), str(state or ""))
-                status = "ok" if result.get("ok") else "error"
-                message = urllib.parse.quote(str(result.get("error") or "connected"))
-                location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=stripe&status={status}&message={message}"
-                self.send_response(302)
-                self.send_header("Location", location)
-                self.end_headers()
-                return
 
             workspace_get_match = re.fullmatch(r"/api/workspace/([^/]+)", path)
             if workspace_get_match and self.command == "GET":
@@ -11526,167 +11727,6 @@ class Handler(BaseHTTPRequestHandler):
 
             if route_registry.dispatch_post(self, path, post_body):
                 return
-
-            if path == "/api/install/email/test":
-                if not _install_window_open():
-                    return self._json(403, {"ok": False, "error": "install_closed"})
-                try:
-                    to_email = str(body.get("email", "")).strip()
-                    result = install_api.smtp_test_send(to_email)
-                    return self._json(200, result)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
-                except Exception as exc:
-                    return self._json(500, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
-
-            if path == "/api/install/url/test":
-                if not _install_window_open():
-                    return self._json(403, {"ok": False, "error": "install_closed"})
-                url = str(body.get("url") or body.get("app_base_url") or "").strip()
-                return self._json(200, install_api.url_test(url))
-
-            if path == "/api/install/setup-https":
-                if not _install_window_open():
-                    return self._json(403, {"ok": False, "error": "install_closed"})
-                try:
-                    host, port = install_api.normalize_setup_https(
-                        str(body.get("host") or body.get("url") or body.get("app_base_url") or ""),
-                        body.get("port"),
-                    )
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-                if not _supervisor_ready():
-                    return self._json(503, {"ok": False, "error": "supervisor_unavailable"})
-                status, data = _supervisor_request(
-                    "POST",
-                    "/v1/host.setup_public_https",
-                    {"host": host, "port": port},
-                    timeout=600.0,
-                )
-                if status < 400:
-                    sync = _maybe_sync_compose_public_url(f"https://{host}")
-                    if isinstance(data, dict) and sync:
-                        data = {**data, "compose_sync": sync}
-                return self._json(status, data if isinstance(data, dict) else {"ok": False, "error": "invalid_response"})
-
-            if path == "/api/install/complete":
-                user_id = str(getattr(self, "auth_user", "") or "").strip()
-                if not user_id and DEPLOYMENT_MODE != "single_user_local":
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                return self._json(200, self._complete_install(user_id, body))
-
-            if path == "/api/install/stack/branding-asset":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                kind = str(body.get("kind") or "").strip().lower()
-                if kind not in {"og", "favicon"}:
-                    return self._json(400, {"ok": False, "error": "invalid_kind"})
-                raw_b64 = str(body.get("data_base64") or "").strip()
-                if raw_b64.startswith("data:"):
-                    header, _, encoded = raw_b64.partition(",")
-                    content_type = header.split(";")[0].replace("data:", "").strip()
-                    raw_b64 = encoded
-                else:
-                    content_type = str(body.get("content_type") or "").strip()
-                try:
-                    data = base64.b64decode(raw_b64, validate=False)
-                except Exception:
-                    return self._json(400, {"ok": False, "error": "invalid_base64"})
-                try:
-                    site_meta.save_branding_asset(kind, data, content_type)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-                meta = _public_site_meta_payload()
-                return self._json(
-                    200,
-                    {
-                        "ok": True,
-                        "kind": kind,
-                        "og_image": meta.get("og_image"),
-                        "favicon": meta.get("favicon"),
-                    },
-                )
-
-            if path == "/api/admin/updates/apply":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                if not _admin_write_allowed(self):
-                    return self._json(403, {"ok": False, "error": "admin_write_forbidden", "hint": "X-Workframe-Local required in dev-unsafe"})
-                target = str(body.get("target") or "all").strip().lower()
-                if target not in {"hermes", "workframe", "all"}:
-                    return self._json(400, {"ok": False, "error": "invalid_target"})
-                try:
-                    result = _apply_stack_update(target)
-                    self._log_audit("stack_update_apply", "stack", target, str(result.get("ok")))
-                    return self._json(200 if result.get("ok") else 500, result)
-                except Exception as exc:  # noqa: BLE001
-                    return self._json(500, {"ok": False, "error": str(exc)})
-
-            if path == "/api/admin/stack/restart-gateway":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                if not _admin_write_allowed(self):
-                    return self._json(403, {"ok": False, "error": "admin_write_forbidden", "hint": "X-Workframe-Local required in dev-unsafe"})
-                try:
-                    result = _restart_stack_gateway()
-                    self._log_audit("stack_restart_gateway", "stack", "gateway", str(result.get("ok")))
-                    return self._json(200 if result.get("ok") else 500, result)
-                except Exception as exc:  # noqa: BLE001
-                    return self._json(500, {"ok": False, "error": str(exc)})
-
-            if path == "/api/admin/vault/init":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                if not _admin_write_allowed(self):
-                    return self._json(403, {"ok": False, "error": "admin_write_forbidden"})
-                passphrase = str(body.get("passphrase") or "").strip()
-                if not passphrase:
-                    return self._json(400, {"ok": False, "error": "passphrase required"})
-                try:
-                    status = credential_vault.init_vault_passphrase(passphrase)
-                    self._log_audit("vault_passphrase_init", "vault", "meta", "passphrase_enabled")
-                    return self._json(200, {"ok": True, **status})
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-                except Exception as exc:  # noqa: BLE001
-                    return self._json(500, {"ok": False, "error": str(exc)})
-
-            if path == "/api/admin/vault/unlock":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                passphrase = str(body.get("passphrase") or "").strip()
-                if not passphrase:
-                    return self._json(400, {"ok": False, "error": "passphrase required"})
-                try:
-                    status = credential_vault.unlock_vault(passphrase)
-                    self._log_audit("vault_unlock", "vault", "meta", "unsealed")
-                    return self._json(200, {"ok": True, **status})
-                except ValueError as exc:
-                    self._log_audit("vault_unlock_failed", "vault", "meta", str(exc))
-                    return self._json(403, {"ok": False, "error": str(exc)})
-                except Exception as exc:  # noqa: BLE001
-                    return self._json(500, {"ok": False, "error": str(exc)})
-
-            if path == "/api/admin/vault/seal":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                if not _admin_write_allowed(self):
-                    return self._json(403, {"ok": False, "error": "admin_write_forbidden"})
-                status = credential_vault.seal_vault()
-                self._log_audit("vault_seal", "vault", "meta", "sealed")
-                return self._json(200, {"ok": True, **status})
-
-            if path == "/api/admin/vault/wipe":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                if not _admin_write_allowed(self):
-                    return self._json(403, {"ok": False, "error": "admin_write_forbidden"})
-                if not body.get("confirm"):
-                    return self._json(400, {"ok": False, "error": "confirm required"})
-                deleted = credential_vault.wipe_all_secrets()
-                credential_vault.seal_vault()
-                self._log_audit("vault_wipe", "vault", "secrets", f"deleted={deleted}")
-                return self._json(200, {"ok": True, "deleted": deleted, **credential_vault.vault_status()})
 
             if path.startswith("/api/me/oauth/") and path.endswith("/start"):
                 parts = path.strip("/").split("/")
