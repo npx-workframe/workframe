@@ -839,10 +839,12 @@
         "services/workframe-api/rooms.py",
         "services/workframe-api/kanban_cron.py",
         "services/workframe-api/hermes_profiles.py",
-        "services/workframe-api/profile_gateway.py"
+        "services/workframe-api/profile_gateway.py",
+        "services/workframe-api/model_surface.py",
+        "services/workframe-api/provider_bootstrap.py"
       ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: Stage 1 complete. Stage 2 partial: hermes_profiles.py, profile_gateway.py extracted." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "VERIFIED 2026-07-06: Stage 2 complete — hermes_profiles, profile_gateway, model_surface, provider_bootstrap extracted; server.py ~14.4k lines." }
     },
     {
       "id": "WF-033",

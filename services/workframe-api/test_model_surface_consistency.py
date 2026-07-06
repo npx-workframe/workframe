@@ -19,6 +19,7 @@ spec = importlib.util.spec_from_file_location("wf_server_model_surface", ROOT / 
 server = importlib.util.module_from_spec(spec)
 sys.modules["wf_server_model_surface"] = server
 spec.loader.exec_module(server)
+sys.modules["server"] = server  # ponytail: extracted modules resolve _srv() to this instance
 
 PROF = "surface-test-agent"
 prof_dir = server._profile_dir(PROF)

@@ -92,6 +92,32 @@ _SRV_REPLACEMENTS: tuple[tuple[str, str], ...] = (
     (r"\bHERMES_DEFAULT_PRIMARY\b", "_srv().HERMES_DEFAULT_PRIMARY"),
     (r"\bHERMES_DEFAULT_FALLBACK_CHAIN\b", "_srv().HERMES_DEFAULT_FALLBACK_CHAIN"),
     (r"\bPROVIDER_MVP_MODELS\b", "_srv().PROVIDER_MVP_MODELS"),
+    (r"(?<![.\w])_user_llm_picker_cache\b", "_srv()._user_llm_picker_cache"),
+    (r"(?<![.\w])_USER_LLM_PICKER_TTL_SEC\b", "_srv()._USER_LLM_PICKER_TTL_SEC"),
+    (r"(?<![.\w])_user_provider_bindings\(", "_srv()._user_provider_bindings("),
+    (r"(?<![.\w])_user_auth_env_keys\(", "_srv()._user_auth_env_keys("),
+    (r"(?<![.\w])_user_provider_connected\(", "_srv()._user_provider_connected("),
+    (r"(?<![.\w])_catalog_provider_for_llm\(", "_srv()._catalog_provider_for_llm("),
+    (r"(?<![.\w])_hermes_oauth_auth_keys\(", "_srv()._hermes_oauth_auth_keys("),
+    (r"(?<![.\w])_hermes_oauth_tokens_present\(", "_srv()._hermes_oauth_tokens_present("),
+    (r"(?<![.\w])_hermes_auth_id_for_spec\(", "_srv()._hermes_auth_id_for_spec("),
+    (r"(?<![.\w])_require_user_provider\(", "_srv()._require_user_provider("),
+    (r"(?<![.\w])_credential_secret\(", "_srv()._credential_secret("),
+    (r"(?<![.\w])_stack_profile_env\(", "_srv()._stack_profile_env("),
+    (r"(?<![.\w])_utc_now\(", "_srv()._utc_now("),
+    (r"(?<![.\w])_publish_profile_gateway_secrets\(", "_srv()._publish_profile_gateway_secrets("),
+    (r"(?<![.\w])_prepare_runtime_profile_credentials\(", "_srv()._prepare_runtime_profile_credentials("),
+    (r"(?<![.\w])_ensure_profile_llm_proxy\(", "_srv()._ensure_profile_llm_proxy("),
+    (r"(?<![.\w])_set_profile_model_provider\(", "_srv()._set_profile_model_provider("),
+    (r"(?<![.\w])_apply_mvp_model_for_provider\(", "_srv()._apply_mvp_model_for_provider("),
+    (r"(?<![.\w])_apply_model_for_billing_provider\(", "_srv()._apply_model_for_billing_provider("),
+    (r"(?<![.\w])_read_model_from_config\(", "_srv()._read_model_from_config("),
+    (r"(?<![.\w])_llm_billing_provider\(", "_srv()._llm_billing_provider("),
+    (r"(?<![.\w])_profile_routing_matches_billing\(", "_srv()._profile_routing_matches_billing("),
+    (r"(?<![.\w])_resolve_billing_provider_for_model\(", "_srv()._resolve_billing_provider_for_model("),
+    (r"(?<![.\w])_oauth_llm_provider_spec\(", "_srv()._oauth_llm_provider_spec("),
+    (r"(?<![.\w])_reload_runtime_profile_gateway\(", "_srv()._reload_runtime_profile_gateway("),
+    (r"(?<![.\w])_ensure_profile_auth_pool\(", "_srv()._ensure_profile_auth_pool("),
 )
 
 
@@ -103,6 +129,7 @@ import json
 import os
 import queue
 import re
+import secrets
 import shlex
 import shutil
 import sqlite3
