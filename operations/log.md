@@ -6,6 +6,8 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 2026-07-06T18:15-03:00 | pm-workframe | WF-040 done — program_stages in backlog.json; ledger-next picks B→C→D (WF-037 next); PM README/runbook reference program-status.md.
 2026-07-06T17:50-03:00 | verify-matrix | Full matrix @ 9a06d88: 16 pass / 1 fail / 2 skip. FAIL: package-install-evidence --skip-prep (ui_bundle_identity stale UI). Evidence: operations/release-evidence/runs/latest-verify-matrix.json. WF-019/020/005 green; WF-021 runner fails without bundle prep.
+2026-07-06T18:18-03:00 | pm-workframe | WF-032 Stage 1 complete on lane-d-authority (6 commits, server −2938 lines); all push subagents reported — merge branch next.
+2026-07-06T18:15-03:00 | pm-workframe | lane-copy-ux complete — 22 files, copy-style-notes.md, 3 commits on lane-d-authority.
 2026-07-06T18:12-03:00 | pm-workframe | lane-c-broker partial — WF-026→025 done on lane-d-authority; WF-017 partial (VPS run manual).
 2026-07-06T18:08-03:00 | pm-workframe | lane-d-authority partial — 5 commits on branch; WF-009/008 done; run ledger + cell scaffold landed; merge lane-d-authority → main pending.
 2026-07-06T18:02-03:00 | pm-workframe | lane-b-api — WF-037 done (2651025), WF-032 partial db_schema (bca2747); broker/authority unblocked for server.py wiring.

@@ -1,14 +1,21 @@
 {
   "schema_version": "0.1",
-  "updated": "2026-07-05",
+  "updated": "2026-07-06",
   "pm_role": "pm-workframe",
   "reports_to": ["alan", "orchestrator"],
-  "last_session": null,
-  "active_backlog_ids": [],
-  "dogfood": {
-    "local_path": "../MyBusiness",
-    "ui_url": "http://127.0.0.1:18644",
-    "api_port": 19120
-  },
-  "notes": "Cursor PM harness promoted 2026-07-05. backlog.json is program truth."
+  "last_session": "2026-07-06T17:53-03:00",
+  "mode": "Execute (multi-agent push B→D)",
+  "mission": "Push Stages B→D + parallel copy-ux lane (strings only).",
+  "dispatched_agents": [],
+  "completed_agents": [
+    "99ca9676 — Stage A",
+    "bd590a8c + 4a8f1962 — WF-037 + WF-032 Stage 1",
+    "de07dc35 — Stage C broker (WF-017 partial)",
+    "67744df8 — Stage D authority (partial)",
+    "de26f276 — copy-ux",
+    "9a1c3dc7 — WF-040",
+    "21f9d4b3 — doc-audit",
+    "a4aeeccd — verify-matrix"
+  ],
+  "notes": "All push lanes reported. Integrate: merge lane-d-authority → main. Gaps before deferred: WF-032 S2/S3, WF-035, WF-017 VPS, NS-P2/016/007 partial, WF-037 if-chain cleanup."
 }

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "python3 server.py",
     "start": "python3 server.py",
-    "typecheck": "python -m py_compile server.py zk_auth.py email_sender.py profile_config_yaml.py route_registry.py && python test_public_routes.py && python test_route_registry.py && python test_billing_provider.py && python test_model_surface_consistency.py && python test_profile_model_yaml.py",
+    "typecheck": "python -m py_compile server.py zk_auth.py email_sender.py profile_config_yaml.py route_registry.py domain/entities.py domain/__init__.py && python test_public_routes.py && python test_route_registry.py && python test_billing_provider.py && python test_model_surface_consistency.py && python test_profile_model_yaml.py && python test_domain_entities.py",
     "build": "python3 -m py_compile server.py zk_auth.py email_sender.py"
   }
 }

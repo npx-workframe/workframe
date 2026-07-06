@@ -2,6 +2,8 @@
 
 **Default:** execute these after patches without asking Alan. Repo root: `<workframe-repo>`.
 
+**Stage gates:** Read [`docs/ledger/program-status.md`](../../docs/ledger/program-status.md) before picking work — Stage A complete; active push is **B→C→D**; **stop before Stage E** deferred items. `ledger-next.mjs` sorts by `backlog.json` `program_stages.pick_order` (WF-040).
+
 ## Four targets (never confuse)
 
 | Target | Path | Edit? |

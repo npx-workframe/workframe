@@ -12,10 +12,13 @@ git log main -3 --oneline
 
 ## 2. Read ledgers (30 s)
 
+**Backlog may be stale** — before executing, grep/run source to confirm work is not already done.
+
 | Order | File |
 |-------|------|
-| 1 | [docs/ledger/now.md](../../docs/ledger/now.md) |
-| 2 | [docs/ledger/backlog.json](../../docs/ledger/backlog.json) — filter `status: todo|in_progress|review` |
+| 1 | [docs/ledger/program-status.md](../../docs/ledger/program-status.md) — verified stage checklist (prefer over stale backlog rows) |
+| 2 | [docs/ledger/now.md](../../docs/ledger/now.md) |
+| 3 | [docs/ledger/backlog.json](../../docs/ledger/backlog.json) — filter `status: todo|in_progress|review` |
 | 3 | [.harness/feature_list.json](../../.harness/feature_list.json) — `passes: false` |
 | 4 | [operations/pm/queues.json](queues.json) |
 | 5 | Alan's message (overrides queue) |

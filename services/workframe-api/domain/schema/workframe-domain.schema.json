@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://workfra.me/schemas/workframe-domain.schema.json",
+  "title": "WorkframeDomain",
+  "description": "Core domain entities for authority, runs, and credentials (WF-039).",
+  "type": "object",
+  "$defs": {
+    "iso_datetime": { "type": "string", "format": "date-time" },
+    "deployment_mode": {
+      "type": "string",
+      "enum": ["single_user_local", "trusted_team", "public_multi_user"]
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": ["user", "agent", "system", "webhook"]
+    },
+    "run_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "authorized",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "denied"
+      ]
+    },
+    "run_surface": {
+      "type": "string",
+      "enum": [
+        "agent_rail",
+        "chat",
+        "files",
+        "browser",
+        "activity",
+        "kanban",
+        "cron",
+        "slash",
+        "webhook",
+        "mention"
+      ]
+    },
+    "runtime_kind": {
+      "type": "string",
+      "enum": ["hermes_managed", "candidate", "adapter"]
+    },
+    "runtime_binding_status": {
+      "type": "string",
+      "enum": ["active", "detached", "candidate"]
+    },
+    "funding_source": {
+      "type": "string",
+      "enum": ["byok", "company", "hybrid"]
+    },
+    "credential_policy": {
+      "type": "string",
+      "enum": ["byok", "company", "user_only"]
+    },
+    "lease_status": {
+      "type": "string",
+      "enum": ["active", "expired", "revoked"]
+    },
+    "grant_capability": {
+      "type": "string",
+      "enum": [
+        "llm_turn",
+        "tool_call",
+        "file_read",
+        "file_write",
+        "file_delete",
+        "runtime_exec",
+        "broker_egress"
+      ]
+    },
+    "Cell": {
+      "type": "object",
+      "required": [
+        "cell_id",
+        "install_root",
+        "manifest_path",
+        "package_name",
+        "package_version",
+        "deployment_mode",
+        "created_at"
+      ],
+      "properties": {
+        "cell_id": { "type": "string", "minLength": 1 },
+        "install_root": { "type": "string", "minLength": 1 },
+        "manifest_path": { "type": "string", "minLength": 1 },
+        "package_name": { "type": "string", "const": "create-workframe" },
+        "package_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+" },
+        "deployment_mode": { "$ref": "#/$defs/deployment_mode" },
+        "created_at": { "$ref": "#/$defs/iso_datetime" },
+        "git_ref": { "type": "string", "minLength": 7 },
+        "packed_artifact_digest": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "User": {
+      "type": "object",
+      "required": ["user_id", "workspace_id", "email", "display_name"],
+      "properties": {
+        "user_id": { "type": "string" },
+        "workspace_id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "display_name": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "admin", "member", "guest"]
+        },
+        "created_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "Workspace": {
+      "type": "object",
+      "required": ["workspace_id", "cell_id", "slug", "name"],
+      "properties": {
+        "workspace_id": { "type": "string" },
+        "cell_id": { "type": "string" },
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "created_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "AgentIdentity": {
+      "type": "object",
+      "required": [
+        "agent_id",
+        "workspace_id",
+        "template_slug",
+        "display_name"
+      ],
+      "properties": {
+        "agent_id": { "type": "string" },
+        "workspace_id": { "type": "string" },
+        "template_slug": { "type": "string" },
+        "display_name": { "type": "string" },
+        "is_native": { "type": "boolean" },
+        "created_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "RuntimeBinding": {
+      "type": "object",
+      "required": [
+        "binding_id",
+        "agent_id",
+        "runtime_kind",
+        "profile_slug"
+      ],
+      "properties": {
+        "binding_id": { "type": "string" },
+        "agent_id": { "type": "string" },
+        "runtime_kind": { "$ref": "#/$defs/runtime_kind" },
+        "profile_slug": { "type": "string" },
+        "status": { "$ref": "#/$defs/runtime_binding_status" },
+        "detected_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "Run": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "workspace_id",
+        "surface",
+        "actor_type",
+        "actor_id",
+        "triggering_user_id",
+        "agent_id",
+        "runtime_binding_id",
+        "status",
+        "payer_user_id",
+        "funding_source"
+      ],
+      "properties": {
+        "run_id": { "type": "string" },
+        "workspace_id": { "type": "string" },
+        "surface": { "$ref": "#/$defs/run_surface" },
+        "actor_type": { "$ref": "#/$defs/actor_type" },
+        "actor_id": { "type": "string" },
+        "triggering_user_id": { "type": "string" },
+        "agent_id": { "type": "string" },
+        "runtime_binding_id": { "type": "string" },
+        "status": { "$ref": "#/$defs/run_status" },
+        "payer_user_id": { "type": "string" },
+        "funding_source": { "$ref": "#/$defs/funding_source" },
+        "room_id": { "type": "string" },
+        "card_id": { "type": "string" },
+        "engine": { "type": "string" },
+        "runtime": { "type": "string" },
+        "risk_tier": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "budget_usd": { "type": "number" },
+        "deny_reason": { "type": "string" },
+        "created_at": { "$ref": "#/$defs/iso_datetime" },
+        "started_at": { "$ref": "#/$defs/iso_datetime" },
+        "ended_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "RunEvent": {
+      "type": "object",
+      "required": ["event_id", "run_id", "event_type"],
+      "properties": {
+        "event_id": { "type": "string" },
+        "run_id": { "type": "string" },
+        "event_type": { "type": "string" },
+        "payload": { "type": "object", "additionalProperties": true },
+        "created_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "CredentialRef": {
+      "type": "object",
+      "required": ["ref_id", "workspace_id", "provider", "policy"],
+      "properties": {
+        "ref_id": { "type": "string" },
+        "workspace_id": { "type": "string" },
+        "provider": { "type": "string" },
+        "policy": { "$ref": "#/$defs/credential_policy" },
+        "user_id": { "type": "string" },
+        "binding_id": { "type": "string" },
+        "label_redacted": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "Lease": {
+      "type": "object",
+      "required": [
+        "lease_id",
+        "run_id",
+        "workspace_id",
+        "payer_user_id",
+        "provider",
+        "profile_slug",
+        "status",
+        "expires_at"
+      ],
+      "properties": {
+        "lease_id": { "type": "string" },
+        "run_id": { "type": "string" },
+        "workspace_id": { "type": "string" },
+        "payer_user_id": { "type": "string" },
+        "provider": { "type": "string" },
+        "profile_slug": { "type": "string" },
+        "credential_ref_id": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/lease_status" },
+        "expires_at": { "$ref": "#/$defs/iso_datetime" },
+        "revoked_at": { "$ref": "#/$defs/iso_datetime" },
+        "created_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    },
+    "Grant": {
+      "type": "object",
+      "required": ["grant_id", "run_id", "capability"],
+      "properties": {
+        "grant_id": { "type": "string" },
+        "run_id": { "type": "string" },
+        "capability": { "$ref": "#/$defs/grant_capability" },
+        "scope": { "type": "object", "additionalProperties": true },
+        "granted_by": {
+          "type": "string",
+          "enum": ["run_authority_gate", "cell_authority_gate", "policy"]
+        },
+        "expires_at": { "$ref": "#/$defs/iso_datetime" },
+        "created_at": { "$ref": "#/$defs/iso_datetime" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

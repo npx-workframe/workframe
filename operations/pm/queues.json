@@ -1,7 +1,53 @@
 {
   "schema_version": "0.1",
-  "updated": "2026-07-05",
+  "updated": "2026-07-06",
   "pm_role": "pm-workframe",
-  "backlog": "docs/ledger/backlog.json",
-  "work_items": []
+  "mission": "Complete Stages B→D; stop before Stage E deferred (WF-013/014/015, WF-NS-P3/P4/P5/P6/P7/P8, WF-029/030). NO UI.",
+  "agent_discipline": "VERIFY FIRST — backlog may be stale. If acceptance met, backlog-only update. Smallest patch. One WF per commit.",
+  "lanes": [
+    {
+      "id": "lane-b-api",
+      "agent": "push-wf037-wf032",
+      "items": ["WF-037", "WF-032", "WF-035"],
+      "status": "partial",
+      "notes": "WF-037 done (main). WF-032 Stage 1 done on lane-d-authority (6 commits, server −2938 lines). Stage 2/3 + WF-035 remain."
+    },
+    {
+      "id": "lane-c-broker",
+      "agent": "push-broker-secure",
+      "items": ["WF-026", "WF-028", "WF-027", "WF-011", "WF-025", "WF-017"],
+      "status": "partial",
+      "branch": "lane-d-authority",
+      "notes": "WF-026/028/027/011/025 done (f035158..a1c9e67). WF-017 partial — VPS reference run manual."
+    },
+    {
+      "id": "lane-d-authority",
+      "agent": "push-authority-ledger",
+      "items": ["WF-NS-P2", "WF-009", "WF-016", "WF-007-impl", "WF-008"],
+      "status": "partial",
+      "branch": "lane-d-authority",
+      "notes": "5 commits: WF-009 done, WF-008 done; NS-P2/016/007 partial. Merged on branch with broker commits (WF-026/028/011)."
+    },
+    {
+      "id": "lane-meta",
+      "agent": "push-wf040",
+      "items": ["WF-040"],
+      "status": "complete",
+      "exclusive": ["docs/", "operations/pm/"]
+    },
+    {
+      "id": "lane-copy-ux",
+      "agent": "copy-ux-wizard-settings",
+      "items": ["copy-wizard", "copy-settings", "copy-errors", "copy-modals"],
+      "stage": "parallel",
+      "status": "complete",
+      "branch": "lane-d-authority",
+      "notes": "3 commits c9783b4/45ff822/8683c24 — 22 files; copy-style-notes.md. Follow-up: activity/browser/composer."
+    }
+  ],
+  "deferred_do_not_start": [
+    "WF-013", "WF-014", "WF-015", "WF-029", "WF-030",
+    "WF-NS-P3", "WF-NS-P4", "WF-NS-P5", "WF-NS-P6", "WF-NS-P7", "WF-NS-P8"
+  ],
+  "out_of_scope": ["WF-036", "WF-012"]
 }

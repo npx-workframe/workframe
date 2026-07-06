@@ -75,6 +75,7 @@ Files hold durable project truth. Kanban tracks execution. Chat coordinates inte
 
 ## Where to read next
 
+- [Glossary](./glossary.md) — Cell, Run, Lease, Grant, and related terms (WF-NS-P0)
 - [Using Workframe](./using-workframe.md) — product surfaces
 - [Session architecture](./session-architecture.md) — chat binding
 - [API reference](./api-reference.md) — HTTP routes used by the UI

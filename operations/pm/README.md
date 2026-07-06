@@ -7,10 +7,11 @@
 ## Every Workframe session starts here
 
 ```text
-1. operations/pm/session.md        — boot checklist (60 seconds)
-2. docs/ledger/backlog.json        — what is left to do (machine truth)
-3. docs/ledger/now.md              — shipping wedge context
-4. node scripts/workframe/ledger-next.mjs   — next item if executing
+1. operations/pm/session.md              — boot checklist (60 seconds)
+2. docs/ledger/program-status.md         — verified stage gates (A→D); prefer over stale backlog rows
+3. docs/ledger/backlog.json              — machine queue (WF-*); program_stages from WF-040
+4. docs/ledger/now.md                    — shipping wedge context
+5. node scripts/workframe/ledger-next.mjs — next item by stage order B→C→D
 ```
 
 ## Files in this harness
@@ -43,7 +44,7 @@ abkb/.../queues.json         cross-portfolio assign   ← optional sync
 | reviewer | `code-reviewer` | Review → done/todo |
 | harness | `tests` | Scripts, verify, gates |
 | docs | `docs` | Public docs, ledger prose |
-| design | `pm-workframe` | Spec, backlog shape |
+| design | `designer` | UX, in-app copy, shadcn UI (`apps/web/src/`) |
 
 PM **may implement** when Alan assigns direct execution in chat — still update `backlog.json`.
 
