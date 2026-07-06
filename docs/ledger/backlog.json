@@ -964,7 +964,7 @@
         "services/workframe-api/test_route_registry.py"
       ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "ROUTES + ROUTE_PATTERNS single table; AuthLevel public|session|role_owner_admin|internal; 47 GET + 36 POST registry-dispatched (batch 2: +22 admin/install/oauth); ~16 exact if-chain paths + pattern routes remain; server ~12.2k lines." }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "ROUTES + ROUTE_PATTERNS; dispatch_get/post/patch + dispatch_pattern; 55 GET + 41 POST + 4 PATCH exact dispatched; 8 pattern handlers (batch 3: bootstrap/hermes/supervisor/audit); zero exact if path == chains; workspace/room pattern if-chains remain; server ~12.2k lines." }
     },
     {
       "id": "WF-038",

@@ -10750,6 +10750,453 @@ class Handler(BaseHTTPRequestHandler):
         self._log_audit("vault_wipe", "vault", "secrets", f"deleted={deleted}")
         self._json(200, {"ok": True, "deleted": deleted, **credential_vault.vault_status()})
 
+    # WF-037 batch 3 — bootstrap, hermes profiles, supervisor, audit, pattern routes
+    _HERMES_PROFILE_RESERVED = frozenset({"status", "create", "start", "stop", "delete", "disable"})
+
+    def _route_get_chat_bootstrap(self, qs: dict[str, list[str]]) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
+        persistent = qs.get("persistent", [""])[0]
+        source_id = qs.get("source", ["ui"])[0]
+        self._json(200, chat_bootstrap(profile, persistent, source_id))
+
+    def _route_get_hermes_bootstrap(self, qs: dict[str, list[str]]) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        self._json(200, hermes_bootstrap())
+
+    def _route_get_hermes_profiles_status(self, qs: dict[str, list[str]]) -> None:
+        profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
+        if SUPERVISOR_URL:
+            self._json(
+                *_supervisor_request(
+                    "GET",
+                    f"/v1/profile.status?profile={urllib.parse.quote(profile, safe='')}",
+                    timeout=10.0,
+                )
+            )
+            return
+        self._json(200, profile_gateway_lifecycle(profile, "status"))
+
+    def _route_get_supervisor_profile_status(self, qs: dict[str, list[str]]) -> None:
+        profile = qs.get("profile", [""])[0]
+        if not profile:
+            self._json(400, {"error": "profile required"})
+            return
+        if SUPERVISOR_URL:
+            self._json(
+                *_supervisor_request(
+                    "GET",
+                    f"/v1/profile.status?profile={urllib.parse.quote(profile, safe='')}",
+                    timeout=10.0,
+                )
+            )
+            return
+        self._json(503, {"ok": False, "error": "WORKFRAME_SUPERVISOR_URL not configured"})
+
+    def _route_get_supervisor_stack_status(self, qs: dict[str, list[str]]) -> None:
+        if SUPERVISOR_URL:
+            self._json(*_supervisor_request("GET", "/v1/stack.status", timeout=15.0))
+            return
+        self._json(503, {"ok": False, "error": "WORKFRAME_SUPERVISOR_URL not configured"})
+
+    def _route_get_admin_audit(self, qs: dict[str, list[str]]) -> None:
+        if SECURE_MODE and not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden"})
+            return
+        try:
+            limit = min(int(qs.get("limit", ["50"])[0]), 200)
+            offset = max(int(qs.get("offset", ["0"])[0]), 0)
+        except (ValueError, IndexError):
+            limit, offset = 50, 0
+        event_type_filter = str(qs.get("event_type", [""])[0]).strip()
+        user_filter = str(qs.get("user_id", [""])[0]).strip()
+        try:
+            conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
+            conn.row_factory = sqlite3.Row
+            where_clauses: list[str] = []
+            params: list = []
+            if event_type_filter:
+                where_clauses.append("event_type = ?")
+                params.append(event_type_filter)
+            if user_filter:
+                where_clauses.append("user_id = ?")
+                params.append(user_filter)
+            where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+            rows = conn.execute(
+                f"""SELECT id, user_id, event_type, target_type, target_id,
+                            summary, metadata, ip_address, created_at
+                     FROM audit_events
+                     {where_str}
+                     ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+                params + [limit, offset],
+            ).fetchall()
+            total = conn.execute(
+                f"SELECT COUNT(*) AS c FROM audit_events {where_str}",
+                params,
+            ).fetchone()["c"]
+            conn.close()
+        except sqlite3.Error as exc:
+            self._json(500, {"ok": False, "error": str(exc)})
+            return
+        self._json(200, {
+            "ok": True,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "events": [dict(r) for r in rows],
+        })
+
+    def _route_get_events(self, qs: dict[str, list[str]]) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        cors_origin = _cors_origin_for(self.headers)
+        if cors_origin:
+            self.send_header("Access-Control-Allow-Origin", cors_origin)
+            self.send_header("Vary", "Origin")
+        self.end_headers()
+        try:
+            while True:
+                payload = json.dumps(build_snapshot())
+                self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                time.sleep(SSE_INTERVAL)
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            return
+
+    def _route_pattern_get_public_branding(self, path: str, qs: dict[str, list[str]]) -> None:
+        branding_match = re.fullmatch(r"/api/public/branding/(og|favicon)", path)
+        if not branding_match:
+            self._json(404, {"ok": False, "error": "not_found"})
+            return
+        asset = site_meta.branding_asset_bytes(branding_match.group(1))
+        if not asset:
+            self._json(404, {"ok": False, "error": "not_found"})
+            return
+        data, ctype = asset
+        self._send(200, data, ctype)
+
+    def _route_pattern_get_hermes_profile_soul(self, path: str, qs: dict[str, list[str]]) -> None:
+        profile_soul_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)/soul", path)
+        if not profile_soul_match:
+            self._json(404, {"error": "not found"})
+            return
+        profile = resolve_validated_profile(profile_soul_match.group(1))
+        self._json(200, profile_soul_get(profile))
+
+    def _route_pattern_get_hermes_profile_detail(self, path: str, qs: dict[str, list[str]]) -> None:
+        profile_detail_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)", path)
+        if not profile_detail_match or profile_detail_match.group(1) in self._HERMES_PROFILE_RESERVED:
+            self._json(404, {"error": "not found"})
+            return
+        profile = resolve_validated_profile(profile_detail_match.group(1))
+        ws_id = ""
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if user_id:
+            try:
+                conn = _workframe_db()
+                row = conn.execute(
+                    """
+                    SELECT workspace_id FROM workspace_memberships
+                    WHERE user_id = ? AND status = 'active' AND deleted_at IS NULL
+                    ORDER BY created_at ASC LIMIT 1
+                    """,
+                    (user_id,),
+                ).fetchone()
+                conn.close()
+                if row:
+                    ws_id = str(row["workspace_id"])
+            except sqlite3.Error:
+                pass
+        self._json(200, hermes_profile_detail(profile, ws_id))
+
+    def _route_pattern_get_hermes_profile_sessions(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) < 5:
+            self._json(404, {"error": "not found"})
+            return
+        profile_raw = urllib.parse.unquote(parts[3])
+        source_id = qs.get("source", ["ui"])[0]
+        client_id = qs.get("client", ["default"])[0]
+        self._json(
+            200,
+            profile_chat_session(
+                profile_raw,
+                {"source_id": source_id, "client_id": client_id, "new_session": False},
+            ),
+        )
+
+    def _route_pattern_get_hermes_profile_bind(self, path: str, qs: dict[str, list[str]]) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) < 5:
+            self._json(404, {"error": "not found"})
+            return
+        profile_raw = urllib.parse.unquote(parts[3])
+        source_id = qs.get("source", ["ui"])[0]
+        client_id = qs.get("client", ["default"])[0]
+        self._json(
+            200,
+            profile_chat_bind(
+                profile_raw,
+                {"source_id": source_id, "client_id": client_id, "new_session": False},
+            ),
+        )
+
+    def _route_post_hermes_profiles_create(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _handler_is_active_workspace_member(self):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "workspace_member"})
+            return
+        name = str(body.get("name") or "").strip()
+        if not name:
+            self._json(400, {"error": "name required"})
+            return
+        model = str(body.get("model") or "").strip()
+        description = str(body.get("description") or "").strip()
+        clone_from = str(body.get("clone_from") or "").strip()
+        soul = str(body.get("soul") or "").strip()
+        display_name = str(body.get("display_name") or "").strip()
+        role = str(body.get("role") or "").strip()
+        tagline = str(body.get("tagline") or "").strip()
+        avatar_url = str(body.get("avatar_url") or "").strip()
+        avatar_id = str(body.get("avatar_id") or "").strip()
+        user_id = str(getattr(self, "auth_user", "") or "").strip()
+        workspace_id = str(body.get("workspace_id") or "").strip()
+        if not workspace_id and user_id:
+            workspaces = _get_user_workspaces(user_id)
+            current = _resolve_current_workspace(user_id, workspaces)
+            workspace_id = str((current or {}).get("id") or (workspaces[0] or {}).get("id") or "")
+        self._json(
+            200,
+            profile_create(
+                name,
+                model,
+                description,
+                clone_from,
+                soul,
+                display_name,
+                role,
+                tagline,
+                avatar_url,
+                avatar_id,
+                user_id=user_id,
+                workspace_id=workspace_id,
+            ),
+        )
+
+    def _route_post_hermes_profiles_start(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
+        if SUPERVISOR_URL:
+            self._json(*_supervisor_request("POST", "/v1/profile.start", body))
+            return
+        self._json(200, profile_gateway_lifecycle(profile, "start"))
+
+    def _route_post_hermes_profiles_stop(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
+        if SUPERVISOR_URL:
+            self._json(*_supervisor_request("POST", "/v1/profile.stop", body))
+            return
+        self._json(200, profile_gateway_lifecycle(profile, "stop"))
+
+    def _route_post_hermes_profiles_delete(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = str(body.get("profile") or "").strip()
+        if not profile:
+            self._json(400, {"error": "profile required"})
+            return
+        self._json(200, profile_delete(profile))
+
+    def _route_post_hermes_profiles_disable(self, body: dict) -> None:
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
+        if SUPERVISOR_URL:
+            self._json(*_supervisor_request("POST", "/v1/profile.disable", body))
+            return
+        self._json(200, profile_gateway_lifecycle(profile, "disable"))
+
+    def _route_pattern_post_hermes_profile_bootstrap_dm(self, path: str, body: dict) -> None:
+        profile_bootstrap_post = re.fullmatch(r"/api/hermes/profiles/([^/]+)/bootstrap-dm", path)
+        if not profile_bootstrap_post:
+            self._json(404, {"error": "not found"})
+            return
+        if not _check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        if not _handler_is_active_workspace_member(self):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "workspace_member"})
+            return
+        template = resolve_validated_profile(profile_bootstrap_post.group(1))
+        user_id = str(getattr(self, "auth_user", "") or "").strip()
+        workspace_id = str(body.get("workspace_id") or "").strip()
+        if not workspace_id and user_id:
+            workspaces = _get_user_workspaces(user_id)
+            current = _resolve_current_workspace(user_id, workspaces)
+            workspace_id = str((current or {}).get("id") or (workspaces[0] or {}).get("id") or "")
+        if not user_id or not workspace_id:
+            self._json(400, {"error": "workspace_id and session required"})
+            return
+        model = str(body.get("model") or "").strip()
+        soul = str(body.get("soul") or "").strip()
+        display_name = str(body.get("display_name") or body.get("room_name") or "").strip()
+        role = str(body.get("role") or "").strip()
+        tagline = str(body.get("tagline") or "").strip()
+        lane = bootstrap_agent_dm_lane(
+            user_id,
+            workspace_id,
+            template,
+            model=model,
+            soul=soul,
+            bind_session=bool(body.get("bind_session", True)),
+            room_name=display_name or str(body.get("room_name") or "").strip(),
+            role=role,
+            tagline=tagline,
+            created_by=user_id,
+        )
+        status = 200 if lane.get("ok") else 500
+        self._json(status, lane)
+
+    def _route_pattern_post_hermes_profile_soul(self, path: str, body: dict) -> None:
+        profile_soul_post = re.fullmatch(r"/api/hermes/profiles/([^/]+)/soul", path)
+        if not profile_soul_post:
+            self._json(404, {"error": "not found"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = resolve_validated_profile(profile_soul_post.group(1))
+        soul = str(body.get("soul", body.get("text", "")))
+        self._json(200, profile_soul_set(profile, soul))
+
+    def _route_patch_me(self, body: dict) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        try:
+            _apply_me_profile_updates(user_id, body)
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        payload = _session_profile_payload(user_id)
+        if not payload:
+            self._json(404, {"ok": False, "error": "user_not_found"})
+            return
+        self._json(200, payload)
+
+    def _route_patch_me_native_agent(self, body: dict) -> None:
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        native_slug = str(NATIVE_PROFILE or "workframe-agent")
+        runtime = _runtime_profile_slug(user_id, native_slug)
+        soul = (
+            str(body.get("soul") or body.get("soul_md") or "").strip()
+            if ("soul" in body or "soul_md" in body)
+            else ""
+        )
+        display = str(body.get("display_name") or "").strip() if "display_name" in body else ""
+        tagline = str(body.get("tagline") or "").strip() if "tagline" in body else ""
+        _seed_native_user_overlay(
+            runtime,
+            native_slug,
+            display_name=display,
+            tagline=tagline,
+            user_soul=soul,
+        )
+        profile_patch: dict[str, Any] = {}
+        if display:
+            profile_patch["display_name"] = display
+        if tagline:
+            profile_patch["tagline"] = tagline
+        if profile_patch:
+            _sync_agent_profile_db(native_slug, profile_patch)
+        if "avatar_url" in body or "avatar_id" in body:
+            avatar_patch = _normalize_agent_avatar_patch(
+                str(body.get("avatar_url") or ""),
+                str(body.get("avatar_id") or ""),
+            )
+            if avatar_patch.get("avatar_url") or avatar_patch.get("avatar_id"):
+                stamp = datetime.now(timezone.utc).isoformat()
+                row_patch = {**avatar_patch, "updated_at": stamp}
+                _upsert_agent_registry_row(native_slug, row_patch)
+                _upsert_agent_registry_row(runtime, row_patch)
+                _sync_agent_profile_db(native_slug, {"avatar_url": avatar_patch.get("avatar_url", "")})
+        self._json(200, {"ok": True, "runtime_profile": runtime})
+
+    def _route_patch_doctor_repair(self, body: dict) -> None:
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        repair = body.get("repair", True) is not False
+        result = doctor_repair_agent_dm_runtimes(repair=repair)
+        if repair:
+            self._log_audit(
+                "doctor_repair_agent_dm_runtimes",
+                "runtime_profile",
+                "",
+                f"repaired={len(result.get('repaired') or [])} failed={len(result.get('failed') or [])}",
+            )
+        self._json(200, result)
+
+    def _route_patch_install_stack(self, body: dict) -> None:
+        if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        try:
+            global DEPLOYMENT_MODE
+            updated = stack_config.patch_stack_config(body if isinstance(body, dict) else {})
+            compose_sync = None
+            if isinstance(body, dict) and body.get("app_base_url"):
+                compose_sync = _maybe_sync_compose_public_url(str(body.get("app_base_url") or ""))
+            DEPLOYMENT_MODE = _resolve_deployment_mode()
+            payload: dict[str, Any] = {"ok": True, **updated}
+            if compose_sync is not None:
+                payload["compose_sync"] = compose_sync
+            self._json(200, payload)
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+
+    def _route_pattern_patch_hermes_profile(self, path: str, body: dict) -> None:
+        profile_patch_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)", path)
+        if not profile_patch_match or profile_patch_match.group(1) in self._HERMES_PROFILE_RESERVED:
+            self._json(404, {"error": "not found"})
+            return
+        if not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        profile = resolve_validated_profile(profile_patch_match.group(1))
+        self._json(200, hermes_profile_update(profile, body))
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -10774,20 +11221,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if route_registry.dispatch_get(self, path, qs):
                 return
+            if route_registry.dispatch_pattern("GET", self, path, qs=qs):
+                return
 
             # Serve static files and UI
             if path in ("", "/") or not path.startswith("/api/") and not path.startswith("/assets/") and not path.startswith("/static/"):
                 return self._file_public("index.html")
             if path.startswith("/assets/"):
                 return self._file_public(path.lstrip("/"))
-            branding_match = re.fullmatch(r"/api/public/branding/(og|favicon)", path)
-            if branding_match:
-                asset = site_meta.branding_asset_bytes(branding_match.group(1))
-                if not asset:
-                    return self._json(404, {"ok": False, "error": "not_found"})
-                data, ctype = asset
-                self._send(200, data, ctype)
-                return
 
             if path.startswith("/api/me/oauth/") and path.endswith("/status"):
                 parts = path.strip("/").split("/")
@@ -11159,123 +11600,6 @@ class Handler(BaseHTTPRequestHandler):
                         pass
                     return
 
-            if path == "/api/chat/bootstrap":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
-                persistent = qs.get("persistent", [""])[0]
-                source_id = qs.get("source", ["ui"])[0]
-                return self._json(200, chat_bootstrap(profile, persistent, source_id))
-            if path == "/api/hermes/bootstrap":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                return self._json(200, hermes_bootstrap())
-            if path == "/api/hermes/profiles/status":
-                profile = resolve_validated_profile(qs.get("profile", [""])[0] or _primary_profile())
-                if SUPERVISOR_URL:
-                    return self._json(
-                        *_supervisor_request(
-                            "GET",
-                            f"/v1/profile.status?profile={urllib.parse.quote(profile, safe='')}",
-                            timeout=10.0,
-                        )
-                    )
-                return self._json(200, profile_gateway_lifecycle(profile, "status"))
-            profile_soul_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)/soul", path)
-            if profile_soul_match:
-                profile = resolve_validated_profile(profile_soul_match.group(1))
-                return self._json(200, profile_soul_get(profile))
-            profile_detail_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)", path)
-            if profile_detail_match and profile_detail_match.group(1) not in {
-                "status",
-                "create",
-                "start",
-                "stop",
-                "delete",
-                "disable",
-            }:
-                profile = resolve_validated_profile(profile_detail_match.group(1))
-                ws_id = ""
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if user_id:
-                    try:
-                        conn = _workframe_db()
-                        row = conn.execute(
-                            """
-                            SELECT workspace_id FROM workspace_memberships
-                            WHERE user_id = ? AND status = 'active' AND deleted_at IS NULL
-                            ORDER BY created_at ASC LIMIT 1
-                            """,
-                            (user_id,),
-                        ).fetchone()
-                        conn.close()
-                        if row:
-                            ws_id = str(row["workspace_id"])
-                    except Exception:  # noqa: BLE001
-                        pass
-                return self._json(200, hermes_profile_detail(profile, ws_id))
-            if path == "/api/supervisor/v1/profile.status":
-                profile = qs.get("profile", [""])[0]
-                if not profile:
-                    return self._json(400, {"error": "profile required"})
-                if SUPERVISOR_URL:
-                    return self._json(
-                        *_supervisor_request(
-                            "GET",
-                            f"/v1/profile.status?profile={urllib.parse.quote(profile, safe='')}",
-                            timeout=10.0,
-                        )
-                    )
-                return self._json(503, {"ok": False, "error": "WORKFRAME_SUPERVISOR_URL not configured"})
-            if path == "/api/supervisor/v1/stack.status":
-                if SUPERVISOR_URL:
-                    return self._json(*_supervisor_request("GET", "/v1/stack.status", timeout=15.0))
-                return self._json(503, {"ok": False, "error": "WORKFRAME_SUPERVISOR_URL not configured"})
-            if path.startswith("/api/hermes/profiles/") and path.endswith("/sessions"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 5:
-                    profile_raw = urllib.parse.unquote(parts[3])
-                    source_id = qs.get("source", ["ui"])[0]
-                    client_id = qs.get("client", ["default"])[0]
-                    return self._json(
-                        200,
-                        profile_chat_session(
-                            profile_raw,
-                            {"source_id": source_id, "client_id": client_id, "new_session": False},
-                        ),
-                    )
-            if path.startswith("/api/hermes/profiles/") and path.endswith("/bind"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 5:
-                    profile_raw = urllib.parse.unquote(parts[3])
-                    source_id = qs.get("source", ["ui"])[0]
-                    client_id = qs.get("client", ["default"])[0]
-                    return self._json(
-                        200,
-                        profile_chat_bind(
-                            profile_raw,
-                            {"source_id": source_id, "client_id": client_id, "new_session": False},
-                        ),
-                    )
-            if path in ("/events", "/api/events"):
-                self.send_response(200)
-                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "keep-alive")
-                cors_origin = _cors_origin_for(self.headers)
-                if cors_origin:
-                    self.send_header("Access-Control-Allow-Origin", cors_origin)
-                    self.send_header("Vary", "Origin")
-                self.end_headers()
-                try:
-                    while True:
-                        payload = json.dumps(build_snapshot())
-                        self.wfile.write(f"data: {payload}\n\n".encode("utf-8"))
-                        self.wfile.flush()
-                        time.sleep(SSE_INTERVAL)
-                except (BrokenPipeError, ConnectionResetError, OSError):
-                    return
-
             # --- Credential listing (GET) ---
 
             # GET /api/workspace/:wid/credentials
@@ -11337,53 +11661,6 @@ class Handler(BaseHTTPRequestHandler):
                         "agent_profile_id": agent_id,
                         "credentials": [dict(r) for r in rows],
                     })
-
-            # --- Audit event listing (admin only) ---
-
-            if path == "/api/admin/audit" and self.command == "GET":
-                if SECURE_MODE and not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden"})
-                try:
-                    limit = min(int(qs.get("limit", ["50"])[0]), 200)
-                    offset = max(int(qs.get("offset", ["0"])[0]), 0)
-                except (ValueError, IndexError):
-                    limit, offset = 50, 0
-                event_type_filter = str(qs.get("event_type", [""])[0]).strip()
-                user_filter = str(qs.get("user_id", [""])[0]).strip()
-                try:
-                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    where_clauses: list[str] = []
-                    params: list = []
-                    if event_type_filter:
-                        where_clauses.append("event_type = ?")
-                        params.append(event_type_filter)
-                    if user_filter:
-                        where_clauses.append("user_id = ?")
-                        params.append(user_filter)
-                    where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-                    rows = conn.execute(
-                        f"""SELECT id, user_id, event_type, target_type, target_id,
-                                    summary, metadata, ip_address, created_at
-                             FROM audit_events
-                             {where_str}
-                             ORDER BY created_at DESC LIMIT ? OFFSET ?""",
-                        params + [limit, offset],
-                    ).fetchall()
-                    total = conn.execute(
-                        f"SELECT COUNT(*) AS c FROM audit_events {where_str}",
-                        params,
-                    ).fetchone()["c"]
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                return self._json(200, {
-                    "ok": True,
-                    "total": total,
-                    "limit": limit,
-                    "offset": offset,
-                    "events": [dict(r) for r in rows],
-                })
 
             return self._json(404, {"error": "not found"})
         except ValueError as exc:
@@ -11727,6 +12004,8 @@ class Handler(BaseHTTPRequestHandler):
 
             if route_registry.dispatch_post(self, path, post_body):
                 return
+            if route_registry.dispatch_pattern("POST", self, path, body=post_body):
+                return
 
             if path.startswith("/api/me/oauth/") and path.endswith("/start"):
                 parts = path.strip("/").split("/")
@@ -11745,21 +12024,6 @@ class Handler(BaseHTTPRequestHandler):
                     if not user_id:
                         return self._json(401, {"ok": False, "error": "no_session"})
                     return self._json(200, disconnect_user_provider(user_id, parts[3]))
-
-            # --- Profile management ---
-            # GET /api/me is handled in do_GET above
-            if path == "/api/me" and self.command == "PATCH":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    _apply_me_profile_updates(user_id, body)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-                payload = _session_profile_payload(user_id)
-                if not payload:
-                    return self._json(404, {"ok": False, "error": "user_not_found"})
-                return self._json(200, payload)
 
             # --- Credential management (Sprint D) ---
             if path.startswith("/api/workspace/") and path.endswith("/credentials/store"):
@@ -11901,55 +12165,6 @@ class Handler(BaseHTTPRequestHandler):
                         "agent_profile_id": agent_id,
                         "credentials": [dict(r) for r in rows],
                     })
-
-            # --- Audit event listing (admin only) ---
-
-            # GET /api/admin/audit — list audit events with optional filters
-            if path == "/api/admin/audit" and self.command == "GET":
-                if SECURE_MODE and not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden"})
-                # Pagination
-                try:
-                    limit = min(int(qs.get("limit", ["50"])[0]), 200)
-                    offset = max(int(qs.get("offset", ["0"])[0]), 0)
-                except (ValueError, IndexError):
-                    limit, offset = 50, 0
-                event_type_filter = str(qs.get("event_type", [""])[0]).strip()
-                user_filter = str(qs.get("user_id", [""])[0]).strip()
-                try:
-                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                    conn.row_factory = sqlite3.Row
-                    where_clauses = []
-                    params: list = []
-                    if event_type_filter:
-                        where_clauses.append("event_type = ?")
-                        params.append(event_type_filter)
-                    if user_filter:
-                        where_clauses.append("user_id = ?")
-                        params.append(user_filter)
-                    where_str = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-                    rows = conn.execute(
-                        f"""SELECT id, user_id, event_type, target_type, target_id,
-                                    summary, metadata, ip_address, created_at
-                             FROM audit_events
-                             {where_str}
-                             ORDER BY created_at DESC LIMIT ? OFFSET ?""",
-                        params + [limit, offset],
-                    ).fetchall()
-                    total = conn.execute(
-                        f"SELECT COUNT(*) AS c FROM audit_events {where_str}",
-                        params,
-                    ).fetchone()["c"]
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"ok": False, "error": str(exc)})
-                return self._json(200, {
-                    "ok": True,
-                    "total": total,
-                    "limit": limit,
-                    "offset": offset,
-                    "events": [dict(r) for r in rows],
-                })
 
             # --- Sprint F: Room APIs (POST) ---
             if path.startswith("/api/workspace/") and path.endswith("/rooms"):
@@ -12541,123 +12756,6 @@ class Handler(BaseHTTPRequestHandler):
                     self._log_audit("grant_created", "credential_grant", grant_id, f"workspace={ws_id} grantee={grantee_type}:{grantee_id}")
                     return self._json(201, {"ok": True, "grant_id": grant_id})
 
-            if path == "/api/hermes/profiles/create":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _handler_is_active_workspace_member(self):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "workspace_member"})
-                name = str(body.get("name") or "").strip()
-                if not name:
-                    return self._json(400, {"error": "name required"})
-                model = str(body.get("model") or "").strip()
-                description = str(body.get("description") or "").strip()
-                clone_from = str(body.get("clone_from") or "").strip()
-                soul = str(body.get("soul") or "").strip()
-                display_name = str(body.get("display_name") or "").strip()
-                role = str(body.get("role") or "").strip()
-                tagline = str(body.get("tagline") or "").strip()
-                avatar_url = str(body.get("avatar_url") or "").strip()
-                avatar_id = str(body.get("avatar_id") or "").strip()
-                user_id = str(getattr(self, "auth_user", "") or "").strip()
-                workspace_id = str(body.get("workspace_id") or "").strip()
-                if not workspace_id and user_id:
-                    workspaces = _get_user_workspaces(user_id)
-                    current = _resolve_current_workspace(user_id, workspaces)
-                    workspace_id = str((current or {}).get("id") or (workspaces[0] or {}).get("id") or "")
-                return self._json(
-                    200,
-                    profile_create(
-                        name,
-                        model,
-                        description,
-                        clone_from,
-                        soul,
-                        display_name,
-                        role,
-                        tagline,
-                        avatar_url,
-                        avatar_id,
-                        user_id=user_id,
-                        workspace_id=workspace_id,
-                    ),
-                )
-            profile_bootstrap_post = re.fullmatch(r"/api/hermes/profiles/([^/]+)/bootstrap-dm", path)
-            if profile_bootstrap_post:
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _handler_is_active_workspace_member(self):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "workspace_member"})
-                template = resolve_validated_profile(profile_bootstrap_post.group(1))
-                user_id = str(getattr(self, "auth_user", "") or "").strip()
-                workspace_id = str(body.get("workspace_id") or "").strip()
-                if not workspace_id and user_id:
-                    workspaces = _get_user_workspaces(user_id)
-                    current = _resolve_current_workspace(user_id, workspaces)
-                    workspace_id = str((current or {}).get("id") or (workspaces[0] or {}).get("id") or "")
-                if not user_id or not workspace_id:
-                    return self._json(400, {"error": "workspace_id and session required"})
-                model = str(body.get("model") or "").strip()
-                soul = str(body.get("soul") or "").strip()
-                display_name = str(body.get("display_name") or body.get("room_name") or "").strip()
-                role = str(body.get("role") or "").strip()
-                tagline = str(body.get("tagline") or "").strip()
-                lane = bootstrap_agent_dm_lane(
-                    user_id,
-                    workspace_id,
-                    template,
-                    model=model,
-                    soul=soul,
-                    bind_session=bool(body.get("bind_session", True)),
-                    room_name=display_name or str(body.get("room_name") or "").strip(),
-                    role=role,
-                    tagline=tagline,
-                    created_by=user_id,
-                )
-                status = 200 if lane.get("ok") else 500
-                return self._json(status, lane)
-            profile_soul_post = re.fullmatch(r"/api/hermes/profiles/([^/]+)/soul", path)
-            if profile_soul_post:
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = resolve_validated_profile(profile_soul_post.group(1))
-                soul = str(body.get("soul", body.get("text", "")))
-                return self._json(200, profile_soul_set(profile, soul))
-            if path == "/api/hermes/profiles/start":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
-                if SUPERVISOR_URL:
-                    return self._json(*_supervisor_request("POST", "/v1/profile.start", body))
-                return self._json(200, profile_gateway_lifecycle(profile, "start"))
-            if path == "/api/hermes/profiles/stop":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
-                if SUPERVISOR_URL:
-                    return self._json(*_supervisor_request("POST", "/v1/profile.stop", body))
-                return self._json(200, profile_gateway_lifecycle(profile, "stop"))
-            if path == "/api/hermes/profiles/delete":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = str(body.get("profile") or "").strip()
-                if not profile:
-                    return self._json(400, {"error": "profile required"})
-                return self._json(200, profile_delete(profile))
-            if path == "/api/hermes/profiles/disable":
-                if not _check_auth(self):
-                    return self._json(401, {"error": "unauthorized"})
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = resolve_validated_profile(str(body.get("profile") or _primary_profile()))
-                if SUPERVISOR_URL:
-                    return self._json(*_supervisor_request("POST", "/v1/profile.disable", body))
-                return self._json(200, profile_gateway_lifecycle(profile, "disable"))
             if path in {
                 "/api/supervisor/v1/profile.start",
                 "/api/supervisor/v1/profile.stop",
@@ -12720,36 +12818,12 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             body = self._read_json()
-            if path == "/api/doctor/repair":
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                repair = body.get("repair", True) is not False
-                result = doctor_repair_agent_dm_runtimes(repair=repair)
-                if repair:
-                    self._log_audit(
-                        "doctor_repair_agent_dm_runtimes",
-                        "runtime_profile",
-                        "",
-                        f"repaired={len(result.get('repaired') or [])} failed={len(result.get('failed') or [])}",
-                    )
-                return self._json(200, result)
-
-            if path == "/api/install/stack":
-                if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                try:
-                    global DEPLOYMENT_MODE
-                    updated = stack_config.patch_stack_config(body if isinstance(body, dict) else {})
-                    compose_sync = None
-                    if isinstance(body, dict) and body.get("app_base_url"):
-                        compose_sync = _maybe_sync_compose_public_url(str(body.get("app_base_url") or ""))
-                    DEPLOYMENT_MODE = _resolve_deployment_mode()
-                    payload: dict[str, Any] = {"ok": True, **updated}
-                    if compose_sync is not None:
-                        payload["compose_sync"] = compose_sync
-                    return self._json(200, payload)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
+            if route_registry.dispatch_patch(self, path, body if isinstance(body, dict) else {}):
+                return
+            if route_registry.dispatch_pattern(
+                "PATCH", self, path, body=body if isinstance(body, dict) else {},
+            ):
+                return
 
             if path.startswith("/api/workspace/") and path.endswith("/members"):
                 parts = path.strip("/").split("/")
@@ -12767,74 +12841,6 @@ class Handler(BaseHTTPRequestHandler):
                             {"workspace_id": ws_id, "changes": body},
                         )
                     return self._json(status, payload)
-
-            # PATCH /api/me — update own profile
-            if path == "/api/me":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    _apply_me_profile_updates(user_id, body)
-                except ValueError as exc:
-                    return self._json(400, {"ok": False, "error": str(exc)})
-                payload = _session_profile_payload(user_id)
-                if not payload:
-                    return self._json(404, {"ok": False, "error": "user_not_found"})
-                return self._json(200, payload)
-
-            if path == "/api/me/native-agent":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                native_slug = str(NATIVE_PROFILE or "workframe-agent")
-                runtime = _runtime_profile_slug(user_id, native_slug)
-                soul = (
-                    str(body.get("soul") or body.get("soul_md") or "").strip()
-                    if ("soul" in body or "soul_md" in body)
-                    else ""
-                )
-                display = str(body.get("display_name") or "").strip() if "display_name" in body else ""
-                tagline = str(body.get("tagline") or "").strip() if "tagline" in body else ""
-                _seed_native_user_overlay(
-                    runtime,
-                    native_slug,
-                    display_name=display,
-                    tagline=tagline,
-                    user_soul=soul,
-                )
-                profile_patch: dict[str, Any] = {}
-                if display:
-                    profile_patch["display_name"] = display
-                if tagline:
-                    profile_patch["tagline"] = tagline
-                if profile_patch:
-                    _sync_agent_profile_db(native_slug, profile_patch)
-                if "avatar_url" in body or "avatar_id" in body:
-                    avatar_patch = _normalize_agent_avatar_patch(
-                        str(body.get("avatar_url") or ""),
-                        str(body.get("avatar_id") or ""),
-                    )
-                    if avatar_patch.get("avatar_url") or avatar_patch.get("avatar_id"):
-                        stamp = datetime.now(timezone.utc).isoformat()
-                        row_patch = {**avatar_patch, "updated_at": stamp}
-                        _upsert_agent_registry_row(native_slug, row_patch)
-                        _upsert_agent_registry_row(runtime, row_patch)
-                        _sync_agent_profile_db(native_slug, {"avatar_url": avatar_patch.get("avatar_url", "")})
-                return self._json(200, {"ok": True, "runtime_profile": runtime})
-
-            profile_patch_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)", path)
-            if profile_patch_match and profile_patch_match.group(1) not in {
-                "status",
-                "create",
-                "start",
-                "stop",
-                "delete",
-                "disable",
-            }:
-                if not _role_allows(self, OWNER_ADMIN_ROLES):
-                    return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                profile = resolve_validated_profile(profile_patch_match.group(1))
-                return self._json(200, hermes_profile_update(profile, body))
 
             room_patch_match = re.fullmatch(r"/api/rooms/([^/]+)", path)
             if room_patch_match:

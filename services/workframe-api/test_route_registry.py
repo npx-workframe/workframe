@@ -126,9 +126,13 @@ assert route_registry.authorize_request(
 )
 
 dispatched_get = [r for r in route_registry.ROUTES if r.method == "GET" and r.handler]
-assert len(dispatched_get) == 47
+assert len(dispatched_get) == 55
 dispatched_post = [r for r in route_registry.ROUTES if r.method == "POST" and r.handler]
-assert len(dispatched_post) == 36
+assert len(dispatched_post) == 41
+dispatched_patch = [r for r in route_registry.ROUTES if r.method == "PATCH" and r.handler]
+assert len(dispatched_patch) == 4
+pattern_dispatched = [rp for rp in route_registry.ROUTE_PATTERNS if rp.handler]
+assert len(pattern_dispatched) == 8
 
 class _PostStub:
     def __init__(self) -> None:
@@ -155,6 +159,21 @@ _get_stub = _GetStub()
 assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})
 assert _get_stub.called
 assert route_registry.dispatch_get(_get_stub, "/api/admin/vault/status", {})  # idempotent call ok
+
+assert route_registry.dispatch_pattern(
+    "GET", _get_stub, "/api/workspace/ws-1/rooms", qs={},
+) is False
+
+class _PatchStub:
+    def __init__(self) -> None:
+        self.called = False
+
+    def _route_patch_me(self, body: dict) -> None:
+        self.called = True
+
+_patch_stub = _PatchStub()
+assert route_registry.dispatch_patch(_patch_stub, "/api/me", {"display_name": "x"})
+assert _patch_stub.called
 
 # No legacy frozenset allowlists
 assert not hasattr(route_registry, "GET_ALWAYS_PUBLIC_ROUTES")

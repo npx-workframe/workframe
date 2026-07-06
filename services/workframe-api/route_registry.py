@@ -36,6 +36,7 @@ class RoutePattern:
     auth: AuthLevel
     sessionless_ok: bool = False
     install_window: bool = False
+    handler: str | None = None
 
 
 # Exact routes — handler set when dispatched via registry; auth always required.
@@ -81,25 +82,26 @@ ROUTES: tuple[Route, ...] = (
     Route("GET", "/api/me/providers", AuthLevel.SESSION, "_route_get_me_providers"),
     Route("GET", "/api/me/cohort", AuthLevel.SESSION, "_route_get_me_cohort"),
     Route("GET", "/api/user/credentials", AuthLevel.SESSION, "_route_get_user_credentials"),
-    Route("GET", "/api/hermes/profiles/status", AuthLevel.SESSION),
+    Route("GET", "/api/hermes/profiles/status", AuthLevel.SESSION, "_route_get_hermes_profiles_status"),
     Route("GET", "/api/oauth/github/callback", AuthLevel.SESSION, "_route_get_oauth_github_callback"),
     Route("GET", "/api/oauth/discord/callback", AuthLevel.SESSION, "_route_get_oauth_discord_callback"),
     Route("GET", "/api/oauth/stripe/callback", AuthLevel.SESSION, "_route_get_oauth_stripe_callback"),
-    Route("GET", "/api/events", AuthLevel.SESSION),
+    Route("GET", "/api/events", AuthLevel.SESSION, "_route_get_events"),
+    Route("GET", "/events", AuthLevel.SESSION, "_route_get_events"),
     # --- owner/admin GET ---
-    Route("GET", "/api/chat/bootstrap", AuthLevel.ROLE_OWNER_ADMIN),
-    Route("GET", "/api/hermes/bootstrap", AuthLevel.ROLE_OWNER_ADMIN),
+    Route("GET", "/api/chat/bootstrap", AuthLevel.ROLE_OWNER_ADMIN, "_route_get_chat_bootstrap"),
+    Route("GET", "/api/hermes/bootstrap", AuthLevel.ROLE_OWNER_ADMIN, "_route_get_hermes_bootstrap"),
     Route("GET", "/api/admin/vault/status", AuthLevel.ROLE_OWNER_ADMIN, "_route_get_admin_vault_status"),
     Route("GET", "/api/doctor/agent-dm-runtimes", AuthLevel.ROLE_OWNER_ADMIN, "_route_get_doctor_agent_dm_runtimes"),
     Route("GET", "/api/admin/updates", AuthLevel.ROLE_OWNER_ADMIN, "_route_get_admin_updates"),
-    Route("GET", "/api/admin/audit", AuthLevel.ROLE_OWNER_ADMIN),
+    Route("GET", "/api/admin/audit", AuthLevel.ROLE_OWNER_ADMIN, "_route_get_admin_audit"),
     # --- install-window GET ---
     Route("GET", "/api/install/publish-hints", AuthLevel.PUBLIC, "_route_get_install_publish_hints", install_window=True),
     Route("GET", "/api/install/url/test", AuthLevel.PUBLIC, "_route_get_install_url_test", install_window=True),
     Route("GET", "/api/install/stack", AuthLevel.SESSION, "_route_get_install_stack", install_window=True),
     # --- internal GET ---
-    Route("GET", "/api/supervisor/v1/profile.status", AuthLevel.SESSION),
-    Route("GET", "/api/supervisor/v1/stack.status", AuthLevel.SESSION),
+    Route("GET", "/api/supervisor/v1/profile.status", AuthLevel.SESSION, "_route_get_supervisor_profile_status"),
+    Route("GET", "/api/supervisor/v1/stack.status", AuthLevel.SESSION, "_route_get_supervisor_stack_status"),
     # --- public POST (auth flow) ---
     Route("POST", "/api/auth/start", AuthLevel.PUBLIC, "_route_post_auth_start"),
     Route("POST", "/api/auth/verify", AuthLevel.PUBLIC, "_route_post_auth_verify"),
@@ -127,14 +129,11 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/files/write", AuthLevel.SESSION, "_route_post_files_write"),
     Route("POST", "/api/files/upload", AuthLevel.SESSION, "_route_post_files_upload"),
     Route("POST", "/api/chat/dispatch", AuthLevel.SESSION, "_route_post_chat_dispatch"),
-    Route("POST", "/api/me", AuthLevel.SESSION),
-    Route("POST", "/api/me/native-agent", AuthLevel.SESSION),
-    Route("POST", "/api/hermes/profiles/create", AuthLevel.SESSION),
-    Route("POST", "/api/hermes/profiles/start", AuthLevel.SESSION),
-    Route("POST", "/api/hermes/profiles/stop", AuthLevel.SESSION),
-    Route("POST", "/api/hermes/profiles/delete", AuthLevel.SESSION),
-    Route("POST", "/api/hermes/profiles/disable", AuthLevel.SESSION),
-    Route("POST", "/api/doctor/repair", AuthLevel.SESSION),
+    Route("POST", "/api/hermes/profiles/create", AuthLevel.SESSION, "_route_post_hermes_profiles_create"),
+    Route("POST", "/api/hermes/profiles/start", AuthLevel.SESSION, "_route_post_hermes_profiles_start"),
+    Route("POST", "/api/hermes/profiles/stop", AuthLevel.SESSION, "_route_post_hermes_profiles_stop"),
+    Route("POST", "/api/hermes/profiles/delete", AuthLevel.SESSION, "_route_post_hermes_profiles_delete"),
+    Route("POST", "/api/hermes/profiles/disable", AuthLevel.SESSION, "_route_post_hermes_profiles_disable"),
     # --- owner/admin POST ---
     Route("POST", "/api/admin/updates/apply", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_admin_updates_apply"),
     Route("POST", "/api/admin/stack/restart-gateway", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_admin_stack_restart_gateway"),
@@ -148,15 +147,16 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/install/url/test", AuthLevel.PUBLIC, "_route_post_install_url_test", install_window=True),
     Route("POST", "/api/install/setup-https", AuthLevel.PUBLIC, "_route_post_install_setup_https", install_window=True),
     Route("POST", "/api/install/complete", AuthLevel.PUBLIC, "_route_post_install_complete", install_window=True),
-    Route("POST", "/api/install/stack", AuthLevel.SESSION, install_window=True),
     # --- PATCH ---
-    Route("PATCH", "/api/me", AuthLevel.SESSION),
-    Route("PATCH", "/api/install/stack", AuthLevel.SESSION, install_window=True),
+    Route("PATCH", "/api/me", AuthLevel.SESSION, "_route_patch_me"),
+    Route("PATCH", "/api/me/native-agent", AuthLevel.SESSION, "_route_patch_me_native_agent"),
+    Route("PATCH", "/api/doctor/repair", AuthLevel.ROLE_OWNER_ADMIN, "_route_patch_doctor_repair"),
+    Route("PATCH", "/api/install/stack", AuthLevel.SESSION, "_route_patch_install_stack", install_window=True),
 )
 
-_ROUTE_PATTERNS_RAW: tuple[tuple[str, str, str, AuthLevel, bool, bool], ...] = (
-    # method, regex, label, auth, sessionless_ok, install_window
-    ("GET", r"^/api/public/branding/(og|favicon)$", "/api/public/branding/{kind}", AuthLevel.PUBLIC, False, False),
+_ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
+    # method, regex, label, auth, sessionless_ok, install_window [, handler]
+    ("GET", r"^/api/public/branding/(og|favicon)$", "/api/public/branding/{kind}", AuthLevel.PUBLIC, False, False, "_route_pattern_get_public_branding"),
     ("GET", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/workspace/[^/]+/rooms$", "/api/workspace/{id}/rooms", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False),
@@ -176,10 +176,10 @@ _ROUTE_PATTERNS_RAW: tuple[tuple[str, str, str, AuthLevel, bool, bool], ...] = (
     ("GET", r"^/api/rooms/[^/]+/messages$", "/api/rooms/{id}/messages", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/workspace/[^/]+/events$", "/api/workspace/{id}/events", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/me/oauth/[^/]+/status$", "/api/me/oauth/{provider}/status", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/hermes/profiles/[^/]+/soul$", "/api/hermes/profiles/{slug}/soul", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/hermes/profiles/[^/]+/sessions$", "/api/hermes/profiles/{slug}/sessions", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/hermes/profiles/[^/]+/bind$", "/api/hermes/profiles/{slug}/bind", AuthLevel.SESSION, False, False),
-    ("GET", r"^/api/hermes/profiles/[^/]+$", "/api/hermes/profiles/{slug}", AuthLevel.SESSION, False, False),
+    ("GET", r"^/api/hermes/profiles/[^/]+/soul$", "/api/hermes/profiles/{slug}/soul", AuthLevel.SESSION, False, False, "_route_pattern_get_hermes_profile_soul"),
+    ("GET", r"^/api/hermes/profiles/[^/]+/sessions$", "/api/hermes/profiles/{slug}/sessions", AuthLevel.SESSION, False, False, "_route_pattern_get_hermes_profile_sessions"),
+    ("GET", r"^/api/hermes/profiles/[^/]+/bind$", "/api/hermes/profiles/{slug}/bind", AuthLevel.SESSION, False, False, "_route_pattern_get_hermes_profile_bind"),
+    ("GET", r"^/api/hermes/profiles/[^/]+$", "/api/hermes/profiles/{slug}", AuthLevel.SESSION, False, False, "_route_pattern_get_hermes_profile_detail"),
     ("GET", r"^/api/workspace/[^/]+/credentials$", "/api/workspace/{id}/credentials", AuthLevel.SESSION, False, False),
     ("GET", r"^/api/agents/[^/]+/credentials$", "/api/agents/{id}/credentials", AuthLevel.SESSION, False, False),
     ("POST", r"^/api/me/oauth/[^/]+/start$", "/api/me/oauth/{provider}/start", AuthLevel.SESSION, False, False),
@@ -202,9 +202,9 @@ _ROUTE_PATTERNS_RAW: tuple[tuple[str, str, str, AuthLevel, bool, bool], ...] = (
     ("POST", r"^/api/memory/[^/]+$", "/api/memory/{id}", AuthLevel.SESSION, False, False),
     ("POST", r"^/api/workspace/[^/]+/budget$", "/api/workspace/{id}/budget", AuthLevel.SESSION, False, False),
     ("POST", r"^/api/workspace/[^/]+/grants$", "/api/workspace/{id}/grants", AuthLevel.SESSION, False, False),
-    ("POST", r"^/api/hermes/profiles/[^/]+/bootstrap-dm$", "/api/hermes/profiles/{slug}/bootstrap-dm", AuthLevel.SESSION, False, False),
-    ("POST", r"^/api/hermes/profiles/[^/]+/soul$", "/api/hermes/profiles/{slug}/soul", AuthLevel.SESSION, False, False),
-    ("PATCH", r"^/api/hermes/profiles/[^/]+$", "/api/hermes/profiles/{slug}", AuthLevel.SESSION, False, False),
+    ("POST", r"^/api/hermes/profiles/[^/]+/bootstrap-dm$", "/api/hermes/profiles/{slug}/bootstrap-dm", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_bootstrap_dm"),
+    ("POST", r"^/api/hermes/profiles/[^/]+/soul$", "/api/hermes/profiles/{slug}/soul", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_soul"),
+    ("PATCH", r"^/api/hermes/profiles/[^/]+$", "/api/hermes/profiles/{slug}", AuthLevel.SESSION, False, False, "_route_pattern_patch_hermes_profile"),
     ("PATCH", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False),
     ("PATCH", r"^/api/workspace/[^/]+/integrations$", "/api/workspace/{id}/integrations", AuthLevel.SESSION, False, False),
     ("PATCH", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False),
@@ -214,9 +214,25 @@ _ROUTE_PATTERNS_RAW: tuple[tuple[str, str, str, AuthLevel, bool, bool], ...] = (
     ("DELETE", r"^/api/me/credentials/[^/]+$", "/api/me/credentials/{provider}", AuthLevel.SESSION, False, False),
 )
 
+
+def _coerce_pattern_row(row: tuple) -> tuple[str, str, str, AuthLevel, bool, bool, str | None]:
+    if len(row) >= 7:
+        return row[:7]  # type: ignore[return-value]
+    m, rx, label, auth, sl, iw = row
+    return (m, rx, label, auth, sl, iw, None)
+
+
 ROUTE_PATTERNS: tuple[RoutePattern, ...] = tuple(
-    RoutePattern(method=m, pattern=re.compile(rx), label=label, auth=auth, sessionless_ok=sl, install_window=iw)
-    for m, rx, label, auth, sl, iw in _ROUTE_PATTERNS_RAW
+    RoutePattern(
+        method=m,
+        pattern=re.compile(rx),
+        label=label,
+        auth=auth,
+        sessionless_ok=sl,
+        install_window=iw,
+        handler=h,
+    )
+    for m, rx, label, auth, sl, iw, h in (_coerce_pattern_row(r) for r in _ROUTE_PATTERNS_RAW)
 )
 
 _ROUTES_BY_METHOD_PATH: dict[tuple[str, str], Route] = {
@@ -389,6 +405,42 @@ def dispatch_post(handler: Any, path: str, body: dict) -> bool:
         raise RuntimeError(f"missing handler {route.handler!r} for POST {path}")
     fn(body)
     return True
+
+
+def dispatch_patch(handler: Any, path: str, body: dict) -> bool:
+    """Invoke a registered PATCH handler on *handler*; return True when dispatched."""
+    route = lookup_route("PATCH", path)
+    if not route or not route.handler:
+        return False
+    fn = getattr(handler, route.handler, None)
+    if not callable(fn):
+        raise RuntimeError(f"missing handler {route.handler!r} for PATCH {path}")
+    fn(body)
+    return True
+
+
+def dispatch_pattern(
+    method: str,
+    handler: Any,
+    path: str,
+    *,
+    qs: dict[str, list[str]] | None = None,
+    body: dict | None = None,
+) -> bool:
+    """Invoke a pattern-backed handler; return True when dispatched."""
+    m = str(method or "GET").upper()
+    for rp in ROUTE_PATTERNS:
+        if rp.method != m or not rp.handler or not rp.pattern.fullmatch(path):
+            continue
+        fn = getattr(handler, rp.handler, None)
+        if not callable(fn):
+            raise RuntimeError(f"missing handler {rp.handler!r} for {m} {path}")
+        if m == "GET":
+            fn(path, qs or {})
+        else:
+            fn(path, body or {})
+        return True
+    return False
 
 
 def _require_session(sid: str, validate_session, attach_user) -> bool:

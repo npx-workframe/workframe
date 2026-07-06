@@ -4,9 +4,12 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-06T19:30-03:00 | pm-workframe | WF-037 batch 3 — bootstrap/hermes/supervisor/audit + 8 pattern handlers; 55+41+4 exact dispatch; zero if path == chains.
 2026-07-06T18:15-03:00 | pm-workframe | WF-040 done — program_stages in backlog.json; ledger-next picks B→C→D (WF-037 next); PM README/runbook reference program-status.md.
 2026-07-06T17:50-03:00 | verify-matrix | Full matrix @ 9a06d88: 16 pass / 1 fail / 2 skip. FAIL: package-install-evidence --skip-prep (ui_bundle_identity stale UI). Evidence: operations/release-evidence/runs/latest-verify-matrix.json. WF-019/020/005 green; WF-021 runner fails without bundle prep.
 2026-07-06T19:15-03:00 | pm-workframe | WF-032 Stage 3 complete — lane_bindings.py; server ~12.2k lines; pushed; next WF-037 route dispatch batches.
+2026-07-06T18:48-03:00 | pm-workframe | WF-037 batch 2 (f831c93) — 22 routes to registry; 47 GET + 36 POST dispatched; continue batch 3.
+2026-07-06T18:42-03:00 | pm-workframe | WF-032 Stage 3 complete — lane_bindings.py (7c00a21), server ~12.1k; dispatch WF-037 batches next.
 2026-07-06T18:38-03:00 | pm-workframe | WF-032 Stage 3 partial — chat_stream.py (8b6c56f), server ~12.5k lines; pushed; continue-agent next for lane bindings + WF-037/035.
 2026-07-06T18:32-03:00 | pm-workframe | WF-032 Stage 2 complete (4 commits, server 14385 lines); continue-agent dispatched for S3 + gaps.
 2026-07-06T18:26-03:00 | pm-workframe | Merged lane-d-authority → main (fast-forward 2ed9dbd); cosmetic-ui-wip stashed; continue-agent dispatched for WF-032 S2/S3 + gaps.
