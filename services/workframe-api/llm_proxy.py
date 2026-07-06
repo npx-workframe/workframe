@@ -13,6 +13,7 @@ from typing import Any, Callable
 from http.server import BaseHTTPRequestHandler
 
 import internal_proxy_auth
+import credential_broker
 import turn_credentials
 
 LEASE_PREFIX = turn_credentials.LEASE_PREFIX
@@ -52,38 +53,14 @@ def authorize_internal_proxy(handler: BaseHTTPRequestHandler) -> tuple[bool, str
     return internal_proxy_auth.authorize_internal_proxy(handler)
 
 
-def extract_profile_slug(headers: dict[str, str]) -> str:
-    return str(
-        headers.get(internal_proxy_auth.PROFILE_HEADER)
-        or headers.get("x-workframe-profile")
-        or ""
-    ).strip()
+extract_bearer = credential_broker.extract_bearer
+extract_profile_slug = credential_broker.extract_profile_slug
+validate_lease_profile = credential_broker.validate_lease_profile
 
 
-def validate_lease_profile(
-    lease: dict[str, Any],
-    headers: dict[str, str],
-) -> tuple[bool, str, int]:
-    """Bind bearer lease to calling Hermes profile (0022 N2 / 0023 C1)."""
-    want = str(lease.get("profile_slug") or "").strip()
-    if not want:
-        return True, "", 0
-    got = extract_profile_slug(headers)
-    if not got:
-        return False, "profile header required", 403
-    if got != want:
-        return False, "profile mismatch", 403
-    return True, "", 0
-
-
-def extract_bearer(headers: dict[str, str]) -> str:
-    auth = str(headers.get("Authorization") or headers.get("authorization") or "").strip()
-    if auth.lower().startswith("bearer "):
-        return auth[7:].strip()
-    api_key = str(headers.get("X-Api-Key") or headers.get("x-api-key") or "").strip()
-    if api_key:
-        return api_key
-    return ""
+def _upstream_host(provider: str) -> str:
+    base = UPSTREAM_BASE.get(str(provider or "").strip().lower(), "")
+    return str(base).split("://", 1)[-1].split("/", 1)[0].lower()
 
 
 def upstream_auth_header(provider: str, secret: str) -> dict[str, str]:
@@ -114,20 +91,17 @@ def _build_upstream_request(
     if not base:
         return None, _error_response(404, "unknown provider")
 
-    token = extract_bearer(headers)
-    lease = turn_credentials.validate_lease(token)
-    if not lease:
-        return None, _error_response(401, "invalid lease")
-    if str(lease.get("provider") or "").lower() != provider:
-        return None, _error_response(403, "provider mismatch")
+    auth = credential_broker.authorize_broker_lease(
+        provider,
+        headers,
+        resolve_secret=resolve_secret,
+        broker_kind="llm",
+        upstream_host=_upstream_host(provider),
+    )
+    if not auth.ok:
+        return None, _error_response(auth.status, auth.error)
 
-    ok_profile, profile_err, profile_status = validate_lease_profile(lease, headers)
-    if not ok_profile:
-        return None, _error_response(profile_status, profile_err)
-
-    _env_var, secret = turn_credentials.resolve_lease_secret(lease, resolve_secret)
-    if not secret:
-        return None, _error_response(402, "no credential")
+    secret = auth.secret
 
     path = normalize_upstream_path(base, subpath)
     url = f"{base.rstrip('/')}{path}"

@@ -9,8 +9,8 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler
 from typing import Any, Callable
 
-import llm_proxy
-import turn_credentials
+import credential_broker
+import internal_proxy_auth
 
 UPSTREAM_BASE: dict[str, str] = {
     "github": "https://api.github.com",
@@ -19,6 +19,15 @@ UPSTREAM_BASE: dict[str, str] = {
 }
 
 PROXY_PATH_RE = re.compile(r"^/internal/action/([a-z0-9_-]+)(/.*)?$", re.IGNORECASE)
+
+
+def _upstream_host(provider: str) -> str:
+    base = UPSTREAM_BASE.get(str(provider or "").strip().lower(), "")
+    return str(base).split("://", 1)[-1].split("/", 1)[0].lower()
+
+
+def authorize_internal_proxy(handler: BaseHTTPRequestHandler) -> tuple[bool, str]:
+    return internal_proxy_auth.authorize_internal_proxy(handler)
 
 
 def upstream_auth_header(provider: str, secret: str) -> dict[str, str]:
@@ -45,24 +54,21 @@ def forward_request(
     if not base:
         return 404, {"Content-Type": "application/json"}, json.dumps({"error": "unknown provider"}).encode()
 
-    token = llm_proxy.extract_bearer(headers)
-    lease = turn_credentials.validate_lease(token)
-    if not lease:
-        return 401, {"Content-Type": "application/json"}, json.dumps({"error": "invalid lease"}).encode()
-    if str(lease.get("provider") or "").lower() != provider:
-        return 403, {"Content-Type": "application/json"}, json.dumps({"error": "provider mismatch"}).encode()
-
-    ok_profile, profile_err, profile_status = llm_proxy.validate_lease_profile(lease, headers)
-    if not ok_profile:
+    auth = credential_broker.authorize_broker_lease(
+        provider,
+        headers,
+        resolve_secret=resolve_secret,
+        broker_kind="action",
+        upstream_host=_upstream_host(provider),
+    )
+    if not auth.ok:
         return (
-            profile_status,
+            auth.status,
             {"Content-Type": "application/json"},
-            json.dumps({"error": profile_err}).encode(),
+            credential_broker.broker_error_body(auth),
         )
 
-    _env_var, secret = turn_credentials.resolve_lease_secret(lease, resolve_secret)
-    if not secret:
-        return 402, {"Content-Type": "application/json"}, json.dumps({"error": "no credential"}).encode()
+    secret = auth.secret
 
     path = subpath if subpath.startswith("/") else f"/{subpath}"
     url = f"{base.rstrip('/')}{path}"
@@ -100,7 +106,7 @@ def handle_proxy_request(
     *,
     resolve_secret: Callable[[str, str, str, str], tuple[str, str]],
 ) -> bool:
-    ok, err = llm_proxy.authorize_internal_proxy(handler)
+    ok, err = authorize_internal_proxy(handler)
     if not ok:
         handler.send_response(403)
         handler.send_header("Content-Type", "application/json")

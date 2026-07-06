@@ -157,11 +157,22 @@ def parse_lease_token(value: str) -> str:
     return ""
 
 
-def validate_lease(token: str) -> dict[str, Any] | None:
-    """Return lease metadata if token is active (not revoked/expired)."""
+def _lease_row_to_meta(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "run_id": str(row["run_id"]),
+        "payer_user_id": str(row["payer_user_id"]),
+        "workspace_id": str(row["workspace_id"]),
+        "provider": str(row["provider"]),
+        "credential_binding_id": str(row["credential_binding_id"] or ""),
+        "profile_slug": str(row["profile_slug"]),
+    }
+
+
+def inspect_lease(token: str) -> tuple[str | None, dict[str, Any] | None]:
+    """Return (deny_reason, lease_meta). deny_reason is None when the lease is active."""
     token = parse_lease_token(token)
     if not token:
-        return None
+        return "missing_token", None
     ensure_schema()
     conn = _connect()
     try:
@@ -176,16 +187,20 @@ def validate_lease(token: str) -> dict[str, Any] | None:
         ).fetchone()
     finally:
         conn.close()
-    if not row or row["revoked_at"] or _expired(str(row["expires_at"] or "")):
-        return None
-    return {
-        "run_id": str(row["run_id"]),
-        "payer_user_id": str(row["payer_user_id"]),
-        "workspace_id": str(row["workspace_id"]),
-        "provider": str(row["provider"]),
-        "credential_binding_id": str(row["credential_binding_id"] or ""),
-        "profile_slug": str(row["profile_slug"]),
-    }
+    if not row:
+        return "not_found", None
+    meta = _lease_row_to_meta(row)
+    if row["revoked_at"]:
+        return "revoked", meta
+    if _expired(str(row["expires_at"] or "")):
+        return "expired", meta
+    return None, meta
+
+
+def validate_lease(token: str) -> dict[str, Any] | None:
+    """Return lease metadata if token is active (not revoked/expired)."""
+    deny_reason, lease = inspect_lease(token)
+    return lease if deny_reason is None else None
 
 
 def revoke_lease(run_id: str) -> None:
