@@ -75,27 +75,30 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'intro':
       return { title: `Set up ${projectName}`, description: '' }
     case 'welcome':
-      return { title: 'Deployment', description: 'Who will use this install?' }
+      return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
     case 'smtp':
-      return { title: 'Email & admin', description: 'SMTP for sign-in codes, then verify your email.' }
+      return { title: 'Email & admin', description: 'Configure SMTP for sign-in codes, then verify your admin email.' }
     case 'admin_auth':
-      return { title: 'Verify admin', description: '' }
+      return { title: 'Verify admin', description: 'Confirm your email to finish admin setup.' }
     case 'integrations':
-      return { title: 'Integrations', description: 'Optional — sign-in OAuth and messaging.' }
+      return { title: 'Integrations', description: 'Optional — member sign-in (OAuth) and agent messaging bots.' }
     case 'billing':
-      return { title: 'Model billing', description: 'Who pays for LLM usage?' }
+      return { title: 'Model billing', description: 'Choose BYOK (each member’s keys) or company-pays (shared keys).' }
     case 'workframe':
-      return { title: 'Business profile', description: '' }
+      return { title: 'Business profile', description: 'Name, logo, and mission shown across your Workframe.' }
     case 'profile':
-      return { title: isInvitee ? `Join ${projectName}` : 'Your profile', description: '' }
+      return {
+        title: isInvitee ? `Join ${projectName}` : 'Your profile',
+        description: isInvitee ? 'Set how teammates see you in chat and rooms.' : 'Your display name and avatar in Workframe.',
+      }
     case 'providers':
-      return { title: 'Model keys', description: 'Optional before first chat.' }
+      return { title: 'Model keys', description: 'Connect LLM providers — optional before your first chat.' }
     case 'agent':
-      return { title: 'Native agent', description: '' }
+      return { title: 'Native agent', description: 'Your concierge agent — name, avatar, and operating instructions.' }
     case 'invites':
-      return { title: 'Invite team', description: '' }
+      return { title: 'Invite team', description: 'Send email invites now, or skip and invite later in Workframe Settings.' }
     case 'publish':
-      return { title: 'Public URL', description: 'DNS, HTTPS, then test connection.' }
+      return { title: 'Public URL', description: 'Point DNS at this server, enable HTTPS, then test the connection.' }
     default:
       return { title: projectName, description: '' }
   }
@@ -200,7 +203,7 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
         return {
           ...step,
           configured: true,
-          detail: ctx.credentialMode === 'workspace' ? 'Company pays' : 'Each user BYOK',
+          detail: ctx.credentialMode === 'workspace' ? 'Company-pays' : 'BYOK',
         }
       case 'workframe': {
         const detail = ctx.workframeTagline.trim()

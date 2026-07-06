@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
 
 const TAGLINES = [
-  'Wiring your agent to Hermes…',
-  'Teaching the native agent your mission…',
-  'Opening your first chat lane…',
-  'Almost ready — polish the rails…',
+  'Connecting your agent to Hermes…',
+  'Teaching your native agent your mission…',
+  'Opening your first chat room…',
+  'Almost ready — finishing setup…',
 ]
 
 type OnboardingLaunchScreenProps = {
@@ -47,10 +47,10 @@ export function OnboardingLaunchScreen({
 
 export const FINISH_INSTALL_STEP_LABELS = [
   { id: 'runtime_profile', label: 'Create your personal agent runtime' },
-  { id: 'bootstrap_providers', label: 'Apply model & provider settings' },
+  { id: 'bootstrap_providers', label: 'Apply model and provider settings' },
   { id: 'start_gateway', label: 'Start Hermes gateway' },
   { id: 'dm_room', label: 'Open agent chat room' },
-  { id: 'room_chat_bind', label: 'Bootstrap chat session' },
+  { id: 'room_chat_bind', label: 'Connect chat session' },
   { id: 'finalize', label: 'Load Workframe' },
 ] as const
 

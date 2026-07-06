@@ -202,7 +202,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
 
         <OAuthProviderRow
           label="GitHub"
-          description="Let members connect GitHub — stack OAuth app, not personal PATs."
+          description="Let members connect GitHub — use a Workframe OAuth app, not personal access tokens."
           icon={<SignInBrandIcon id="github" />}
           enabled={githubOn}
           disabled={disabled}

@@ -38,7 +38,7 @@ export function WorkframeIntegrationsStep({
       <section className="wf-sign-in-apps-section">
         <header className="wf-sign-in-apps-section__header">
           <h2 className="wf-wizard-section__title">Sign-in</h2>
-          <p className="wf-wizard-section__hint">Google, GitHub, Stripe, Discord, and Telegram.</p>
+          <p className="wf-wizard-section__hint">OAuth apps for member sign-in — Google, GitHub, Discord, Telegram, and Stripe Connect.</p>
         </header>
         <AdminOAuthSetup
           disabled={disabled}

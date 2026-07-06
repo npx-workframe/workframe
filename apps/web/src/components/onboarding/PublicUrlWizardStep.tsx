@@ -93,7 +93,7 @@ export function PublicUrlWizardStep({ publicUrl, onPublicUrlChange, disabled }: 
     try {
       const result = await workframeAuthApi.setupPublicHttps(publicUrl)
       if (result.ok) {
-        setHttpsStatus('HTTPS installed. Certificate completes once DNS points here.')
+        setHttpsStatus('HTTPS installed. The certificate will activate once DNS points to this server.')
       } else {
         setHttpsStatus(formatWorkframeErrorMessage(result.error || 'HTTPS setup failed'))
       }

@@ -20,7 +20,7 @@ import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { PublicUrlWizardStep } from '@/components/onboarding/PublicUrlWizardStep'
 import { WorkframeIntegrationsStep } from '@/components/onboarding/WorkframeIntegrationsStep'
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { BootScreen } from '@/components/shell/BootScreen'
 import { OperationProgress, stepsFromApiResults, type OperationStep } from '@/components/ui/OperationProgress'
 import { SecretInput } from '@/components/ui/SecretInput'
@@ -53,9 +53,9 @@ type ConciergeFlowProps = {
 }
 
 const MODES = [
-  { id: 'single_user_local', title: 'Just me on this machine', blurb: 'Skip email sign-in.' },
-  { id: 'trusted_team', title: 'My team on Docker', blurb: 'Trusted colleagues with email verification.' },
-  { id: 'public_multi_user', title: 'Public on the web', blurb: 'Shared URL with full security.' },
+  { id: 'single_user_local', title: 'Just me on this machine', blurb: 'Solo use — skip email sign-in.' },
+  { id: 'trusted_team', title: 'My team on Docker', blurb: 'Teammates sign in with email verification.' },
+  { id: 'public_multi_user', title: 'Public on the web', blurb: 'Shared URL — DNS, HTTPS, and full security.' },
 ] as const
 
 function normalizePublicUrl(url: string): string {
@@ -101,10 +101,10 @@ function OnboardingAuthGate({
 type SmtpProgressPhase = 'setup' | 'smtp' | 'test-email' | 'verify'
 
 const SMTP_PROGRESS: { id: SmtpProgressPhase; label: string }[] = [
-  { id: 'setup', label: 'Prepare workframe' },
+  { id: 'setup', label: 'Prepare Workframe' },
   { id: 'smtp', label: 'Save SMTP settings' },
   { id: 'test-email', label: 'Send test email' },
-  { id: 'verify', label: 'Start verification' },
+  { id: 'verify', label: 'Start admin verification' },
 ]
 
 function buildFinishInstallSteps(
@@ -1036,29 +1036,32 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
   switch (step) {
     case 'intro':
       footer = (
-        <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => setStep('welcome')}>
+        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => setStep('welcome')}>
           Get started
-        </Button>
+        </WfActionButton>
       )
       break
     case 'smtp':
       footer = (
         <div className="wf-wizard-footer-actions">
-          <Button
-            variant="outline"
-            className="wf-wizard-btn wf-wizard-btn--secondary wf-wizard-footer-actions__btn"
+          <WfActionButton
+            wizardSize
+            tone={smtpSetupComplete ? 'default' : 'primary'}
+            className="wf-wizard-footer-actions__btn"
             disabled={busy}
             onClick={() => void testSmtpOnly()}
           >
             {busy ? 'Working…' : 'Send test email'}
-          </Button>
-          <Button
-            className="wf-wizard-btn wf-wizard-btn--primary wf-wizard-footer-actions__btn"
+          </WfActionButton>
+          <WfActionButton
+            wizardSize
+            tone={smtpSetupComplete ? 'primary' : 'inactive'}
+            className="wf-wizard-footer-actions__btn"
             disabled={busy || !canContinueFromSmtp}
             onClick={() => void continueFromSmtp()}
           >
             {adminVerified ? 'Continue' : 'Continue to verification'}
-          </Button>
+          </WfActionButton>
         </div>
       )
       break
@@ -1067,80 +1070,77 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     case 'integrations':
       footer = (
         <>
-          <Button variant="outline" className="wf-wizard-btn wf-wizard-btn--secondary" disabled={busy} onClick={() => void skipToBilling()}>
+          <WfActionButton wizardSize disabled={busy} onClick={() => void skipToBilling()}>
             Skip
-          </Button>
-          <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => void saveIntegrations()}>
+          </WfActionButton>
+          <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveIntegrations()}>
             Continue
-          </Button>
+          </WfActionButton>
         </>
       )
       break
     case 'billing':
       footer = (
-        <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => void saveBilling()}>
+        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveBilling()}>
           Continue
-        </Button>
+        </WfActionButton>
       )
       break
     case 'workframe':
       footer = (
-        <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => void saveWorkframe()}>
+        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveWorkframe()}>
           Continue
-        </Button>
+        </WfActionButton>
       )
       break
     case 'profile':
       footer = (
-        <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => void saveProfile()}>
+        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveProfile()}>
           Continue
-        </Button>
+        </WfActionButton>
       )
       break
     case 'providers':
       if (workspaceId) {
         footer = (
-          <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => void saveProviders()}>
+          <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveProviders()}>
             Continue
-          </Button>
+          </WfActionButton>
         )
       }
       break
     case 'agent':
       footer = (
-        <Button
-          className="wf-wizard-btn wf-wizard-btn--primary"
-          disabled={busy}
-          onClick={() => void saveAgent()}
-        >
+        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveAgent()}>
           {busy
             ? 'Saving agent…'
             : deploymentMode === 'public_multi_user' && adminVerified && publicUrl.trim()
               ? 'Launch Workframe'
               : 'Continue'}
-        </Button>
+        </WfActionButton>
       )
       break
     case 'invites':
       footer = (
         <>
-          <Button variant="outline" className="wf-wizard-btn wf-wizard-btn--secondary" disabled={busy} onClick={() => void finishInstall()}>
+          <WfActionButton wizardSize disabled={busy} onClick={() => void finishInstall()}>
             {busy ? 'Finishing…' : 'Skip'}
-          </Button>
-          <Button className="wf-wizard-btn wf-wizard-btn--primary" disabled={busy} onClick={() => void sendInvites()}>
+          </WfActionButton>
+          <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void sendInvites()}>
             {busy ? 'Sending invites…' : 'Send invites'}
-          </Button>
+          </WfActionButton>
         </>
       )
       break
     case 'publish':
       footer = (
         <>
-          <Button variant="outline" className="wf-wizard-btn wf-wizard-btn--secondary" disabled={busy} onClick={() => void testPublicUrl()}>
+          <WfActionButton wizardSize disabled={busy} onClick={() => void testPublicUrl()}>
             Test connection
-          </Button>
-          <Button
-            className="wf-wizard-btn wf-wizard-btn--primary"
+          </WfActionButton>
+          <WfActionButton
+            wizardSize
+            tone="primary"
             disabled={busy || !publicUrl.trim()}
             onClick={async () => {
               setBusy(true)
@@ -1158,7 +1158,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
             }}
           >
             Continue
-          </Button>
+          </WfActionButton>
         </>
       )
       break
@@ -1172,7 +1172,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
 
   if (ownerSignInRequired) {
     return (
-      <OnboardingAuthGate title="Sign in to continue setup" description="Sign in as the workspace owner.">
+      <OnboardingAuthGate title="Sign in to continue setup" description="Sign in as the Workframe admin to resume setup.">
         <EmailOtpVerification
           initialEmail={adminEmail}
           startStep="email"
@@ -1220,9 +1220,9 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       {step === 'intro' ? (
         <div className="wf-wizard-panel">
           <ul className="wf-wizard-checklist">
-            <li>Deployment and sign-in</li>
-            <li>Integrations and billing</li>
-            <li>Profiles and native agent</li>
+            <li>Deployment mode and admin sign-in</li>
+            <li>Integrations, billing (BYOK or company-pays)</li>
+            <li>Workframe profile, your keys, and native agent</li>
           </ul>
         </div>
       ) : null}
@@ -1309,7 +1309,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               placeholder={smtpUser || 'same as username'}
               disabled={busy}
             />
-            <p className="wf-dialog-field__hint">Blank uses login email.</p>
+            <p className="wf-dialog-field__hint">Leave blank to use the login email as the sender.</p>
           </div>
           <div className="wf-dialog-field">
             <Label htmlFor="wf-smtp-admin">Admin email</Label>
@@ -1356,15 +1356,15 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           <label className={`wf-wizard-choice-card${credentialMode === 'byok' ? ' is-selected' : ''}`}>
             <input type="radio" checked={credentialMode === 'byok'} onChange={() => setCredentialMode('byok')} />
             <span>
-              <strong>Each user brings their own keys</strong>
-              <span>Personal LLM keys per member.</span>
+              <strong>BYOK — bring your own keys</strong>
+              <span>Each member connects personal LLM keys. Usage bills to them.</span>
             </span>
           </label>
           <label className={`wf-wizard-choice-card${credentialMode === 'workspace' ? ' is-selected' : ''}`}>
             <input type="radio" checked={credentialMode === 'workspace'} onChange={() => setCredentialMode('workspace')} />
             <span>
-              <strong>Company pays (shared keys)</strong>
-              <span>One workspace key for everyone.</span>
+              <strong>Company-pays — shared keys</strong>
+              <span>One shared key pool for all members. Admin manages provider keys.</span>
             </span>
           </label>
         </div>
@@ -1438,7 +1438,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               [
                 ['keys', 'Provider keys'],
                 ['accounts', 'Linked accounts'],
-                ['model', 'LLM Models'],
+                ['model', 'LLM models'],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -1514,7 +1514,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               onChange={(e) => setInviteEmails(e.target.value)}
               placeholder="a@co.com, b@co.com"
             />
-            <p className="wf-dialog-field__hint">Comma-separated. Skip to invite later in settings.</p>
+            <p className="wf-dialog-field__hint">Comma-separated. Skip to invite teammates later in Workframe Settings.</p>
           </div>
         </div>
       ) : null}

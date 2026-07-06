@@ -124,7 +124,7 @@ export function WorkspaceMessagingPanel({
       <section className="wf-wizard-section">
         <h2 className="wf-wizard-section__title">Discord</h2>
         <p className="wf-wizard-section__hint">
-          Shared bot for the workframe — token is vault-encrypted and synced to the gateway.
+          Shared bot for this Workframe. Token is vault-encrypted and synced to the gateway.
         </p>
         <div className="wf-dialog-field">
           <Label htmlFor="wf-discord-token">Bot token</Label>
@@ -164,7 +164,7 @@ export function WorkspaceMessagingPanel({
       <section className="wf-wizard-section">
         <h2 className="wf-wizard-section__title">Telegram</h2>
         <p className="wf-wizard-section__hint">
-          Shared bot for the workframe — members link their Telegram user ID on the profile step.
+          Shared bot for this Workframe. Members link their Telegram user ID under Linked accounts.
         </p>
         <div className="wf-dialog-field">
           <Label htmlFor="wf-telegram-token">Bot token</Label>

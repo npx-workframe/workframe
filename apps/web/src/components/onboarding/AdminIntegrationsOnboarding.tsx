@@ -56,7 +56,7 @@ export function AdminIntegrationsOnboarding({ workspaceId, onComplete }: AdminIn
       })
       onComplete()
     } catch (err) {
-      setError(formatWorkframeErrorMessage(err, 'Save workspace integrations'))
+      setError(formatWorkframeErrorMessage(err, 'Save GitHub integration'))
       setBusy(false)
     }
   }
@@ -72,9 +72,9 @@ export function AdminIntegrationsOnboarding({ workspaceId, onComplete }: AdminIn
           target="_blank"
           rel="noreferrer"
         >
-          New GitHub OAuth app
+          Create a GitHub OAuth app
         </a>
-        {' — paste the two URLs below, then drop the client ID and secret here.'}
+        {' — use the homepage and callback URLs below, then paste the client ID and secret.'}
       </p>
 
       <div className="space-y-3">
@@ -103,7 +103,7 @@ export function AdminIntegrationsOnboarding({ workspaceId, onComplete }: AdminIn
             type="password"
             value={githubClientSecret}
             onChange={(event) => setGithubClientSecret(event.target.value)}
-            placeholder="Leave blank to keep existing"
+            placeholder="Leave blank to keep the saved secret"
             disabled={busy}
           />
         </div>
