@@ -453,6 +453,13 @@ def _event_description(event_type: str, payload: Mapping[str, Any]) -> str:
         return "Chat turn completed"
     if event_type == "run.failed":
         return f"Run failed: {payload.get('reason') or 'error'}"
+    if event_type == "slash.command":
+        cmd = str(payload.get("command") or "")
+        return f"Slash /{cmd}" if cmd else "Slash command"
+    if event_type == "cron.triggered":
+        return f"Cron: {payload.get('job') or payload.get('actor_id') or 'job'}"
+    if event_type == "kanban.task_created":
+        return f"Kanban: {payload.get('title') or 'task'}"
     return event_type
 
 
