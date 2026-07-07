@@ -31,6 +31,10 @@ scripts/workframe/             Ops scripts — see README.md
 
 **Generated installs** (`npx create-workframe`) receive copies of API/UI/supervisor from the npm package. Product changes land here first, then sync into `packages/create-workframe/` before release.
 
+## UI design system
+
+Cosmetic / theme work: read [design.md](design.md) first, then the active theme doc ([dark](dark-design.md), [neo](neo-design.md), [blueprint](blueprint-design.md)). Token lab: `pnpm dev:web` → `/dev/theme`.
+
 ## Generated install services (typical slot 1)
 
 | Service | Port | Role |

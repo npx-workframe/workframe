@@ -41,6 +41,8 @@ Also published at [docs.workfra.me](https://docs.workfra.me).
 
 | Doc | |
 |-----|---|
+| [UI design system](public/design.md) | Global tokens, chrome modes, component vocabulary |
+| [Dark theme](public/dark-design.md) · [Neo](public/neo-design.md) · [Blueprint](public/blueprint-design.md) | Per-theme palette and chrome |
 | [Architecture](public/architecture.md) | Components, volumes, credentials |
 | [Security](public/security.md) | Modes, vault, multi-user controls |
 | [Audit guide](public/audit.md) | Code review path for evaluators |

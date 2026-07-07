@@ -29,6 +29,7 @@ Cosmetic UI is a **separate lane**. Multiple agents may commit to the same branc
 ## Safe zones
 
 - `apps/web/src/**/*.css` — tokens, `wf-*` classes, scroll gutters
+- `docs/public/design.md` + `*-design.md` — agent-facing design spec (read before cosmetic edits)
 - Presentational components where you change **className / layout / copy only** (no new fetch, no new state for business logic)
 - `apps/web/src/components/ui/**` — shadcn primitives (visual only)
 - Panel chrome: `PanelHeader`, `PanelShell`, rails, toolbars (if no new API calls)
@@ -91,6 +92,10 @@ Append under **Cosmetic log** below: date, files touched, screenshots optional, 
 ---
 
 ## Cosmetic log
+
+**2026-07-07** — Design docs seeded (WF-036 cosmetic, code-grounded)
+- `docs/public/design.md` (global tokens) + `dark-design.md`, `neo-design.md`, `blueprint-design.md`
+- Source of truth remains `apps/web/src/styles/`; docs describe shipped CSS only
 
 **2026-07-07** — Theme architecture pass (WF-036 cosmetic, parallel with backend on `main`)
 - Added `blueprint` theme; `CanvasBackground` replaces atmosphere layer; `theme-architecture.css` token layout
