@@ -195,3 +195,25 @@ def chat_run_request(
         agent_id=profile_slug,
         runtime_binding_id=profile_slug,
     )
+
+
+def mention_run_request(
+    *,
+    triggering_user_id: str,
+    profile_slug: str,
+    workspace_id: str,
+    provider: str,
+    room_id: str | None = None,
+) -> RunAuthorityRequest:
+    return RunAuthorityRequest(
+        surface=RunSurface.MENTION,
+        actor_type=ActorType.USER,
+        actor_id=triggering_user_id,
+        triggering_user_id=triggering_user_id,
+        profile_slug=profile_slug,
+        workspace_id=workspace_id,
+        provider=provider,
+        room_id=room_id,
+        agent_id=profile_slug,
+        runtime_binding_id=profile_slug,
+    )
