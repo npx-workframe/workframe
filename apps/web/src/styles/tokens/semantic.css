@@ -50,4 +50,11 @@
   --wf-btn-shadow-primary: none;
   --wf-icon-control-size: var(--wf-panel-header-control-size);
   --wf-icon-control-border-width: var(--wf-control-border-width);
+
+  /* Scrollbar — fixed 2px inset; track width derived in scroll-area.css */
+  --wf-scrollbar-radius: var(--wf-radius-pill);
+  --wf-scrollbar-inset: 2px;
+  --wf-scrollbar-thumb-size: 6px;
+  --wf-scrollbar-thumb: var(--wf-divider-color);
+  --wf-scrollbar-thumb-hover: var(--wf-accent);
 }

@@ -6,10 +6,12 @@ import '@/styles/scroll-area.css'
 
 export const scrollAreaClass = 'wf-scroll'
 
-type ScrollAreaAxis = 'vertical' | 'horizontal' | 'both'
+export type ScrollAreaAxis = 'vertical' | 'horizontal' | 'both'
+export type ScrollAreaInset = 'sm' | 'md' | 'rail'
 
 type ScrollAreaProps = ComponentPropsWithoutRef<'div'> & {
   axis?: ScrollAreaAxis
+  inset?: ScrollAreaInset
 }
 
 const axisClass: Record<ScrollAreaAxis, string> = {
@@ -18,13 +20,20 @@ const axisClass: Record<ScrollAreaAxis, string> = {
   both: 'wf-scroll--both',
 }
 
+const insetClass: Record<ScrollAreaInset, string> = {
+  sm: 'wf-scroll--inset-sm',
+  md: 'wf-scroll--inset-md',
+  rail: 'wf-scroll--inset-rail',
+}
+
 export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
-  ({ axis = 'both', className, ...props }, ref) => (
+  ({ axis = 'both', inset, className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
         scrollAreaClass,
         axisClass[axis],
+        inset && insetClass[inset],
         axis !== 'horizontal' && 'wf-scroll-host',
         className,
       )}

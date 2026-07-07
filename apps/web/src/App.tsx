@@ -16,6 +16,7 @@ import { useWorkspaceBranding } from '@/hooks/useWorkspaceBranding'
 import { getInitialTheme, applyTheme } from '@/lib/theme'
 import { isElectronRuntime } from '@/lib/runtime'
 import { ButtonShowcasePage } from '@/pages/dev/ButtonShowcasePage'
+import { ThemeShowcasePage } from '@/pages/dev/ThemeShowcasePage'
 import { WORKFRAME_SESSION_EXPIRED } from '@/lib/authenticatedFetch'
 import { clearStoredSessionTokens } from '@/lib/workframeSession'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -55,9 +56,20 @@ function isButtonShowcasePath(): boolean {
   return path === '/dev/buttons' || path.endsWith('/dev/buttons')
 }
 
+function isThemeShowcasePath(): boolean {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('wf-dev') === 'theme') return true
+  const path = window.location.pathname
+  return path === '/dev/theme' || path.endsWith('/dev/theme')
+}
+
 function App() {
   if (isButtonShowcasePath()) {
     return <ButtonShowcasePage />
+  }
+
+  if (isThemeShowcasePath()) {
+    return <ThemeShowcasePage />
   }
 
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'

@@ -1,10 +1,11 @@
 /**
- * Scroll regions — top/left flush with siblings; gutter on inline-end + block-end
- * so content does not crowd the scrollbar or the scroll bottom edge.
+ * Scroll track width = 2 + thumb + 2 (standard 10px; rail 6px).
+ * Thumb gaps are transparent borders inside the track (padding-box clip).
  *
- * Vertical: 8px inline-end, 16px block-end
- * Horizontal: 16px inline-end, 8px block-end
- * Both axes: 16px inline-end, 16px block-end
+ * Content↔track spacing: --wf-scroll-gutter-inline on the scroll container.
+ *
+ * WebKit/Chromium: ::-webkit-scrollbar* only (no scrollbar-color — it blocks thumb:hover).
+ * Firefox: scrollbar-color fallback when pseudo-elements are unavailable.
  */
 
 :root {
@@ -14,11 +15,20 @@
   --wf-scroll-gutter-block-h: var(--wf-gap);
 }
 
-.wf-scroll,
-textarea.wf-scroll,
-pre.wf-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--wf-scrollbar-thumb) var(--wf-scrollbar-track);
+.wf-scroll {
+  --wf-scrollbar-thumb-size: 6px;
+  --wf-scrollbar-inset: 2px;
+  --wf-scrollbar-size: calc(var(--wf-scrollbar-thumb-size) + 2 * var(--wf-scrollbar-inset));
+}
+
+/* ponytail: Chrome 121+ — scrollbar-color suppresses ::-webkit-scrollbar-thumb:hover */
+@supports not selector(::-webkit-scrollbar) {
+  .wf-scroll,
+  textarea.wf-scroll,
+  pre.wf-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--wf-scrollbar-thumb) var(--wf-scrollbar-track);
+  }
 }
 
 .wf-scroll::-webkit-scrollbar,
@@ -37,14 +47,16 @@ pre.wf-scroll::-webkit-scrollbar-track {
 .wf-scroll::-webkit-scrollbar-thumb,
 textarea.wf-scroll::-webkit-scrollbar-thumb,
 pre.wf-scroll::-webkit-scrollbar-thumb {
-  background: var(--wf-scrollbar-thumb);
-  border-radius: var(--wf-radius-pill);
+  background-color: var(--wf-scrollbar-thumb);
+  border-radius: var(--wf-scrollbar-radius, var(--wf-radius-pill));
+  background-clip: padding-box;
+  border: var(--wf-scrollbar-inset) solid rgba(0, 0, 0, 0);
 }
 
 .wf-scroll::-webkit-scrollbar-thumb:hover,
 textarea.wf-scroll::-webkit-scrollbar-thumb:hover,
 pre.wf-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--wf-scrollbar-thumb-hover);
+  background-color: var(--wf-scrollbar-thumb-hover);
 }
 
 .wf-scroll::-webkit-scrollbar-corner,
@@ -73,6 +85,36 @@ pre.wf-scroll::-webkit-scrollbar-corner {
   overscroll-behavior: contain;
   padding-inline-end: var(--wf-scroll-gutter-inline-h);
   padding-block-end: var(--wf-scroll-gutter-block);
+}
+
+/* Panel inset — 4px panel→item; same 4px content→track; item internal padding unchanged */
+.wf-scroll--inset-sm.wf-scroll--vertical,
+.wf-scroll--inset-sm.wf-scroll--both {
+  padding-block-start: var(--wf-panel-scroll-inset);
+  padding-inline-start: var(--wf-panel-scroll-inset);
+  --wf-scroll-gutter-inline: var(--wf-panel-scroll-inset);
+  --wf-scroll-gutter-inline-h: var(--wf-panel-scroll-inset);
+  --wf-scroll-gutter-block: var(--wf-panel-scroll-inset);
+}
+
+.wf-scroll--inset-md.wf-scroll--vertical,
+.wf-scroll--inset-md.wf-scroll--both {
+  padding-block-start: var(--wf-space-4);
+  padding-inline-start: var(--wf-space-4);
+  --wf-scroll-gutter-inline: var(--wf-space-4);
+  --wf-scroll-gutter-inline-h: var(--wf-space-4);
+  --wf-scroll-gutter-block: var(--wf-space-4);
+}
+
+/* Rail: horizontal inset from scroll host; vertical spacing on nav only */
+.wf-scroll--inset-rail.wf-scroll--vertical {
+  --wf-scrollbar-thumb-size: 2px;
+  --wf-scrollbar-inset: 2px;
+  --wf-scroll-gutter-inline: var(--wf-panel-scroll-inset);
+  --wf-scroll-gutter-block: 0px;
+  padding-block-start: var(--wf-panel-scroll-inset);
+  padding-inline-start: var(--wf-panel-scroll-inset);
+  padding-block-end: var(--wf-panel-scroll-inset);
 }
 
 /* Flex child that owns vertical scroll in a panel/dialog column */

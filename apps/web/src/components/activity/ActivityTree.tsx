@@ -79,7 +79,7 @@ export function ActivityTree({
   }
 
   return (
-    <ScrollArea axis="vertical" className={cn('wf-activity-tree', className)}>
+    <ScrollArea axis="vertical" inset="sm" className={cn('wf-activity-tree', className)}>
       <div className="wf-activity-tree__list" role="tree" aria-label="Agent activity">
         {nodes.map((node) => (
           <ActivityBranch

@@ -103,7 +103,7 @@ export function MessageList({
   }, [displayMessages])
 
   return (
-    <ScrollArea axis="vertical" className="wf-message-list" role="log" aria-live="polite" aria-relevant="additions">
+    <ScrollArea axis="vertical" inset="md" className="wf-message-list" role="log" aria-live="polite" aria-relevant="additions">
       {displayMessages.length === 0 ? (
         <p className="wf-message-list__empty">No messages yet — say hello to your agent.</p>
       ) : null}

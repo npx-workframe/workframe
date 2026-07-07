@@ -73,14 +73,16 @@
   --wf-chrome-border-ghost: color-mix(in srgb, var(--wf-border) 90%, transparent);
 
   --wf-radius-knob-sm: 4px;
-  --wf-radius-knob-md: 8px;
-  --wf-radius-knob-lg: 8px;
+  --wf-radius-knob-md: 4px;
+  --wf-radius-knob-lg: 12px;
   --wf-radius-avatar: var(--wf-radius-knob-sm);
-  --wf-radius-control: var(--wf-radius-knob-md);
+  --wf-radius-control: var(--wf-radius-knob-sm);
   --wf-radius-row: var(--wf-radius-knob-sm);
   --wf-radius-icon-btn: var(--wf-radius-knob-sm);
   --wf-radius-surface: var(--wf-radius-knob-lg);
+  --wf-radius-tool-btn: var(--wf-radius-row);
   --wf-radius-panel-control: var(--wf-radius-icon-btn);
+  --wf-radius-browser-toolbar-btn: var(--wf-radius-icon-btn);
   --wf-rail-cell-radius: var(--wf-radius-icon-btn);
   --wf-border-width: 1px;
   --wf-divider-color: rgba(255, 255, 255, 0.1);
@@ -118,10 +120,10 @@
   --wf-control-bg-hover: rgba(255, 255, 255, 0.1);
   --wf-control-bg-active: rgba(255, 255, 255, 0.1);
   --wf-control-fg-inactive: color-mix(in srgb, var(--wf-muted) 68%, transparent);
+  --wf-tool-chrome-border: rgba(255, 255, 255, 0.05);
 
-  /* Dark scrollbar — slightly brighter thumb on glass panels */
+  /* Dark scrollbar thumb — divider alone is too faint on glass */
   --wf-scrollbar-thumb: color-mix(in srgb, var(--wf-muted) 32%, transparent);
-  --wf-scrollbar-thumb-hover: color-mix(in srgb, var(--wf-muted) 50%, transparent);
 
   /* Dark action buttons — thin glass border; fill on hover / primary */
   --wf-btn-border-width: 1px;
@@ -144,6 +146,14 @@
   background: rgba(255, 255, 255, 0.1);
   border-color: transparent;
   box-shadow: none;
+}
+
+[data-theme='dark'] :is(.wf-tool-run, .wf-activity-tree__row--child) {
+  border: 1px solid var(--wf-tool-chrome-border);
+}
+
+[data-theme='dark'] :is(.wf-tool-run--running, .wf-tool-run--error) {
+  border-color: var(--wf-tool-chrome-border);
 }
 
 [data-theme='dark'] .wf-theme-switcher__menu {

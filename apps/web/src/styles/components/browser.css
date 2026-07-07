@@ -191,12 +191,13 @@
   padding: 0;
 }
 
-.wf-browser-pane.wf-scroll--both {
-  --wf-scroll-gutter-inline-h: 0;
-  --wf-scroll-gutter-block: 0;
+.wf-browser-code.wf-scroll--both,
+.wf-browser-edit.wf-scroll--both,
+.wf-browser-preview.wf-scroll--both:not(.wf-browser-preview--embed) {
+  --wf-scroll-gutter-block: var(--wf-space-4);
 }
 
-.wf-browser-preview.wf-scroll--both {
+.wf-browser-preview.wf-scroll--both:not(.wf-browser-preview--embed) {
   flex-direction: column;
 }
 
@@ -474,6 +475,7 @@
 .wf-file-tree__branch {
   display: flex;
   flex-direction: column;
+  gap: var(--wf-gap);
 }
 
 .wf-file-tree__row {
@@ -484,7 +486,7 @@
   min-width: 0;
   min-height: var(--wf-control);
   padding-block: var(--wf-space-1);
-  padding-right: var(--wf-space-2);
+  padding-inline: var(--wf-space-2) var(--wf-space-2);
   border-radius: var(--wf-radius-control);
   color: color-mix(in srgb, var(--wf-text) 88%, transparent);
   font-size: var(--wf-type-ui);
@@ -511,6 +513,7 @@
   width: 12px;
   height: 12px;
   flex-shrink: 0;
+  margin-inline-start: var(--wf-gap);
   color: var(--wf-muted);
   transition: transform 0.15s ease;
 }
@@ -542,6 +545,7 @@
 .wf-file-tree__children {
   display: flex;
   flex-direction: column;
-  gap: var(--wf-gap-tight);
+  gap: var(--wf-gap);
+  padding-inline-start: var(--wf-tree-indent);
 }
 

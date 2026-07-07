@@ -55,7 +55,7 @@ export function PanelDragTab({
     <div
       {...rest}
       className={cn(
-        'wf-panel-drag-tab',
+        'wf-panel-drag-tab wf-shadow-right-only',
         (hovered || pressed) && 'wf-panel-drag-tab--interacting',
         className,
       )}

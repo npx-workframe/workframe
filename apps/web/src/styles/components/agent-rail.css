@@ -1,10 +1,18 @@
 /* ── Agent rail ───────────────────────────────────────────────────────────── */
 
+.wf-panel--rail-expanded .wf-agent-rail-scroll.wf-scroll--inset-rail.wf-scroll--vertical {
+  padding-block-start: var(--wf-space-2);
+  padding-inline-start: var(--wf-space-2);
+  --wf-scroll-gutter-inline: var(--wf-space-2);
+  --wf-scroll-gutter-block: var(--wf-space-2);
+}
+
 .wf-agent-rail {
   display: flex;
   flex-direction: column;
   gap: var(--wf-gap);
-  padding: var(--wf-gap);
+  padding-block: var(--wf-panel-scroll-inset);
+  padding-inline: 0;
   min-height: min-content;
   width: 100%;
   min-width: 0;

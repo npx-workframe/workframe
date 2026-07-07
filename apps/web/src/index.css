@@ -37,6 +37,7 @@
 @import './styles/components/onboarding.css';
 @import './styles/components/stack-updates.css';
 @import './styles/components/btn-showcase.css';
+@import './styles/components/theme-showcase.css';
 
 /* Single-line truncation inside flex/grid rows */
 .wf-truncate {

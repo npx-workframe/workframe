@@ -19,7 +19,7 @@
      --wf-neo-shadow-inset-light, --wf-neo-shadow-inset-dark, --wf-neo-flat, --wf-neo-highlight
    Dialog hovers: --wf-dialog-accent-hover-bg/text/border, --wf-dialog-warn-hover-bg/text/border
    Controls: --wf-control-bg/flg/border/shadow (+ hover, active, inactive variants),
-     --wf-scrollbar-size/thumb/thumb-hover/track,
+     --wf-scrollbar-size/inset/radius/thumb/thumb-hover/track,
      --wf-control-border-ring-raised, --wf-control-shadow-flush, --wf-control-shadow-raised,
      --wf-control-shadow-highlight, --wf-control-shadow-inset, --wf-control-shadow-elevated,
      --wf-control-shadow-footer */

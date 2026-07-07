@@ -5,7 +5,6 @@
   flex-direction: column;
   gap: 0;
   height: 100%;
-  padding: var(--wf-space-4) 0 0 var(--wf-space-4);
 }
 
 .wf-message-row {

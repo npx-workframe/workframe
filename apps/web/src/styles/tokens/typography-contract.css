@@ -1,0 +1,9 @@
+/* Typography contract — foundation type tokens; components should prefer var() over raw rem/px */
+
+/* Families: --wf-font-sans, --wf-font-mono
+   Scale: --wf-type-meta (10px), --wf-type-micro (9px), --wf-type-caption (11px),
+          --wf-type-ui (12px), --wf-type-body (13px)
+   Leading: --wf-leading-meta, --wf-leading-micro, --wf-leading-ui,
+            --wf-leading-body, --wf-leading-caption
+   Spacing grid: --wf-space-1 (4px), --wf-space-2 (8px), --wf-space-4 (16px)
+   Common UI chrome: --wf-gap-tight, --wf-gap, --wf-panel-stack-gap */

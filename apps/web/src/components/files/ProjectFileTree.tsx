@@ -221,7 +221,7 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
   )
 
   return (
-    <ScrollArea ref={containerRef} className="wf-file-explorer">
+    <ScrollArea ref={containerRef} axis="vertical" inset="sm" className="wf-file-explorer">
       <FileTree
         root={tree}
         expandedIds={expandedIds}

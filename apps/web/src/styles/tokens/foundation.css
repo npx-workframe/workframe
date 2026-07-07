@@ -23,11 +23,13 @@
   --wf-rail-inset-gutter: var(--wf-gap);
   --wf-rail-cell-gap: var(--wf-gap-tight);
 
-  /* Scrollbar + scroll gutter (scroll-area.css consumes these) */
-  --wf-scrollbar-size: 5px;
-  --wf-scrollbar-thumb: color-mix(in srgb, var(--wf-muted) 24%, transparent);
-  --wf-scrollbar-thumb-hover: color-mix(in srgb, var(--wf-muted) 42%, transparent);
+  /* Scrollbar track = thumb + 2×inset (2+6+2 = 10px; rail 2+2+2 = 6px) */
+  --wf-scrollbar-inset: 2px;
+  --wf-scrollbar-thumb-size: 6px;
   --wf-scrollbar-track: transparent;
+  --wf-tree-indent: 10px;
+  /* Symmetric panel scroll inset: 4px start + 4px before track (+ 10px track) */
+  --wf-panel-scroll-inset: var(--wf-space-1);
   --wf-scroll-gutter-inline: var(--wf-gap);
   --wf-scroll-gutter-block: var(--wf-space-4);
   --wf-scroll-gutter-inline-h: var(--wf-space-4);

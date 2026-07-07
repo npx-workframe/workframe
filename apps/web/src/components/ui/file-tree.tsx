@@ -104,7 +104,7 @@ function FileTreeBranch({ node, depth, isRoot = false }: FileTreeBranchProps) {
           isSelected && 'wf-file-tree__row--selected',
           isRoot && 'wf-file-tree__row--root',
         )}
-        style={{ '--file-color': color, paddingLeft: `${8 + depth * 10}px` } as CSSProperties}
+        style={{ '--file-color': color } as CSSProperties}
         onClick={handleClick}
       >
         <Icon className="wf-file-tree__icon" aria-hidden="true" />

@@ -8,6 +8,7 @@
   height: 100%;
   min-height: 0;
   min-width: 0;
+  box-sizing: border-box;
   background: transparent;
   border: none;
 }
@@ -88,7 +89,7 @@
   min-height: var(--wf-rail-cell);
   max-width: var(--wf-rail-cell);
   max-height: var(--wf-rail-cell);
-  border-radius: var(--wf-rail-cell-radius);
+  border-radius: var(--wf-radius-avatar);
   flex-shrink: 0;
   aspect-ratio: 1;
 }
@@ -153,13 +154,17 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
-  padding-inline-end: 0;
+}
+
+.wf-panel--rail-expanded {
+  padding: 0;
 }
 
 .wf-panel--rail-expanded .wf-panel__header {
   height: var(--wf-panel-header-height);
   min-height: var(--wf-panel-header-height);
   max-height: var(--wf-panel-header-height);
+  padding-left: var(--wf-gap);
 }
 
 .wf-panel--rail-expanded .wf-panel__header .wf-agent-rail__toggle {
@@ -175,10 +180,6 @@
   min-height: 0;
 }
 
-.wf-panel--chat .wf-message-list {
-  --wf-scroll-gutter-inline: 16px;
-}
-
 .wf-panel--activity {
   border-left: none;
 }
@@ -188,10 +189,6 @@
   min-height: 0;
 }
 
-.wf-panel--activity .wf-activity-tree {
-  --wf-scroll-gutter-inline: 8px;
-}
-
 .wf-panel--files {
   border-left: none;
 }
@@ -199,7 +196,22 @@
 .wf-panel--files .wf-file-explorer {
   flex: 1;
   min-height: 0;
-  --wf-scroll-gutter-inline-h: 8px;
+}
+
+/* ponytail: dockview clips scrollbar at cell edge — margin on scroll host only (not panel/header) */
+.wf-panel--activity .wf-activity-tree,
+.wf-panel--files .wf-file-explorer {
+  margin-inline-end: var(--wf-scrollbar-inset);
+}
+
+.wf-panel--browser .wf-browser-pane.wf-scroll--vertical:not(.wf-browser-preview--embed),
+.wf-panel--browser .wf-browser-pane.wf-scroll--both:not(.wf-browser-preview--embed),
+.wf-panel--browser .wf-browser-tabs.wf-scroll--horizontal {
+  padding-block-start: var(--wf-gap);
+  padding-inline-start: var(--wf-gap);
+  --wf-scroll-gutter-inline: var(--wf-gap);
+  --wf-scroll-gutter-inline-h: var(--wf-gap);
+  --wf-scroll-gutter-block: var(--wf-space-4);
 }
 
 .wf-panel__header {
@@ -552,7 +564,7 @@
 
 .wf-settings-shell__rail-title {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--wf-type-body);
   font-weight: 650;
   letter-spacing: -0.02em;
   color: var(--wf-text);
@@ -577,7 +589,7 @@
   padding: 0.5rem 0.625rem;
   border-radius: var(--wf-radius-row);
   color: var(--wf-muted);
-  font-size: 0.8125rem;
+  font-size: var(--wf-type-body);
   font-weight: 600;
   letter-spacing: -0.01em;
   text-align: left;
@@ -622,7 +634,7 @@
 
 .wf-settings-shell__header .wf-dialog-description {
   margin-top: 0.125rem;
-  font-size: 0.8125rem;
+  font-size: var(--wf-type-body);
 }
 
 .wf-settings-shell__scroll {

@@ -407,7 +407,7 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
           <div className="wf-panel__header">{railToggle}</div>
         )}
 
-        <ScrollArea axis="vertical" className="wf-agent-rail-scroll">
+        <ScrollArea axis="vertical" inset="rail" className="wf-agent-rail-scroll">
           <nav className={cn('wf-agent-rail', !railExpanded && 'wf-agent-rail--collapsed')} aria-label="Workspace rail">
             {error && railExpanded ? <WorkframeNotice message={error} /> : null}
 

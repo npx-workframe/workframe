@@ -81,6 +81,7 @@
 
 .wf-workspace .dv-groupview {
   position: relative;
+  overflow: visible;
 }
 
 .wf-workspace .dv-tabs-and-actions-container {
@@ -111,11 +112,19 @@
   min-width: 0;
   min-height: 0;
   gap: var(--wf-gap-tight);
-  padding-inline: var(--wf-gap);
+  padding-inline: 0;
   margin: 0;
   background: transparent;
   border: none;
   overflow: visible;
+}
+
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) {
+  gap: var(--wf-gap);
+}
+
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab {
+  order: -1;
 }
 
 .wf-workspace .dv-tab {
@@ -125,7 +134,7 @@
   min-width: 32px;
   max-width: none;
   height: var(--wf-panel-header-inner-height);
-  padding: 0;
+  padding: 0 6px 0 0;
   margin: 0;
   border: none;
   background: transparent !important;
@@ -184,6 +193,7 @@
 
 .wf-workspace .dv-split-view-container.dv-separator-border .dv-view:not(:first-child)::before {
   background-color: var(--wf-divider-color);
+  z-index: 10;
 }
 
 .wf-workspace .dv-split-view-container.dv-horizontal > .dv-view-container > .dv-view:not(:first-child)::before {
@@ -238,10 +248,15 @@
   height: var(--wf-panel-header-inner-height);
   padding-inline: var(--wf-gap);
   border: none;
-  border-radius: var(--wf-radius-row) var(--wf-radius-row) 0 0;
+  border-radius: 0;
   background: transparent !important;
   color: var(--wf-muted);
   cursor: grab;
+}
+
+/* Straight-right relief — neo token; active/hover states in neo.css */
+.wf-shadow-right-only {
+  box-shadow: var(--wf-control-shadow-right, none);
 }
 
 .wf-panel-drag-tab__label {

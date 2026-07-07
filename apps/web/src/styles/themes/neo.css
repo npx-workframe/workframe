@@ -67,7 +67,7 @@
   --wf-radius-knob-sm: 4px;
   --wf-radius-knob-md: 4px;
   --wf-radius-knob-lg: 12px;
-  --wf-radius-avatar: var(--wf-radius-knob-lg);
+  --wf-radius-avatar: var(--wf-radius-knob-sm);
   --wf-radius-control: var(--wf-radius-knob-sm);
   --wf-radius-row: var(--wf-radius-knob-sm);
   --wf-radius-icon-btn: 50%;
@@ -82,7 +82,7 @@
   --wf-neo-shadow-inset-light: inset 3px 3px 6px rgba(163, 163, 176, 0.4);
   --wf-neo-shadow-inset-dark: inset -3px -3px 6px rgba(255, 255, 255, 0.7);
   --wf-neo-flat: 3px 3px 6px rgba(163, 163, 176, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.8);
-  --wf-neo-highlight: -3px -3px 6px rgba(255, 255, 255, 0.8);
+  --wf-neo-highlight: -3px -3px 6px rgba(255, 255, 255, 0.8), 3px 0 6px rgba(163, 163, 176, 0.4);
 
   --wf-dialog-accent-hover-bg: color-mix(in srgb, var(--wf-cyan) 14%, white);
   --wf-dialog-accent-hover-text: #0f766e;
@@ -97,9 +97,11 @@
   --wf-control-border-ring-raised: var(--wf-surface);
   --wf-border-width: 2px;
   --wf-divider-color: #fff;
+  --wf-tool-chrome-border: #fff;
   --wf-control-shadow-flush: none;
   --wf-control-shadow-raised: var(--wf-neo-flat);
   --wf-control-shadow-highlight: var(--wf-neo-highlight);
+  --wf-control-shadow-right: 3px -3px 6px rgba(163, 163, 176, 0.4);
   --wf-control-shadow-inset: var(--wf-neo-shadow-inset-light), var(--wf-neo-shadow-inset-dark);
   --wf-control-shadow-elevated: var(--wf-neo-shadow-light), var(--wf-neo-shadow-dark);
   --wf-control-shadow-footer: 0 -3px 6px rgba(163, 163, 176, 0.3);
@@ -196,24 +198,24 @@
 
 [data-theme='neo'] .wf-tool-run:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])) {
   background: var(--wf-control-bg-flush);
-  border: var(--wf-border-width, 1px) solid var(--wf-control-border-ring-closed);
+  border: 1px solid var(--wf-tool-chrome-border);
   box-shadow: var(--wf-control-shadow-flush);
 }
 
 [data-theme='neo'] .wf-tool-run--running:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])),
 [data-theme='neo'] .wf-tool-run--error:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])) {
-  border-color: var(--wf-control-border-ring-closed);
+  border-color: var(--wf-tool-chrome-border);
 }
 
 [data-theme='neo'] .wf-tool-run:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])):hover {
   background: var(--wf-control-bg-raised);
-  border: 1px solid var(--wf-control-border-ring-raised);
+  border: 1px solid transparent;
   box-shadow: var(--wf-control-shadow-raised);
 }
 
 [data-theme='neo'] .wf-tool-run:has(.wf-tool-run__header--button[aria-expanded='true']) {
   background: var(--wf-control-bg-raised);
-  border: 1px solid var(--wf-control-border-ring-raised);
+  border: 1px solid transparent;
   box-shadow: var(--wf-control-shadow-raised);
 }
 
@@ -225,6 +227,15 @@
   background: var(--wf-control-bg-flush);
   border: none;
   box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo'] :is(.wf-tool-run, .wf-activity-tree__row--child) {
+  border: 1px solid var(--wf-tool-chrome-border);
+}
+
+[data-theme='neo'] .wf-activity-tree__row--child.wf-activity-tree__row--active,
+[data-theme='neo'] .wf-activity-tree__row--child.wf-activity-tree__row--active:hover {
+  border: 1px solid var(--wf-tool-chrome-border);
 }
 
 [data-theme='neo'] .wf-composer button.wf-tool-btn.wf-tool-btn--send,
@@ -728,12 +739,31 @@
 
 [data-theme='neo'] .wf-panel-drag-tab {
   border: none;
+  box-shadow: var(--wf-control-shadow-flush);
 }
 
-[data-theme='neo'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab,
-[data-theme='neo'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab--interacting {
-  background: #fff !important;
-  box-shadow: none;
+/* Single tab per group — straight-right shadow always */
+[data-theme='neo'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab.wf-shadow-right-only {
+  background: var(--wf-control-bg-raised) !important;
+  box-shadow: var(--wf-control-shadow-right) !important;
+}
+
+/* Stacked tabs — active first (left), right shadow */
+[data-theme='neo'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab.wf-shadow-right-only {
+  background: var(--wf-control-bg-raised) !important;
+  box-shadow: var(--wf-control-shadow-right) !important;
+  color: var(--wf-text);
+}
+
+/* Stacked tabs — inactive siblings */
+[data-theme='neo'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only {
+  background: var(--wf-control-bg-flush) !important;
+  box-shadow: none !important;
+  color: var(--wf-control-fg-inactive);
+}
+
+[data-theme='neo'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only .wf-panel-drag-tab__label {
+  color: var(--wf-control-fg-inactive);
 }
 
 [data-theme='neo'] .wf-panel-drag-tab__label {
