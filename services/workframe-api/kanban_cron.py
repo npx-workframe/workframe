@@ -13,7 +13,9 @@ from typing import Any
 
 from http.server import BaseHTTPRequestHandler
 
+import run_ledger
 import user_prefs
+from domain.entities import ActorType, FundingSource, RunStatus, RunSurface
 
 
 def _srv():
@@ -214,6 +216,46 @@ def kanban_proxy_list_tasks(workspace_id: str, user_id: str) -> dict[str, Any]:
     return out
 
 
+def _record_kanban_dispatch_run(
+    *,
+    workspace_id: str,
+    user_id: str,
+    runtime: str,
+    title: str,
+    board: str,
+) -> str:
+    """WF-NS-P2: audit trail for kanban task dispatch (not an LLM gate)."""
+    run_id = str(uuid.uuid4())
+    run_ledger.ensure_schema()
+    conn = _srv()._workframe_db()
+    try:
+        run_ledger.insert_run(
+            conn,
+            run_id=run_id,
+            workspace_id=workspace_id,
+            surface=RunSurface.KANBAN,
+            actor_type=ActorType.USER,
+            actor_id=user_id,
+            triggering_user_id=user_id,
+            agent_id=runtime,
+            runtime_binding_id=runtime,
+            status=RunStatus.RUNNING,
+            payer_user_id=user_id,
+            funding_source=FundingSource.BYOK,
+            profile_slug=runtime,
+        )
+        run_ledger.insert_run_event(
+            conn,
+            run_id=run_id,
+            event_type="kanban.task_created",
+            payload={"title": title, "board": board, "assignee": runtime},
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return run_id
+
+
 def kanban_proxy_create_task(workspace_id: str, user_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     workspace_id = str(workspace_id or "").strip()
     user_id = str(user_id or "").strip()
@@ -245,6 +287,13 @@ def kanban_proxy_create_task(workspace_id: str, user_id: str, payload: dict[str,
     code, out = _srv()._gateway_exec(orchestrator, args)
     if code != 0:
         raise ValueError(f"kanban_create_failed: {out.strip()}")
+    run_id = _record_kanban_dispatch_run(
+        workspace_id=workspace_id,
+        user_id=user_id,
+        runtime=runtime,
+        title=title,
+        board=board,
+    )
     owner_id = assignee_owner
     if _srv()._is_runtime_profile_slug(runtime):
         resolved = _srv()._resolve_runtime_owner(runtime)
@@ -257,6 +306,7 @@ def kanban_proxy_create_task(workspace_id: str, user_id: str, payload: dict[str,
         "assignee": runtime,
         "title": title,
         "output": out.strip(),
+        "run_id": run_id,
     }
 def _cron_plain_english(schedule: str) -> str:
     s = (schedule or "").strip()

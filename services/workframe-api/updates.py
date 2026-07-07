@@ -544,12 +544,22 @@ def _run_apply_scripts(target: str, env: dict[str, str]) -> dict[str, Any]:
     return {"ok": True, "target": target, "log": "\n".join(logs)[-12000:]}
 
 
-def apply_update(target: str) -> dict[str, Any]:
+def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
     if not _admin_stack_updates_enabled():
         raise ValueError("admin_updates_disabled")
     open_decision = cell_authority.evaluate_open(_project_root())
     if open_decision.decision == "deny":
         raise ValueError(open_decision.reason or "cell_open_denied")
+    update_decision = cell_authority.evaluate_update(
+        _project_root(),
+        open_decision=open_decision,
+        user_ack=user_ack,
+    )
+    if update_decision.decision == "deny":
+        raise ValueError(update_decision.reason or "cell_update_denied")
+    if user_ack and update_decision.decision != "allow":
+        raise ValueError(update_decision.reason or "cell_update_denied")
+    # ponytail: without user_ack, needs_user_action does not block apply until UI sends ack
     target = str(target or "all").strip().lower()
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")
