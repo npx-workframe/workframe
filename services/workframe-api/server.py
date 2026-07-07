@@ -101,6 +101,22 @@ _message_activity_for_sessions = activity_feed._message_activity_for_sessions
 room_activity_data = activity_feed.room_activity_data
 workspace_activity_data = activity_feed.workspace_activity_data
 
+import crew_registry
+import health_monitor
+import snapshot_feed
+
+CREW_COLORS = crew_registry.CREW_COLORS
+load_agent_registry = crew_registry.load_agent_registry
+_agent_registry_row = crew_registry._agent_registry_row
+_workspace_agent_identities = crew_registry._workspace_agent_identities
+_agent_identity_fields = crew_registry._agent_identity_fields
+_gateway_platform = crew_registry._gateway_platform
+crew_data = crew_registry.crew_data
+_workspace_crew_profile_names = crew_registry._workspace_crew_profile_names
+workframe_agents = crew_registry.workframe_agents
+health_data = health_monitor.health_data
+build_snapshot = snapshot_feed.build_snapshot
+
 # WF-032: lane_bindings re-exports
 _load_lane_registry = lane_bindings._load_lane_registry
 _save_lane_registry = lane_bindings._save_lane_registry
@@ -761,16 +777,7 @@ SPECIALIST_ROLES: dict[str, str] = {
     "designer": "Handles UI direction, design docs, visual assets, image prompts, brand direction, and layout feedback.",
 }
 
-CREW_COLORS = [
-    "#A78BFA",
-    "#7DD3FC",
-    "#F472B6",
-    "#FBBF24",
-    "#E879F9",
-    "#5EE2B5",
-    "#F26D6D",
-    "#38BDF8",
-]
+
 
 _board_lock = threading.Lock()
 _cpu_cache: dict[str, Any] = {"at": 0.0, "percent": 0.0}
@@ -5122,19 +5129,7 @@ def _resolve_bind_profile_arg(
     return template, template
 
 
-def _gateway_platform(gateway: dict[str, Any], native: bool) -> str:
-    platforms = gateway.get("platforms") or {}
-    if native:
-        for name in ("telegram", "discord", "web", "localhost"):
-            p = platforms.get(name)
-            if isinstance(p, dict) and str(p.get("state") or p.get("status") or "").lower() == "connected":
-                return name.replace("localhost", "Hermes").title()
-        return "Hermes"
-    for name in ("discord", "telegram", "web"):
-        p = platforms.get(name)
-        if isinstance(p, dict) and str(p.get("state") or p.get("status") or "").lower() == "connected":
-            return name.title()
-    return "Hermes"
+
 
 
 _avatar_catalog_cache: dict[str, Any] | None = None
@@ -5461,160 +5456,6 @@ def _assign_agent_avatar(profile: str, *, display_name: str = "") -> dict[str, s
     return {"avatar_id": avatar_id, "avatar_url": avatar_url}
 
 
-def load_agent_registry() -> dict[str, dict[str, Any]]:
-    if not AGENTS_JSON.is_file():
-        return {}
-    try:
-        data = json.loads(AGENTS_JSON.read_text(encoding="utf-8"))
-        agents = data.get("agents")
-        if isinstance(agents, dict):
-            return {str(k): v for k, v in agents.items() if isinstance(v, dict)}
-    except Exception:  # noqa: BLE001
-        pass
-    return {}
-
-
-def _agent_registry_row(profile: str) -> dict[str, Any]:
-    slug = safe_profile_slug(profile)
-    return load_agent_registry().get(slug, {})
-
-
-def _workspace_agent_identities(workspace_id: str | None = None) -> dict[str, dict[str, Any]]:
-    """Slug â†’ display_name/tagline/role/avatar from agent_profiles + registry."""
-    identities: dict[str, dict[str, Any]] = {}
-    try:
-        conn = _workframe_db()
-        ws_id = str(workspace_id or "").strip()
-        if not ws_id:
-            ws = conn.execute(
-                "SELECT id FROM workspaces WHERE slug = 'default' AND deleted_at IS NULL LIMIT 1",
-            ).fetchone()
-            ws_id = str(ws["id"]) if ws else ""
-        if ws_id:
-            rows = conn.execute(
-                """
-                SELECT slug, display_name, tagline, role, avatar_url
-                FROM agent_profiles
-                WHERE workspace_id = ? AND deleted_at IS NULL
-                """,
-                (ws_id,),
-            ).fetchall()
-            for row in rows:
-                slug = str(row["slug"] or "").strip()
-                if not slug:
-                    continue
-                identities[slug] = {
-                    "display_name": str(row["display_name"] or ""),
-                    "tagline": str(row["tagline"] or ""),
-                    "role": str(row["role"] or ""),
-                    "avatar_url": str(row["avatar_url"] or "").strip() or None,
-                }
-        conn.close()
-    except Exception:
-        pass
-    registry = load_agent_registry()
-    for slug, ident in list(identities.items()):
-        reg = registry.get(slug) if isinstance(registry.get(slug), dict) else {}
-        if reg.get("display_name"):
-            ident["display_name"] = str(reg["display_name"])
-        if reg.get("tagline"):
-            ident["tagline"] = str(reg["tagline"])
-        if reg.get("role"):
-            ident["role"] = str(reg["role"])
-        if reg.get("avatar_url"):
-            ident["avatar_url"] = str(reg["avatar_url"])
-        if reg.get("avatar_id"):
-            ident["avatar_id"] = str(reg["avatar_id"])
-    return identities
-
-
-def _agent_identity_fields(profile: str, workspace_id: str | None = None, user_id: str = "") -> dict[str, Any]:
-    slug = safe_profile_slug(str(profile or "").strip())
-    template = _runtime_template_slug(slug) if _is_runtime_profile_slug(slug) else slug
-    reg = _agent_registry_row(slug)
-    if user_id and template:
-        runtime = _runtime_profile_slug(user_id, template)
-        reg_user = _agent_registry_row(runtime)
-        if reg_user.get("display_name") or reg_user.get("tagline") or reg_user.get("avatar_url"):
-            reg = {**reg, **{k: v for k, v in reg_user.items() if v}}
-    ident = _workspace_agent_identities(workspace_id).get(template, {})
-    reg_template = _agent_registry_row(template)
-    # Bind avatar_url + avatar_id from the SAME source tier: a custom url (cleared id) on one tier
-    # must not pick up a different tier's stale id, which _resolve_avatar_fields would then prefer.
-    avatar_url: Any = None
-    avatar_id: Any = None
-    for src in (reg, ident, reg_template):
-        u = str(src.get("avatar_url") or "").strip()
-        i = str(src.get("avatar_id") or "").strip()
-        if u or i:
-            avatar_url, avatar_id = u or None, i or None
-            break
-    out: dict[str, Any] = {
-        "display_name": str(
-            reg.get("display_name")
-            or ident.get("display_name")
-            or reg_template.get("display_name")
-            or _profile_display_name(template)
-        ),
-        "tagline": str(reg.get("tagline") or ident.get("tagline") or reg_template.get("tagline") or ""),
-        "role": str(reg.get("role") or ident.get("role") or reg_template.get("role") or _profile_role(template)),
-        "avatar_url": avatar_url,
-        "avatar_id": avatar_id,
-    }
-    _resolve_avatar_fields(out)
-    return out
-
-
-def crew_data(profiles: list[str], primary: str, gateway: dict[str, Any]) -> list[dict[str, Any]]:
-    registry = load_agent_registry()
-    idents = _workspace_agent_identities()
-    ordered: list[str] = []
-    if primary and primary in profiles:
-        ordered.append(primary)
-    for profile in sorted(profiles):
-        if profile not in ordered:
-            ordered.append(profile)
-    crew: list[dict[str, Any]] = []
-    for index, profile in enumerate(ordered):
-        slug = _profile_slug(profile).lower()
-        display = _profile_display_name(profile)
-        native = _is_native_profile(profile)
-        prof_key = safe_profile_slug(profile)
-        reg = registry.get(prof_key) if isinstance(registry.get(prof_key), dict) else {}
-        if not reg:
-            legacy_row = registry.get(slug)
-            if isinstance(legacy_row, dict):
-                reg = legacy_row
-        if reg.get("display_name"):
-            display = str(reg["display_name"])
-        ident = idents.get(prof_key, {})
-        if ident.get("display_name"):
-            display = str(ident["display_name"])
-        role = str(ident.get("role") or reg.get("role") or _profile_role(profile))
-        tagline = str(ident.get("tagline") or reg.get("tagline") or "")
-        row: dict[str, Any] = {
-            "profile": profile,
-            "key": slug,
-            "display_name": display,
-            "code": _profile_code(display, slug),
-            "role": role,
-            "tagline": tagline,
-            "color": CREW_COLORS[index % len(CREW_COLORS)],
-            "is_native": native,
-            "platform": _gateway_platform(gateway, native),
-            "route_status": route_status_for_profile(profile),
-        }
-        if reg.get("avatar_url"):
-            row["avatar_url"] = str(reg["avatar_url"])
-        if reg.get("avatar_id"):
-            row["avatar_id"] = str(reg["avatar_id"])
-        if ident.get("avatar_url"):
-            row["avatar_url"] = str(ident["avatar_url"])
-        if ident.get("avatar_id"):
-            row["avatar_id"] = str(ident["avatar_id"])
-        _resolve_avatar_fields(row)
-        crew.append(row)
-    return crew
 
 
 
@@ -5622,66 +5463,8 @@ def crew_data(profiles: list[str], primary: str, gateway: dict[str, Any]) -> lis
 
 
 
-def _read_proc_stat() -> tuple[float, float]:
-    try:
-        line = Path("/proc/stat").read_text(encoding="utf-8").splitlines()[0]
-        parts = [int(x) for x in line.split()[1:]]
-        idle = parts[3] + (parts[4] if len(parts) > 4 else 0)
-        return float(sum(parts)), float(idle)
-    except (OSError, ValueError, IndexError):
-        return 0.0, 0.0
 
 
-def health_data(profile: str) -> dict[str, Any]:
-    global _cpu_cache
-    mem_total_kb = mem_avail_kb = 0
-    try:
-        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
-            if line.startswith("MemTotal:"):
-                mem_total_kb = int(line.split()[1])
-            elif line.startswith("MemAvailable:"):
-                mem_avail_kb = int(line.split()[1])
-    except OSError:
-        pass
-    mem_total_mb = mem_total_kb / 1024
-    mem_used_mb = max(0.0, mem_total_mb - mem_avail_kb / 1024)
-    disk_total = disk_free = 0
-    try:
-        st = os.statvfs(str(WORKSPACE if WORKSPACE.exists() else HERMES_DATA))
-        disk_total = st.f_blocks * st.f_frsize
-        disk_free = st.f_bavail * st.f_frsize
-    except OSError:
-        pass
-    disk_total_gb = disk_total / (1024**3)
-    disk_used_gb = max(0.0, (disk_total - disk_free) / (1024**3))
-
-    now = time.time()
-    if now - float(_cpu_cache.get("at") or 0) > 3.0:
-        t1, i1 = _read_proc_stat()
-        time.sleep(0.12)
-        t2, i2 = _read_proc_stat()
-        cpu_pct = 0.0
-        if t2 > t1:
-            cpu_pct = max(0.0, min(100.0, (1.0 - (i2 - i1) / (t2 - t1)) * 100.0))
-        _cpu_cache = {"at": now, "percent": round(cpu_pct, 1)}
-    cpu_pct = float(_cpu_cache.get("percent") or 0.0)
-    mem_pct = max(0.0, min(100.0, (mem_used_mb / mem_total_mb * 100) if mem_total_mb else 0.0))
-    disk_pct = max(0.0, min(100.0, (disk_used_gb / disk_total_gb * 100) if disk_total_gb else 0.0))
-    db_path = _profile_dir(profile) / "state.db" if profile else HERMES_DATA / "state.db"
-
-    return {
-        "cpu_percent": cpu_pct,
-        "memory_percent": round(mem_pct, 1),
-        "disk_percent": round(disk_pct, 1),
-        "cpu_pct": cpu_pct,
-        "mem_pct": round(mem_pct, 1),
-        "disk_pct": round(disk_pct, 1),
-        "mem_used_mb": round(mem_used_mb, 1),
-        "mem_total_mb": round(mem_total_mb, 1),
-        "disk_used_gb": round(disk_used_gb, 2),
-        "disk_total_gb": round(disk_total_gb, 2),
-        "db_size_mb": round(_file_size_mb(db_path), 2),
-    }
 
 
 _USER_IMAGE_RE = re.compile(
@@ -7502,38 +7285,7 @@ def board_delete(task_id: str) -> None:
             conn.close()
 
 
-def build_snapshot() -> dict[str, Any]:
-    profiles = _list_profiles()
-    primary = _primary_profile()
-    gateway = gateway_data(primary) if primary else gateway_data("")
-    crew = crew_data(profiles, primary, gateway)
-    activity = activity_data(profiles, crew)
-    health = health_data(primary)
-    sessions = sessions_data(primary) if primary else sessions_data("")
-    kanban = kanban_data()
-    cron = cron_data(primary) if primary else cron_data("")
-    return {
-        "ok": True,
-        "generated_at": _utc_now(),
-        "version": VERSION,
-        "project_name": PROJECT_NAME,
-        "native_profile": primary,
-        "native_agent_name": _native_display_name(),
-        "native_model": _profile_model(primary) if primary else "",
-        "profiles": profiles,
-        "crew": crew,
-        "gateway": gateway,
-        "sessions": sessions,
-        "activity": activity["entries"],
-        "agents": activity["agents"],
-        "activity_by_day": activity["activity_by_day"],
-        "stats": activity["stats"],
-        "kanban": kanban,
-        "cron": cron,
-        "crons": cron,
-        "vps": health,
-        "health": health,
-    }
+
 
 
 def workframe_meta() -> dict[str, Any]:
@@ -7570,59 +7322,7 @@ def _hermes_dashboard_gate_status(handler: BaseHTTPRequestHandler) -> int:
     return 403
 
 
-def workframe_agents() -> dict[str, Any]:
-    profiles = _workspace_crew_profile_names()
-    primary = _primary_profile()
-    gateway = gateway_data(primary) if primary else gateway_data("")
-    crew = crew_data(profiles, primary, gateway)
-    return {
-        "ok": True,
-        "project_name": PROJECT_NAME,
-        "native_profile": primary,
-        "crew": crew,
-    }
 
-
-def _workspace_crew_profile_names(workspace_id: str | None = None) -> list[str]:
-    """ponytail: rail shows workspace agents + primary Hermes profile, not every stale on-disk profile."""
-    primary = _primary_profile()
-    on_disk = set(_list_profiles())
-    profiles: list[str] = []
-    rows: list[sqlite3.Row] = []
-    try:
-        conn = _workframe_db()
-        ws_id = str(workspace_id or "").strip()
-        if not ws_id:
-            ws = conn.execute(
-                "SELECT id FROM workspaces WHERE slug = 'default' AND deleted_at IS NULL LIMIT 1",
-            ).fetchone()
-            ws_id = str(ws["id"]) if ws else ""
-        if ws_id:
-            rows = conn.execute(
-                """
-                SELECT slug, is_native
-                FROM agent_profiles
-                WHERE workspace_id = ? AND deleted_at IS NULL
-                ORDER BY created_at ASC
-                """,
-                (ws_id,),
-            ).fetchall()
-        conn.close()
-    except Exception:
-        rows = []
-    if primary and primary in on_disk:
-        profiles.append(primary)
-    for row in rows:
-        if int(row["is_native"] or 0):
-            continue
-        slug = str(row["slug"] or "").strip()
-        if slug in on_disk and slug not in profiles:
-            profiles.append(slug)
-    if not profiles:
-        if primary and primary in on_disk:
-            return [primary]
-        return sorted(on_disk)[:1]
-    return profiles
 
 
 def hermes_bootstrap(profile: str = "") -> dict[str, Any]:

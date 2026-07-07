@@ -668,7 +668,7 @@ def room_activity_data(
     finally:
         conn.close()
 
-    crew = _srv().workframe_agents().get("agents") or []
+    crew = _srv().workframe_agents().get("crew") or []
     if not isinstance(crew, list):
         crew = []
     crew_lookup = _crew_lookup(crew)
@@ -783,7 +783,7 @@ def workspace_activity_data(workspace_id: str, user_id: str) -> list[dict[str, A
             merged.append(entry)
     board_row = _srv()._workspace_kanban_board_row(workspace_id)
     board_slug = str(board_row["hermes_board_slug"]) if board_row else "default"
-    crew = _srv().workframe_agents().get("agents") or []
+    crew = _srv().workframe_agents().get("crew") or []
     if not isinstance(crew, list):
         crew = []
     crew_lookup = _crew_lookup(crew)
