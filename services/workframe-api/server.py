@@ -4434,6 +4434,49 @@ def _invoke_room_agent_mention(
 
         turn_body = _profile_turn_payload(hermes_slug, user_text, room_id)
         provider = str(agent_row.get("model_provider") or "openrouter")
+        if triggered_by_user_id:
+            run_ledger.ensure_schema()
+            auth_req = run_authority.mention_run_request(
+                triggering_user_id=triggered_by_user_id,
+                profile_slug=hermes_slug,
+                workspace_id=workspace_id,
+                provider=provider,
+                room_id=room_id,
+            )
+            auth_ctx = chat_stream._run_authority_context_for_chat(
+                triggered_by_user_id, workspace_id, provider,
+            )
+            auth_decision = run_authority.evaluate_run_authority(
+                auth_req, auth_ctx, run_id=run_id,
+            )
+            conn = _workframe_db()
+            try:
+                run_ledger.record_authority_decision(
+                    conn,
+                    run_id=run_id,
+                    request_surface=auth_req.surface,
+                    actor_type=auth_req.actor_type,
+                    actor_id=auth_req.actor_id,
+                    triggering_user_id=triggered_by_user_id,
+                    workspace_id=workspace_id or "default",
+                    agent_id=auth_req.agent_id,
+                    runtime_binding_id=auth_req.runtime_binding_id,
+                    profile_slug=hermes_slug,
+                    provider=provider,
+                    room_id=room_id,
+                    session_id=session_id,
+                    decision=auth_decision,
+                )
+                conn.commit()
+            finally:
+                conn.close()
+            if not auth_decision.allowed:
+                fail_turn(
+                    "I can't reply yet — connect an LLM provider in Profile → Connect accounts.",
+                    persist=False,
+                )
+                return
+
         _overlay_turn_provider_env(hermes_slug, triggered_by_user_id, workspace_id, provider, run_id)
         _overlay_turn_user_env(hermes_slug, triggered_by_user_id, workspace_id, run_id)
         _inject_turn_credentials(turn_body, triggered_by_user_id, workspace_id, provider)
@@ -12346,6 +12389,96 @@ class Handler(BaseHTTPRequestHandler):
                 )
             self._json(status, payload)
 
+    def _route_pattern_delete_workspace_members(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) != 4:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        ws_id = _resolve_wid(parts[2])
+        if not ws_id:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        target_user_id = str(body.get("user_id", "")).strip()
+        if not target_user_id:
+            self._json(400, {"ok": False, "error": "user_id required"})
+            return
+        try:
+            db = _workframe_db()
+            cur = db.execute(
+                "UPDATE workspace_memberships SET deleted_at = ?, status = 'removed' WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL",
+                (str(int(time.time())), ws_id, target_user_id),
+            )
+            db.commit()
+            affected = cur.rowcount
+            db.close()
+        except Exception:
+            self._json(500, {"ok": False, "error": "delete_failed"})
+            return
+        if not affected:
+            self._json(404, {"ok": False, "error": "member_not_found"})
+            return
+        self._log_audit(
+            "workspace_member_removed",
+            "workspace_membership",
+            f"{ws_id}/{target_user_id}",
+            f"workspace={ws_id} user={target_user_id}",
+        )
+        self._json(200, {"ok": True, "user_id": target_user_id, "status": "removed"})
+
+    def _route_pattern_delete_memory(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) != 3:
+            self._json(404, {"ok": False, "error": "memory_not_found"})
+            return
+        mem_id = parts[2]
+        try:
+            db = _workframe_db()
+            cur = db.execute(
+                "UPDATE memory_items SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
+                (str(int(time.time())), mem_id),
+            )
+            db.commit()
+            affected = cur.rowcount
+            db.close()
+        except Exception:
+            self._json(500, {"ok": False, "error": "delete_failed"})
+            return
+        if not affected:
+            self._json(404, {"ok": False, "error": "memory_not_found"})
+            return
+        self._json(200, {"ok": True, "memory_id": mem_id, "status": "deleted"})
+
+    def _route_pattern_delete_room(self, path: str, body: dict) -> None:
+        rid = path.strip("/").split("/")[-1]
+        try:
+            db = _workframe_db()
+            cur = db.execute(
+                "UPDATE rooms SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
+                (str(int(time.time())), rid),
+            )
+            db.commit()
+            affected = cur.rowcount
+            db.close()
+        except Exception:
+            self._json(500, {"ok": False, "error": "delete_failed"})
+            return
+        if not affected:
+            self._json(404, {"ok": False, "error": "room_not_found"})
+            return
+        self._log_audit("room_deleted", "room", rid, f"room={rid}")
+        self._json(200, {"ok": True, "room_id": rid, "status": "deleted"})
+
+    def _route_pattern_delete_me_credentials(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) != 4 or parts[2] != "credentials":
+            self._json(404, {"error": "not_found"})
+            return
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        self._json(200, disconnect_user_credential(user_id, parts[3]))
+
     def _route_patch_me(self, body: dict) -> None:
         user_id = str(getattr(self, "auth_user", "") or "")
         if not user_id:
@@ -12479,22 +12612,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._file_public("index.html")
             if path.startswith("/assets/"):
                 return self._file_public(path.lstrip("/"))
-
-            # --- Sprint F: Room delete (DELETE /api/rooms/:id) ---
-            if re.fullmatch(r"/api/rooms/[^/]+", path) and self.command == "DELETE":
-                rid = path.strip("/").split("/")[-1]
-                try:
-                    db = _workframe_db()
-                    cur = db.execute("UPDATE rooms SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", (str(int(time.time())), rid))
-                    db.commit()
-                    affected = cur.rowcount
-                    db.close()
-                except Exception:
-                    return self._json(500, {"ok": False, "error": "delete_failed"})
-                if not affected:
-                    return self._json(404, {"ok": False, "error": "room_not_found"})
-                self._log_audit("room_deleted", "room", rid, f"room={rid}")
-                return self._json({"ok": True, "room_id": rid, "status": "deleted"})
 
             return self._json(404, {"error": "not found"})
         except ValueError as exc:
@@ -12737,74 +12854,14 @@ class Handler(BaseHTTPRequestHandler):
         """Route DELETE requests: rooms, members, memory."""
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
-        # Auth middleware
         if not _auth_check(self):
             return self._json(401, {"ok": False, "error": "no_session"})
 
         body = self._read_json() if self.headers.get("Content-Length") else {}
-
-        # DELETE /api/workspace/:wid/members â€” direct soft-delete
-        if path.startswith("/api/workspace/") and path.endswith("/members"):
-            parts = path.strip("/").split("/")
-            if len(parts) == 4:
-                ws_id = _resolve_wid(parts[2])
-                if not ws_id:
-                    return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                target_user_id = str(body.get("user_id", "")).strip()
-                if not target_user_id:
-                    return self._json(400, {"ok": False, "error": "user_id required"})
-                try:
-                    db = _workframe_db()
-                    cur = db.execute("UPDATE workspace_memberships SET deleted_at = ?, status = 'removed' WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL", (str(int(time.time())), ws_id, target_user_id))
-                    db.commit()
-                    affected = cur.rowcount
-                    db.close()
-                except Exception:
-                    return self._json(500, {"ok": False, "error": "delete_failed"})
-                if not affected:
-                    return self._json(404, {"ok": False, "error": "member_not_found"})
-                self._log_audit("workspace_member_removed", "workspace_membership", f"{ws_id}/{target_user_id}", f"workspace={ws_id} user={target_user_id}")
-                return self._json(200, {"ok": True, "user_id": target_user_id, "status": "removed"})
-
-        # DELETE /api/memory/:id
-        if path.startswith("/api/memory/"):
-            parts = path.strip("/").split("/")
-            if len(parts) == 3:
-                mem_id = parts[2]
-                try:
-                    db = _workframe_db()
-                    cur = db.execute("UPDATE memory_items SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", (str(int(time.time())), mem_id))
-                    db.commit()
-                    affected = cur.rowcount
-                    db.close()
-                except Exception:
-                    return self._json(500, {"ok": False, "error": "delete_failed"})
-                if not affected:
-                    return self._json(404, {"ok": False, "error": "memory_not_found"})
-                return self._json(200, {"ok": True, "memory_id": mem_id, "status": "deleted"})
-
-        # DELETE /api/rooms/:id
-        if re.fullmatch(r"/api/rooms/[^/]+", path):
-            rid = path.strip("/").split("/")[-1]
-            try:
-                db = _workframe_db()
-                cur = db.execute("UPDATE rooms SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL", (str(int(time.time())), rid))
-                db.commit()
-                affected = cur.rowcount
-                db.close()
-            except Exception:
-                return self._json(500, {"ok": False, "error": "delete_failed"})
-            if not affected:
-                return self._json(404, {"ok": False, "error": "room_not_found"})
-            return self._json(200, {"ok": True, "room_id": rid, "status": "deleted"})
-
-        if path.startswith("/api/me/credentials/"):
-            parts = path.strip("/").split("/")
-            if len(parts) == 4 and parts[2] == "credentials":
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                return self._json(200, disconnect_user_credential(user_id, parts[3]))
+        if route_registry.dispatch_pattern(
+            "DELETE", self, path, body=body if isinstance(body, dict) else {},
+        ):
+            return
 
         return self._json(404, {"error": "not_found"})
 

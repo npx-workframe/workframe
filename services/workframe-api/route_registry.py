@@ -208,10 +208,10 @@ _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     ("PATCH", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_patch_room"),
     ("PATCH", r"^/api/workspace/[^/]+/integrations$", "/api/workspace/{id}/integrations", AuthLevel.SESSION, False, False, "_route_pattern_patch_workspace_integrations"),
     ("PATCH", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False, "_route_pattern_patch_workspace"),
-    ("DELETE", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False),
-    ("DELETE", r"^/api/memory/[^/]+$", "/api/memory/{id}", AuthLevel.SESSION, False, False),
-    ("DELETE", r"^/api/workspace/[^/]+/members$", "/api/workspace/{id}/members", AuthLevel.SESSION, False, False),
-    ("DELETE", r"^/api/me/credentials/[^/]+$", "/api/me/credentials/{provider}", AuthLevel.SESSION, False, False),
+    ("DELETE", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_room"),
+    ("DELETE", r"^/api/memory/[^/]+$", "/api/memory/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_memory"),
+    ("DELETE", r"^/api/workspace/[^/]+/members$", "/api/workspace/{id}/members", AuthLevel.SESSION, False, False, "_route_pattern_delete_workspace_members"),
+    ("DELETE", r"^/api/me/credentials/[^/]+$", "/api/me/credentials/{provider}", AuthLevel.SESSION, False, False, "_route_pattern_delete_me_credentials"),
 )
 
 
