@@ -1,6 +1,6 @@
 import type { BrowserTab } from '@/lib/browserTypes'
 import { isUrl } from '@/lib/fileCapabilities'
-import { workspaceRawUrl } from '@/lib/filesApi'
+import { workspaceFileServeUrl, workspaceRawUrl } from '@/lib/filesApi'
 
 /** ponytail: case-fold paths for tab identity; upgrade if workspace needs case-sensitive dedup on case-sensitive FS. */
 export function normalizeFilePath(path: string): string {
@@ -57,6 +57,8 @@ export function resolveBrowserExternalHref(tab: BrowserTab | null | undefined): 
   if (tab.source === 'file') {
     const path = tab.location.trim()
     if (!path || isUrl(path)) return path ? toAbsoluteUrl(path) : undefined
+    const ext = path.split('.').pop()?.toLowerCase() ?? ''
+    if (ext === 'html' || ext === 'htm') return toAbsoluteUrl(workspaceFileServeUrl(path))
     return toAbsoluteUrl(workspaceRawUrl(path))
   }
 

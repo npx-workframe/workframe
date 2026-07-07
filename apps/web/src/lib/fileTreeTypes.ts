@@ -178,3 +178,31 @@ export function mergeFolderChildren(
     children: (root.children ?? []).map((child) => mergeFolderChildren(child, folderId, children)),
   }
 }
+
+/** API list path — node ids are workspace-relative; fall back when tree walk misses. */
+export function folderListPath(root: FileTreeNode, node: FileTreeNode): string {
+  if (node.id === root.id) return ''
+  return getRelativePathFromRoot(root, node.id) ?? node.id
+}
+
+/** Keep lazy-loaded folder children when the BFF tree snapshot refreshes. */
+export function mergeTreePreserveLoaded(previous: FileTreeNode, incoming: FileTreeNode): FileTreeNode {
+  if (previous.id !== incoming.id) return incoming
+
+  const children = (incoming.children ?? []).map((child) => {
+    const prevChild = (previous.children ?? []).find((item) => item.id === child.id)
+    if (!prevChild || prevChild.type !== 'folder' || child.type !== 'folder') return child
+
+    if (prevChild.children_loaded) {
+      return {
+        ...child,
+        children: prevChild.children,
+        children_loaded: true,
+      }
+    }
+
+    return mergeTreePreserveLoaded(prevChild, child)
+  })
+
+  return { ...incoming, children }
+}

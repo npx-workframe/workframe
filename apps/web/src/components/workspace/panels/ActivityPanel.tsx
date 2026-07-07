@@ -12,14 +12,40 @@ import { formatActivityDetailMarkdown } from '@/lib/activityDetailMarkdown'
 import type { ActivityNode } from '@/lib/activityTypes'
 import { isAgentDmRoom, isProjectRoom } from '@/lib/roomChat'
 import { PANEL_IDS } from '@/lib/panelControlConfig'
-import { watchWorkspaceEvents, workframeAuthApi } from '@/lib/workframeAuthApi'
+import {
+  peekCachedSessionProfile,
+  watchWorkspaceEvents,
+  workframeAuthApi,
+  type SessionProfile,
+} from '@/lib/workframeAuthApi'
+import {
+  peekCachedActivityFeed,
+  readCachedActivityFeed,
+  writeCachedActivityFeed,
+} from '@/lib/workspacePersist'
+
+function workspaceIdFromProfile(profile: SessionProfile | null): string {
+  return (
+    profile?.current_workspace?.id ??
+    profile?.default_workspace?.id ??
+    profile?.workspaces?.[0]?.id ??
+    ''
+  )
+}
 
 export function ActivityPanel({ api }: IDockviewPanelProps) {
   const { activeRoom } = useWorkspacePanels()
   const { stateDbSessionId, resumeSession } = useHermesSession()
   const { openContent } = useBrowserWorkspace()
-  const [nodes, setNodes] = useState<ActivityNode[]>([])
-  const [workspaceId, setWorkspaceId] = useState('')
+  const [workspaceId, setWorkspaceId] = useState(() => workspaceIdFromProfile(peekCachedSessionProfile()))
+  const [nodes, setNodes] = useState<ActivityNode[]>(() =>
+    peekCachedActivityFeed(workspaceIdFromProfile(peekCachedSessionProfile())),
+  )
+
+  const applyFeed = useCallback((wid: string, feed: ActivityNode[]) => {
+    setNodes(feed)
+    writeCachedActivityFeed(wid, feed)
+  }, [])
 
   const reloadFeed = useCallback(async () => {
     const wid = workspaceId.trim()
@@ -29,22 +55,17 @@ export function ActivityPanel({ api }: IDockviewPanelProps) {
     }
     try {
       const feed = await fetchWorkspaceActivityFeed(wid)
-      setNodes(feed)
+      applyFeed(wid, feed)
     } catch {
-      setNodes([])
+      if (!readCachedActivityFeed(wid).length) setNodes([])
     }
-  }, [workspaceId])
+  }, [applyFeed, workspaceId])
 
   useEffect(() => {
     let cancelled = false
     void workframeAuthApi.getMe().then((profile) => {
       if (cancelled) return
-      const wid =
-        profile.current_workspace?.id ??
-        profile.default_workspace?.id ??
-        profile.workspaces?.[0]?.id ??
-        ''
-      setWorkspaceId(wid)
+      setWorkspaceId(workspaceIdFromProfile(profile))
     })
     return () => {
       cancelled = true
@@ -57,14 +78,17 @@ export function ActivityPanel({ api }: IDockviewPanelProps) {
       return
     }
 
+    const cached = readCachedActivityFeed(workspaceId)
+    if (cached.length) setNodes(cached)
+
     let cancelled = false
 
     async function load() {
       try {
         const feed = await fetchWorkspaceActivityFeed(workspaceId)
-        if (!cancelled) setNodes(feed)
+        if (!cancelled) applyFeed(workspaceId, feed)
       } catch {
-        if (!cancelled) setNodes([])
+        if (!cancelled && !readCachedActivityFeed(workspaceId).length) setNodes([])
       }
     }
 
@@ -81,7 +105,7 @@ export function ActivityPanel({ api }: IDockviewPanelProps) {
       window.clearInterval(interval)
       stopEvents()
     }
-  }, [workspaceId, stateDbSessionId])
+  }, [applyFeed, workspaceId, stateDbSessionId])
 
   const handleSessionActivate = useCallback(
     async (node: ActivityNode) => {

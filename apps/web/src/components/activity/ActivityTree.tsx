@@ -7,6 +7,11 @@ import { findAgentByProfile, type WorkframeAgent } from '@/lib/hermesProfile'
 import { useCrew } from '@/hooks/useCrew'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import {
+  activityToolLabel,
+  toolIconFor,
+  type ActivityToolLabel,
+} from '@/lib/activityToolIcons'
+import {
   isActivityGroup,
   type ActivityNode,
 } from '@/lib/activityTypes'
@@ -109,18 +114,20 @@ function ActivityBranch({ node, depth, expandedIds, onToggle, crew, activeSessio
   const grouped = isActivityGroup(node)
   const expanded = grouped && expandedIds.has(node.id)
   const showAgent = depth === 0
+  const activeChild = grouped ? node.children?.find((child) => child.status === 'active') : undefined
   const agent = findAgentByProfile(crew, node.profile)
-  const headline = activityHeadline(node, grouped)
+  const headline = activityHeadline(node, activeChild)
 
   return (
     <div className="wf-activity-tree__branch" role="treeitem" aria-expanded={grouped ? expanded : undefined}>
       <ActivityRow
         node={node}
-        depth={depth}
         grouped={grouped}
         expanded={expanded}
         showAgent={showAgent}
         headline={headline}
+        rowToolLabel={showAgent ? null : activityToolLabel(node)}
+        subToolLabel={showAgent && activeChild ? activityToolLabel(activeChild) : null}
         avatarUrl={agent?.avatarUrl ?? null}
         agentInitials={agent?.code}
         agentColor={agent?.color ?? node.agentColor}
@@ -151,22 +158,14 @@ function ActivityBranch({ node, depth, expandedIds, onToggle, crew, activeSessio
   )
 }
 
-function toolNameFor(node: ActivityNode): string {
-  return node.refs.toolName?.trim() || node.label.replace(/^(running )?tool:\s*/i, '').trim() || 'tool'
-}
+function activityHeadline(node: ActivityNode, activeChild?: ActivityNode): string {
+  const tool = activityToolLabel(node)
+  if (tool) return tool.text
 
-function activityHeadline(node: ActivityNode, grouped: boolean): string {
-  if (node.source === 'message' || node.kind === 'tool_call') {
-    const name = toolNameFor(node)
-    return node.status === 'active' ? `running tool: ${name}` : `tool: ${name}`
-  }
-
-  if (grouped && node.children?.length) {
-    const activeChild = node.children.find((child) => child.status === 'active')
-    if (activeChild) {
-      const name = toolNameFor(activeChild)
-      return `running tool: ${name}`
-    }
+  if (activeChild) {
+    const childTool = activityToolLabel(activeChild)
+    if (childTool) return childTool.text
+    return activeChild.label
   }
 
   if (node.source === 'session') {
@@ -178,13 +177,30 @@ function activityHeadline(node: ActivityNode, grouped: boolean): string {
   return node.label
 }
 
+function ActivityToolLine({
+  tool,
+  className,
+}: {
+  tool: ActivityToolLabel
+  className?: string
+}) {
+  const Icon = toolIconFor(tool.toolName)
+  return (
+    <span className={cn('wf-activity-tree__tool-line', className)} title={tool.text}>
+      <Icon className="wf-activity-tree__tool-icon" aria-hidden="true" />
+      <span className="wf-activity-tree__tool-text">{tool.text}</span>
+    </span>
+  )
+}
+
 type ActivityRowProps = {
   node: ActivityNode
-  depth: number
   grouped: boolean
   expanded: boolean
   showAgent: boolean
   headline: string
+  rowToolLabel: ActivityToolLabel | null
+  subToolLabel: ActivityToolLabel | null
   avatarUrl: string | null
   agentInitials?: string
   agentColor: string
@@ -196,11 +212,12 @@ type ActivityRowProps = {
 
 function ActivityRow({
   node,
-  depth,
   grouped,
   expanded,
   showAgent,
   headline,
+  rowToolLabel,
+  subToolLabel,
   avatarUrl,
   agentInitials,
   agentColor,
@@ -209,7 +226,6 @@ function ActivityRow({
   onItemClick,
   onSessionActivate,
 }: ActivityRowProps) {
-  const paddingLeft = 8 + depth * 10
   const isActive = node.status === 'active'
   const rowClass = cn(
     'wf-activity-tree__row',
@@ -223,6 +239,7 @@ function ActivityRow({
   )
 
   const titleLine = showAgent ? node.agentName : headline
+  const titleTitle = rowToolLabel?.text ?? titleLine
 
   const copy = (
     <>
@@ -239,9 +256,16 @@ function ActivityRow({
 
       <span className="wf-activity-tree__copy">
         <span className="wf-activity-tree__top">
-          <span className={cn('wf-activity-tree__title', !showAgent && 'wf-activity-tree__title--child')} title={titleLine}>
-            {titleLine}
-          </span>
+          {rowToolLabel ? (
+            <ActivityToolLine
+              tool={rowToolLabel}
+              className="wf-activity-tree__title wf-activity-tree__title--child"
+            />
+          ) : (
+            <span className={cn('wf-activity-tree__title', !showAgent && 'wf-activity-tree__title--child')} title={titleTitle}>
+              {titleLine}
+            </span>
+          )}
           <span className="wf-activity-tree__top-meta">
             {isActive ? <span className="wf-activity-tree__running">running</span> : null}
             <time className="wf-activity-tree__time" dateTime={node.ts}>
@@ -249,7 +273,12 @@ function ActivityRow({
             </time>
           </span>
         </span>
-        {showAgent && headline ? (
+        {showAgent && subToolLabel ? (
+          <ActivityToolLine
+            tool={subToolLabel}
+            className="wf-activity-tree__label wf-activity-tree__label--tool"
+          />
+        ) : showAgent && headline ? (
           <span className="wf-activity-tree__label" title={headline}>
             {headline}
           </span>
@@ -260,7 +289,7 @@ function ActivityRow({
 
   if (grouped && onToggle) {
     return (
-      <div className={rowClass} style={{ paddingLeft }}>
+      <div className={rowClass}>
         <button
           type="button"
           className="wf-activity-tree__main"
@@ -289,7 +318,6 @@ function ActivityRow({
       <button
         type="button"
         className={cn(rowClass, 'wf-activity-tree__row--clickable')}
-        style={{ paddingLeft }}
         onClick={() => onSessionActivate(node)}
         aria-label={`Open session: ${headline}`}
       >
@@ -303,7 +331,6 @@ function ActivityRow({
       <button
         type="button"
         className={rowClass}
-        style={{ paddingLeft }}
         onClick={() => onItemClick(node)}
         aria-label={`Open detail: ${headline}`}
       >
@@ -313,7 +340,7 @@ function ActivityRow({
   }
 
   return (
-    <div className={rowClass} style={{ paddingLeft }}>
+    <div className={rowClass}>
       {copy}
     </div>
   )

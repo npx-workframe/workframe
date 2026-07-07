@@ -2,14 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { FileTree } from '@/components/ui/file-tree'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useBrowserWorkspace } from '@/contexts/BrowserWorkspaceContext'
+import { useOpenWorkspaceFile } from '@/hooks/useOpenWorkspaceFile'
 import {
   collectFolderDescendantIds,
   findNode,
+  folderListPath,
   getPathToNode,
   getRelativePathFromRoot,
   getSiblingFolderIds,
   mergeFolderChildren,
+  mergeTreePreserveLoaded,
   type FileTreeNode,
 } from '@/lib/fileTreeTypes'
 import {
@@ -27,8 +29,36 @@ type ProjectFileTreeProps = {
   projectName?: string
 }
 
+function expandFolderIds(previous: Set<string>, rootId: string, tree: FileTreeNode, nodeId: string): Set<string> {
+  const next = new Set(previous)
+  next.add(rootId)
+
+  if (previous.has(nodeId)) {
+    next.delete(nodeId)
+    const folderNode = findNode(tree, nodeId)
+    if (folderNode) {
+      for (const id of collectFolderDescendantIds(folderNode)) {
+        next.delete(id)
+      }
+    }
+    return next
+  }
+
+  const path = getPathToNode(tree, nodeId)
+  for (const id of path) {
+    next.add(id)
+  }
+  if (!path.includes(nodeId)) {
+    next.add(nodeId)
+  }
+  for (const id of getSiblingFolderIds(tree, nodeId)) {
+    next.delete(id)
+  }
+  return next
+}
+
 export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreeProps) {
-  const { openFile } = useBrowserWorkspace()
+  const openFile = useOpenWorkspaceFile()
   const [tree, setTree] = useState<FileTreeNode>(
     () =>
       getCachedFilesTree() ?? {
@@ -38,6 +68,9 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
         children: [],
       },
   )
+  const treeRef = useRef(tree)
+  treeRef.current = tree
+
   const containerRef = useRef<HTMLDivElement>(null)
   const revisionRef = useRef(String(getCachedFilesState()?.revision || ''))
   const [workspaceId, setWorkspaceId] = useState('')
@@ -50,15 +83,23 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
     setSelectedId(null)
   }, [tree.id])
 
+  const applyTree = useCallback((incoming: FileTreeNode) => {
+    setTree((previous) => {
+      const next = mergeTreePreserveLoaded(previous, incoming)
+      setCachedFilesTree(next)
+      return next
+    })
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     void fetchFilesTree().then((root) => {
-      if (!cancelled) setTree(root)
+      if (!cancelled) applyTree(root)
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [applyTree])
 
   useEffect(() => {
     let cancelled = false
@@ -84,7 +125,7 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
         revisionRef.current = revision
         invalidateFilesTreeCache()
         const root = await fetchFilesTree()
-        if (!cancelled) setTree(root)
+        if (!cancelled) applyTree(root)
       } catch {
         // ignore sync misses; next interval can recover
       }
@@ -108,12 +149,12 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
       window.clearInterval(timer)
       stopEvents()
     }
-  }, [workspaceId])
+  }, [applyTree, workspaceId])
 
   const collapseToRoot = useCallback(() => {
-    setExpandedIds(new Set([tree.id]))
+    setExpandedIds(new Set([treeRef.current.id]))
     setSelectedId(null)
-  }, [tree.id])
+  }, [])
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
@@ -128,63 +169,46 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
 
   const onFolderClick = useCallback(
     async (node: FileTreeNode) => {
-      if (node.id === tree.id) {
+      const currentTree = treeRef.current
+
+      if (node.id === currentTree.id) {
         collapseToRoot()
-        setSelectedId(tree.id)
+        setSelectedId(currentTree.id)
         return
       }
 
-      if (node.type === 'folder' && node.children_loaded !== true && !loadingFoldersRef.current.has(node.id)) {
-        loadingFoldersRef.current.add(node.id)
-        try {
-          const relativePath = getRelativePathFromRoot(tree, node.id) ?? ''
-          const children = await fetchFolderChildren(relativePath)
-          setTree((previous) => {
-            const next = mergeFolderChildren(previous, node.id, children)
-            setCachedFilesTree(next)
-            return next
-          })
-        } catch {
-          // ignore lazy load errors; folder can be retried on next click
-        } finally {
-          loadingFoldersRef.current.delete(node.id)
-        }
+      setExpandedIds((previous) => expandFolderIds(previous, currentTree.id, currentTree, node.id))
+      setSelectedId(node.id)
+
+      if (node.type !== 'folder' || node.children_loaded === true || loadingFoldersRef.current.has(node.id)) {
+        return
       }
 
-      setExpandedIds((previous) => {
-        const next = new Set(previous)
-        next.add(tree.id)
-
-        if (next.has(node.id)) {
-          next.delete(node.id)
-          const folderNode = findNode(tree, node.id)
-          if (folderNode) {
-            for (const id of collectFolderDescendantIds(folderNode)) {
-              next.delete(id)
-            }
-          }
-        } else {
-          for (const id of getPathToNode(tree, node.id)) {
-            next.add(id)
-          }
-          for (const id of getSiblingFolderIds(tree, node.id)) {
-            next.delete(id)
-          }
-        }
-
-        return next
-      })
-      setSelectedId(node.id)
+      loadingFoldersRef.current.add(node.id)
+      try {
+        const relativePath = folderListPath(currentTree, node)
+        const children = await fetchFolderChildren(relativePath)
+        setTree((previous) => {
+          const next = mergeFolderChildren(previous, node.id, children)
+          setCachedFilesTree(next)
+          return next
+        })
+      } catch {
+        // ponytail: folder stays expanded; retry on next click
+      } finally {
+        loadingFoldersRef.current.delete(node.id)
+      }
     },
-    [collapseToRoot, tree],
+    [collapseToRoot],
   )
 
   const onFileClick = useCallback(
     (node: FileTreeNode) => {
-      setExpandedIds(new Set(getPathToNode(tree, node.id)))
+      const currentTree = treeRef.current
+      setExpandedIds(new Set(getPathToNode(currentTree, node.id)))
       setSelectedId(node.id)
 
-      const relativePath = getRelativePathFromRoot(tree, node.id)
+      const relativePath = getRelativePathFromRoot(currentTree, node.id) ?? folderListPath(currentTree, node)
       if (relativePath) {
         openFile({
           fileId: node.id,
@@ -193,7 +217,7 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
         })
       }
     },
-    [openFile, tree],
+    [openFile],
   )
 
   return (

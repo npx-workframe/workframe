@@ -8,6 +8,7 @@ import { safeHtml } from '@/lib/safeHtml'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { BrowserTab } from '@/lib/browserTypes'
 import { getFileCapability } from '@/lib/fileCapabilities'
+import { workspaceFileServeUrl } from '@/lib/filesApi'
 import { isMediaUrl } from '@/lib/mockBrowserArtifacts'
 import {
   renderCsvPreview,
@@ -111,15 +112,17 @@ export function BrowserPreviewView({ tab }: BrowserPreviewViewProps) {
 
   if (ext === 'html' || ext === 'htm') {
     return (
-      <ScrollArea className="wf-browser-pane wf-browser-preview wf-browser-preview--embed">
+      <div className="wf-browser-pane wf-browser-preview wf-browser-preview--embed">
         <iframe
+          key={tab.reloadNonce}
           className="wf-browser-preview__frame wf-browser-preview__frame--html"
-          srcDoc={tab.content}
+          src={tab.source === 'file' ? workspaceFileServeUrl(tab.location) : undefined}
+          srcDoc={tab.source === 'file' ? undefined : tab.content}
           title={tab.title}
           allow="fullscreen; autoplay; clipboard-read; clipboard-write; gamepad"
-          sandbox="allow-scripts allow-forms allow-popups allow-pointer-lock"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-modals"
         />
-      </ScrollArea>
+      </div>
     )
   }
 

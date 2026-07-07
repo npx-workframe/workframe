@@ -190,3 +190,10 @@ export function clearCachedFilesTree(): void {
 export function workspaceRawUrl(path: string): string {
   return `/api/files/raw?path=${encodeURIComponent(path)}`
 }
+
+/** Path-style workspace URL so HTML relative assets (js/css) resolve correctly in iframes. */
+export function workspaceFileServeUrl(path: string): string {
+  const trimmed = path.trim().replace(/\\/g, '/').replace(/^\/+/, '')
+  if (!trimmed) return '/api/files/workspace/'
+  return `/api/files/workspace/${trimmed.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`
+}

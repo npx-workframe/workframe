@@ -117,9 +117,9 @@ function FileTreeBranch({ node, depth, isRoot = false }: FileTreeBranchProps) {
         ) : null}
       </button>
 
-      {isFolder && isExpanded && node.children && node.children.length > 0 ? (
+      {isFolder && isExpanded ? (
         <div className="wf-file-tree__children" role="group">
-          {node.children.map((child) => (
+          {(node.children ?? []).map((child) => (
             <FileTreeBranch key={child.id} node={child} depth={depth + 1} />
           ))}
         </div>

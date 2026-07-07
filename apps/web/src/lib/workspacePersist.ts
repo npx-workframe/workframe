@@ -1,3 +1,4 @@
+import type { ActivityNode } from '@/lib/activityTypes'
 import type { ChatMessage } from '@/lib/chatTypes'
 import type { HermesModelsResponse } from '@/lib/hermesCatalogApi'
 import { peekCachedSessionProfile } from '@/lib/workframeAuthApi'
@@ -25,6 +26,10 @@ function roomBindKey(roomId: string): string {
 
 function modelsKey(profile: string): string {
   return `workframe.cachedModels:${projectKey()}:${profile.trim()}`
+}
+
+function activityFeedKey(workspaceId: string): string {
+  return `workframe.cachedActivity:${projectKey()}:${workspaceId.trim()}`
 }
 
 /** Room bind hint — instant reopen; server revalidates in background. */
@@ -117,6 +122,33 @@ export function readCachedRooms(workspaceId: string): WorkspaceRoom[] {
 
 export function writeCachedRooms(workspaceId: string, rooms: WorkspaceRoom[]): void {
   writeJson(roomsKey(workspaceId), { rooms, savedAt: Date.now() })
+}
+
+export function readCachedActivityFeed(workspaceId: string): ActivityNode[] {
+  const wid = workspaceId.trim()
+  if (!wid) return []
+  const data = readJson<{ nodes: ActivityNode[] }>(activityFeedKey(wid))
+  return data?.nodes ?? []
+}
+
+export function peekCachedActivityFeed(workspaceId: string): ActivityNode[] {
+  return readCachedActivityFeed(workspaceId)
+}
+
+export function writeCachedActivityFeed(workspaceId: string, nodes: ActivityNode[]): void {
+  const wid = workspaceId.trim()
+  if (!wid) return
+  writeJson(activityFeedKey(wid), { nodes, savedAt: Date.now() })
+}
+
+export function clearCachedActivityFeed(workspaceId: string): void {
+  const wid = workspaceId.trim()
+  if (!wid || typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(activityFeedKey(wid))
+  } catch {
+    // ignore
+  }
 }
 
 export function readCachedRoomBind(roomId: string): CachedRoomBind | null {
