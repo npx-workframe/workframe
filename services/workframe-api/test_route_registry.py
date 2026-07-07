@@ -132,7 +132,7 @@ assert len(dispatched_post) == 41
 dispatched_patch = [r for r in route_registry.ROUTES if r.method == "PATCH" and r.handler]
 assert len(dispatched_patch) == 4
 pattern_dispatched = [rp for rp in route_registry.ROUTE_PATTERNS if rp.handler]
-assert len(pattern_dispatched) == 56
+assert len(pattern_dispatched) == 61
 
 class _PostStub:
     def __init__(self) -> None:

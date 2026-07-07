@@ -763,7 +763,7 @@ def _create_profile_session_via_api(profile: str, session_id: str, title: str) -
     base_title = (title or "").strip() or _default_session_title(profile)
     candidate = base_title
     for attempt in range(1, 25):
-        status, data = _profile_api_request(
+        status, data = _srv()._profile_api_request(
             profile,
             "POST",
             "/api/sessions",

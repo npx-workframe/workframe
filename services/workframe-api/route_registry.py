@@ -156,6 +156,7 @@ ROUTES: tuple[Route, ...] = (
 
 _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     # method, regex, label, auth, sessionless_ok, install_window [, handler]
+    ("GET", r"^/api/files/workspace/.+", "/api/files/workspace/{path}", AuthLevel.SESSION, True, False, "_route_pattern_get_files_workspace"),
     ("GET", r"^/api/public/branding/(og|favicon)$", "/api/public/branding/{kind}", AuthLevel.PUBLIC, False, False, "_route_pattern_get_public_branding"),
     ("GET", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False, "_route_pattern_get_workspace"),
     ("GET", r"^/api/workspace/[^/]+/rooms$", "/api/workspace/{id}/rooms", AuthLevel.SESSION, False, False, "_route_pattern_get_workspace_rooms"),
@@ -204,6 +205,10 @@ _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     ("POST", r"^/api/workspace/[^/]+/grants$", "/api/workspace/{id}/grants", AuthLevel.SESSION, False, False, "_route_pattern_post_workspace_grants"),
     ("POST", r"^/api/hermes/profiles/[^/]+/bootstrap-dm$", "/api/hermes/profiles/{slug}/bootstrap-dm", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_bootstrap_dm"),
     ("POST", r"^/api/hermes/profiles/[^/]+/soul$", "/api/hermes/profiles/{slug}/soul", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_soul"),
+    ("POST", r"^/api/hermes/profiles/[^/]+/bind$", "/api/hermes/profiles/{slug}/bind", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_bind"),
+    ("POST", r"^/api/hermes/profiles/[^/]+/sessions$", "/api/hermes/profiles/{slug}/sessions", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_sessions"),
+    ("POST", r"^/api/hermes/profiles/[^/]+/messages$", "/api/hermes/profiles/{slug}/messages", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_messages"),
+    ("POST", r"^/api/hermes/profiles/[^/]+/messages/stream$", "/api/hermes/profiles/{slug}/messages/stream", AuthLevel.SESSION, False, False, "_route_pattern_post_hermes_profile_messages_stream"),
     ("PATCH", r"^/api/hermes/profiles/[^/]+$", "/api/hermes/profiles/{slug}", AuthLevel.SESSION, False, False, "_route_pattern_patch_hermes_profile"),
     ("PATCH", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_patch_room"),
     ("PATCH", r"^/api/workspace/[^/]+/integrations$", "/api/workspace/{id}/integrations", AuthLevel.SESSION, False, False, "_route_pattern_patch_workspace_integrations"),

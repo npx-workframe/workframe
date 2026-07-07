@@ -272,10 +272,19 @@ def load_routes() -> dict[str, Any]:
                 if p.is_dir():
                     raw_routes.append({"profile": p.name})
     routes = []
+    seen: set[str] = set()
     for row in raw_routes:
         slug = str(row.get("profile") or "").strip()
-        if slug and profile_exists(slug):
+        if slug and profile_exists(slug) and slug not in seen:
             routes.append({"profile": slug})
+            seen.add(slug)
+    if default_profile and default_profile not in seen and profile_exists(default_profile):
+        routes.insert(0, {"profile": default_profile})
+        seen.add(default_profile)
+    native = safe_profile_slug(NATIVE_PROFILE) if NATIVE_PROFILE else ""
+    if native and native not in seen and profile_exists(native):
+        routes.insert(0, {"profile": native})
+        seen.add(native)
     return {"default_profile": default_profile, "routes": routes}
 
 

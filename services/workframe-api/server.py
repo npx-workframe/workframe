@@ -4433,7 +4433,13 @@ def _invoke_room_agent_mention(
             raise ValueError("session_bootstrap_failed: could not start agent session for this room")
 
         turn_body = _profile_turn_payload(hermes_slug, user_text, room_id)
-        provider = str(agent_row.get("model_provider") or "openrouter")
+        provider = str(agent_row.get("model_provider") or "").strip()
+        if not provider:
+            provider = _llm_billing_provider(
+                hermes_slug,
+                user_id=triggered_by_user_id,
+                workspace_id=workspace_id,
+            )
         if triggered_by_user_id:
             run_ledger.ensure_schema()
             auth_req = run_authority.mention_run_request(
@@ -4477,11 +4483,15 @@ def _invoke_room_agent_mention(
                 )
                 return
 
+        ensure_profile_api(
+            hermes_slug,
+            triggered_by_user_id,
+            workspace_id,
+            bootstrap_providers=False,
+        )
         _overlay_turn_provider_env(hermes_slug, triggered_by_user_id, workspace_id, provider, run_id)
         _overlay_turn_user_env(hermes_slug, triggered_by_user_id, workspace_id, run_id)
         _inject_turn_credentials(turn_body, triggered_by_user_id, workspace_id, provider)
-        if not _wait_profile_api_healthy(hermes_slug, attempts=20, delay=0.25):
-            raise ValueError("profile api unavailable after session bootstrap")
         _ensure_profile_proxy_headers(hermes_slug)
 
         upstream_body = json.dumps(turn_body).encode("utf-8")
@@ -6313,20 +6323,25 @@ def _safe_content_path(rel: str) -> Path | None:
     return _safe_workspace_path(rel)
 
 
+def _workspace_root() -> Path:
+    return WORKSPACE.resolve()
+
+
 def _safe_workspace_path(rel: str) -> Path | None:
     rel = rel.replace("\\", "/").lstrip("/")
     if not rel or ".." in rel.split("/"):
         return None
-    path = (WORKSPACE / rel).resolve()
+    root = _workspace_root()
+    path = (root / rel).resolve()
     try:
-        path.relative_to(WORKSPACE.resolve())
+        path.relative_to(root)
     except ValueError:
         return None
     return path
 
 
 def _workspace_rel(path: Path) -> str:
-    return path.relative_to(WORKSPACE).as_posix()
+    return path.resolve().relative_to(_workspace_root()).as_posix()
 
 
 def _list_folder_nodes(folder: Path) -> list[dict[str, Any]]:
@@ -7836,8 +7851,10 @@ def _overlay_turn_provider_env(
     config_before = _read_config_model_api_key(prof) if is_runtime else ""
     token = _apply_turn_credential_lease(profile, user_id, workspace_id, provider, run_id)
     if is_runtime and _read_config_model_api_key(prof) != config_before:
-        if not _wait_profile_api_healthy(prof, attempts=20, delay=0.5):
-            raise ValueError("profile api unavailable after credential lease sync")
+        _invalidate_profile_health_cache(prof)
+        # ponytail: gateway restart after lease yaml sync can take ~40s on cold runtime profiles.
+        if not _wait_profile_api_healthy(prof, attempts=160, delay=0.25):
+            ensure_profile_api(prof, user_id, workspace_id, bootstrap_providers=False)
     return token
 
 
@@ -8126,9 +8143,9 @@ def profile_chat_activate_room_session(
         gateway_sid,
     )
 
-    if payer:
-        _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
-    llm_provider = _llm_billing_provider(hermes_prof, user_id=payer, workspace_id=workspace_id)
+    if user_id:
+        _reconcile_profile_llm_for_user(hermes_prof, user_id, workspace_id)
+    llm_provider = _llm_billing_provider(hermes_prof, user_id=user_id, workspace_id=workspace_id)
     llm_ready = _overlay_chat_llm_env(hermes_prof, user_id, workspace_id, llm_provider)
 
     history = chat_messages(hermes_prof, session_id)
@@ -8447,7 +8464,7 @@ def content_list() -> list[dict[str, Any]]:
     for path in sorted(WORKSPACE.rglob("*.md")):
         if not path.is_file():
             continue
-        rel = path.relative_to(WORKSPACE).as_posix()
+        rel = path.resolve().relative_to(_workspace_root()).as_posix()
         if _workspace_protected_reason(rel):
             continue
         try:
@@ -9756,6 +9773,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def _route_get_files_raw(self, qs: dict[str, list[str]]) -> None:
         rel = qs.get("path", [""])[0]
+        reason = _workspace_protected_reason(rel)
+        if reason:
+            self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
+            return
+        try:
+            data, mime = file_raw(rel)
+        except ValueError:
+            self._json(404, {"error": "not found"})
+            return
+        self._send(200, data, mime)
+
+    def _route_pattern_get_files_workspace(self, path: str, qs: dict[str, list[str]]) -> None:
+        prefix = "/api/files/workspace/"
+        if not path.startswith(prefix):
+            self._json(404, {"error": "not found"})
+            return
+        rel = urllib.parse.unquote(path[len(prefix) :].lstrip("/"))
         reason = _workspace_protected_reason(rel)
         if reason:
             self._json(403, {"ok": False, "error": "protected_file", "reason": reason})
@@ -11607,6 +11641,42 @@ class Handler(BaseHTTPRequestHandler):
         soul = str(body.get("soul", body.get("text", "")))
         self._json(200, profile_soul_set(profile, soul))
 
+    def _route_pattern_post_hermes_profile_bind(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) < 5:
+            self._json(404, {"error": "not found"})
+            return
+        profile_raw = urllib.parse.unquote(parts[3])
+        user_id = str(getattr(self, "auth_user", "") or "")
+        self._json(200, profile_chat_bind(profile_raw, body, user_id))
+
+    def _route_pattern_post_hermes_profile_sessions(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) < 5:
+            self._json(404, {"error": "not found"})
+            return
+        profile_raw = urllib.parse.unquote(parts[3])
+        user_id = str(getattr(self, "auth_user", "") or "")
+        self._json(200, profile_chat_session(profile_raw, body, user_id))
+
+    def _route_pattern_post_hermes_profile_messages(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) < 5:
+            self._json(404, {"error": "not found"})
+            return
+        profile_raw = urllib.parse.unquote(parts[3])
+        stream_body = _enrich_room_chat_payload(body, str(getattr(self, "auth_user", "") or ""))
+        self._json(200, profile_chat_message(profile_raw, stream_body))
+
+    def _route_pattern_post_hermes_profile_messages_stream(self, path: str, body: dict) -> None:
+        parts = path.strip("/").split("/")
+        if len(parts) < 6:
+            self._json(404, {"error": "not found"})
+            return
+        profile_raw = urllib.parse.unquote(parts[3])
+        stream_body = _enrich_room_chat_payload(body, str(getattr(self, "auth_user", "") or ""))
+        stream_profile_chat(self, profile_raw, stream_body)
+
     def _route_pattern_post_me_oauth_start(self, path: str, body: dict) -> None:
         if path.startswith("/api/me/oauth/") and path.endswith("/start"):
             parts = path.strip("/").split("/")
@@ -12909,31 +12979,6 @@ class Handler(BaseHTTPRequestHandler):
                 if SUPERVISOR_URL:
                     return self._json(*_supervisor_request("POST", path.removeprefix("/api/supervisor"), body))
                 return self._json(503, {"ok": False, "error": "WORKFRAME_SUPERVISOR_URL not configured"})
-            if path.startswith("/api/hermes/profiles/") and path.endswith("/sessions"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 5:
-                    profile_raw = urllib.parse.unquote(parts[3])
-                    user_id = getattr(self, "auth_user", "") or ""
-                    return self._json(200, profile_chat_session(profile_raw, body, user_id))
-            if path.startswith("/api/hermes/profiles/") and path.endswith("/bind"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 5:
-                    profile_raw = urllib.parse.unquote(parts[3])
-                    user_id = getattr(self, "auth_user", "") or ""
-                    return self._json(200, profile_chat_bind(profile_raw, body, user_id))
-            if path.startswith("/api/hermes/profiles/") and path.endswith("/messages"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 5:
-                    profile_raw = urllib.parse.unquote(parts[3])
-                    stream_body = _enrich_room_chat_payload(body, getattr(self, "auth_user", "") or "")
-                    return self._json(200, profile_chat_message(profile_raw, stream_body))
-            if path.startswith("/api/hermes/profiles/") and path.endswith("/messages/stream"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 6:
-                    profile_raw = urllib.parse.unquote(parts[3])
-                    stream_body = _enrich_room_chat_payload(body, getattr(self, "auth_user", "") or "")
-                    stream_profile_chat(self, profile_raw, stream_body)
-                    return
             return self._json(404, {"error": "not found"})
         except ValueError as exc:
             return self._json(400, {"error": str(exc)})

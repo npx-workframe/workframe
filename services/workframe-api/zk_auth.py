@@ -165,8 +165,9 @@ def _zk_db() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=10.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
+    # ponytail: DELETE only — WAL sidecars fail on Docker Desktop Windows bind mounts.
+    conn.execute("PRAGMA journal_mode=DELETE")
+    conn.execute("PRAGMA busy_timeout=30000")
     _zk_init_db(conn)
     return conn
 
