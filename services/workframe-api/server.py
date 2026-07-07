@@ -11564,6 +11564,788 @@ class Handler(BaseHTTPRequestHandler):
         soul = str(body.get("soul", body.get("text", "")))
         self._json(200, profile_soul_set(profile, soul))
 
+    def _route_pattern_post_me_oauth_start(self, path: str, body: dict) -> None:
+        if path.startswith("/api/me/oauth/") and path.endswith("/start"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "start":
+                user_id = str(getattr(self, "auth_user", "") or "")
+                if not user_id:
+                    self._json(401, {"ok": False, "error": "no_session"})
+                    return
+                provider_id = parts[3]
+                workspace_id = str(body.get("workspace_id") or "")
+                self._json(200, start_user_oauth(user_id, provider_id, workspace_id))
+
+    def _route_pattern_post_me_providers_disconnect(self, path: str, body: dict) -> None:
+        if path.startswith("/api/me/providers/") and path.endswith("/disconnect"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 5 and parts[2] == "providers" and parts[4] == "disconnect":
+                user_id = str(getattr(self, "auth_user", "") or "")
+                if not user_id:
+                    self._json(401, {"ok": False, "error": "no_session"})
+                    return
+                self._json(200, disconnect_user_provider(user_id, parts[3]))
+
+    def _route_pattern_post_workspace_credentials_store(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/credentials/store"):
+            # POST /api/workspace/:wid/credentials/store
+            parts = path.strip("/").split("/")
+            if len(parts) >= 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                if not _role_allows(self, OWNER_ADMIN_ROLES):
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                provider = str(body.get("provider", "")).strip().lower()
+                api_key = str(body.get("api_key", "") or body.get("secret", "")).strip()
+                label = str(body.get("label", "") or provider)
+                if not provider or not api_key:
+                    self._json(400, {"error": "provider and api_key required"})
+                    return
+                spec = _catalog_provider(provider)
+                if not spec:
+                    self._json(400, {"error": "provider_not_found"})
+                    return
+                if spec.get("user_only"):
+                    self._json(403, {"ok": False, "error": "provider_user_only"})
+                    return
+                env_var = str(spec.get("env_var") or _default_credential_env_var(provider, "api_key"))
+                try:
+                    payload = _store_workspace_credential(
+                        ws_id,
+                        provider,
+                        "api_key",
+                        api_key,
+                        env_var,
+                        label,
+                        str(getattr(self, "auth_user", "") or ""),
+                    )
+                except ValueError as exc:
+                    self._json(400, {"error": str(exc)})
+                    return
+                cred_id = str(payload["credential_id"])
+                self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
+                try:
+                    _bootstrap_model_after_llm_connect("", ws_id, provider)
+                except (OSError, RuntimeError, ValueError) as exc:
+                    _log_handler_error("POST workspace credentials/store bootstrap", exc)
+                if str(spec.get("category") or "") == "messaging":
+                    sync_result = _sync_workspace_messaging_gateway(ws_id)
+                    if not sync_result.get("ok"):
+                        self._json(500, {"ok": False, "error": sync_result.get("error") or "messaging_sync_failed"})
+                        return
+                self._json(200, {"ok": True, "credential_id": cred_id, "credential_ref": payload["credential_ref"]})
+
+    def _route_pattern_post_workspace_credentials_revoke(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and "/credentials/" in path and path.endswith("/revoke"):
+            # POST /api/workspace/:wid/credentials/:bindingId/revoke
+            parts = path.strip("/").split("/")
+            if len(parts) >= 5:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                binding_id = parts[4]
+                if not _role_allows(self, OWNER_ADMIN_ROLES):
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.row_factory = sqlite3.Row
+                    row = conn.execute(
+                        "SELECT provider FROM credential_bindings WHERE id = ? AND workspace_id = ?",
+                        (binding_id, ws_id),
+                    ).fetchone()
+                    provider = str(row["provider"] or "").strip().lower() if row else ""
+                    cur = conn.execute(
+                        "UPDATE credential_bindings SET is_active = 0, updated_at = ? WHERE id = ? AND workspace_id = ?",
+                        (str(int(time.time())), binding_id, ws_id),
+                    )
+                    conn.commit()
+                    affected = cur.rowcount
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                if not affected:
+                    self._json(404, {"error": "credential_not_found"})
+                    return
+                self._log_audit("credential_revoked", "credential_binding", binding_id, f"workspace={ws_id}")
+                spec = _catalog_provider(provider)
+                if spec and str(spec.get("category") or "") == "messaging":
+                    sync_result = _sync_workspace_messaging_gateway(ws_id)
+                    if not sync_result.get("ok"):
+                        self._json(500, {"ok": False, "error": sync_result.get("error") or "messaging_sync_failed"})
+                        return
+                self._json(200, {"ok": True, "credential_id": binding_id, "status": "revoked"})
+
+    def _route_pattern_post_workspace_rooms(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/rooms"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                created_by = str(getattr(self, "auth_user", "") or "")
+                if not _handler_is_active_workspace_member(self, ws_id):
+                    self._json(403, {"ok": False, "error": "forbidden", "required_role": "workspace_member"})
+                    return
+                status, payload = _create_room(ws_id, body, created_by)
+                if status == 201:
+                    self._log_audit("room_created", "room", payload["room"]["id"], f"name={payload['room']['name']}")
+                self._json(status, payload)
+
+    def _route_pattern_post_workspace_rooms_create(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/rooms/create"):
+            parts = path.strip("/").split("/")
+            if len(parts) >= 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                name = str(body.get("name", "")).strip()
+                slug = str(body.get("slug", "") or name.lower().replace(" ", "-")).strip()
+                room_type = str(body.get("room_type", "channel")).strip()
+                topic = str(body.get("topic", "")).strip()
+                agent_id = str(body.get("agent_profile_id", "")).strip()
+                if not name:
+                    self._json(400, {"error": "name required"})
+                    return
+                rid = str(uuid.uuid4())
+                now_ts = str(int(time.time()))
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.execute(
+                        "INSERT INTO rooms (id, workspace_id, agent_profile_id, name, slug, topic, room_type, status, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        (rid, ws_id, agent_id or None, name, slug, topic, room_type, "active", getattr(self, "auth_user", ""), now_ts, now_ts),
+                    )
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                self._log_audit("room_created", "room", rid, f"name={name}")
+                self._json(200, {"ok": True, "room_id": rid})
+
+    def _route_pattern_post_room_members(self, path: str, body: dict) -> None:
+        if path.startswith("/api/rooms/") and path.endswith("/members"):
+            rid = path.strip("/").split("/")[-2]
+            actor_id = str(getattr(self, "auth_user", "") or "")
+            if not actor_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            user_id_to_add = str(body.get("user_id", "")).strip()
+            role = str(body.get("role", "member")).strip()
+            if not user_id_to_add:
+                self._json(400, {"error": "user_id required"})
+                return
+            mid = str(uuid.uuid4())
+            now_ts = str(int(time.time()))
+            try:
+                conn = _workframe_db()
+                if not _user_can_manage_room_members(conn, rid, actor_id):
+                    conn.close()
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                conn.execute(
+                    "INSERT INTO room_memberships (id, room_id, user_id, role, status, joined_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+                    (mid, rid, user_id_to_add, role, "active", now_ts, now_ts),
+                )
+                conn.commit()
+                conn.close()
+            except sqlite3.Error as exc:
+                self._json(500, {"error": f"db_error: {exc}"})
+                return
+            self._log_audit("room_member_added", "room_membership", mid, f"room={rid} user={user_id_to_add}")
+            self._json(200, {"ok": True, "membership_id": mid})
+
+    def _route_pattern_post_room_bind(self, path: str, body: dict) -> None:
+        if path.startswith("/api/rooms/") and path.endswith("/bind"):
+            rid = path.strip("/").split("/")[-2]
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            try:
+                self._json(200, room_chat_bind(rid, body, user_id))
+            except ValueError as exc:
+                err = str(exc)
+                if "not_found" in err:
+                    self._json(404, {"ok": False, "error": err})
+                elif "denied" in err or "forbidden" in err:
+                    self._json(403, {"ok": False, "error": err})
+                else:
+                    self._json(400, {"ok": False, "error": err})
+
+    def _route_pattern_post_room_sessions_activate(self, path: str, body: dict) -> None:
+        if path.startswith("/api/rooms/") and path.endswith("/sessions/activate"):
+            rid = path.strip("/").split("/")[-3]
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            session_id = str(body.get("session_id", "")).strip()
+            template_prof = str(body.get("profile", "")).strip()
+            source_id = str(body.get("source_id") or "ui").strip() or "ui"
+            client_id = str(body.get("client_id") or "default").strip() or "default"
+            binding_version = _binding_version(body.get("binding_version"))
+            if not session_id:
+                self._json(400, {"error": "session_id required"})
+                return
+            try:
+                payload = profile_chat_activate_room_session(
+                    rid,
+                    session_id,
+                    user_id,
+                    template_prof,
+                    source_id=source_id,
+                    client_id=client_id,
+                    binding_version=binding_version,
+                )
+            except ValueError as exc:
+                err = str(exc)
+                if "not_found" in err:
+                    self._json(404, {"ok": False, "error": err})
+                elif "denied" in err:
+                    self._json(403, {"ok": False, "error": err})
+                else:
+                    self._json(400, {"ok": False, "error": err})
+                return
+            self._json(200, payload)
+
+    def _route_pattern_post_room_messages_send(self, path: str, body: dict) -> None:
+        if path.startswith("/api/rooms/") and path.endswith("/messages/send"):
+            slug_or_id = path.strip("/").split("/")[-3]
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            sender_agent = str(body.get("sender_agent_id", "")).strip()
+            content = str(body.get("content", "")).strip()
+            content_type = str(body.get("content_type", "text")).strip()
+            parent_id = str(body.get("parent_message_id", "") or None)
+            if not content:
+                self._json(400, {"error": "content required"})
+                return
+            try:
+                conn = _workframe_db()
+                room = conn.execute(
+                    """
+                    SELECT id, workspace_id, room_type, agent_profile_id
+                    FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL
+                    """,
+                    (slug_or_id, slug_or_id),
+                ).fetchone()
+                if not room:
+                    conn.close()
+                    self._json(404, {"error": "room_not_found"})
+                    return
+                rid = str(room["id"])
+                workspace_id = str(room["workspace_id"])
+                if not _user_can_access_room(conn, rid, user_id):
+                    conn.close()
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                if sender_agent:
+                    sender_user = ""
+                    agent_member = conn.execute(
+                        """
+                        SELECT 1 FROM room_memberships
+                        WHERE room_id = ? AND agent_profile_id = ? AND deleted_at IS NULL
+                        """,
+                        (rid, sender_agent),
+                    ).fetchone()
+                    if not agent_member:
+                        conn.close()
+                        self._json(403, {"ok": False, "error": "agent_not_in_room"})
+                        return
+                else:
+                    sender_user = str(body.get("sender_user_id", "") or user_id).strip()
+                    if sender_user != user_id:
+                        conn.close()
+                        self._json(403, {"ok": False, "error": "forbidden"})
+                        return
+                mid = str(uuid.uuid4())
+                now_ts = str(int(time.time()))
+                conn.execute(
+                    "INSERT INTO messages (id, room_id, sender_user_id, sender_agent_id, parent_message_id, content, content_type, is_edited, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (mid, rid, sender_user or None, sender_agent or None, parent_id, content, content_type, 0, now_ts, now_ts),
+                )
+                conn.execute("UPDATE rooms SET updated_at = ? WHERE id = ?", (now_ts, rid))
+                mention_meta: dict[str, Any] = {}
+                if _is_space_room(str(room["room_type"]), room["agent_profile_id"]) and not sender_agent:
+                    invoke_agents = body.get("invoke_agents", True)
+                    if isinstance(invoke_agents, str):
+                        invoke_agents = invoke_agents.lower() not in ("0", "false", "no")
+                    mention_meta = _process_space_message_mentions(
+                        rid,
+                        workspace_id,
+                        user_id,
+                        content,
+                        mid,
+                        invoke_agents=bool(invoke_agents),
+                    )
+                conn.commit()
+                conn.close()
+            except sqlite3.Error as exc:
+                self._json(500, {"error": f"db_error: {exc}"})
+                return
+            self._log_audit("message_sent", "message", mid, f"room={rid}")
+            self._json(200, {"ok": True, "message_id": mid, **mention_meta})
+
+    def _route_pattern_post_workspace_invites(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/invites"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                if not _role_allows(self, OWNER_ADMIN_ROLES):
+                    self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+                    return
+                email = str(body.get("email", "")).strip()
+                role = str(body.get("role", "member")).strip()
+                if not email:
+                    self._json(400, {"error": "email required"})
+                    return
+                invite_id = str(uuid.uuid4())
+                token = secrets.token_hex(32)
+                token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+                now_ts = str(int(time.time()))
+                expires_at = str(int(time.time()) + 86400 * 7)
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.execute(
+                        "INSERT INTO workspace_invites (id, workspace_id, email, role, token_hash, invited_by_user_id, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?)",
+                        (invite_id, ws_id, email, role, token_hash, getattr(self, "auth_user", ""), expires_at, now_ts),
+                    )
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                invite_url = f"{APP_BASE_URL}/?invite_token={urllib.parse.quote(token)}&email={urllib.parse.quote(email)}"
+                email_sent = False
+                email_error = None
+                ws_name = ws_id
+                logo_url = ""
+                try:
+                    conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
+                    conn.row_factory = sqlite3.Row
+                    ws_row = conn.execute(
+                        "SELECT display_name, avatar_url FROM workspaces WHERE id = ?",
+                        (ws_id,),
+                    ).fetchone()
+                    conn.close()
+                    if ws_row:
+                        ws_name = str(ws_row["display_name"] or ws_id)
+                        logo_url = str(ws_row["avatar_url"] or "")
+                except sqlite3.Error:
+                    pass
+                try:
+                    send_branded_invite_email(email, ws_name, invite_url, logo_url)
+                    email_sent = True
+                except Exception as exc:
+                    email_error = str(exc)
+                self._log_audit("invite_created", "workspace_invite", invite_id, f"workspace={ws_id} email={email}")
+                payload = {"ok": True, "invite_id": invite_id, "token": token, "email": email, "role": role, "expires_at": expires_at, "invite_url": invite_url, "email_sent": email_sent}
+                if email_error:
+                    payload["email_error"] = email_error
+                self._json(201, payload)
+
+    def _route_pattern_post_invites_accept(self, path: str, body: dict) -> None:
+        if path.startswith("/api/invites/") and path.endswith("/accept"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[3] == "accept":
+                token = parts[2]
+                token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+                user_id = str(getattr(self, "auth_user", "") or "")
+                if not user_id:
+                    if DEV_LOCAL_UNSAFE:
+                        user_id = "dev"
+                    else:
+                        self._json(401, {"ok": False, "error": "no_authenticated_user"})
+                        return
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.row_factory = sqlite3.Row
+                    inv = conn.execute(
+                        "SELECT * FROM workspace_invites WHERE token_hash = ? AND deleted_at IS NULL AND accepted_at IS NULL",
+                        (token_hash,)).fetchone()
+                    if not inv:
+                        conn.close()
+                        self._json(404, {"ok": False, "error": "invite_not_found_or_expired"})
+                        return
+                    if int(inv["expires_at"]) < int(time.time()):
+                        conn.close()
+                        self._json(410, {"ok": False, "error": "invite_expired"})
+                        return
+                    wid = inv["workspace_id"]
+                    role = inv["role"]
+                    membership_id = str(uuid.uuid4())
+                    now_ts = str(int(time.time()))
+                    inviter_id = str(inv["invited_by_user_id"] or "").strip()
+                    existing = conn.execute(
+                        "SELECT id FROM workspace_memberships WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL",
+                        (wid, user_id)).fetchone()
+                    if existing:
+                        room_join = _onboard_workspace_member_rooms(
+                            conn,
+                            wid,
+                            user_id,
+                            inviter_user_id=inviter_id or None,
+                        )
+                        dm_room = _ensure_user_dm_room(conn, wid, user_id, inviter_id)
+                        conn.execute("UPDATE workspace_invites SET accepted_by_user_id = ?, accepted_at = ?, deleted_at = ? WHERE id = ?",
+                                     (user_id, now_ts, now_ts, inv["id"]))
+                        conn.commit()
+                        conn.close()
+                        _set_user_current_workspace(user_id, wid)
+                        self._json(200, {"ok": True, "already_member": True, "workspace_id": wid, "room": room_join, "dm_room": dm_room})
+                        return
+                    conn.execute(
+                        "INSERT INTO workspace_memberships (id, workspace_id, user_id, role, status, invited_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+                        (membership_id, wid, user_id, role, "active", inv["invited_by_user_id"], now_ts, now_ts),
+                    )
+                    room_join = _onboard_workspace_member_rooms(
+                        conn,
+                        wid,
+                        user_id,
+                        inviter_user_id=inviter_id or None,
+                    )
+                    dm_room = _ensure_user_dm_room(conn, wid, user_id, inviter_id)
+                    conn.execute("UPDATE workspace_invites SET accepted_by_user_id = ?, accepted_at = ?, deleted_at = ? WHERE id = ?",
+                                 (user_id, now_ts, now_ts, inv["id"]))
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                _provision_invited_member_agent_runtimes(wid, user_id)
+                _set_user_current_workspace(user_id, wid)
+                self._log_audit("invite_accepted", "workspace_invite", inv["id"], f"workspace={wid} user={user_id}")
+                self._json(
+                    200,
+                    {
+                        "ok": True,
+                        "workspace_id": wid,
+                        "role": role,
+                        "membership_id": membership_id,
+                        "room": room_join,
+                        "dm_room": dm_room,
+                    },
+                )
+
+    def _route_pattern_post_workspace_members(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/members"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                target_user_id = str(body.get("user_id", "") or body.get("email", "")).strip()
+                role = str(body.get("role", "member")).strip()
+                if not target_user_id:
+                    self._json(400, {"ok": False, "error": "user_id required"})
+                    return
+                # Check if membership already exists
+                try:
+                    db = _workframe_db()
+                    existing = db.execute("SELECT id FROM workspace_memberships WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL", (ws_id, target_user_id)).fetchone()
+                    db.close()
+                except Exception:
+                    existing = None
+                if existing:
+                    # Update existing membership
+                    status, payload = _patch_workspace_members(ws_id, {"user_id": target_user_id, "role": role}, self)
+                else:
+                    # Create new membership
+                    mid = str(uuid.uuid4())
+                    now_ts = str(int(time.time()))
+                    try:
+                        db = _workframe_db()
+                        db.execute("INSERT INTO workspace_memberships (id, workspace_id, user_id, role, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?)", (mid, ws_id, target_user_id, role, "active", now_ts, now_ts))
+                        _onboard_workspace_member_rooms(db, ws_id, target_user_id)
+                        db.commit()
+                        db.close()
+                        status, payload = 200, {"ok": True, "membership_id": mid, "user_id": target_user_id, "role": role}
+                    except sqlite3.Error as exc:
+                        status, payload = 500, {"ok": False, "error": str(exc)}
+                if status == 200:
+                    self._log_audit("workspace_member_added", "workspace_membership", f"{ws_id}/{target_user_id}", f"workspace={ws_id} user={target_user_id}")
+                self._json(status, payload)
+
+    def _route_pattern_post_workspace_kanban_tasks(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/kanban/tasks"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 5:
+                ws_id = _resolve_wid(parts[2])
+                user_id = str(getattr(self, "auth_user", "") or "")
+                if not user_id:
+                    self._json(401, {"ok": False, "error": "no_session"})
+                    return
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                try:
+                    payload = kanban_proxy_create_task(ws_id, user_id, body)
+                except PermissionError as exc:
+                    self._json(403, {"ok": False, "error": str(exc)})
+                    return
+                except ValueError as exc:
+                    self._json(400, {"ok": False, "error": str(exc)})
+                    return
+                self._json(201, payload)
+
+    def _route_pattern_post_workspace_delegation_grants(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/delegation-grants"):
+            parts = path.strip("/").split("/")
+            user_id = str(getattr(self, "auth_user", "") or "")
+            if not user_id:
+                self._json(401, {"ok": False, "error": "no_session"})
+                return
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                grantee_user_id = str(body.get("grantee_user_id") or "").strip()
+                scope = str(body.get("scope") or DELEGATION_SCOPE_AGENTS_DELEGATE).strip()
+                try:
+                    payload = create_delegation_grant(ws_id, user_id, grantee_user_id, scope=scope)
+                except PermissionError as exc:
+                    self._json(403, {"ok": False, "error": str(exc)})
+                    return
+                except ValueError as exc:
+                    self._json(400, {"ok": False, "error": str(exc)})
+                    return
+                self._json(201, payload)
+
+    def _route_pattern_post_workspace_runtime_profiles_purge(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/runtime-profiles/purge"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 5:
+                ws_id = _resolve_wid(parts[2])
+                user_id = str(getattr(self, "auth_user", "") or "")
+                if not user_id:
+                    self._json(401, {"ok": False, "error": "no_session"})
+                    return
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                conn = _workframe_db()
+                try:
+                    role = _workspace_member_role(conn, ws_id, user_id)
+                finally:
+                    conn.close()
+                if role not in OWNER_ADMIN_ROLES:
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                try:
+                    payload = purge_stale_runtime_profiles(ws_id)
+                except ValueError as exc:
+                    self._json(400, {"ok": False, "error": str(exc)})
+                    return
+                self._json(200, payload)
+
+    def _route_pattern_post_workspace_memory(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/memory"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                content = str(body.get("content", "")).strip()
+                if not content:
+                    self._json(400, {"error": "content required"})
+                    return
+                agent_profile_id = str(body.get("agent_profile_id", "") or None)
+                scope = str(body.get("scope", "workspace")).strip()
+                room_id = str(body.get("room_id") or None) if body.get("room_id") else None
+                user_id_mem = str(body.get("user_id") or None) if body.get("user_id") else None
+                visibility = str(body.get("visibility", "shared")).strip()
+                mem_id = str(uuid.uuid4())
+                now_ts = str(int(time.time()))
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.execute(
+                        "INSERT INTO memory_items (id, workspace_id, agent_profile_id, scope, room_id, user_id, content, visibility, created_by_user_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        (mem_id, ws_id, agent_profile_id, scope, room_id, user_id_mem, content, visibility, getattr(self, "auth_user", ""), now_ts, now_ts),
+                    )
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                self._log_audit("memory_created", "memory_item", mem_id, f"workspace={ws_id} scope={scope}")
+                self._json(201, {"ok": True, "memory_id": mem_id})
+
+    def _route_pattern_post_memory(self, path: str, body: dict) -> None:
+        if path.startswith("/api/memory/"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 3:
+                mem_id = parts[2]
+                user_id = str(getattr(self, "auth_user", "") or "")
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.row_factory = sqlite3.Row
+                    item = conn.execute("SELECT * FROM memory_items WHERE id = ? AND deleted_at IS NULL", (mem_id,)).fetchone()
+                    if not item:
+                        conn.close()
+                        self._json(404, {"error": "memory_not_found"})
+                        return
+                    if not DEV_LOCAL_UNSAFE and str(item["created_by_user_id"]) != user_id:
+                        auth_role = str(getattr(self, "auth_role", ""))
+                        if auth_role not in OWNER_ADMIN_ROLES:
+                            conn.close()
+                            self._json(403, {"error": "forbidden"})
+                            return
+                    now_ts = str(int(time.time()))
+                    conn.execute("UPDATE memory_items SET deleted_at = ?, updated_at = ? WHERE id = ?", (now_ts, now_ts, mem_id))
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                self._log_audit("memory_deleted", "memory_item", mem_id, f"user={user_id}")
+                self._json(200, {"ok": True, "memory_id": mem_id, "status": "deleted"})
+
+    def _route_pattern_post_workspace_budget(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/budget"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                if not _role_allows(self, OWNER_ADMIN_ROLES):
+                    self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+                    return
+                subject_type = str(body.get("subject_type", "workspace")).strip()
+                subject_id = str(body.get("subject_id") or ws_id)
+                provider = str(body.get("provider", "") or None)
+                daily_limit = body.get("daily_limit_cents")
+                monthly_limit = body.get("monthly_limit_cents")
+                allowed_models = str(body.get("allowed_models", "") or None)
+                now_ts = str(int(time.time()))
+                policy_id = str(uuid.uuid4())
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.execute(
+                        "INSERT INTO budget_policies (id, workspace_id, subject_type, subject_id, provider, daily_limit_cents, monthly_limit_cents, allowed_models, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                        (policy_id, ws_id, subject_type, subject_id, provider, daily_limit, monthly_limit, allowed_models, now_ts, now_ts),
+                    )
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                self._log_audit("budget_created", "budget_policy", policy_id, f"workspace={ws_id} subject={subject_type}")
+                self._json(201, {"ok": True, "budget_policy_id": policy_id})
+
+    def _route_pattern_post_workspace_grants(self, path: str, body: dict) -> None:
+        if path.startswith("/api/workspace/") and path.endswith("/grants"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4:
+                ws_id = _resolve_wid(parts[2])
+                if not ws_id:
+                    self._json(404, {"ok": False, "error": "workspace_not_found"})
+                    return
+                if not _role_allows(self, OWNER_ADMIN_ROLES):
+                    self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+                    return
+                credential_binding_id = str(body.get("credential_binding_id", "")).strip()
+                if not credential_binding_id:
+                    self._json(400, {"error": "credential_binding_id required"})
+                    return
+                grantee_type = str(body.get("grantee_type", "user")).strip()
+                grantee_id = str(body.get("grantee_id", "")).strip()
+                if not grantee_id:
+                    self._json(400, {"error": "grantee_id required"})
+                    return
+                provider = str(body.get("provider", "") or None)
+                max_daily = body.get("max_daily_cents")
+                max_total = body.get("max_total_cents")
+                allowed_models = str(body.get("allowed_models", "") or None)
+                allowed_agent_ids = str(body.get("allowed_agent_profile_ids", "") or None)
+                allowed_room_ids = str(body.get("allowed_room_ids", "") or None)
+                expires_at = str(body.get("expires_at") or None) if body.get("expires_at") else None
+                grant_id = str(uuid.uuid4())
+                now_ts = str(int(time.time()))
+                user_id = str(getattr(self, "auth_user", "") or "")
+                try:
+                    conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
+                    conn.execute(
+                        "INSERT INTO credential_grants (id, credential_binding_id, granted_by_user_id, grantee_type, grantee_id, provider, max_daily_cents, max_total_cents, allowed_models, allowed_agent_profile_ids, allowed_room_ids, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (grant_id, credential_binding_id, user_id, grantee_type, grantee_id, provider, max_daily, max_total, allowed_models, allowed_agent_ids, allowed_room_ids, expires_at, now_ts),
+                    )
+                    conn.commit()
+                    conn.close()
+                except sqlite3.Error as exc:
+                    self._json(500, {"error": f"db_error: {exc}"})
+                    return
+                self._log_audit("grant_created", "credential_grant", grant_id, f"workspace={ws_id} grantee={grantee_type}:{grantee_id}")
+                self._json(201, {"ok": True, "grant_id": grant_id})
+
+    def _route_pattern_patch_room(self, path: str, body: dict) -> None:
+        room_patch_match = re.fullmatch(r"/api/rooms/([^/]+)", path)
+        if room_patch_match:
+            user_id = str(getattr(self, "auth_user", "") or "")
+            status, payload = _patch_room(room_patch_match.group(1), body, user_id)
+            if status == 200:
+                self._log_audit(
+                    "room_updated",
+                    "room",
+                    room_patch_match.group(1),
+                    f"room={room_patch_match.group(1)}",
+                    {"changes": body},
+                )
+            self._json(status, payload)
+
+    def _route_pattern_patch_workspace_integrations(self, path: str, body: dict) -> None:
+        workspace_integrations_match = re.fullmatch(r"/api/workspace/([^/]+)/integrations", path)
+        if workspace_integrations_match:
+            user_id = str(getattr(self, "auth_user", "") or "")
+            ws_id = _resolve_wid(workspace_integrations_match.group(1))
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            status, payload = _patch_workspace_integrations(ws_id, body, user_id)
+            if status == 200:
+                self._log_audit(
+                    "workspace_integrations_updated",
+                    "workspace",
+                    ws_id,
+                    f"workspace={ws_id}",
+                    {"changes": list(body.keys())},
+                )
+            self._json(status, payload)
+
+    def _route_pattern_patch_workspace(self, path: str, body: dict) -> None:
+        workspace_patch_match = re.fullmatch(r"/api/workspace/([^/]+)", path)
+        if workspace_patch_match:
+            user_id = str(getattr(self, "auth_user", "") or "")
+            ws_id = _resolve_wid(workspace_patch_match.group(1))
+            if not ws_id:
+                self._json(404, {"ok": False, "error": "workspace_not_found"})
+                return
+            status, payload = _patch_workspace(ws_id, body, user_id)
+            if status == 200:
+                self._log_audit(
+                    "workspace_updated",
+                    "workspace",
+                    ws_id,
+                    f"workspace={ws_id}",
+                    {"changes": body},
+                )
+            self._json(status, payload)
+
     def _route_patch_me(self, body: dict) -> None:
         user_id = str(getattr(self, "auth_user", "") or "")
         if not user_id:
@@ -12058,759 +12840,6 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if route_registry.dispatch_pattern("POST", self, path, body=post_body):
                 return
-
-            if path.startswith("/api/me/oauth/") and path.endswith("/start"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 5 and parts[2] == "oauth" and parts[4] == "start":
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    provider_id = parts[3]
-                    workspace_id = str(body.get("workspace_id") or "")
-                    return self._json(200, start_user_oauth(user_id, provider_id, workspace_id))
-
-            if path.startswith("/api/me/providers/") and path.endswith("/disconnect"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 5 and parts[2] == "providers" and parts[4] == "disconnect":
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    return self._json(200, disconnect_user_provider(user_id, parts[3]))
-
-            # --- Credential management (Sprint D) ---
-            if path.startswith("/api/workspace/") and path.endswith("/credentials/store"):
-                # POST /api/workspace/:wid/credentials/store
-                parts = path.strip("/").split("/")
-                if len(parts) >= 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    provider = str(body.get("provider", "")).strip().lower()
-                    api_key = str(body.get("api_key", "") or body.get("secret", "")).strip()
-                    label = str(body.get("label", "") or provider)
-                    if not provider or not api_key:
-                        return self._json(400, {"error": "provider and api_key required"})
-                    spec = _catalog_provider(provider)
-                    if not spec:
-                        return self._json(400, {"error": "provider_not_found"})
-                    if spec.get("user_only"):
-                        return self._json(403, {"ok": False, "error": "provider_user_only"})
-                    env_var = str(spec.get("env_var") or _default_credential_env_var(provider, "api_key"))
-                    try:
-                        payload = _store_workspace_credential(
-                            ws_id,
-                            provider,
-                            "api_key",
-                            api_key,
-                            env_var,
-                            label,
-                            str(getattr(self, "auth_user", "") or ""),
-                        )
-                    except ValueError as exc:
-                        return self._json(400, {"error": str(exc)})
-                    cred_id = str(payload["credential_id"])
-                    self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
-                    try:
-                        _bootstrap_model_after_llm_connect("", ws_id, provider)
-                    except (OSError, RuntimeError, ValueError) as exc:
-                        _log_handler_error("POST workspace credentials/store bootstrap", exc)
-                    if str(spec.get("category") or "") == "messaging":
-                        sync_result = _sync_workspace_messaging_gateway(ws_id)
-                        if not sync_result.get("ok"):
-                            return self._json(500, {"ok": False, "error": sync_result.get("error") or "messaging_sync_failed"})
-                    return self._json(200, {"ok": True, "credential_id": cred_id, "credential_ref": payload["credential_ref"]})
-
-            if path.startswith("/api/workspace/") and "/credentials/" in path and path.endswith("/revoke"):
-                # POST /api/workspace/:wid/credentials/:bindingId/revoke
-                parts = path.strip("/").split("/")
-                if len(parts) >= 5:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    binding_id = parts[4]
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        row = conn.execute(
-                            "SELECT provider FROM credential_bindings WHERE id = ? AND workspace_id = ?",
-                            (binding_id, ws_id),
-                        ).fetchone()
-                        provider = str(row["provider"] or "").strip().lower() if row else ""
-                        cur = conn.execute(
-                            "UPDATE credential_bindings SET is_active = 0, updated_at = ? WHERE id = ? AND workspace_id = ?",
-                            (str(int(time.time())), binding_id, ws_id),
-                        )
-                        conn.commit()
-                        affected = cur.rowcount
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    if not affected:
-                        return self._json(404, {"error": "credential_not_found"})
-                    self._log_audit("credential_revoked", "credential_binding", binding_id, f"workspace={ws_id}")
-                    spec = _catalog_provider(provider)
-                    if spec and str(spec.get("category") or "") == "messaging":
-                        sync_result = _sync_workspace_messaging_gateway(ws_id)
-                        if not sync_result.get("ok"):
-                            return self._json(500, {"ok": False, "error": sync_result.get("error") or "messaging_sync_failed"})
-                    return self._json(200, {"ok": True, "credential_id": binding_id, "status": "revoked"})
-
-            # --- Credential listing (workspace / user / agent-profile) ---
-
-            # GET /api/workspace/:wid/credentials
-            if path.startswith("/api/workspace") and path.endswith("/credentials") and self.command == "GET":
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    try:
-                        conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        rows = conn.execute(
-                            """SELECT id, workspace_id, user_id, agent_profile_id, provider,
-                                      credential_type, credential_ref, label, is_active,
-                                      expires_at, created_by, created_at, updated_at
-                               FROM credential_bindings
-                               WHERE workspace_id = ? AND deleted_at IS NULL
-                               ORDER BY created_at DESC""",
-                            (ws_id,),
-                        ).fetchall()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"ok": False, "error": str(exc)})
-                    return self._json(200, {
-                        "ok": True,
-                        "scope": "workspace",
-                        "workspace_id": ws_id,
-                        "credentials": [dict(r) for r in rows],
-                    })
-
-            # GET /api/agents/:agentId/credentials â€” agent-profile-scoped credentials
-            if path.startswith("/api/agents/") and path.endswith("/credentials") and self.command == "GET":
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    agent_id = parts[2]
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    try:
-                        conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        rows = conn.execute(
-                            """SELECT id, workspace_id, user_id, agent_profile_id, provider,
-                                  credential_type, credential_ref, label, is_active,
-                                  expires_at, created_by, created_at, updated_at
-                           FROM credential_bindings
-                           WHERE agent_profile_id = ? AND deleted_at IS NULL
-                           ORDER BY created_at DESC""",
-                            (agent_id,),
-                        ).fetchall()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"ok": False, "error": str(exc)})
-                    return self._json(200, {
-                        "ok": True,
-                        "scope": "agent_profile",
-                        "agent_profile_id": agent_id,
-                        "credentials": [dict(r) for r in rows],
-                    })
-
-            # --- Sprint F: Room APIs (POST) ---
-            if path.startswith("/api/workspace/") and path.endswith("/rooms"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    created_by = str(getattr(self, "auth_user", "") or "")
-                    if not _handler_is_active_workspace_member(self, ws_id):
-                        return self._json(403, {"ok": False, "error": "forbidden", "required_role": "workspace_member"})
-                    status, payload = _create_room(ws_id, body, created_by)
-                    if status == 201:
-                        self._log_audit("room_created", "room", payload["room"]["id"], f"name={payload['room']['name']}")
-                    return self._json(status, payload)
-
-            if path.startswith("/api/workspace/") and path.endswith("/rooms/create"):
-                parts = path.strip("/").split("/")
-                if len(parts) >= 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    name = str(body.get("name", "")).strip()
-                    slug = str(body.get("slug", "") or name.lower().replace(" ", "-")).strip()
-                    room_type = str(body.get("room_type", "channel")).strip()
-                    topic = str(body.get("topic", "")).strip()
-                    agent_id = str(body.get("agent_profile_id", "")).strip()
-                    if not name:
-                        return self._json(400, {"error": "name required"})
-                    rid = str(uuid.uuid4())
-                    now_ts = str(int(time.time()))
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.execute(
-                            "INSERT INTO rooms (id, workspace_id, agent_profile_id, name, slug, topic, room_type, status, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                            (rid, ws_id, agent_id or None, name, slug, topic, room_type, "active", getattr(self, "auth_user", ""), now_ts, now_ts),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("room_created", "room", rid, f"name={name}")
-                    return self._json(200, {"ok": True, "room_id": rid})
-
-            # --- Sprint F: Room membership (POST/DELETE) ---
-            if path.startswith("/api/rooms/") and path.endswith("/members"):
-                rid = path.strip("/").split("/")[-2]
-                actor_id = str(getattr(self, "auth_user", "") or "")
-                if not actor_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                if self.command == "POST":
-                    user_id_to_add = str(body.get("user_id", "")).strip()
-                    role = str(body.get("role", "member")).strip()
-                    if not user_id_to_add:
-                        return self._json(400, {"error": "user_id required"})
-                    mid = str(uuid.uuid4())
-                    now_ts = str(int(time.time()))
-                    try:
-                        conn = _workframe_db()
-                        if not _user_can_manage_room_members(conn, rid, actor_id):
-                            conn.close()
-                            return self._json(403, {"ok": False, "error": "forbidden"})
-                        conn.execute(
-                            "INSERT INTO room_memberships (id, room_id, user_id, role, status, joined_at, updated_at) VALUES (?,?,?,?,?,?,?)",
-                            (mid, rid, user_id_to_add, role, "active", now_ts, now_ts),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("room_member_added", "room_membership", mid, f"room={rid} user={user_id_to_add}")
-                    return self._json(200, {"ok": True, "membership_id": mid})
-                elif self.command == "DELETE":
-                    uid = qs.get("user_id", [None])[0]
-                    if not uid:
-                        return self._json(400, {"error": "user_id required"})
-                    try:
-                        conn = _workframe_db()
-                        if not _user_can_manage_room_members(conn, rid, actor_id):
-                            conn.close()
-                            return self._json(403, {"ok": False, "error": "forbidden"})
-                        conn.execute(
-                            "UPDATE room_memberships SET deleted_at = ?, status = 'removed' WHERE room_id = ? AND user_id = ?",
-                            (str(int(time.time())), rid, uid),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("room_member_removed", "room_membership", rid, f"user={uid}")
-                    return self._json(200, {"ok": True})
-
-            # --- Sprint F: Message APIs (POST) ---
-            if path.startswith("/api/rooms/") and path.endswith("/bind"):
-                rid = path.strip("/").split("/")[-2]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                try:
-                    return self._json(200, room_chat_bind(rid, body, user_id))
-                except ValueError as exc:
-                    err = str(exc)
-                    if "not_found" in err:
-                        return self._json(404, {"ok": False, "error": err})
-                    if "denied" in err or "forbidden" in err:
-                        return self._json(403, {"ok": False, "error": err})
-                    return self._json(400, {"ok": False, "error": err})
-
-            if path.startswith("/api/rooms/") and path.endswith("/sessions/activate"):
-                rid = path.strip("/").split("/")[-3]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                session_id = str(body.get("session_id", "")).strip()
-                template_prof = str(body.get("profile", "")).strip()
-                source_id = str(body.get("source_id") or "ui").strip() or "ui"
-                client_id = str(body.get("client_id") or "default").strip() or "default"
-                binding_version = _binding_version(body.get("binding_version"))
-                if not session_id:
-                    return self._json(400, {"error": "session_id required"})
-                try:
-                    payload = profile_chat_activate_room_session(
-                        rid,
-                        session_id,
-                        user_id,
-                        template_prof,
-                        source_id=source_id,
-                        client_id=client_id,
-                        binding_version=binding_version,
-                    )
-                except ValueError as exc:
-                    err = str(exc)
-                    if "not_found" in err:
-                        return self._json(404, {"ok": False, "error": err})
-                    if "denied" in err:
-                        return self._json(403, {"ok": False, "error": err})
-                    return self._json(400, {"ok": False, "error": err})
-                return self._json(200, payload)
-
-            if path.startswith("/api/rooms/") and path.endswith("/messages/send"):
-                slug_or_id = path.strip("/").split("/")[-3]
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                sender_agent = str(body.get("sender_agent_id", "")).strip()
-                content = str(body.get("content", "")).strip()
-                content_type = str(body.get("content_type", "text")).strip()
-                parent_id = str(body.get("parent_message_id", "") or None)
-                if not content:
-                    return self._json(400, {"error": "content required"})
-                try:
-                    conn = _workframe_db()
-                    room = conn.execute(
-                        """
-                        SELECT id, workspace_id, room_type, agent_profile_id
-                        FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL
-                        """,
-                        (slug_or_id, slug_or_id),
-                    ).fetchone()
-                    if not room:
-                        conn.close()
-                        return self._json(404, {"error": "room_not_found"})
-                    rid = str(room["id"])
-                    workspace_id = str(room["workspace_id"])
-                    if not _user_can_access_room(conn, rid, user_id):
-                        conn.close()
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    if sender_agent:
-                        sender_user = ""
-                        agent_member = conn.execute(
-                            """
-                            SELECT 1 FROM room_memberships
-                            WHERE room_id = ? AND agent_profile_id = ? AND deleted_at IS NULL
-                            """,
-                            (rid, sender_agent),
-                        ).fetchone()
-                        if not agent_member:
-                            conn.close()
-                            return self._json(403, {"ok": False, "error": "agent_not_in_room"})
-                    else:
-                        sender_user = str(body.get("sender_user_id", "") or user_id).strip()
-                        if sender_user != user_id:
-                            conn.close()
-                            return self._json(403, {"ok": False, "error": "forbidden"})
-                    mid = str(uuid.uuid4())
-                    now_ts = str(int(time.time()))
-                    conn.execute(
-                        "INSERT INTO messages (id, room_id, sender_user_id, sender_agent_id, parent_message_id, content, content_type, is_edited, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                        (mid, rid, sender_user or None, sender_agent or None, parent_id, content, content_type, 0, now_ts, now_ts),
-                    )
-                    conn.execute("UPDATE rooms SET updated_at = ? WHERE id = ?", (now_ts, rid))
-                    mention_meta: dict[str, Any] = {}
-                    if _is_space_room(str(room["room_type"]), room["agent_profile_id"]) and not sender_agent:
-                        invoke_agents = body.get("invoke_agents", True)
-                        if isinstance(invoke_agents, str):
-                            invoke_agents = invoke_agents.lower() not in ("0", "false", "no")
-                        mention_meta = _process_space_message_mentions(
-                            rid,
-                            workspace_id,
-                            user_id,
-                            content,
-                            mid,
-                            invoke_agents=bool(invoke_agents),
-                        )
-                    conn.commit()
-                    conn.close()
-                except sqlite3.Error as exc:
-                    return self._json(500, {"error": f"db_error: {exc}"})
-                self._log_audit("message_sent", "message", mid, f"room={rid}")
-                return self._json(200, {"ok": True, "message_id": mid, **mention_meta})
-
-            # --- Sprint H: Invites (POST) ---
-            if path.startswith("/api/workspace/") and path.endswith("/invites"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                    email = str(body.get("email", "")).strip()
-                    role = str(body.get("role", "member")).strip()
-                    if not email:
-                        return self._json(400, {"error": "email required"})
-                    invite_id = str(uuid.uuid4())
-                    token = secrets.token_hex(32)
-                    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-                    now_ts = str(int(time.time()))
-                    expires_at = str(int(time.time()) + 86400 * 7)
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.execute(
-                            "INSERT INTO workspace_invites (id, workspace_id, email, role, token_hash, invited_by_user_id, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?)",
-                            (invite_id, ws_id, email, role, token_hash, getattr(self, "auth_user", ""), expires_at, now_ts),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    invite_url = f"{APP_BASE_URL}/?invite_token={urllib.parse.quote(token)}&email={urllib.parse.quote(email)}"
-                    email_sent = False
-                    email_error = None
-                    ws_name = ws_id
-                    logo_url = ""
-                    try:
-                        conn = sqlite3.connect(str(_workframe_db_path()), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        ws_row = conn.execute(
-                            "SELECT display_name, avatar_url FROM workspaces WHERE id = ?",
-                            (ws_id,),
-                        ).fetchone()
-                        conn.close()
-                        if ws_row:
-                            ws_name = str(ws_row["display_name"] or ws_id)
-                            logo_url = str(ws_row["avatar_url"] or "")
-                    except sqlite3.Error:
-                        pass
-                    try:
-                        send_branded_invite_email(email, ws_name, invite_url, logo_url)
-                        email_sent = True
-                    except Exception as exc:
-                        email_error = str(exc)
-                    self._log_audit("invite_created", "workspace_invite", invite_id, f"workspace={ws_id} email={email}")
-                    payload = {"ok": True, "invite_id": invite_id, "token": token, "email": email, "role": role, "expires_at": expires_at, "invite_url": invite_url, "email_sent": email_sent}
-                    if email_error:
-                        payload["email_error"] = email_error
-                    return self._json(201, payload)
-
-            if path.startswith("/api/invites/") and path.endswith("/accept"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4 and parts[3] == "accept":
-                    token = parts[2]
-                    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        if DEV_LOCAL_UNSAFE:
-                            user_id = "dev"
-                        else:
-                            return self._json(401, {"ok": False, "error": "no_authenticated_user"})
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        inv = conn.execute(
-                            "SELECT * FROM workspace_invites WHERE token_hash = ? AND deleted_at IS NULL AND accepted_at IS NULL",
-                            (token_hash,)).fetchone()
-                        if not inv:
-                            conn.close()
-                            return self._json(404, {"ok": False, "error": "invite_not_found_or_expired"})
-                        if int(inv["expires_at"]) < int(time.time()):
-                            conn.close()
-                            return self._json(410, {"ok": False, "error": "invite_expired"})
-                        wid = inv["workspace_id"]
-                        role = inv["role"]
-                        membership_id = str(uuid.uuid4())
-                        now_ts = str(int(time.time()))
-                        inviter_id = str(inv["invited_by_user_id"] or "").strip()
-                        existing = conn.execute(
-                            "SELECT id FROM workspace_memberships WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL",
-                            (wid, user_id)).fetchone()
-                        if existing:
-                            room_join = _onboard_workspace_member_rooms(
-                                conn,
-                                wid,
-                                user_id,
-                                inviter_user_id=inviter_id or None,
-                            )
-                            dm_room = _ensure_user_dm_room(conn, wid, user_id, inviter_id)
-                            conn.execute("UPDATE workspace_invites SET accepted_by_user_id = ?, accepted_at = ?, deleted_at = ? WHERE id = ?",
-                                         (user_id, now_ts, now_ts, inv["id"]))
-                            conn.commit()
-                            conn.close()
-                            _set_user_current_workspace(user_id, wid)
-                            return self._json(200, {"ok": True, "already_member": True, "workspace_id": wid, "room": room_join, "dm_room": dm_room})
-                        conn.execute(
-                            "INSERT INTO workspace_memberships (id, workspace_id, user_id, role, status, invited_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
-                            (membership_id, wid, user_id, role, "active", inv["invited_by_user_id"], now_ts, now_ts),
-                        )
-                        room_join = _onboard_workspace_member_rooms(
-                            conn,
-                            wid,
-                            user_id,
-                            inviter_user_id=inviter_id or None,
-                        )
-                        dm_room = _ensure_user_dm_room(conn, wid, user_id, inviter_id)
-                        conn.execute("UPDATE workspace_invites SET accepted_by_user_id = ?, accepted_at = ?, deleted_at = ? WHERE id = ?",
-                                     (user_id, now_ts, now_ts, inv["id"]))
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    _provision_invited_member_agent_runtimes(wid, user_id)
-                    _set_user_current_workspace(user_id, wid)
-                    self._log_audit("invite_accepted", "workspace_invite", inv["id"], f"workspace={wid} user={user_id}")
-                    return self._json(
-                        200,
-                        {
-                            "ok": True,
-                            "workspace_id": wid,
-                            "role": role,
-                            "membership_id": membership_id,
-                            "room": room_join,
-                            "dm_room": dm_room,
-                        },
-                    )
-
-            # --- Sprint H: Member management (POST/PATCH/DELETE) ---
-            if path.startswith("/api/workspace/") and path.endswith("/members"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if self.command == "POST":
-                        target_user_id = str(body.get("user_id", "") or body.get("email", "")).strip()
-                        role = str(body.get("role", "member")).strip()
-                        if not target_user_id:
-                            return self._json(400, {"ok": False, "error": "user_id required"})
-                        # Check if membership already exists
-                        try:
-                            db = _workframe_db()
-                            existing = db.execute("SELECT id FROM workspace_memberships WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL", (ws_id, target_user_id)).fetchone()
-                            db.close()
-                        except Exception:
-                            existing = None
-                        if existing:
-                            # Update existing membership
-                            status, payload = _patch_workspace_members(ws_id, {"user_id": target_user_id, "role": role}, self)
-                        else:
-                            # Create new membership
-                            mid = str(uuid.uuid4())
-                            now_ts = str(int(time.time()))
-                            try:
-                                db = _workframe_db()
-                                db.execute("INSERT INTO workspace_memberships (id, workspace_id, user_id, role, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?)", (mid, ws_id, target_user_id, role, "active", now_ts, now_ts))
-                                _onboard_workspace_member_rooms(db, ws_id, target_user_id)
-                                db.commit()
-                                db.close()
-                                status, payload = 200, {"ok": True, "membership_id": mid, "user_id": target_user_id, "role": role}
-                            except sqlite3.Error as exc:
-                                status, payload = 500, {"ok": False, "error": str(exc)}
-                        if status == 200:
-                            self._log_audit("workspace_member_added", "workspace_membership", f"{ws_id}/{target_user_id}", f"workspace={ws_id} user={target_user_id}")
-                        return self._json(status, payload)
-                    elif self.command == "PATCH":
-                        status, payload = _patch_workspace_members(ws_id, body, self)
-                        if status == 200:
-                            self._log_audit("workspace_member_updated", "workspace_membership", ws_id, f"workspace={ws_id}")
-                        return self._json(status, payload)
-                    elif self.command == "DELETE":
-                        target_user_id = str(body.get("user_id", "")).strip()
-                        if not target_user_id:
-                            return self._json(400, {"ok": False, "error": "user_id required"})
-                        status, payload = _patch_workspace_members(ws_id, {"user_id": target_user_id, "delete": True}, self)
-                        if status == 200:
-                            self._log_audit("workspace_member_removed", "workspace_membership", f"{ws_id}/{target_user_id}", f"workspace={ws_id} user={target_user_id}")
-                        return self._json(status, payload)
-
-            if path.startswith("/api/workspace/") and path.endswith("/kanban/tasks"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 5 and self.command == "POST":
-                    ws_id = _resolve_wid(parts[2])
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        payload = kanban_proxy_create_task(ws_id, user_id, body)
-                    except PermissionError as exc:
-                        return self._json(403, {"ok": False, "error": str(exc)})
-                    except ValueError as exc:
-                        return self._json(400, {"ok": False, "error": str(exc)})
-                    return self._json(201, payload)
-
-            if path.startswith("/api/workspace/") and path.endswith("/delegation-grants"):
-                parts = path.strip("/").split("/")
-                user_id = str(getattr(self, "auth_user", "") or "")
-                if not user_id:
-                    return self._json(401, {"ok": False, "error": "no_session"})
-                if len(parts) == 4 and self.command == "POST":
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    grantee_user_id = str(body.get("grantee_user_id") or "").strip()
-                    scope = str(body.get("scope") or DELEGATION_SCOPE_AGENTS_DELEGATE).strip()
-                    try:
-                        payload = create_delegation_grant(ws_id, user_id, grantee_user_id, scope=scope)
-                    except PermissionError as exc:
-                        return self._json(403, {"ok": False, "error": str(exc)})
-                    except ValueError as exc:
-                        return self._json(400, {"ok": False, "error": str(exc)})
-                    return self._json(201, payload)
-                if len(parts) == 5 and self.command == "DELETE":
-                    ws_id = _resolve_wid(parts[2])
-                    grant_id = parts[4]
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    try:
-                        payload = revoke_delegation_grant(ws_id, grant_id, user_id)
-                    except PermissionError as exc:
-                        return self._json(403, {"ok": False, "error": str(exc)})
-                    except ValueError as exc:
-                        return self._json(404, {"ok": False, "error": str(exc)})
-                    return self._json(200, payload)
-
-            if path.startswith("/api/workspace/") and path.endswith("/runtime-profiles/purge"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 5 and self.command == "POST":
-                    ws_id = _resolve_wid(parts[2])
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    if not user_id:
-                        return self._json(401, {"ok": False, "error": "no_session"})
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    conn = _workframe_db()
-                    try:
-                        role = _workspace_member_role(conn, ws_id, user_id)
-                    finally:
-                        conn.close()
-                    if role not in OWNER_ADMIN_ROLES:
-                        return self._json(403, {"ok": False, "error": "forbidden"})
-                    try:
-                        payload = purge_stale_runtime_profiles(ws_id)
-                    except ValueError as exc:
-                        return self._json(400, {"ok": False, "error": str(exc)})
-                    return self._json(200, payload)
-
-            # --- Sprint I: Memory (POST/DELETE) ---
-            if path.startswith("/api/workspace/") and path.endswith("/memory"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    content = str(body.get("content", "")).strip()
-                    if not content:
-                        return self._json(400, {"error": "content required"})
-                    agent_profile_id = str(body.get("agent_profile_id", "") or None)
-                    scope = str(body.get("scope", "workspace")).strip()
-                    room_id = str(body.get("room_id") or None) if body.get("room_id") else None
-                    user_id_mem = str(body.get("user_id") or None) if body.get("user_id") else None
-                    visibility = str(body.get("visibility", "shared")).strip()
-                    mem_id = str(uuid.uuid4())
-                    now_ts = str(int(time.time()))
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.execute(
-                            "INSERT INTO memory_items (id, workspace_id, agent_profile_id, scope, room_id, user_id, content, visibility, created_by_user_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                            (mem_id, ws_id, agent_profile_id, scope, room_id, user_id_mem, content, visibility, getattr(self, "auth_user", ""), now_ts, now_ts),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("memory_created", "memory_item", mem_id, f"workspace={ws_id} scope={scope}")
-                    return self._json(201, {"ok": True, "memory_id": mem_id})
-
-            if path.startswith("/api/memory/"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 3:
-                    mem_id = parts[2]
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.row_factory = sqlite3.Row
-                        item = conn.execute("SELECT * FROM memory_items WHERE id = ? AND deleted_at IS NULL", (mem_id,)).fetchone()
-                        if not item:
-                            conn.close()
-                            return self._json(404, {"error": "memory_not_found"})
-                        if not DEV_LOCAL_UNSAFE and str(item["created_by_user_id"]) != user_id:
-                            auth_role = str(getattr(self, "auth_role", ""))
-                            if auth_role not in OWNER_ADMIN_ROLES:
-                                conn.close()
-                                return self._json(403, {"error": "forbidden"})
-                        now_ts = str(int(time.time()))
-                        conn.execute("UPDATE memory_items SET deleted_at = ?, updated_at = ? WHERE id = ?", (now_ts, now_ts, mem_id))
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("memory_deleted", "memory_item", mem_id, f"user={user_id}")
-                    return self._json(200, {"ok": True, "memory_id": mem_id, "status": "deleted"})
-
-            # --- Sprint K: Budgets + Grants (POST) ---
-            if path.startswith("/api/workspace/") and path.endswith("/budget"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                    subject_type = str(body.get("subject_type", "workspace")).strip()
-                    subject_id = str(body.get("subject_id") or ws_id)
-                    provider = str(body.get("provider", "") or None)
-                    daily_limit = body.get("daily_limit_cents")
-                    monthly_limit = body.get("monthly_limit_cents")
-                    allowed_models = str(body.get("allowed_models", "") or None)
-                    now_ts = str(int(time.time()))
-                    policy_id = str(uuid.uuid4())
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.execute(
-                            "INSERT INTO budget_policies (id, workspace_id, subject_type, subject_id, provider, daily_limit_cents, monthly_limit_cents, allowed_models, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                            (policy_id, ws_id, subject_type, subject_id, provider, daily_limit, monthly_limit, allowed_models, now_ts, now_ts),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("budget_created", "budget_policy", policy_id, f"workspace={ws_id} subject={subject_type}")
-                    return self._json(201, {"ok": True, "budget_policy_id": policy_id})
-
-            if path.startswith("/api/workspace/") and path.endswith("/grants"):
-                parts = path.strip("/").split("/")
-                if len(parts) == 4:
-                    ws_id = _resolve_wid(parts[2])
-                    if not ws_id:
-                        return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                    if not _role_allows(self, OWNER_ADMIN_ROLES):
-                        return self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-                    credential_binding_id = str(body.get("credential_binding_id", "")).strip()
-                    if not credential_binding_id:
-                        return self._json(400, {"error": "credential_binding_id required"})
-                    grantee_type = str(body.get("grantee_type", "user")).strip()
-                    grantee_id = str(body.get("grantee_id", "")).strip()
-                    if not grantee_id:
-                        return self._json(400, {"error": "grantee_id required"})
-                    provider = str(body.get("provider", "") or None)
-                    max_daily = body.get("max_daily_cents")
-                    max_total = body.get("max_total_cents")
-                    allowed_models = str(body.get("allowed_models", "") or None)
-                    allowed_agent_ids = str(body.get("allowed_agent_profile_ids", "") or None)
-                    allowed_room_ids = str(body.get("allowed_room_ids", "") or None)
-                    expires_at = str(body.get("expires_at") or None) if body.get("expires_at") else None
-                    grant_id = str(uuid.uuid4())
-                    now_ts = str(int(time.time()))
-                    user_id = str(getattr(self, "auth_user", "") or "")
-                    try:
-                        conn = sqlite3.connect(str(AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-                        conn.execute(
-                            "INSERT INTO credential_grants (id, credential_binding_id, granted_by_user_id, grantee_type, grantee_id, provider, max_daily_cents, max_total_cents, allowed_models, allowed_agent_profile_ids, allowed_room_ids, expires_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                            (grant_id, credential_binding_id, user_id, grantee_type, grantee_id, provider, max_daily, max_total, allowed_models, allowed_agent_ids, allowed_room_ids, expires_at, now_ts),
-                        )
-                        conn.commit()
-                        conn.close()
-                    except sqlite3.Error as exc:
-                        return self._json(500, {"error": f"db_error: {exc}"})
-                    self._log_audit("grant_created", "credential_grant", grant_id, f"workspace={ws_id} grantee={grantee_type}:{grantee_id}")
-                    return self._json(201, {"ok": True, "grant_id": grant_id})
-
             if path in {
                 "/api/supervisor/v1/profile.start",
                 "/api/supervisor/v1/profile.stop",
@@ -12896,54 +12925,6 @@ class Handler(BaseHTTPRequestHandler):
                             {"workspace_id": ws_id, "changes": body},
                         )
                     return self._json(status, payload)
-
-            room_patch_match = re.fullmatch(r"/api/rooms/([^/]+)", path)
-            if room_patch_match:
-                user_id = str(getattr(self, "auth_user", "") or "")
-                status, payload = _patch_room(room_patch_match.group(1), body, user_id)
-                if status == 200:
-                    self._log_audit(
-                        "room_updated",
-                        "room",
-                        room_patch_match.group(1),
-                        f"room={room_patch_match.group(1)}",
-                        {"changes": body},
-                    )
-                return self._json(status, payload)
-
-            workspace_integrations_match = re.fullmatch(r"/api/workspace/([^/]+)/integrations", path)
-            if workspace_integrations_match:
-                user_id = str(getattr(self, "auth_user", "") or "")
-                ws_id = _resolve_wid(workspace_integrations_match.group(1))
-                if not ws_id:
-                    return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                status, payload = _patch_workspace_integrations(ws_id, body, user_id)
-                if status == 200:
-                    self._log_audit(
-                        "workspace_integrations_updated",
-                        "workspace",
-                        ws_id,
-                        f"workspace={ws_id}",
-                        {"changes": list(body.keys())},
-                    )
-                return self._json(status, payload)
-
-            workspace_patch_match = re.fullmatch(r"/api/workspace/([^/]+)", path)
-            if workspace_patch_match:
-                user_id = str(getattr(self, "auth_user", "") or "")
-                ws_id = _resolve_wid(workspace_patch_match.group(1))
-                if not ws_id:
-                    return self._json(404, {"ok": False, "error": "workspace_not_found"})
-                status, payload = _patch_workspace(ws_id, body, user_id)
-                if status == 200:
-                    self._log_audit(
-                        "workspace_updated",
-                        "workspace",
-                        ws_id,
-                        f"workspace={ws_id}",
-                        {"changes": body},
-                    )
-                return self._json(status, payload)
 
             return self._json(404, {"error": "not found"})
         except ValueError as exc:
