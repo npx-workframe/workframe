@@ -1,6 +1,6 @@
 # Handoff — Cosmetic UI lane (parallel)
 
-**Created:** 2026-07-05  
+**Created:** 2026-07-05 · **Updated:** 2026-07-07  
 **Owner:** Human + cosmetic-ui agent (parallel)  
 **Main track owner:** implementation agent (backlog → deferred, precise WF commits)
 
@@ -8,9 +8,11 @@
 
 Visual polish only — spacing, typography, colors, icons, glass/blur, scroll gutters, copy tone. **No behavior or API contract changes.**
 
-## Yes — work in parallel
+At this stage (2026-07-07) the lane is mostly **CSS refactoring and theme expansion** (e.g. blueprint theme, token architecture, canvas background layer) plus **minor global HTML adjustments** that are semantic and shared across all themes.
 
-Cosmetic UI is a **separate lane**. It does not block and should not be blocked by API/server/backlog commits on `main`, as long as you stay inside the boundaries below.
+## Yes — work in parallel on `main`
+
+Cosmetic UI is a **separate lane**. Multiple agents may commit to the same branch when each change is **surgical** — one visual concern per commit. Backend agents own API/server/ledger; UI agents own cosmetic `apps/web/` only. Lanes must not cross boundaries below.
 
 ## Boundaries (do not cross)
 
@@ -57,9 +59,9 @@ Do **not** restart Docker or copy to `MyBusiness/` unless the user asks — main
 
 ## Git discipline
 
-- Prefer a branch: `ui/cosmetic-<short-topic>`
-- Commits: `style(web): <what> (WF-036 cosmetic)` — one visual theme per commit
-- **Do not** mix functional fixes; if you need a behavior change, stop and hand back to main track
+- Same branch (`main`) is OK when commits stay surgical; optional branch: `ui/cosmetic-<short-topic>` for large sweeps
+- Commits: `style(web): <what> (WF-036 cosmetic)` — one visual theme or token pass per commit
+- **Do not** mix functional fixes; if you need a behavior change, stop and hand back to backend lane
 - Do not commit unless user asks (same rule as main agent)
 
 ## Merge etiquette
@@ -89,6 +91,11 @@ Append under **Cosmetic log** below: date, files touched, screenshots optional, 
 ---
 
 ## Cosmetic log
+
+**2026-07-07** — Theme architecture pass (WF-036 cosmetic, parallel with backend on `main`)
+- Added `blueprint` theme; `CanvasBackground` replaces atmosphere layer; `theme-architecture.css` token layout
+- Files: `apps/web/src/styles/**`, `apps/web/src/components/shell/CanvasBackground.tsx`, `theme.ts`, `themeOptions.ts`
+- Backend lane continued WF-032/API split in same push window — lane separation by path, not by branch
 
 **2026-07-05** — Theme consolidation (WF-036 cosmetic)
 - Kept `dark` + `neo` only; removed light, mono-light, mono-dark, brutal, architectonic (+ overrides)

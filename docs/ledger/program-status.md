@@ -22,9 +22,12 @@
 
 ---
 
-## Active constraints (Alan 2026-07-06)
+## Active constraints (Alan 2026-07-06, lanes clarified 2026-07-07)
 
-1. **NO UI changes** — `apps/web/` off limits; WF-036 / WF-012 excluded from push-to-deferred.
+1. **Parallel lanes on `main`** — multiple agents may work the same branch concurrently if each change is **surgical** (one concern per commit):
+   - **Backend lane** — `services/workframe-api/`, supervisor, route registry, run ledger, WF backlog items, API wiring. No cosmetic CSS sweeps.
+   - **UI lane** — cosmetic only: new themes, CSS/token refactors, palette contracts, global semantic HTML tweaks that apply across themes. No session/model/chat API wiring, no `server.py`, no ledger status edits.
+   - See [`handoffs/cosmetic-ui-lane.md`](handoffs/cosmetic-ui-lane.md) for boundaries and safe zones.
 2. **Verify-first** — grep/run evidence before patching; if acceptance met, backlog-only update.
 3. **Deferred stop line** — Stage **E+** only: WF-013…015, WF-029/030, WF-NS-P3…P8. **Stage D includes WF-NS-P2** (run ledger tables).
 4. **One WF per commit** when possible; no drive-by refactors.
@@ -62,7 +65,7 @@
 | WF-037 | Declarative route registry | done | **done** | `route_registry.py`; 55+44+4 exact + 62 pattern handlers; `test_route_registry.py` green; no `/api` if-chains in dispatch |
 | WF-032 | Split server.py monolith | partial | **partial** | 12 modules extracted; `server.py` ~12.2k lines (target ~3k) |
 | WF-035 | Exception hygiene (auth/vault) | partial | **partial** | Auth/vault `_route_*` paths; broad sweep remains |
-| WF-036 | Frontend decomposition | partial | **partial (deferred lane)** | UI/CSS changes on branch; **cancelled** for current push — do not mix with harness work. |
+| WF-036 | Frontend decomposition | partial | **partial (UI lane)** | Theme/CSS expansion active (blueprint, token architecture, canvas background). Backend lane must not mix cosmetic sweeps. |
 
 ### Stage C — secure multi-user ⏳ QUEUED
 
@@ -108,7 +111,7 @@ Meta todo: WF-SK-001 (spec-kit). WF-040 **done** (2026-07-06).
 | release-truth | 99ca9676 | WF-006/019/020/004 | **Stage A closed** — verify scripts + evidence JSON green |
 | api-decompose | 2218d43e | WF-037/032/035 | **WF-037 partial** — registry + tests; server split not started |
 | domain-design | 5aaa78c1 | WF-039, glossary, WF-010 | **COMPLETE** |
-| frontend | 35ba1396 | WF-036 | **CANCELLED** (no UI constraint) |
+| frontend | 35ba1396 | WF-036 | **ACTIVE** — cosmetic/themes lane (parallel with backend on `main`) |
 | doc-audit | (this run) | program-status | In progress |
 
 ---
@@ -143,7 +146,7 @@ Meta todo: WF-SK-001 (spec-kit). WF-040 **done** (2026-07-06).
 | WF-033 | done | done | `profile_config_yaml.py` | — |
 | WF-034 | done | done | `test_model_surface_consistency.py` | — |
 | WF-035 | todo | todo | — | After WF-032 |
-| WF-036 | partial | partial | large tsx files remain | **Deferred lane** — no UI this push |
+| WF-036 | partial | partial | theme/CSS refactor in flight | **UI lane** — cosmetic only; see cosmetic-ui handoff |
 | WF-037 | done | done | `route_registry.py` (103 exact + 62 pattern) | — |
 | WF-038 | done | done | workspace prune | — |
 | WF-039 | done | done | `domain/`, `test_domain_entities.py` | — |

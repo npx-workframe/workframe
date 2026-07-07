@@ -11,14 +11,20 @@
 3. **Backlog before code** — set `status: in_progress` when starting; `done` + `completed_at` when merged
 4. **Handoff** — use `handoff_steps` on the backlog item; agent reads item id only
 
-## Parallel lanes (2026-07-05)
+## Parallel lanes (2026-07-07)
+
+Multiple agents may share **`main`** when each makes **surgical** commits in its lane.
 
 | Lane | Owner | Scope | Backlog |
 |------|-------|-------|---------|
-| **Main** | implementation agent | API, session/model wiring, WF commits → deferred | WF-033 → WF-037 → WF-032 → … |
-| **Cosmetic UI** | separate agent / human | CSS, layout, copy only | WF-036 cosmetic slice — see `handoffs/cosmetic-ui-lane.md` |
+| **Backend** | implementation agent | API, supervisor, route registry, run ledger, WF items, wiring | WF-037 → WF-032 → WF-035 → Stage C/D |
+| **UI (cosmetic)** | separate agent / human | Themes, CSS/token refactors, palette contracts, global semantic HTML across themes — **no behavior or API wiring** | WF-036 cosmetic slice — `handoffs/cosmetic-ui-lane.md` |
 
-Cosmetic lane must not edit `server.py`, session/model files, or ledger status.
+**Backend lane** must not edit `apps/web/` except when a WF item explicitly requires it.
+
+**UI lane** must not edit `server.py`, session/model/chat wiring, or flip backlog/ledger status.
+
+Pull/rebase before large sweeps; on conflict take backend logic and re-apply cosmetic classes only.
 
 ## Agent discipline (mandatory — Alan 2026-07-06)
 
@@ -30,7 +36,7 @@ Before any patch:
 2. **If acceptance already met** — update backlog only (`done` + `evidence` + `completed_at`). **No code changes.**
 3. **If partial** — smallest gap only; do not rewrite working paths.
 4. **No arbitrary changes** — no drive-by refactors, renames, or style sweeps outside the WF item.
-5. **No UI** — `apps/web/` off limits unless Alan explicitly re-opens it.
+5. **Stay in your lane** — backend agents do backend + wiring; UI agents do cosmetic CSS/themes/global semantic markup only (see parallel lanes above).
 6. **Report** — list what you verified, what was already done, what you actually changed.
 
 Quick truth checks (examples):
@@ -45,7 +51,7 @@ Quick truth checks (examples):
 
 ## Mission (2026-07-06): push to deferred threshold
 
-Complete **Stages A→D**; **do not** start Stage E items. **No UI changes** — `apps/web/` off limits; WF-036/WF-012 excluded from this push.
+Complete **Stages A→D**; **do not** start Stage E items. **Parallel lanes** on `main`: backend (API/ledger) and cosmetic UI (WF-036) — surgical commits only; see `handoffs/cosmetic-ui-lane.md`.
 
 | Stage | Items | Status | Lane |
 |-------|-------|--------|------|
