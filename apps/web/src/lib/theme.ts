@@ -1,8 +1,16 @@
-export type Theme = 'dark' | 'neo'
+export type Theme = 'dark' | 'neo' | 'blueprint'
+
+export type ChromeMode = 'line' | 'relief'
+
+const CHROME_MODE: Record<Theme, ChromeMode> = {
+  dark: 'line',
+  neo: 'relief',
+  blueprint: 'relief',
+}
 
 const STORAGE_KEY = 'wf-theme'
 
-const VALID_THEMES: Theme[] = ['dark', 'neo']
+const VALID_THEMES: Theme[] = ['dark', 'neo', 'blueprint']
 
 function readStoredTheme(): Theme | null {
   try {
@@ -22,9 +30,10 @@ export function getInitialTheme(): Theme {
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme
-  document.documentElement.style.colorScheme = theme === 'neo' ? 'light' : 'dark'
+  document.documentElement.dataset.chromeMode = CHROME_MODE[theme]
+  document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0A0A0F')
-  installNeoPressFeedback(theme === 'neo')
+  installNeoPressFeedback(theme === 'neo' || theme === 'blueprint')
 }
 
 let neoPressCleanup: (() => void) | undefined

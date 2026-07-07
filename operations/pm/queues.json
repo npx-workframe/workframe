@@ -10,7 +10,7 @@
       "agent": "push-wf037-wf032",
       "items": ["WF-037", "WF-032", "WF-035"],
       "status": "partial",
-      "notes": "WF-037 done (main). WF-032 Stage 1 done on lane-d-authority (6 commits, server −2938 lines). Stage 2/3 + WF-035 remain."
+      "notes": "WF-037 done (2026-07-07). WF-032 partial (doctor_runtime, api_meta). WF-035 partial."
     },
     {
       "id": "lane-c-broker",

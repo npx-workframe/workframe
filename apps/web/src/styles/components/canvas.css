@@ -1,0 +1,91 @@
+/* ── Canvas (layer 2: above body --wf-bg, below shell) ─────────────────────
+   Stack: gradient → orbs → overlay → grid (grid last). */
+
+.wf-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.wf-canvas__gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: var(--wf-bg);
+  background-image: var(--wf-bg-gradient);
+}
+
+.wf-canvas__orb {
+  position: absolute;
+  z-index: 2;
+  border-radius: 999px;
+  filter: blur(130px);
+  transform: translateZ(0);
+}
+
+.wf-canvas__orb--primary {
+  width: min(62vw, 920px);
+  height: min(78vh, 860px);
+  left: -260px;
+  top: -150px;
+  background: var(--wf-orb-primary);
+  opacity: var(--wf-orb-primary-opacity);
+}
+
+.wf-canvas__orb--secondary {
+  width: min(46vw, 760px);
+  height: min(56vh, 680px);
+  right: -240px;
+  top: 46vh;
+  background: var(--wf-orb-secondary);
+  opacity: var(--wf-orb-secondary-opacity);
+}
+
+.wf-canvas__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: var(--wf-overlay);
+}
+
+.wf-canvas__grid {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background-image: var(--wf-grid-image, none);
+  background-size: var(--wf-grid-tile) var(--wf-grid-tile);
+  background-position: 0 0;
+  image-rendering: pixelated;
+  mask-image: var(--wf-grid-mask, none);
+  -webkit-mask-image: var(--wf-grid-mask, none);
+}
+
+/* Moleskine line grid (--wf-grid-line + --wf-grid-tile; blueprint). */
+[data-theme='blueprint'] .wf-canvas__grid,
+[data-theme='blueprint'] .wf-workspace-shell {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--wf-grid-line) 0,
+      var(--wf-grid-line) 1px,
+      transparent 1px,
+      transparent var(--wf-grid-tile)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--wf-grid-line) 0,
+      var(--wf-grid-line) 1px,
+      transparent 1px,
+      transparent var(--wf-grid-tile)
+    );
+  background-size: var(--wf-grid-tile) var(--wf-grid-tile);
+  image-rendering: auto;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+[data-theme='blueprint'] .wf-workspace-shell {
+  background-color: var(--wf-bg);
+}

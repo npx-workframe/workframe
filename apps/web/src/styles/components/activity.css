@@ -60,7 +60,7 @@
   box-sizing: border-box;
   min-height: 0;
   padding-block: var(--wf-gap-tight);
-  padding-inline: var(--wf-space-1) var(--wf-gap-tight);
+  padding-inline: var(--wf-space-2) var(--wf-gap-tight);
   border-width: var(--wf-control-border-width);
   border-style: var(--wf-control-border-style);
   border-color: var(--wf-control-border-color);
@@ -84,6 +84,7 @@
 
 .wf-activity-tree__row--child {
   padding-block: var(--wf-gap-tight);
+  padding-inline-start: var(--wf-space-1);
 }
 
 .wf-activity-tree__row--group {
@@ -219,6 +220,14 @@
   gap: 3px;
   min-width: 0;
   max-width: 100%;
+}
+
+.wf-activity-tree__tool-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
 }
 
 .wf-activity-tree__tool-icon {

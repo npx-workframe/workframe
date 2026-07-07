@@ -11,7 +11,9 @@ Also: [START_HERE.md](START_HERE.md) — repo map, environments, cascade.
 2. **Dogfood preview** — build, sync installer, restart local `MyBusiness` Docker to see it live.
 3. **Publish** — bump, sync, bundle, `npm publish`; new installs get it.
 
-Full commands and anti-patterns: Cursor skill `workframe-release` (`.cursor/skills/workframe-release/SKILL.md`).
+Full commands and anti-patterns: Cursor skill `workframe-release` (`d:/ab/.cursor/skills/workframe-release/SKILL.md`).
+
+**Before dogfood sync, docker restart on MyBusiness, publish, or any touch of `workframe-api/data/`:** read that skill first (rule: `workframe-release-triggers`). **Banned:** `robocopy /MIR`, full-tree copy into an install, improvised rsync/scp hotfix.
 
 ## Source Hierarchy
 

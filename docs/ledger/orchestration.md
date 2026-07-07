@@ -50,8 +50,8 @@ Complete **Stages A→D**; **do not** start Stage E items. **No UI changes** —
 | Stage | Items | Status | Lane |
 |-------|-------|--------|------|
 | **A** release-truth | WF-006, WF-019, WF-020, WF-004 | **done** | release-truth subagent (commits 2a16df8, 9a06d88) |
-| **B** decompose | WF-037, WF-032, WF-035 (API only) | **in flight** | api-decompose subagent |
-| **C** secure multi | WF-026→028→027→011→025→017 | queued | broker-secure (after WF-037) |
+| **B** decompose | WF-037, WF-032, WF-035 (API only) | **in flight** (WF-037 done 2026-07-07) | api-decompose subagent |
+| **C** secure multi | WF-026→028→027→011→025→017 | queued | broker-secure |
 | **D** authority | WF-039→009→NS-P2→016→007, WF-008, WF-010 | queued | domain-design + authority-impl |
 | **E** platform | deferred IDs | **STOP** | — |
 
@@ -64,8 +64,8 @@ Complete **Stages A→D**; **do not** start Stage E items. **No UI changes** —
 | A1 | WF-031 security | — | **done** |
 | A2 | WF-034 tests, WF-033 yaml writer, WF-038 prune | yes | **done** |
 | A3 | WF-006, WF-019, WF-020, WF-004 | yes | **done** |
-| B1 | WF-037 route registry | after A2 | **partial** (verified 2026-07-06: dispatch ok; frozensets + if-chains + auth enum gap) |
-| B2 | WF-032 server split | after WF-037 | **queued** (Stage 1 modules not started; server ~19k lines) |
+| B1 | WF-037 route registry | after A2 | **done** (2026-07-07: full registry dispatch; test_route_registry.py) |
+| B2 | WF-032 server split | after WF-037 | **partial** (doctor_runtime, api_meta extracted; server ~11k lines) |
 
 ## Commit queue (this session)
 

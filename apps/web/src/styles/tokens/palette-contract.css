@@ -4,9 +4,12 @@
 /* Palette: --wf-violet, --wf-violet-glow, --wf-cyan, --wf-mint, --wf-ring
    Surfaces: --wf-bg, --wf-text, --wf-muted, --wf-border, --wf-border-strong,
              --wf-surface, --wf-surface-soft, --wf-primary, --wf-primary-foreground
-   Atmosphere: --wf-bg-gradient, --wf-orb-primary, --wf-orb-primary-opacity,
-               --wf-orb-secondary, --wf-orb-secondary-opacity, --wf-grid-tile,
-               --wf-grid-image, --wf-grid-mask, --wf-overlay
+   Body: --wf-bg on body (base.css)
+   Canvas (.wf-canvas): --wf-bg-gradient, orbs, grid, overlay — see theme-architecture.css
+   Chrome mode: --wf-chrome-mode (line | relief)
+   Relief tuning: --wf-relief-shadow-color, --wf-relief-shadow-alpha,
+                  --wf-relief-highlight-color, --wf-relief-highlight-alpha
+   Workspace fill: --wf-workspace-chrome-fill (transparent on blueprint panels)
    Notices: --wf-notice-fg, --wf-notice-muted, --wf-notice-border, --wf-notice-bg,
             --wf-notice-info-bg, --wf-notice-info-border, --wf-status-fg
    Status: --wf-error, --wf-error-soft, --wf-success, --wf-warning

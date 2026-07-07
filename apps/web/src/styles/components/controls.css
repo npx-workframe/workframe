@@ -1,7 +1,6 @@
 /* ── Shared interactive control chrome (rail, navigator, activity, wizard nav) ─ */
 
 :is(
-  .wf-agent-rail__item,
   .wf-agent-rail__toggle,
   .wf-agent-rail__section-action--icon,
   .wf-browser-tabs__close,
@@ -33,7 +32,6 @@
 }
 
 :is(
-  .wf-agent-rail__item,
   .wf-file-tree__row,
   .wf-activity-tree__row--clickable,
   .wf-activity-tree__row--group,
@@ -68,7 +66,6 @@
 }
 
 :is(
-  .wf-agent-rail__item--active,
   .wf-file-tree__row--selected,
   .wf-activity-tree__row--active,
   .wf-popover__row[data-selected='true'],
@@ -95,7 +92,6 @@
 }
 
 :is(
-  .wf-agent-rail__item--active,
   .wf-file-tree__row--selected,
   .wf-activity-tree__row--active,
   .wf-popover__row[data-selected='true'],
@@ -114,15 +110,11 @@
   box-shadow: var(--wf-control-shadow-active);
 }
 
-.wf-onboarding-wizard__steps li:not(.is-clickable):not(.is-current) .wf-onboarding-wizard__step-btn,
-.wf-agent-rail__item:disabled,
-.wf-agent-rail__item[aria-disabled='true'] {
+.wf-onboarding-wizard__steps li:not(.is-clickable):not(.is-current) .wf-onboarding-wizard__step-btn {
   color: var(--wf-control-fg-inactive);
 }
 
-.wf-onboarding-wizard__steps li:not(.is-clickable):not(.is-current) .wf-onboarding-wizard__step-btn:hover,
-.wf-agent-rail__item:disabled:hover,
-.wf-agent-rail__item[aria-disabled='true']:hover {
+.wf-onboarding-wizard__steps li:not(.is-clickable):not(.is-current) .wf-onboarding-wizard__step-btn:hover {
   background: var(--wf-control-bg);
   border-color: var(--wf-control-border-color-inactive);
   box-shadow: var(--wf-control-shadow);

@@ -134,6 +134,9 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/hermes/profiles/stop", AuthLevel.SESSION, "_route_post_hermes_profiles_stop"),
     Route("POST", "/api/hermes/profiles/delete", AuthLevel.SESSION, "_route_post_hermes_profiles_delete"),
     Route("POST", "/api/hermes/profiles/disable", AuthLevel.SESSION, "_route_post_hermes_profiles_disable"),
+    Route("POST", "/api/supervisor/v1/profile.start", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_supervisor_profile_start"),
+    Route("POST", "/api/supervisor/v1/profile.stop", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_supervisor_profile_stop"),
+    Route("POST", "/api/supervisor/v1/profile.disable", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_supervisor_profile_disable"),
     # --- owner/admin POST ---
     Route("POST", "/api/admin/updates/apply", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_admin_updates_apply"),
     Route("POST", "/api/admin/stack/restart-gateway", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_admin_stack_restart_gateway"),
@@ -212,6 +215,7 @@ _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     ("PATCH", r"^/api/hermes/profiles/[^/]+$", "/api/hermes/profiles/{slug}", AuthLevel.SESSION, False, False, "_route_pattern_patch_hermes_profile"),
     ("PATCH", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_patch_room"),
     ("PATCH", r"^/api/workspace/[^/]+/integrations$", "/api/workspace/{id}/integrations", AuthLevel.SESSION, False, False, "_route_pattern_patch_workspace_integrations"),
+    ("PATCH", r"^/api/workspace/[^/]+/members$", "/api/workspace/{id}/members", AuthLevel.SESSION, False, False, "_route_pattern_patch_workspace_members"),
     ("PATCH", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False, "_route_pattern_patch_workspace"),
     ("DELETE", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_room"),
     ("DELETE", r"^/api/memory/[^/]+$", "/api/memory/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_memory"),

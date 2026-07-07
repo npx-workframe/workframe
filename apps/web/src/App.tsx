@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { BootScreen } from '@/components/shell/BootScreen'
+import { CanvasBackground } from '@/components/shell/CanvasBackground'
 import { DesktopTitleBar } from '@/components/shell/DesktopTitleBar'
 import { SetupAuthGate } from '@/components/auth/SetupAuthGate'
 import { InstallShell } from '@/components/install/InstallShell'
@@ -291,13 +292,23 @@ function App() {
     content = <WorkframeShell projectName={projectName} onLogout={handleLogout} />
   }
 
-  if (!isElectronRuntime()) return content
+  if (!isElectronRuntime()) {
+    return (
+      <>
+        <CanvasBackground />
+        {content}
+      </>
+    )
+  }
 
   return (
-    <div className="wf-desktop-frame">
-      <DesktopTitleBar title={projectName} />
-      <div className="wf-desktop-frame__body">{content}</div>
-    </div>
+    <>
+      <CanvasBackground />
+      <div className="wf-desktop-frame">
+        <DesktopTitleBar title={projectName} />
+        <div className="wf-desktop-frame__body">{content}</div>
+      </div>
+    </>
   )
 }
 

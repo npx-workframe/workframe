@@ -2,6 +2,7 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
+  --wf-chrome-mode: line;
 
   --wf-violet: #6d28d9;
   --wf-violet-glow: #7c3aed;

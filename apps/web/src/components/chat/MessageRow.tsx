@@ -119,10 +119,17 @@ export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: Me
           />
         ) : null}
         <div className="wf-message__meta">
-          <span className="wf-message__author">{message.authorName}</span>
-          <time className="wf-message__time" dateTime={message.timestamp}>
-            {formatRelativeTime(message.timestamp)}
-          </time>
+          <div className="wf-message__meta-primary">
+            <span className="wf-message__author">{message.authorName}</span>
+            <time className="wf-message__time" dateTime={message.timestamp}>
+              {formatRelativeTime(message.timestamp)}
+            </time>
+          </div>
+          {modelAttribution ? (
+            <span className="wf-message__attribution" title={message.modelId ?? modelAttribution}>
+              {modelAttribution}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -138,22 +145,15 @@ export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: Me
         ))}
       </div>
 
-      {(canReply && onReplyToAgent) || modelAttribution ? (
+      {canReply && onReplyToAgent ? (
         <div className="wf-message__footer">
-          {modelAttribution ? (
-            <span className="wf-message__attribution" title={message.modelId ?? modelAttribution}>
-              {modelAttribution}
-            </span>
-          ) : null}
-          {canReply && onReplyToAgent ? (
-            <button
-              type="button"
-              className="wf-message__reply"
-              onClick={() => onReplyToAgent(message.authorId)}
-            >
-              Reply
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="wf-message__reply"
+            onClick={() => onReplyToAgent(message.authorId)}
+          >
+            Reply
+          </button>
         </div>
       ) : null}
     </article>

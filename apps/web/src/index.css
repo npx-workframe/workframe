@@ -8,6 +8,7 @@
 /* ── Themes (palette + feel per data-theme) ─────────────────────────────── */
 @import './styles/themes/dark.css';
 @import './styles/themes/neo.css';
+@import './styles/themes/blueprint.css';
 
 /* ── Content / vendor adapters ──────────────────────────────────────────── */
 @import './styles/highlight-themes.css';
@@ -20,7 +21,7 @@
 @import './styles/components/base.css';
 @import './styles/components/controls.css';
 @import './styles/components/action-btn.css';
-@import './styles/components/atmosphere.css';
+@import './styles/components/canvas.css';
 @import './styles/components/shell.css';
 @import './styles/components/dockview.css';
 @import './styles/components/panel.css';

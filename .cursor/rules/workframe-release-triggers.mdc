@@ -1,0 +1,18 @@
+---
+description: Workframe ship/dogfood/publish — READ workframe-release skill FIRST; no improvised sync
+globs: services/workframe-api/**,apps/web/**,packages/create-workframe/**,operations/**
+alwaysApply: false
+---
+
+# Workframe release triggers
+
+**Before dogfood sync, docker restart on MyBusiness, publish, or install-gate: read** `d:/ab/.cursor/skills/workframe-release/SKILL.md` **first.**
+
+## Hard stops
+
+- No `robocopy /MIR` or full-tree copy into `../MyBusiness` or any install with `workframe-api/data/`.
+- No touching `MyBusiness/workframe-api/data/` without user explicit OK.
+- Wipe/reset only via `scripts/workframe/sign-off-install.ps1` or `reset-dogfood-docker.ps1 -Confirm` when user asks.
+- Source only: `services/workframe-api/`, `apps/web/src/` — then build → sync-canonical → bundle per skill.
+
+See also: workspace rule `workframe-release-triggers` (MyBusiness paths), `workframe-environments`, `workframe-installer-mirror`.

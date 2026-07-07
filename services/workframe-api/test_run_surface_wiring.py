@@ -12,25 +12,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import run_ledger  # noqa: E402
 import run_surface_wiring  # noqa: E402
+import server  # noqa: E402
 from domain.entities import RunSurface  # noqa: E402
+
+
+def _use_tmp_db(tmp: str) -> Path:
+    db_path = Path(tmp) / "workframe.db"
+    data = Path(tmp)
+    os.environ["WORKFRAME_API_DATA_DIR"] = tmp
+    server.DATA_DIR = data
+    server.AUTH_DB_PATH = data / "auth.db"
+    run_ledger.DATA_DIR = data
+    run_ledger.WORKFRAME_DB = db_path
+    run_ledger._SCHEMA_READY.clear()
+    return db_path
 
 
 def test_slash_audit_run_no_gate() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        db_path = Path(tmp) / "workframe.db"
-        os.environ["WORKFRAME_API_DATA_DIR"] = tmp
-        run_ledger.WORKFRAME_DB = db_path
-        run_ledger._SCHEMA_READY.clear()
+        _use_tmp_db(tmp)
         assert run_surface_wiring.slash_requires_authority("help") is False
         assert run_surface_wiring.slash_requires_authority("chat") is True
 
 
 def test_record_automated_cron() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        db_path = Path(tmp) / "workframe.db"
-        os.environ["WORKFRAME_API_DATA_DIR"] = tmp
-        run_ledger.WORKFRAME_DB = db_path
-        run_ledger._SCHEMA_READY.clear()
+        db_path = _use_tmp_db(tmp)
         run_ledger.ensure_schema()
         result = run_surface_wiring.record_automated_surface_run(
             {
@@ -54,7 +61,28 @@ def test_record_automated_cron() -> None:
         assert row["surface"] == RunSurface.CRON.value
 
 
+def test_record_automated_webhook() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        _use_tmp_db(tmp)
+        run_ledger.ensure_schema()
+        result = run_surface_wiring.record_automated_surface_run(
+            {
+                "surface": "webhook",
+                "profile_slug": "u-test-dev",
+                "triggering_user_id": "user-1",
+                "workspace_id": "ws-1",
+                "actor_id": "webhook:github",
+                "event_type": "webhook.received",
+                "provider": "openrouter",
+                "payload": {"source": "github"},
+            }
+        )
+        assert result["ok"] is True
+        assert result["surface"] == RunSurface.WEBHOOK.value
+
+
 if __name__ == "__main__":
     test_slash_audit_run_no_gate()
     test_record_automated_cron()
+    test_record_automated_webhook()
     print("test_run_surface_wiring ok")

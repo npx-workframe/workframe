@@ -187,7 +187,9 @@ function ActivityToolLine({
   const Icon = toolIconFor(tool.toolName)
   return (
     <span className={cn('wf-activity-tree__tool-line', className)} title={tool.text}>
-      <Icon className="wf-activity-tree__tool-icon" aria-hidden="true" />
+      <span className="wf-activity-tree__tool-icon-wrap" aria-hidden="true">
+        <Icon className="wf-activity-tree__tool-icon" />
+      </span>
       <span className="wf-activity-tree__tool-text">{tool.text}</span>
     </span>
   )

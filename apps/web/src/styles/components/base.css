@@ -12,10 +12,16 @@ body,
   min-height: 100%;
 }
 
+#root {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Layer 1 — solid base; gradient/grid live on .wf-canvas (canvas.css). */
 body {
   margin: 0;
   overflow-x: hidden;
-  background: var(--wf-bg-gradient);
+  background-color: var(--wf-bg);
   color: var(--wf-text);
   font-family: var(--wf-font-sans);
   -webkit-font-smoothing: antialiased;

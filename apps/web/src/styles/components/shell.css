@@ -1,8 +1,9 @@
-/* ── App shell (BEM chrome) ──────────────────────────────────────────────── */
+/* ── App shell (layer 3 — transparent; canvas shows through) ─────────────── */
 
 .wf-shell {
   position: relative;
   z-index: 1;
+  background: transparent;
   min-height: 100dvh;
   display: grid;
   grid-template-rows: var(--wf-header-height) 1fr var(--wf-footer-height);
@@ -22,10 +23,12 @@
 .wf-desktop-frame {
   display: grid;
   grid-template-rows: var(--wf-desktop-titlebar-height) minmax(0, 1fr);
+  position: relative;
+  z-index: 1;
   height: 100dvh;
   min-height: 100dvh;
   overflow: hidden;
-  background: var(--wf-bg);
+  background: transparent;
 }
 
 .wf-desktop-frame__body {
@@ -366,6 +369,7 @@
 
 .wf-shell__main {
   position: relative;
+  background: transparent;
   padding: clamp(20px, 4vw, 48px);
 }
 

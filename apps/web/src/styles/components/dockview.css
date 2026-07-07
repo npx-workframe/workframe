@@ -35,10 +35,6 @@
   border-right: none;
 }
 
-.wf-rail-fallback .wf-agent-rail {
-  padding-top: var(--wf-gap);
-}
-
 .wf-workspace {
   height: 100%;
   min-height: 0;

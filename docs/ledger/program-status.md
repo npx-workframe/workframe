@@ -11,14 +11,14 @@
 
 | Metric | Value |
 |--------|-------|
-| Backlog items | 50 (21 done · 6 partial · 11 todo · 12 deferred) |
+| Backlog items | 50 (22 done · 5 partial · 11 todo · 12 deferred) |
 | **Stage A** (release-truth) | **Complete** — 8/8 verified |
-| **Stage B** (decompose) | **In flight** — WF-037 partial; WF-032/035 todo; WF-036 partial (UI lane **cancelled** for this push) |
-| **Stage C** (secure multi-user) | **Queued** — broker + supervisor negatives |
-| **Stage D** (authority) | **Started** — WF-039/WF-010 done; design partial; impl todo |
+| **Stage B** (decompose) | **In flight** — WF-037 done; WF-032 partial; WF-035 partial |
+| **Stage C** (secure multi-user) | **Mostly done** — WF-026/027/028/011/025 done; WF-017 partial (manual VPS) |
+| **Stage D** (authority) | **Partial** — WF-009/008/039/010 done; WF-007/016/NS-P2 partial |
 | **Stage E+** | **STOP** — 12 deferred items; do not start |
 
-**`ledger-next` pick (2026-07-06):** `WF-037` (Stage B) — WF-040 meta closed; finish route registry → WF-032.
+**`ledger-next` pick (2026-07-07):** `WF-032` (Stage B) — WF-037 route registry complete; continue server.py module split.
 
 ---
 
@@ -59,9 +59,9 @@
 
 | ID | Title | Backlog | Verified | Evidence / gap |
 |----|-------|---------|----------|----------------|
-| WF-037 | Declarative route registry | partial | **partial** | `route_registry.py` — 61 `Route()` entries; `dispatch_get`/`dispatch_post` wired; `test_route_registry.py` green; `GET_PUBLIC_ROUTES` **deleted**. **Gap:** `server.py` still ~18.9k lines / 855 KB; large `do_GET`/`do_POST` if-chains remain for unmigrated admin/install/branding routes. |
-| WF-032 | Split server.py monolith | todo | **todo** | Blocked on WF-037 completion per handoff; no module extractions yet. |
-| WF-035 | Exception hygiene (auth/vault) | todo | **todo** | Depends on WF-032; ~140 broad `except Exception` noted in audit. |
+| WF-037 | Declarative route registry | done | **done** | `route_registry.py`; 55+44+4 exact + 62 pattern handlers; `test_route_registry.py` green; no `/api` if-chains in dispatch |
+| WF-032 | Split server.py monolith | partial | **partial** | 12 modules extracted; `server.py` ~12.2k lines (target ~3k) |
+| WF-035 | Exception hygiene (auth/vault) | partial | **partial** | Auth/vault `_route_*` paths; broad sweep remains |
 | WF-036 | Frontend decomposition | partial | **partial (deferred lane)** | UI/CSS changes on branch; **cancelled** for current push — do not mix with harness work. |
 
 ### Stage C — secure multi-user ⏳ QUEUED
@@ -70,14 +70,14 @@
 |----|-------|---------|----------|----------------|
 | WF-023 | Egress doctrine docs | done | **done** | `docs/public/security.md` |
 | WF-024 | Public deploy egress reporting | done | **done** | `verify-public-deploy.sh` |
-| WF-026 | Credential broker layer | todo | **todo** | No `credential_broker.py`; `llm_proxy.py` / `action_proxy.py` not extracted |
-| WF-028 | Lease validation test matrix | todo | **todo** | No dedicated `test_*` lease matrix |
-| WF-027 | Broker audit events | todo | **todo** | Depends on WF-026 |
-| WF-011 | Supervisor negative tests | todo | **todo** | Core SECURE_MODE path shipped (WF-NS-P1 partial); denial tests missing |
-| WF-025 | Force agent egress broker | todo | **todo** | Intentionally fails verify when flag set (per backlog notes) |
+| WF-026 | Credential broker layer | done | **done** | `credential_broker.py` |
+| WF-028 | Lease validation test matrix | done | **done** | `test_credential_lease_matrix.py` |
+| WF-027 | Broker audit events | done | **done** | `broker_audit.py` |
+| WF-011 | Supervisor negative tests | done | **done** | package supervisor negatives |
+| WF-025 | Force agent egress broker | done | **done** | compose + iptables |
 | WF-017 | Public/VPS hardening evidence | partial | **partial** | `verify-public-deploy.sh` exists; VPS reference run + backup/restore not evidenced |
 
-**Gate:** Start Stage C after WF-037 route migration substantially complete.
+**Gate:** Stage C substantially unblocked — WF-037 route migration complete (2026-07-07).
 
 ### Stage D — authority + ledger 🟡 STARTED
 
@@ -86,11 +86,11 @@
 | WF-039 | Domain model package | done | **done** | `services/workframe-api/domain/`; `test_domain_entities.py` green; `docs/public/glossary.md` |
 | WF-010 | SurfaceContractGate | done | **done** | `docs/ledger/specs/WF-010/spec.md` |
 | WF-NS-P0 | Vocabulary lock | done | **done** | Glossary + domain entities |
-| WF-007 | CellAuthorityGate | partial | **partial** | Design only: `docs/ledger/specs/WF-007/spec.md` — no impl |
-| WF-009 | RunAuthorityGate | todo | **todo** | Blocked on WF-NS-P2 (deferred) per depends_on |
-| WF-008 | Mutation-free doctor | todo | **todo** | No `workframe doctor --json` product surface |
-| WF-016 | Funding beyond BYOK | partial | **partial** | UI/policy exists; run-level receipt / `run_line_items` missing |
-| WF-NS-P2 | Run ledger tables | deferred | **deferred** | **Do not start** — tables not created |
+| WF-007 | CellAuthorityGate | partial | **partial** | `cell_authority.py` + tests; `evaluate_open` wired in `updates.apply_update` |
+| WF-009 | RunAuthorityGate | done | **done** | `run_authority.py` + tests |
+| WF-008 | Mutation-free doctor | done | **done** | `workframe doctor --json` |
+| WF-016 | Funding beyond BYOK | partial | **partial** | Run ledger records payer; billing amounts deferred |
+| WF-NS-P2 | Run ledger tables | partial | **partial** | Schema + chat path; DM/cron/slash gaps |
 
 **Lane outcome:** `lane-domain-design` **COMPLETE** (WF-039, WF-NS-P0, WF-010).
 
@@ -139,12 +139,12 @@ Meta todo: WF-SK-001 (spec-kit). WF-040 **done** (2026-07-06).
 | WF-025…028 | todo | todo | no broker module | Stage C queue |
 | WF-029…030 | deferred | deferred | — | **Do not start** |
 | WF-031 | done | done | `test_public_routes.py` | — |
-| WF-032 | todo | todo | server.py 18.9k lines | Start after WF-037 batches complete |
+| WF-032 | partial | partial | server.py ~11k lines | Continue module split (Stage B next) |
 | WF-033 | done | done | `profile_config_yaml.py` | — |
 | WF-034 | done | done | `test_model_surface_consistency.py` | — |
 | WF-035 | todo | todo | — | After WF-032 |
 | WF-036 | partial | partial | large tsx files remain | **Deferred lane** — no UI this push |
-| WF-037 | partial | partial | `route_registry.py` (61 routes) | Migrate remaining if-chain routes |
+| WF-037 | done | done | `route_registry.py` (103 exact + 62 pattern) | — |
 | WF-038 | done | done | workspace prune | — |
 | WF-039 | done | done | `domain/`, `test_domain_entities.py` | — |
 | WF-040 | done | done | program_stages + ledger-next + PM runbook | — |

@@ -1,5 +1,7 @@
 export { AppShell } from '@/components/shell/AppShell'
-export { AtmosphereBackground } from '@/components/shell/AtmosphereBackground'
+export { CanvasBackground } from '@/components/shell/CanvasBackground'
+/** @deprecated Use CanvasBackground */
+export { CanvasBackground as AtmosphereBackground } from '@/components/shell/CanvasBackground'
 export { BrandMark } from '@/components/shell/BrandMark'
 export { BrandTitle } from '@/components/shell/BrandTitle'
 export { DesktopTitleBar } from '@/components/shell/DesktopTitleBar'

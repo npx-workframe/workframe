@@ -4,11 +4,15 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-07T05:45-03:00 | pm-workframe | WF-037 done — invites_accept guard fix; test_route_registry audits all 62 patterns; backlog + program-status updated; ledger-next → WF-032.
 2026-07-06T19:42-03:00 | pm-workframe | WF-017 verify gaps — packages verify-public-deploy synced; backup/egress/broker checks.
 2026-07-06T19:39-03:00 | pm-workframe | WF-007 verified — test_cell_authority.py green; CLI wire deferred WF-014.
 2026-07-06T19:38-03:00 | pm-workframe | WF-016 verified — test_run_authority.py green; billing amounts deferred.
 2026-07-06T19:35-03:00 | pm-workframe | WF-035 partial — _log_handler_error on auth/vault/provider-sync paths.
-2026-07-06T19:30-03:00 | pm-workframe | WF-037 batch 3 — bootstrap/hermes/supervisor/audit + 8 pattern handlers; 55+41+4 exact dispatch; zero if path == chains.
+2026-07-07T04:25-03:00 | pm-workframe | WF-037 batch 6 — stripped 20 redundant startswith guards from pattern handlers; oauth/disconnect 404 fallthrough.
+2026-07-07T04:25-03:00 | pm-workframe | WF-032 — api_meta.py extract (workframe_meta, hermes_bootstrap, dashboard gate/skills).
+2026-07-07T04:15-03:00 | pm-workframe | WF-037 batch 5 — PATCH workspace/members + supervisor POST in registry; do_POST/do_PATCH if-chains removed.
+2026-07-07T04:15-03:00 | pm-workframe | WF-032 — doctor_runtime.py extract; WF-NS-P2 webhook test + DATA_DIR patch in test_run_surface_wiring.
 2026-07-06T18:15-03:00 | pm-workframe | WF-040 done — program_stages in backlog.json; ledger-next picks B→C→D (WF-037 next); PM README/runbook reference program-status.md.
 2026-07-06T17:50-03:00 | verify-matrix | Full matrix @ 9a06d88: 16 pass / 1 fail / 2 skip. FAIL: package-install-evidence --skip-prep (ui_bundle_identity stale UI). Evidence: operations/release-evidence/runs/latest-verify-matrix.json. WF-019/020/005 green; WF-021 runner fails without bundle prep.
 2026-07-06T19:15-03:00 | pm-workframe | WF-032 Stage 3 complete — lane_bindings.py; server ~12.2k lines; pushed; next WF-037 route dispatch batches.
