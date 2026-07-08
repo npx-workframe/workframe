@@ -453,6 +453,7 @@ import run_authority
 import run_ledger
 import runtime_tokens
 import oauth_pending
+import mention_helpers
 from domain.entities import RunStatus
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
@@ -3805,19 +3806,12 @@ def _is_space_room(room_type: str, agent_profile_id: str | None = None) -> bool:
     return str(room_type or "") in {"channel", "group"}
 
 
-def _mention_handle(label: str, email: str = "") -> str:
-    label = str(label or "").strip().lower()
-    if label:
-        handle = re.sub(r"[^a-z0-9]+", "", label.replace(" ", ""))
-        if handle:
-            return handle[:32]
-    normalized = str(email or "").strip().lower()
-    if normalized and "@" in normalized:
-        local = normalized.split("@", 1)[0]
-        handle = re.sub(r"[^a-z0-9]+", "", local)
-        if handle:
-            return handle[:32]
-    return ""
+_mention_handle = mention_helpers.mention_handle
+_room_agents_for_mentions = mention_helpers.room_agents_for_mentions
+_room_users_for_mentions = mention_helpers.room_users_for_mentions
+_parse_room_mentions = mention_helpers.parse_room_mentions
+_process_space_message_mentions = mention_helpers.process_space_message_mentions
+_parse_mentions = mention_helpers.parse_mentions
 
 
 def _ensure_agent_in_space_room(conn: sqlite3.Connection, room_id: str, agent_profile_id: str) -> bool:
@@ -4022,101 +4016,6 @@ def _install_profile_slug() -> str:
 
 
 
-
-
-def _room_agents_for_mentions(conn: sqlite3.Connection, room_id: str, workspace_id: str) -> list[dict[str, Any]]:
-    rows = conn.execute(
-        """
-        SELECT ap.id, ap.slug, ap.display_name, ap.model_provider, ap.model_name
-        FROM room_memberships rm
-        JOIN agent_profiles ap ON ap.id = rm.agent_profile_id
-        WHERE rm.room_id = ? AND rm.deleted_at IS NULL AND ap.deleted_at IS NULL
-        """,
-        (room_id,),
-    ).fetchall()
-    if rows:
-        return [dict(row) for row in rows]
-    # ponytail: until membership backfill completes, allow all workspace agents in spaces
-    fallback = conn.execute(
-        """
-        SELECT id, slug, display_name, model_provider, model_name
-        FROM agent_profiles
-        WHERE workspace_id = ? AND deleted_at IS NULL
-        """,
-        (workspace_id,),
-    ).fetchall()
-    return [dict(row) for row in fallback]
-
-
-def _room_users_for_mentions(conn: sqlite3.Connection, room_id: str) -> list[dict[str, Any]]:
-    rows = conn.execute(
-        """
-        SELECT u.id, u.display_name, u.email
-        FROM room_memberships rm
-        JOIN users u ON u.id = rm.user_id
-        WHERE rm.room_id = ? AND rm.deleted_at IS NULL AND rm.user_id IS NOT NULL
-        """,
-        (room_id,),
-    ).fetchall()
-    users: list[dict[str, Any]] = []
-    for row in rows:
-        users.append(
-            {
-                "id": str(row["id"]),
-                "display_name": str(row["display_name"] or ""),
-                "email": str(row["email"] or ""),
-                "handle": _mention_handle(str(row["display_name"] or ""), str(row["email"] or "")),
-            }
-        )
-    return users
-
-
-def _parse_room_mentions(
-    text: str,
-    agents: list[dict[str, Any]],
-    users: list[dict[str, Any]],
-    *,
-    triggered_by_user_id: str = "",
-    workspace_id: str = "",
-) -> dict[str, list[dict[str, Any]]]:
-    """Resolve @handles in a space message to agents (invoke) and users (notify-only)."""
-    handles = {m.group(1).lower() for m in re.finditer(r"@([\w-]+)", str(text or ""))}
-    if not handles:
-        return {"agents": [], "users": []}
-    agent_by_handle: dict[str, dict[str, Any]] = {}
-    for agent in agents:
-        slug = str(agent.get("slug") or "").strip().lower()
-        if slug:
-            agent_by_handle[slug] = agent
-        display = str(agent.get("display_name") or "").strip().lower()
-        if display:
-            agent_by_handle[display] = agent
-            compact = re.sub(r"[^a-z0-9]+", "", display)
-            if compact:
-                agent_by_handle[compact] = agent
-        if triggered_by_user_id and slug:
-            personal = _runtime_display_label(triggered_by_user_id, slug, workspace_id).strip().lower()
-            if personal:
-                agent_by_handle[personal] = agent
-                personal_compact = re.sub(r"[^a-z0-9]+", "", personal)
-                if personal_compact:
-                    agent_by_handle[personal_compact] = agent
-    user_by_handle = {str(u["handle"]).lower(): u for u in users if u.get("handle")}
-    matched_agents: list[dict[str, Any]] = []
-    seen_agents: set[str] = set()
-    for handle in handles:
-        agent = agent_by_handle.get(handle)
-        if agent and str(agent["id"]) not in seen_agents:
-            seen_agents.add(str(agent["id"]))
-            matched_agents.append(agent)
-    matched_users: list[dict[str, Any]] = []
-    seen_users: set[str] = set()
-    for handle in handles:
-        user = user_by_handle.get(handle)
-        if user and str(user["id"]) not in seen_users:
-            seen_users.add(str(user["id"]))
-            matched_users.append(user)
-    return {"agents": matched_agents, "users": matched_users}
 
 
 def _room_recent_transcript(conn: sqlite3.Connection, room_id: str, limit: int = 24) -> str:
@@ -4496,43 +4395,6 @@ def _invoke_room_agent_mention(
         fail_turn(reply)
     finally:
         _revoke_turn_credential_lease(run_id, hermes_slug)
-
-
-def _process_space_message_mentions(
-    room_id: str,
-    workspace_id: str,
-    user_id: str,
-    content: str,
-    message_id: str,
-    *,
-    invoke_agents: bool = True,
-) -> dict[str, Any]:
-    conn = _workframe_db()
-    try:
-        agents = _room_agents_for_mentions(conn, room_id, workspace_id)
-        users = _room_users_for_mentions(conn, room_id)
-    finally:
-        conn.close()
-    mentions = _parse_room_mentions(content, agents, users, triggered_by_user_id=user_id, workspace_id=workspace_id)
-    invoked: list[str] = []
-    for agent in mentions["agents"]:
-        invoked.append(str(agent["slug"]))
-        if invoke_agents:
-            threading.Thread(
-                target=_invoke_room_agent_mention,
-                kwargs={
-                    "room_id": room_id,
-                    "workspace_id": workspace_id,
-                    "agent_row": agent,
-                    "triggered_by_user_id": user_id,
-                    "parent_message_id": message_id,
-                },
-                daemon=True,
-            ).start()
-    return {
-        "agent_mentions": invoked,
-        "user_mentions": [str(u.get("handle") or "") for u in mentions["users"]],
-    }
 
 
 def _enrich_room_messages(conn: sqlite3.Connection, messages: list[Any]) -> list[dict[str, Any]]:
@@ -11693,19 +11555,6 @@ def _log_agent_run(run_id: str, agent_profile_id: str, room_id: str, user_id: st
 # ---------------------------------------------------------------------------
 # Sprint G-K: Agent runs, invites, memory, policies, budgets, grants
 # ---------------------------------------------------------------------------
-
-# --- Sprint G: Mention parser ---
-def _parse_mentions(text: str) -> list[dict]:
-    """Extract @agent mentions from message text.
-    Returns [{"type": "agent", "id": slug, "display_name": name}, ...]
-    """
-    import re as _re
-    mentions = []
-    for m in _re.finditer(r'@(\w+)', text):
-        slug = m.group(1)
-        mentions.append({"type": "agent", "slug": slug})
-    return mentions
-
 
 # --- Sprint G: Context package v0 ---
 def _build_context_package(user_id: str, workspace_id: str, room_id: str | None = None) -> dict:
