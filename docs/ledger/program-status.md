@@ -11,11 +11,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Backlog items | 50 (29 done · 8 partial · 2 todo · 11 deferred) |
+| Backlog items | 50 (33 done · 4 partial · 2 todo · 11 deferred) |
 | **Stage A** (release-truth) | **Complete** |
-| **Stage B** (decompose) | **In flight** — WF-037 done; WF-032/035/036 partial |
-| **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence) |
-| **Stage D** (authority + ledger) | **Nearly done** — WF-007/016/NS-P1/NS-P2 partial, all with narrow verified gaps |
+| **Stage B** (decompose) | **In flight** — WF-032 partial; WF-037/035 done; WF-036 partial (cosmetic lane) |
+| **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence); WF-NS-P1 done 2026-07-08 |
+| **Stage D** (authority + ledger) | **Done except WF-016** (receipt slice) — WF-007/NS-P1/NS-P2 flipped 2026-07-08 |
 | **Stage E+** | **STOP** — 11 deferred items; do not start |
 
 **`ledger-next` pick (2026-07-08):** `WF-032` (Stage B) — server.py 12,144 lines / 318 top-level defs; ~30 modules already extracted; target residual <3k.
@@ -45,7 +45,7 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 |----|-------|--------|--------------------------|
 | WF-037 | Declarative route registry | **done** | `route_registry.py`; `test_route_registry.py` audits all 62 patterns (2026-07-07); no `/api` if-chains |
 | WF-032 | Split server.py monolith | **partial** | 12,144 lines / 318 defs remain (item summary says ~20k — stale, refresh with next extraction). ~30 modules extracted incl. `chat_stream`, `hermes_profiles`, `profile_gateway`, `model_surface`, `provider_bootstrap`, `db_schema`, `auth_gate`, `rooms`, `kanban_cron`, `activity_feed`, `crew_registry`, `health_monitor`, `snapshot_feed`, `doctor_runtime`, `api_meta`, `run_ledger`, `run_surface_wiring`. Remaining dense zones: credential/provider bindings + oauth/mention helpers (L2000–8000), runtime tokens (L10000–12000), handler shell |
-| WF-035 | Exception hygiene (auth/vault) | **partial** | `_log_handler_error` on auth/vault/provider-sync paths (07-06); `test_exception_hygiene.py` exists. Verify acceptance → likely flip. 73 broad excepts remain in server.py but are out of acceptance scope |
+| WF-035 | Exception hygiene (auth/vault) | **done** | `test_exception_hygiene.py` green 2026-07-08 |
 | WF-036 | Frontend decomposition | **partial** | Cosmetic slice active in UI lane. Functional slice remains: `ConciergeFlow.tsx`/`HermesSessionContext.tsx` splits, provider-label unification, no silent openrouter default (badge + connectError already fixed) |
 
 ### Stage C — secure multi-user ✅ DONE except WF-017
@@ -69,10 +69,10 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 | WF-010 | SurfaceContractGate | **done** | `specs/WF-010/spec.md` |
 | WF-009 | RunAuthorityGate | **done** | `run_authority.py` + tests |
 | WF-008 | Mutation-free doctor | **done** | `workframe doctor --json` |
-| WF-007 | CellAuthorityGate | **partial** | `cell_authority.py` + tests green; `evaluate_open` wired in `updates.apply_update`; CLI wire deferred to WF-014. Gap: confirm connect/adopt coverage or evidence they don't ship in wedge |
+| WF-007 | CellAuthorityGate | **done** | `test_cell_authority.py` + `updates.apply_update` authority wiring; connect/adopt deny by default; CLI deferred WF-014 |
 | WF-016 | Funding beyond BYOK | **partial** | Payer enforced (`test_run_authority.py`); `run_line_items` table exists. Gap: receipt per run (amounts stay deferred) |
-| WF-NS-P1 | Harden Hermes stack | **partial** | Vault + proxy + leases + supervisor shipped; WF-011 negatives done. Gap: explicit SECURE_MODE Docker-socket boundary test |
-| WF-NS-P2 | Run ledger tables | **partial → near flip** | Tables + all six surfaces record (chat/mention/kanban/cron/slash/webhook — verified 2026-07-08; `test_run_ledger.py`, `test_run_surface_wiring.py` green); activity panel reads `run_events`. Gap: DM-turn run evidence (DMs are rooms → chat surface), then flip |
+| WF-NS-P1 | Harden Hermes stack | **done** | `test_secure_mode_docker_boundary.py` + WF-011 supervisor negatives (2026-07-08) |
+| WF-NS-P2 | Run ledger tables | **done** | All six surfaces + DM chat path (`test_run_ledger.py`, `test_run_surface_wiring.py`) — flipped 2026-07-08 |
 
 ### Stage E+ — STOP 🛑
 

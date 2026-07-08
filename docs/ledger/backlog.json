@@ -174,7 +174,7 @@
       "summary": "Manifest provenance, install root ownership, read-only open, mutation plan before update/connect/adopt.",
       "wave": "authority",
       "priority": "P1",
-      "status": "partial",
+      "status": "done",
       "sources": ["25-audit:P1-7", "25-audit:ticket-7", "RT-08"],
       "acceptance": [
         "Design doc committed",
@@ -185,15 +185,16 @@
       "evidence": [
         "docs/ledger/specs/WF-007/spec.md",
         "services/workframe-api/cell_authority.py",
-        "services/workframe-api/test_cell_authority.py"
+        "services/workframe-api/test_cell_authority.py",
+        "services/workframe-api/updates.py"
       ],
       "owner_role": "design",
       "workflow": {
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "completed_at": "2026-07-06",
-        "notes": "Verified 2026-07-06: test_cell_authority.py green; scaffold + unit tests. Gap: wire create/open to CLI (WF-014)."
+        "completed_at": "2026-07-08",
+        "notes": "Verified 2026-07-08: test_cell_authority.py green; update wired in updates.apply_update (evaluate_open + evaluate_update). connect/adopt gates deny by default; no shipped connect/adopt API paths in v0.1 wedge — CLI wire deferred WF-014."
       }
     },
     {
@@ -683,16 +684,25 @@
       "summary": "Supervisor-only Docker socket, LLM proxy + wf_rt leases, no raw keys in profile .env for turns.",
       "wave": "broker",
       "priority": "P1",
-      "status": "partial",
+      "status": "done",
       "sources": ["north-star:phase-1"],
       "acceptance": [
         "API cannot access Docker socket in SECURE_MODE",
         "All model usage through proxy and leases",
         "Tests prove socket boundary"
       ],
-      "evidence": ["credential_vault.py", "llm_proxy.py", "workframe-supervisor"],
+      "evidence": [
+        "credential_vault.py",
+        "llm_proxy.py",
+        "workframe-supervisor",
+        "services/workframe-api/test_secure_mode_docker_boundary.py",
+        "services/workframe-supervisor/test_supervisor_negative.py"
+      ],
       "owner_role": "implementer",
-      "workflow": { "notes": "Core path shipped; negative tests incomplete (WF-011)" }
+      "workflow": {
+        "notes": "Verified 2026-07-08: test_secure_mode_docker_boundary.py + WF-011 supervisor negatives; _docker_request raises in SECURE_MODE; public compose omits docker.sock on API.",
+        "completed_at": "2026-07-08"
+      }
     },
     {
       "id": "WF-NS-P2",
@@ -700,7 +710,7 @@
       "summary": "Minimum run ledger schema; DM, mention, card, cron, slash, webhook create runs.",
       "wave": "run-ledger",
       "priority": "P1",
-      "status": "partial",
+      "status": "done",
       "sources": ["north-star:phase-2", "17-final-recommendation"],
       "acceptance": [
         "runs, run_events, run_line_items tables",
@@ -711,15 +721,16 @@
       "evidence": [
         "services/workframe-api/run_ledger.py",
         "services/workframe-api/test_run_ledger.py",
-        "services/workframe-api/server.py"
+        "services/workframe-api/test_run_surface_wiring.py",
+        "services/workframe-api/chat_stream.py"
       ],
       "owner_role": "implementer",
       "workflow": {
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "completed_at": "2026-07-06",
-        "notes": "Verified 2026-07-06: test_run_ledger.py green; chat + room activity wired. Gap: DM/cron/slash/webhook run creation."
+        "completed_at": "2026-07-08",
+        "notes": "Verified 2026-07-08: all six surfaces record (test_run_surface_wiring.py); DM rooms use chat surface (test_dm_room_chat_run_recorded); activity reads run_events."
       }
     },
     {
@@ -902,7 +913,7 @@
       "summary": "server.py has ~140 broad `except Exception` blocks. Narrow the ones on auth, credential vault, and provider-sync paths; add structured logging so silent failures (e.g. lost saves) surface.",
       "wave": "code-health",
       "priority": "P2",
-      "status": "partial",
+      "status": "done",
       "sources": ["audit-2026-07-05:grep except Exception = 140"],
       "acceptance": [
         "Auth/vault/provider-sync paths catch specific exceptions or log with context",
@@ -910,7 +921,13 @@
       ],
       "depends_on": ["WF-032"],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "notes": "_log_handler_error on auth/vault/provider-sync _route_* paths; test_exception_hygiene.py; broad except sweep remains outside scope." }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-08",
+        "notes": "Verified 2026-07-08: test_exception_hygiene.py green; _log_handler_error on auth/vault/provider-sync paths. Remaining broad excepts in server.py out of scope (WF-032 extractions)."
+      }
     },
     {
       "id": "WF-036",
