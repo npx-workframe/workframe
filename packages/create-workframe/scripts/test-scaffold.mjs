@@ -102,6 +102,7 @@ function readWorkframeApiSources(root) {
     'credential_vault.py',
     'auth_gate.py',
     'internal_proxy_auth.py',
+    'workspace_bootstrap.py',
   ];
   return names
     .map((name) => path.join(apiDir, name))

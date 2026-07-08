@@ -71,6 +71,21 @@ _REQUIRED = (
     "_parse_messaging_settings_patch",
     "_workspace_messaging_integrations_payload",
     "_sync_workspace_messaging_gateway",
+    "room_chat_bind",
+    "profile_chat_bind",
+    "list_room_sessions",
+    "profile_chat_activate_room_session",
+    "profile_chat_message",
+    "_enrich_room_chat_payload",
+    "_room_session_rows",
+    "_extract_title",
+    "bootstrap_agent_dm_lane",
+    "_provision_agent_dm_runtimes",
+    "_ensure_default_workspace",
+    "_bootstrap_after_setup",
+    "_promote_workspace_owner_if_unclaimed",
+    "_sync_workspace_home_room",
+    "_onboard_workspace_member_rooms",
 )
 
 

@@ -846,7 +846,7 @@
     {
       "id": "WF-032",
       "title": "Split server.py monolith (definitive module map)",
-      "summary": "~6.0k lines remain in server.py (2026-07-08). ~45 modules extracted. Target residual <3k.",
+      "summary": "~5.6k lines remain in server.py (2026-07-08). ~46 modules extracted. Target residual <3k.",
       "wave": "code-health",
       "priority": "P1",
       "status": "partial",
@@ -887,14 +887,15 @@
         "services/workframe-api/hermes_admin.py",
         "services/workframe-api/avatar_registry.py",
         "services/workframe-api/test_hermes_admin.py",
-        "services/workframe-api/test_server_reexports.py"
+        "services/workframe-api/test_server_reexports.py",
+        "services/workframe-api/workspace_bootstrap.py"
       ],
       "owner_role": "implementer",
       "workflow": {
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "notes": "2026-07-08: hermes_admin.py extracted (~757 lines: usage/profile/soul/debug/insights/gquota/commands catalog+exec); server.py ~6.0k lines / 95 defs. Next: handler shell."
+        "notes": "2026-07-08: workspace_bootstrap.py extracted (~530 lines: default workspace seed, DM lane bootstrap, member onboarding rooms, provision runtimes); server.py ~5.6k lines. Next: handler shell."
       }
     },
     {

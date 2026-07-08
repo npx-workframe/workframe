@@ -4,6 +4,8 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-08T09:45-03:00 | pm-workframe | WF-032 — workspace_bootstrap.py extracted (~530 lines: default workspace seed, DM lane bootstrap, member onboarding, provision runtimes); server.py ~5.6k lines; test_server_reexports extended.
+
 2026-07-08T09:30-03:00 | gate-run G0.2 | verify-matrix @ 3fe0405: 13 pass / 3 fail / 2 skip. WF-021 allow (sync+bundle prep, ui_bundle_identity green). Fixes: server _ensure_profile_terminal_cwd re-export, test-scaffold WF-032 API bundle, npm pack --ignore-scripts after prep. FAIL: verify-public (operator path patterns), build-web + harness web-build (cosmetic lane TS6133 useConciergeFlow). Evidence: operations/release-evidence/runs/latest-verify-matrix.json
 
 2026-07-08T16:00-03:00 | pm-workframe | WF-032 â€” hermes_admin.py extracted (~757 lines: usage/profile/soul/debug/insights/gquota/commands); server.py ~6.0k lines / 95 defs; test_hermes_admin.py green.
