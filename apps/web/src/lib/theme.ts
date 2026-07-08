@@ -1,39 +1,61 @@
-export type Theme = 'dark' | 'neo' | 'blueprint'
+export type Theme = 'strato-dark' | 'neo-light' | 'neo-blue'
 
 export type ChromeMode = 'line' | 'relief'
 
 const CHROME_MODE: Record<Theme, ChromeMode> = {
-  dark: 'line',
-  neo: 'relief',
-  blueprint: 'relief',
+  'strato-dark': 'line',
+  'neo-light': 'relief',
+  'neo-blue': 'relief',
 }
 
 const STORAGE_KEY = 'wf-theme'
 
-const VALID_THEMES: Theme[] = ['dark', 'neo', 'blueprint']
+const VALID_THEMES: Theme[] = ['strato-dark', 'neo-light', 'neo-blue']
+
+/** ponytail: one-time localStorage migration from pre-rebrand slugs */
+const LEGACY_THEME: Record<string, Theme> = {
+  dark: 'strato-dark',
+  neo: 'neo-light',
+  blueprint: 'neo-blue',
+}
+
+function normalizeTheme(value: string | null): Theme | null {
+  if (!value) return null
+  if (VALID_THEMES.includes(value as Theme)) return value as Theme
+  return LEGACY_THEME[value] ?? null
+}
 
 function readStoredTheme(): Theme | null {
   try {
-    const value = localStorage.getItem(STORAGE_KEY)
-    if (VALID_THEMES.includes(value as Theme)) {
-      return value as Theme
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const theme = normalizeTheme(raw)
+    if (theme && raw !== theme) {
+      localStorage.setItem(STORAGE_KEY, theme)
     }
-    return null
+    return theme
   } catch {
     return null
   }
 }
 
 export function getInitialTheme(): Theme {
-  return readStoredTheme() ?? 'neo'
+  return readStoredTheme() ?? 'neo-light'
+}
+
+export function isStratoDark(theme: Theme): boolean {
+  return theme === 'strato-dark'
+}
+
+export function isReliefTheme(theme: Theme): boolean {
+  return theme === 'neo-light' || theme === 'neo-blue'
 }
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme
   document.documentElement.dataset.chromeMode = CHROME_MODE[theme]
-  document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
+  document.documentElement.style.colorScheme = isStratoDark(theme) ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0A0A0F')
-  installNeoPressFeedback(theme === 'neo' || theme === 'blueprint')
+  installNeoPressFeedback(isReliefTheme(theme))
 }
 
 let neoPressCleanup: (() => void) | undefined

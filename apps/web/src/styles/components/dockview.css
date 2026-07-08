@@ -250,7 +250,7 @@
   cursor: grab;
 }
 
-/* Straight-right relief — neo token; active/hover states in neo.css */
+/* Straight-right relief — Neo token; active/hover states in neo-light.css */
 .wf-shadow-right-only {
   box-shadow: var(--wf-control-shadow-right, none);
 }

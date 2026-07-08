@@ -106,15 +106,27 @@ pre.wf-scroll::-webkit-scrollbar-corner {
   --wf-scroll-gutter-block: var(--wf-space-4);
 }
 
-/* Rail: horizontal inset from scroll host; vertical spacing on nav only */
+/* Rail: scroll without visible track; symmetric inline gutter (no scrollbar bleed hack) */
 .wf-scroll--inset-rail.wf-scroll--vertical {
   --wf-scrollbar-thumb-size: 2px;
   --wf-scrollbar-inset: 2px;
-  --wf-scroll-gutter-inline: var(--wf-panel-scroll-inset);
+  --wf-scroll-gutter-inline: var(--wf-space-2);
   --wf-scroll-gutter-block: 0px;
   padding-block-start: var(--wf-panel-scroll-inset);
   padding-inline-start: var(--wf-panel-scroll-inset);
+  padding-inline-end: var(--wf-scroll-gutter-inline);
   padding-block-end: var(--wf-panel-scroll-inset);
+  scrollbar-width: none;
+}
+
+.wf-scroll--inset-rail.wf-scroll--horizontal,
+.wf-scroll--inset-rail.wf-scroll--both {
+  scrollbar-width: none;
+}
+
+.wf-scroll--inset-rail::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* Flex child that owns vertical scroll in a panel/dialog column */

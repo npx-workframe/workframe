@@ -1,9 +1,9 @@
 ---
 version: alpha
-name: Workframe — Dark theme
+name: Workframe — Strato Dark theme
 parent: design.md
-selector: "[data-theme='dark']"
-source: apps/web/src/styles/themes/dark.css
+selector: "[data-theme='strato-dark']"
+source: apps/web/src/styles/themes/strato-dark.css
 color-scheme: dark
 chrome_mode: line
 colors:
@@ -36,11 +36,11 @@ rounded:
 border_width: 1px
 ---
 
-# Dark theme
+# Strato Dark theme
 
-**Parent:** [design.md](design.md) · **CSS:** `themes/dark.css` · **Selector:** `[data-theme='dark']`
+**Parent:** [design.md](design.md) · **CSS:** `themes/strato-dark.css` · **Selector:** `[data-theme='strato-dark']`
 
-Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, violet/cyan ambient orbs. Uses the same `DotGrid` texture component as neo; panels paint `--wf-chrome-fill: var(--wf-surface)` (semi-transparent glass) over the grid.
+Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, violet/cyan ambient orbs. Uses the same `DotGrid` texture component as Neo Light; panels paint `--wf-chrome-fill: var(--wf-surface)` (semi-transparent glass) over the grid.
 
 ## Chrome mode: line
 
@@ -49,7 +49,7 @@ Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, vi
 - `--wf-border` / `--wf-border-strong` drive panel edges
 - `--wf-chrome-border-*` scale = `color-mix` of `--wf-border` at 30%–90%
 - `--wf-divider-color: rgba(255, 255, 255, 0.1)`
-- Relief primitives map to flat `--wf-shadow-*` (neo stacks inert in line mode)
+- Relief primitives map to flat `--wf-shadow-*` (Neo relief stacks inert in line mode)
 
 ## Palette
 
@@ -96,9 +96,9 @@ Dot grid uses mask-based tiles in `canvas.css` — no separate vignette mask on 
 
 **Radius:** knobs 4/4/12px; `--wf-radius-icon-btn: 4px` (square controls, not circles).
 
-## Component overrides (dark-specific)
+## Component overrides (Strato Dark-specific)
 
-From `dark.css` selectors — apply only under `[data-theme='dark']`:
+From `strato-dark.css` selectors — apply only under `[data-theme='strato-dark']`:
 
 - Panel icon controls: **no border, no shadow**; hover → `rgba(255,255,255,0.1)` fill
 - `.wf-tool-run`, `.wf-activity-tree__row--child`: `1px solid var(--wf-tool-chrome-border)`
@@ -118,4 +118,4 @@ From `dark.css` selectors — apply only under `[data-theme='dark']`:
 
 **Do:** Use border + subtle glass hover for interactive chrome; keep orbs restrained; tune dot visibility via `--wf-dot-grid-opacity`.
 
-**Don't:** Apply neo dual-shadow stacks or 2px relief borders; don't put vignette masks on `DotGrid`.
+**Don't:** Apply Neo dual-shadow stacks or 2px relief borders; don't put vignette masks on `DotGrid`.

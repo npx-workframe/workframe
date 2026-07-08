@@ -94,7 +94,7 @@ Append under **Cosmetic log** below: date, files touched, screenshots optional, 
 ## Cosmetic log
 
 **2026-07-07** — Design docs seeded (WF-036 cosmetic, code-grounded)
-- `docs/public/design.md` (global tokens) + `dark-design.md`, `neo-design.md`, `blueprint-design.md`
+- `docs/public/design.md` (global tokens) + `strato-dark-design.md`, `neo-light-design.md`, `neo-blue-design.md`
 - Source of truth remains `apps/web/src/styles/`; docs describe shipped CSS only
 
 **2026-07-07** — Theme architecture pass (WF-036 cosmetic, parallel with backend on `main`)

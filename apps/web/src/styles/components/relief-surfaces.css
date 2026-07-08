@@ -1,4 +1,4 @@
-﻿/* Relief chrome — shared neo + blueprint ([data-chrome-mode='relief']). */
+﻿/* Relief chrome — shared Neo Light + Neo Blue ([data-chrome-mode='relief']). */
 /* ?? Neo component chrome (feel / interaction overrides) ?? */
 
 [data-chrome-mode='relief'] .wf-shell__header {
@@ -318,10 +318,11 @@
   .wf-auth,
   .wf-auth-otp-panel
 ) :is(
-  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']),
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not(.wf-copy-input__value),
   textarea,
   select,
   .wf-dialog-input,
+  .wf-copy-input,
   .wf-dialog-select__control,
   .wf-dialog__search
 ) {
@@ -337,10 +338,11 @@
   .wf-auth,
   .wf-auth-otp-panel
 ) :is(
-  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']),
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not(.wf-copy-input__value),
   textarea,
   select,
   .wf-dialog-input,
+  .wf-copy-input,
   .wf-dialog-select__control,
   .wf-dialog__search
 ):hover:not(:disabled) {
@@ -356,15 +358,43 @@
   .wf-auth,
   .wf-auth-otp-panel
 ) :is(
-  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']),
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not(.wf-copy-input__value),
   textarea,
   select,
   .wf-dialog-input,
+  .wf-copy-input,
   .wf-dialog-select__control,
   .wf-dialog__search
 ):focus-visible {
   outline: none;
   border-color: transparent;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] :is(
+  .wf-dialog-content,
+  .wf-onboarding-wizard,
+  .wf-onboarding-page,
+  .wf-auth,
+  .wf-auth-otp-panel
+) .wf-copy-input__value {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+[data-chrome-mode='relief'] .wf-copy-input__btn {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-highlight);
+}
+
+[data-chrome-mode='relief'] .wf-copy-input--pill .wf-copy-input__btn {
+  border-radius: 50%;
+}
+
+[data-chrome-mode='relief'] .wf-copy-input__btn:active:not(:disabled) {
+  background: var(--wf-control-bg-flush);
   box-shadow: var(--wf-control-shadow-inset);
 }
 
@@ -596,6 +626,19 @@
   box-shadow: var(--wf-control-shadow-raised);
 }
 
+[data-chrome-mode='relief'] .wf-wizard-choice-card__radio {
+  border: none;
+  background: var(--wf-control-bg-flush);
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] .wf-wizard-choice-card.is-selected .wf-wizard-choice-card__radio,
+[data-chrome-mode='relief'] .wf-wizard-choice-card__input:checked + .wf-wizard-choice-card__radio {
+  border: none;
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
 [data-chrome-mode='relief'] .wf-auth__card,
 [data-chrome-mode='relief'] .wf-auth-otp-panel {
   background: var(--wf-chrome-fill);
@@ -621,6 +664,7 @@
   border: none;
   box-shadow: var(--wf-relief-inset-l);
   padding: var(--wf-space-4);
+  padding-inline-start: var(--wf-space-2);
   overflow: hidden;
 }
 
@@ -651,6 +695,8 @@
   .wf-wizard-mode-card,
   .wf-wizard-choice-card,
   .wf-wizard-preset-chip,
+  .wf-publish-section,
+  .wf-publish-alt,
   .wf-publish-card,
   .wf-publish-nested,
   .wf-settings-stack .wf-settings-section,

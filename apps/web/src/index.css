@@ -6,9 +6,9 @@
 @import './styles/tokens/shadcn-bridge.css';
 
 /* ── Themes (palette + feel per data-theme) ─────────────────────────────── */
-@import './styles/themes/dark.css';
-@import './styles/themes/neo.css';
-@import './styles/themes/blueprint.css';
+@import './styles/themes/strato-dark.css';
+@import './styles/themes/neo-light.css';
+@import './styles/themes/neo-blue.css';
 @import './styles/tokens/relief-primitives.css';
 
 /* ── Content / vendor adapters ──────────────────────────────────────────── */

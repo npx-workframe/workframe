@@ -1,7 +1,9 @@
 import { useMemo, type ReactNode } from 'react'
 
 import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
+import { useDocumentTheme } from '@/hooks/useDocumentTheme'
 import { BRAND_ICON } from '@/lib/brandAssets'
+import type { Theme } from '@/lib/theme'
 
 export type WizardStepItem = {
   id: string
@@ -28,6 +30,13 @@ type OnboardingWizardShellProps = {
   children: ReactNode
 }
 
+function defaultWizardRailLogo(theme: Theme): { src: string; mono: boolean } {
+  if (theme === 'neo-light' || theme === 'neo-blue') {
+    return { src: BRAND_ICON.workframeColor, mono: false }
+  }
+  return { src: BRAND_ICON.workframe, mono: true }
+}
+
 export function OnboardingWizardShell({
   projectName,
   brandLogoUrl,
@@ -40,6 +49,7 @@ export function OnboardingWizardShell({
   footer,
   children,
 }: OnboardingWizardShellProps) {
+  const theme = useDocumentTheme()
   const stepIndex = Math.max(0, steps.findIndex((s) => s.id === step))
   const reachable = maxReachableIndex ?? stepIndex
   const progress = steps.length > 1 ? Math.round(((stepIndex + 1) / steps.length) * 100) : 100
@@ -54,8 +64,9 @@ export function OnboardingWizardShell({
     return [...map.entries()]
   }, [steps])
 
-  const railLogoSrc = brandLogoUrl ?? BRAND_ICON.workframe
-  const railLogoMono = !brandLogoUrl
+  const defaultLogo = defaultWizardRailLogo(theme)
+  const railLogoSrc = brandLogoUrl ?? defaultLogo.src
+  const railLogoMono = brandLogoUrl ? false : defaultLogo.mono
 
   return (
     <div className="wf-onboarding-page">

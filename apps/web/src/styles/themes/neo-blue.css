@@ -1,5 +1,5 @@
-/* Blueprint theme — palette + relief polarity (dark-relief). Chrome rules: relief-surfaces.css */
-[data-theme='blueprint'] {
+/* Neo Blue theme — palette + relief polarity (dark-relief). Chrome rules: relief-surfaces.css */
+[data-theme='neo-blue'] {
   color-scheme: light;
   --wf-chrome-mode: relief;
   --wf-relief-shadow-rgb: 15 36 66;
@@ -136,24 +136,24 @@
 }
 
 /* Blueprint accent overrides */
-[data-theme='blueprint'] .wf-desktop-titlebar__btn--close:hover,
-[data-theme='blueprint'] .wf-shell__window-btn--close:hover,
-[data-theme='blueprint'] .wf-desktop-titlebar--mac .wf-desktop-titlebar__btn--close:hover {
+[data-theme='neo-blue'] .wf-desktop-titlebar__btn--close:hover,
+[data-theme='neo-blue'] .wf-shell__window-btn--close:hover,
+[data-theme='neo-blue'] .wf-desktop-titlebar--mac .wf-desktop-titlebar__btn--close:hover {
   color: var(--wf-text);
   background: color-mix(in srgb, #ffffff 22%, transparent);
 }
 
-[data-theme='blueprint'] .wf-composer__stop:hover {
+[data-theme='neo-blue'] .wf-composer__stop:hover {
   background: transparent;
   border-color: color-mix(in srgb, #ffffff 40%, transparent);
   color: var(--wf-text);
 }
 
-[data-theme='blueprint'] .wf-tool-run--error .wf-tool-run__icon,
-[data-theme='blueprint'] .wf-composer__slash-error {
+[data-theme='neo-blue'] .wf-tool-run--error .wf-tool-run__icon,
+[data-theme='neo-blue'] .wf-composer__slash-error {
   color: var(--wf-muted);
 }
 
-[data-theme='blueprint'] .wf-tool-run--error {
+[data-theme='neo-blue'] .wf-tool-run--error {
   border-color: color-mix(in srgb, #ffffff 40%, var(--wf-border));
 }

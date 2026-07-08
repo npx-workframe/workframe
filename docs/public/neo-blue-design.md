@@ -1,9 +1,9 @@
 ---
 version: alpha
-name: Workframe — Blueprint theme
+name: Workframe — Neo Blue theme
 parent: design.md
-selector: "[data-theme='blueprint']"
-source: apps/web/src/styles/themes/blueprint.css
+selector: "[data-theme='neo-blue']"
+source: apps/web/src/styles/themes/neo-blue.css
 color-scheme: light
 chrome_mode: relief
 colors:
@@ -34,11 +34,11 @@ rounded:
 border_width: 2px
 ---
 
-# Blueprint theme
+# Neo Blue theme
 
-**Parent:** [design.md](design.md) · **CSS:** `themes/blueprint.css` + `relief-surfaces.css` + `canvas.css` · **Selector:** `[data-theme='blueprint']`
+**Parent:** [design.md](design.md) · **CSS:** `themes/neo-blue.css` + `relief-surfaces.css` + `canvas.css` · **Selector:** `[data-theme='neo-blue']`
 
-Engineering blueprint on deep blue: white typography, relief shadows with **low highlight alpha** (0.10), and **transparent chrome** (`--wf-chrome-fill: transparent` via relief mode) so the moleskine grid shows through workspace, onboarding, and all relief surfaces.
+Engineering blue on deep navy: white typography, relief shadows with **low highlight alpha** (0.10), and **transparent chrome** (`--wf-chrome-fill: transparent` via relief mode). Canvas is **atmosphere only** (no moleskine grid mounted — `MoleskineGrid` remains available for future use).
 
 ## Chrome mode: relief
 
@@ -69,25 +69,23 @@ Engineering blueprint on deep blue: white typography, relief shadows with **low 
 
 **Status colors** remapped to white family: `--wf-error` `#ffffff`, `--wf-success` `#ffffff`, `--wf-warning` `rgba(255,255,255,0.8)`.
 
-## Canvas & moleskine grid
+## Canvas
 
-**Component stack:** `AtmosphereBg` + `MoleskineGrid` (see `canvas-layers.ts`).
+**Component stack:** `AtmosphereBg` only (`getThemeCanvasTexture` returns `null` for Neo Blue).
 
 | Layer | Tokens |
 |-------|--------|
 | Color | Flat `linear-gradient(145deg, var(--wf-blue), var(--wf-blue))`; white orbs ~6% / 5% |
-| Texture | `--wf-moleskine-grid-tile: 24px`; `--wf-moleskine-grid-line: rgba(255,255,255,0.06)` |
-| Vignette | `--wf-overlay` on atmosphere (not on grid) |
-
-`MoleskineGrid.tsx` + `canvas.css`: repeating 1px horizontal + vertical lines on 24px spacing. Texture is viewport-fixed — same grid on onboarding and workspace.
+| Texture | *(not mounted)* — moleskine tokens below reserved if re-enabled: `--wf-moleskine-grid-tile: 24px`; `--wf-moleskine-grid-line: rgba(255,255,255,0.06)` |
+| Vignette | `--wf-overlay` on atmosphere |
 
 ## Relief stacks
 
-Same **L/S** geometry as neo (`relief-primitives.css`); blueprint differs only in shadow/highlight RGB and alpha. Depth is shadow-only on transparent chrome — no opaque surface re-paint.
+Same **L/S** geometry as Neo Light (`relief-primitives.css`); Neo Blue differs only in shadow/highlight RGB and alpha. Depth is shadow-only on transparent chrome — no opaque surface re-paint.
 
 ## shadcn bridge
 
-Blueprint sets shadcn vars on `[data-theme='blueprint']`:
+Neo Blue sets shadcn vars on `[data-theme='neo-blue']`:
 
 ```text
 --background / --foreground → --wf-bg / --wf-text
@@ -97,7 +95,7 @@ Blueprint sets shadcn vars on `[data-theme='blueprint']`:
 
 ## Controls & accents
 
-Follows shared relief patterns in `relief-surfaces.css`. Blueprint-specific accents in `blueprint.css`:
+Follows shared relief patterns in `relief-surfaces.css`. Neo Blue-specific accents in `neo-blue.css`:
 
 - Close buttons: `color-mix(white 22%, transparent)` hover
 - Composer stop / error borders: white mixes
@@ -106,6 +104,6 @@ Follows shared relief patterns in `relief-surfaces.css`. Blueprint-specific acce
 
 ## Do's and Don'ts
 
-**Do:** Preserve grid visibility everywhere (transparent chrome). Use white copy and restrained grid lines.
+**Do:** Preserve transparent chrome. Use white copy.
 
-**Don't:** Paint opaque fills over chrome surfaces. Don't use saturated status reds/greens — theme uses white status glyphs. Don't duplicate moleskine on `.wf-workspace-shell` — texture is canvas-only.
+**Don't:** Paint opaque fills over chrome surfaces. Don't use saturated status reds/greens — theme uses white status glyphs.

@@ -118,7 +118,7 @@ export function DockviewWorkspace() {
         ref={workspaceRef}
         className={cn(
           'wf-workspace',
-          theme === 'dark' ? 'dockview-theme-dark' : 'dockview-theme-light',
+          theme === 'strato-dark' ? 'dockview-theme-dark' : 'dockview-theme-light',
         )}
       >
         <DockviewReact
@@ -130,7 +130,7 @@ export function DockviewWorkspace() {
           theme={{
             dndTabIndicator: 'line',
             dndOverlayMounting: 'relative',
-            ...(theme === 'dark'
+            ...(theme === 'strato-dark'
               ? { name: 'wf-dark', className: 'dockview-theme-dark' }
               : { name: 'wf-light', className: 'dockview-theme-light' }),
           }}

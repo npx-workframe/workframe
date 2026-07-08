@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="neo">
+<html lang="en" data-theme="neo-light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -29,13 +29,15 @@
     <script>
       ;(() => {
         try {
-          const chrome = { dark: 'line', neo: 'relief', blueprint: 'relief' }
-          const valid = ['dark', 'neo', 'blueprint']
+          const legacy = { dark: 'strato-dark', neo: 'neo-light', blueprint: 'neo-blue' }
+          const chrome = { 'strato-dark': 'line', 'neo-light': 'relief', 'neo-blue': 'relief' }
+          const valid = ['strato-dark', 'neo-light', 'neo-blue']
           const stored = localStorage.getItem('wf-theme')
-          const theme = valid.includes(stored) ? stored : 'neo'
+          const theme = valid.includes(stored) ? stored : legacy[stored] || 'neo-light'
+          if (theme !== stored) try { localStorage.setItem('wf-theme', theme) } catch (_) {}
           document.documentElement.dataset.theme = theme
           document.documentElement.dataset.chromeMode = chrome[theme]
-          document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
+          document.documentElement.style.colorScheme = theme === 'strato-dark' ? 'dark' : 'light'
         } catch (_) {}
       })()
     </script>

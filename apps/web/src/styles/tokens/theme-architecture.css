@@ -6,8 +6,8 @@
    4. THEME     - per [data-theme]: palette, texture recipe, typography, shell family
 
    SHELL FAMILIES - --wf-chrome-mode on [data-theme] (mirrored as data-chrome-mode on html)
-   line   - dark: visible borders (--wf-chrome-border-*), flat shadows, surface fills
-   relief - neo, blueprint: borderless; depth from L/S box-shadow stacks only
+   line   - strato-dark: visible borders (--wf-chrome-border-*), flat shadows, surface fills
+   relief - neo-light, neo-blue: borderless; depth from L/S box-shadow stacks only
 
    Custom themes (e.g. brutalist) may override shell tokens per-component without
    changing the base layer contract.

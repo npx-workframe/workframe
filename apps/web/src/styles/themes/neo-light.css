@@ -1,5 +1,5 @@
-/* Neo theme — palette + relief polarity (light-relief). Chrome rules: relief-surfaces.css */
-[data-theme='neo'] {
+/* Neo Light theme — palette + relief polarity (light-relief). Chrome rules: relief-surfaces.css */
+[data-theme='neo-light'] {
   color-scheme: light;
   --wf-chrome-mode: relief;
   --wf-chrome-fill: transparent;

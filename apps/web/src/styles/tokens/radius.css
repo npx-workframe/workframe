@@ -31,4 +31,8 @@
   --wf-radius: var(--wf-radius-shell);
   --wf-rail-cell-radius: var(--wf-radius-control);
   --wf-tool-btn-radius: var(--wf-radius-tool-btn);
+
+  /* CopyInput: chip matches control corner on squared themes; pill uses 50% */
+  --wf-copy-input-inset: 3px;
+  --wf-copy-input-btn-radius: var(--wf-radius-control);
 }

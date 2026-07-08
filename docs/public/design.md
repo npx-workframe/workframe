@@ -1,16 +1,16 @@
 ---
 version: alpha
 name: Workframe UI
-description: Global semantic design system for apps/web — theme-invariant tokens and chrome contracts. Per-theme palettes live in dark-design.md, neo-design.md, blueprint-design.md.
+description: Global semantic design system for apps/web — theme-invariant tokens and chrome contracts. Per-theme palettes live in strato-dark-design.md, neo-light-design.md, neo-blue-design.md.
 source_truth:
   - apps/web/src/styles/tokens/
   - apps/web/src/styles/components/canvas.css
   - apps/web/src/components/shell/canvas/
   - apps/web/src/lib/canvas-layers.ts
 themes:
-  - dark-design.md
-  - neo-design.md
-  - blueprint-design.md
+  - strato-dark-design.md
+  - neo-light-design.md
+  - neo-blue-design.md
 typography:
   body-md:
     fontFamily: Inter Tight
@@ -44,7 +44,7 @@ Agents doing cosmetic UI work: read this file first, then the active theme doc. 
 
 ## Overview
 
-Workframe is a dense workspace shell (header, rails, docked panels, chat, activity). Visual identity is **token-driven**: components use `--wf-*` CSS variables, not hard-coded colors. Three shipped themes (`dark`, `neo`, `blueprint`) share the same semantic vocabulary; each theme file sets palette + chrome feel.
+Workframe is a dense workspace shell (header, rails, docked panels, chat, activity). Visual identity is **token-driven**: components use `--wf-*` CSS variables, not hard-coded colors. Three shipped themes (`strato-dark`, `neo-light`, `neo-blue`) share the same semantic vocabulary; each theme file sets palette + chrome feel.
 
 Themes compose four layers (bottom → top):
 
@@ -55,7 +55,7 @@ Themes compose four layers (bottom → top):
 | **3. Shell** | Depth only — borders (line) or L/S shadow stacks (relief) | `--wf-chrome-mode`, `relief-primitives.css`, `relief-surfaces.css` |
 | **4. Theme** | Palette, texture ink, typography, shell family | `themes/*.css` |
 
-**Formula:** base color + texture + shell treatment = theme. Relief chrome does **not** re-paint the canvas; it uses `--wf-chrome-fill: transparent` so layer 2 shows through panels, wizard shells, and controls. Custom themes (e.g. future brutalist) may override per-component fills without changing the base layer contract.
+**Formula:** base color + optional texture + shell treatment = theme. Relief chrome does **not** re-paint the canvas; it uses `--wf-chrome-fill: transparent` so atmosphere shows through panels, wizard shells, and controls. Neo Light and Neo Blue currently omit the texture layer; Strato Dark uses `DotGrid`.
 
 ## Canvas stack
 
@@ -63,8 +63,10 @@ Themes compose four layers (bottom → top):
 
 | Theme | Texture component |
 |-------|-------------------|
-| `dark`, `neo` | `DotGrid` |
-| `blueprint` | `MoleskineGrid` |
+| `strato-dark` | `DotGrid` |
+| `neo-light`, `neo-blue` | *(none — atmosphere only)* |
+
+`DotGrid` and `MoleskineGrid` remain available components; wire them per theme via `getThemeCanvasTexture()` in `canvas-layers.ts`.
 
 ```text
 .wf-canvas (fixed, z-index 0)
@@ -82,8 +84,8 @@ Themes compose four layers (bottom → top):
 
 | Mode | Themes | `--wf-chrome-fill` | Behavior |
 |------|--------|-------------------|----------|
-| `line` | `dark` | `var(--wf-surface)` | Visible `--wf-border` lines; flat `--wf-shadow-*` |
-| `relief` | `neo`, `blueprint` | `transparent` | Borderless; depth via L/S relief stacks only |
+| `line` | `strato-dark` | `var(--wf-surface)` | Visible `--wf-border` lines; flat `--wf-shadow-*` |
+| `relief` | `neo-light`, `neo-blue` | `transparent` | Borderless; depth via L/S relief stacks only |
 
 Relief primitives (`relief-primitives.css`):
 
@@ -109,12 +111,12 @@ Themes must define every token in `palette-contract.css`. Global wiring in `sema
 | `--wf-primary`, `--wf-primary-foreground` | Primary actions and inverse |
 | `--wf-violet`, `--wf-violet-glow`, `--wf-cyan`, `--wf-mint`, `--wf-ring` | Accent family + focus ring |
 | `--wf-accent` | Alias → `--wf-violet` |
-| `--wf-error`, `--wf-success`, `--wf-warning` (+ soft variants) | Status (blueprint remaps some to white — see theme doc) |
+| `--wf-error`, `--wf-success`, `--wf-warning` (+ soft variants) | Status (Neo Blue remaps some to white — see theme doc) |
 | `--wf-notice-*`, `--wf-status-fg` | Inline notices and status copy |
 
-Texture tokens (per theme): `--wf-dot-grid-tile`, `--wf-dot-grid-rgb`, `--wf-dot-grid-opacity`; blueprint adds `--wf-moleskine-grid-tile`, `--wf-moleskine-grid-line`.
+Texture tokens (per theme): `--wf-dot-grid-tile`, `--wf-dot-grid-rgb`, `--wf-dot-grid-opacity`; Neo Blue adds `--wf-moleskine-grid-tile`, `--wf-moleskine-grid-line`.
 
-Chrome border scale (`chrome-contract.css`) — each theme sets `--wf-chrome-border-solid` through `--wf-chrome-border-ghost` as mixes of `--wf-border` (dark) or `transparent` (relief themes).
+Chrome border scale (`chrome-contract.css`) — each theme sets `--wf-chrome-border-solid` through `--wf-chrome-border-ghost` as mixes of `--wf-border` (Strato Dark) or `transparent` (relief themes).
 
 ## Typography
 
@@ -156,9 +158,9 @@ Prefer `var(--wf-type-*)` in components; avoid raw `px` for workspace chrome.
 
 ## Elevation & depth
 
-**Line mode (dark):** `--wf-shadow-sm` … `--wf-shadow-xl`, `--wf-shadow-inset`; controls use thin glass borders + hover fill on `--wf-chrome-fill` (surface).
+**Line mode (Strato Dark):** `--wf-shadow-sm` … `--wf-shadow-xl`, `--wf-shadow-inset`; controls use thin glass borders + hover fill on `--wf-chrome-fill` (surface).
 
-**Relief mode (neo, blueprint):** dual shadow stacks from `--wf-relief-*` primitives; **no opaque fill tint** — depth is shadow-only on transparent chrome. Wizard shell uses inset **L**; modals/dialogs use outset **L**; controls use **S**.
+**Relief mode (Neo Light, Neo Blue):** dual shadow stacks from `--wf-relief-*` primitives; **no opaque fill tint** — depth is shadow-only on transparent chrome. Wizard shell uses inset **L**; modals/dialogs use outset **L**; controls use **S**.
 
 ## Shapes
 
@@ -166,7 +168,7 @@ Prefer `var(--wf-type-*)` in components; avoid raw `px` for workspace chrome.
 
 **Component mapping:** `--wf-radius-control`, `--wf-radius-surface`, `--wf-radius-tool-btn`, `--wf-radius-shell`, etc. derive from knobs.
 
-**Border width:** `--wf-border-width` — 1px (dark), 2px (neo/blueprint relief).
+**Border width:** `--wf-border-width` — 1px (Strato Dark), 2px (Neo relief themes).
 
 ## Components (global vocabulary)
 
@@ -185,15 +187,15 @@ Prefer `var(--wf-type-*)` in components; avoid raw `px` for workspace chrome.
 
 **Product copy:** UI says **Workframe**, not "workspace" (except internal IDs). See `copy-style-notes.md`.
 
-**shadcn:** Blueprint maps `--background`, `--card`, `--popover`, etc. to `--wf-*`; relief mode sets `--card` / `--popover` to `--wf-chrome-fill` (transparent).
+**shadcn:** Neo Blue maps `--background`, `--card`, `--popover`, etc. to `--wf-*`; relief mode sets `--card` / `--popover` to `--wf-chrome-fill` (transparent).
 
 ## Theme index
 
-| Theme | Doc | CSS | Chrome | Texture | Character |
-|-------|-----|-----|--------|---------|-----------|
-| Dark | [dark-design.md](dark-design.md) | `themes/dark.css` | `line` | `DotGrid` | Dark glass, violet/cyan orbs, visible borders |
-| Neo | [neo-design.md](neo-design.md) | `themes/neo.css` | `relief` | `DotGrid` | Light soft UI, transparent chrome, neo shadows |
-| Blueprint | [blueprint-design.md](blueprint-design.md) | `themes/blueprint.css` | `relief` | `MoleskineGrid` | Engineering blue, grid through all chrome |
+| Theme | Slug | Doc | CSS | Chrome | Texture | Character |
+|-------|------|-----|-----|--------|---------|-----------|
+| Strato Dark | `strato-dark` | [strato-dark-design.md](strato-dark-design.md) | `themes/strato-dark.css` | `line` | `DotGrid` | Dark glass, violet/cyan orbs, visible borders |
+| Neo Light | `neo-light` | [neo-light-design.md](neo-light-design.md) | `themes/neo-light.css` | `relief` | — | Light soft UI, transparent chrome, relief shadows |
+| Neo Blue | `neo-blue` | [neo-blue-design.md](neo-blue-design.md) | `themes/neo-blue.css` | `relief` | — | Engineering blue, transparent relief chrome |
 
 Switch via `ThemeSwitcher`; options in `apps/web/src/lib/themeOptions.ts`.
 
@@ -204,7 +206,7 @@ Switch via `ThemeSwitcher`; options in `apps/web/src/lib/themeOptions.ts`.
 - Change colors via `themes/*.css` `[data-theme]` blocks — keep `palette-contract.css` parity across themes
 - Use existing `--wf-*` tokens before adding new ones
 - Keep texture on `DotGrid` / `MoleskineGrid` only — vignette on `AtmosphereBg`
-- Match chrome mode: don't add visible borders in relief themes or flat shadows in dark line mode
+- Match chrome mode: don't add visible borders in relief themes or flat shadows in Strato Dark line mode
 - Keep scroll surfaces on `wf-scroll` gutter discipline
 - Preview token changes in Theme Showcase (`pnpm dev:web` → `/dev/theme`)
 
@@ -216,4 +218,4 @@ Switch via `ThemeSwitcher`; options in `apps/web/src/lib/themeOptions.ts`.
 - Mix behavioral/React wiring in cosmetic passes (see cosmetic-ui-lane off-limits)
 - Add themes without defining the full palette + chrome contract
 - Use full-screen sheets for settings — use `Dialog`/`DialogContent` in rails
-- Invent new accent hues outside the theme's violet/cyan/mint (blueprint uses white-on-blue)
+- Invent new accent hues outside the theme's violet/cyan/mint (Neo Blue uses white-on-blue)

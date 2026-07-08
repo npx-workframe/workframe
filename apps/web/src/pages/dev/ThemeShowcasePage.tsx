@@ -98,7 +98,7 @@ export function ThemeShowcasePage() {
           <h1>Theme &amp; token contract</h1>
           <p className="wf-theme-showcase__lede">
             Theme: <strong>{theme}</strong> — palette primitives, semantic aliases, type scale, and custom scrollbar
-            thumbs (white default, accent purple on thumb hover in neo).
+            thumbs (white default, accent purple on thumb hover in Neo Light).
           </p>
         </div>
         <ThemeSwitcher />

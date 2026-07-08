@@ -562,6 +562,7 @@
 
 .wf-settings-shell__rail-head {
   padding: 1.25rem 1rem 1rem;
+  padding-inline-start: var(--wf-space-2);
 }
 
 .wf-settings-shell__rail-title {
@@ -584,8 +585,8 @@
 .wf-settings-shell__nav.wf-scroll--inset-rail.wf-scroll--vertical {
   --wf-scroll-gutter-inline: var(--wf-space-2);
   --wf-scroll-gutter-block: var(--wf-space-2);
-  margin-inline-end: calc(-1 * var(--wf-scroll-gutter-inline, 0px));
-  padding-inline-start: 1rem;
+  padding-inline-start: var(--wf-space-2);
+  padding-inline-end: var(--wf-space-2);
   padding-block-start: 0;
   padding-block-end: 0;
 }
@@ -617,6 +618,7 @@
 .wf-settings-shell__rail-footer {
   flex-shrink: 0;
   padding: 0.75rem 1rem 1rem;
+  padding-inline-start: var(--wf-space-2);
   border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
 }
 
@@ -1693,7 +1695,7 @@ border-radius: var(--wf-radius-pill);
 }
 
 /* Relief chrome: --wf-chrome-fill (transparent) — see relief-primitives.css */
-[data-theme='blueprint'] :is(.wf-panel--chat, .wf-panel--browser, .wf-panel--activity, .wf-panel--files) :is(
+[data-theme='neo-blue'] :is(.wf-panel--chat, .wf-panel--browser, .wf-panel--activity, .wf-panel--files) :is(
   button.wf-tool-btn,
   .wf-activity-tree__row,
   .wf-activity-tree__row--clickable,

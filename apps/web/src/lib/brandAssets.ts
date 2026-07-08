@@ -11,10 +11,12 @@ import stripe from '@/assets/brands/stripe.svg?url'
 import telegram from '@/assets/brands/telegram.svg?url'
 import vercel from '@/assets/brands/vercel.svg?url'
 import workframe from '@/assets/brands/workframe.svg?url'
+import workframeColor from '@/assets/branding/workframe-color.svg?url'
 
 /** Integration and sign-in marks — source: `src/assets/brands/`. */
 export const BRAND_ICON = {
   workframe,
+  workframeColor,
   google,
   github,
   discord,

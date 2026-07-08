@@ -33,7 +33,7 @@ scripts/workframe/             Ops scripts — see README.md
 
 ## UI design system
 
-Cosmetic / theme work: read [design.md](design.md) first, then the active theme doc ([dark](dark-design.md), [neo](neo-design.md), [blueprint](blueprint-design.md)). Token lab: `pnpm dev:web` → `/dev/theme`.
+Cosmetic / theme work: read [design.md](design.md) first, then the active theme doc ([Strato Dark](strato-dark-design.md), [Neo Light](neo-light-design.md), [Neo Blue](neo-blue-design.md)). Token lab: `pnpm dev:web` → `/dev/theme`.
 
 ## Generated install services (typical slot 1)
 

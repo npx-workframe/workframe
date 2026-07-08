@@ -1,9 +1,9 @@
 ---
 version: alpha
-name: Workframe — Neo theme
+name: Workframe — Neo Light theme
 parent: design.md
-selector: "[data-theme='neo']"
-source: apps/web/src/styles/themes/neo.css
+selector: "[data-theme='neo-light']"
+source: apps/web/src/styles/themes/neo-light.css
 color-scheme: light
 chrome_mode: relief
 colors:
@@ -37,11 +37,11 @@ rounded:
 border_width: 2px
 ---
 
-# Neo theme
+# Neo Light theme
 
-**Parent:** [design.md](design.md) · **CSS:** `themes/neo.css` + `relief-surfaces.css` · **Selector:** `[data-theme='neo']`
+**Parent:** [design.md](design.md) · **CSS:** `themes/neo-light.css` + `relief-surfaces.css` · **Selector:** `[data-theme='neo-light']`
 
-Light soft UI with **relief chrome**: borderless edges, depth from dual L/S shadow stacks. Chrome is **transparent** (`--wf-chrome-fill: transparent`) so the dot grid shows through workspace, onboarding wizard, dialogs, and controls.
+Light soft UI with **relief chrome**: borderless edges, depth from dual L/S shadow stacks. Chrome is **transparent** (`--wf-chrome-fill: transparent`). Canvas is **atmosphere only** (no dot grid mounted — `DotGrid` remains available for future use).
 
 ## Chrome mode: relief
 
@@ -50,7 +50,7 @@ Light soft UI with **relief chrome**: borderless edges, depth from dual L/S shad
 - All `--wf-chrome-border-*` → `transparent`
 - `--wf-border-width: 2px` (divider/tool chrome uses white `#fff` as relief edge color)
 - `--wf-divider-color: #fff`, `--wf-tool-chrome-border: #fff`
-- Shared relief overrides: `components/relief-surfaces.css` (not in `neo.css`)
+- Shared relief overrides: `components/relief-surfaces.css` (not in `neo-light.css`)
 
 ## Relief tuning
 
@@ -88,15 +88,13 @@ Status colors: `#ef4444`, `#22c55e`, `#f59e0b`.
 
 ## Canvas
 
-**Component stack:** `AtmosphereBg` + `DotGrid` (see `canvas-layers.ts`).
+**Component stack:** `AtmosphereBg` only (`getThemeCanvasTexture` returns `null` for Neo Light).
 
 | Layer | Tokens |
 |-------|--------|
 | Color | `--wf-bg-gradient`: `linear-gradient(145deg, #d8d8de, #e8e8ee)`; orbs violet/cyan at 6% / 5% |
-| Texture | `--wf-dot-grid-tile: 10px`; `--wf-dot-grid-rgb: 42 42 50`; `--wf-dot-grid-opacity: 0.16` |
+| Texture | *(not mounted)* — dot tokens below reserved if re-enabled: `--wf-dot-grid-tile: 10px`; `--wf-dot-grid-rgb: 42 42 50`; `--wf-dot-grid-opacity: 0.16` |
 | Vignette | `--wf-overlay`: subtle top highlight + 4% bottom shade (on atmosphere only) |
-
-Dot ink uses mask-based tiles in `canvas.css` — theme sets color/opacity only.
 
 ## Controls
 
@@ -123,6 +121,6 @@ Dot ink uses mask-based tiles in `canvas.css` — theme sets color/opacity only.
 
 ## Do's and Don'ts
 
-**Do:** Use relief **L/S** stacks for depth; keep chrome transparent so dot grid reads through; tune dot opacity via `--wf-dot-grid-opacity`.
+**Do:** Use relief **L/S** stacks for depth; keep chrome transparent.
 
-**Don't:** Re-introduce opaque `--wf-bg` fills on panels; don't add visible border strokes; don't put vignette on `DotGrid`.
+**Don't:** Re-introduce opaque `--wf-bg` fills on panels; don't add visible border strokes.

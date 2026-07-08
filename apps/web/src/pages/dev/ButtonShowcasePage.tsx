@@ -73,7 +73,7 @@ function RailMock() {
         </ul>
       </div>
       <p className="wf-btn-showcase__hint">
-        Rail needs inline gutter + step gap so neo pop-up shadows are not clipped. Inactive future steps = low
+        Rail needs inline gutter + step gap so Neo relief pop-up shadows are not clipped. Inactive future steps = low
         contrast, no hover pop-up.
       </p>
     </div>
@@ -90,7 +90,7 @@ export function ButtonShowcasePage() {
           <p className="wf-btn-showcase__eyebrow">UI lab · /dev/buttons (or ?wf-dev=buttons)</p>
           <h1>Action button contract</h1>
           <p className="wf-btn-showcase__lede">
-            Theme: <strong>{theme}</strong> — toggle to compare neo relief vs dark glass. Hover buttons to see
+            Theme: <strong>{theme}</strong> — toggle to compare Neo relief vs Strato Dark glass. Hover buttons to see
             default pop-up/fill. Primary stays raised/filled with no extra hover.
           </p>
         </div>
@@ -182,7 +182,7 @@ export function ButtonShowcasePage() {
         <h2>Contract (what we will roll out)</h2>
         <div className="wf-btn-showcase__spec-grid">
           <div>
-            <h3>Neo</h3>
+            <h3>Neo Light</h3>
             <ul>
               <li>Default: flush — no border, bg, or shadow</li>
               <li>Default hover: pop up (raised surface + relief shadow)</li>
@@ -192,7 +192,7 @@ export function ButtonShowcasePage() {
             </ul>
           </div>
           <div>
-            <h3>Dark</h3>
+            <h3>Strato Dark</h3>
             <ul>
               <li>Default: 10% white border, no fill</li>
               <li>Default hover: 10% white fill; border width kept, color transparent</li>

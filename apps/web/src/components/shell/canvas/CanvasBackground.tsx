@@ -13,7 +13,7 @@ export function CanvasBackground() {
   return (
     <div className="wf-canvas" aria-hidden="true">
       <AtmosphereBg />
-      {texture === 'dots' ? <DotGrid /> : <MoleskineGrid />}
+      {texture === 'dots' ? <DotGrid /> : texture === 'moleskine' ? <MoleskineGrid /> : null}
     </div>
   )
 }

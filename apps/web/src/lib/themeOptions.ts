@@ -10,7 +10,7 @@ export type ThemeOption = {
 }
 
 export const THEME_OPTIONS: ThemeOption[] = [
-  { value: 'neo', label: 'Neo', icon: Layers },
-  { value: 'blueprint', label: 'Blueprint', icon: Ruler },
-  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'neo-light', label: 'Neo Light', icon: Layers },
+  { value: 'neo-blue', label: 'Neo Blue', icon: Ruler },
+  { value: 'strato-dark', label: 'Strato Dark', icon: Moon },
 ]

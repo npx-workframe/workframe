@@ -1,6 +1,6 @@
-/* Dark theme — palette tokens + control feel */
+/* Strato Dark theme — palette tokens + control feel */
 
-[data-theme='dark'] {
+[data-theme='strato-dark'] {
   color-scheme: dark;
   --wf-chrome-mode: line;
   --wf-chrome-fill: var(--wf-surface);
@@ -140,47 +140,47 @@
   --wf-icon-control-border-width: 0;
 }
 
-[data-theme='dark'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
+[data-theme='strato-dark'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
   border-width: 0;
   box-shadow: none;
 }
 
-[data-theme='dark'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled) {
+[data-theme='strato-dark'] :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   border-color: transparent;
   box-shadow: none;
 }
 
-[data-theme='dark'] :is(.wf-tool-run, .wf-activity-tree__row--child) {
+[data-theme='strato-dark'] :is(.wf-tool-run, .wf-activity-tree__row--child) {
   border: 1px solid var(--wf-tool-chrome-border);
 }
 
-[data-theme='dark'] :is(.wf-tool-run--running, .wf-tool-run--error) {
+[data-theme='strato-dark'] :is(.wf-tool-run--running, .wf-tool-run--error) {
   border-color: var(--wf-tool-chrome-border);
 }
 
-[data-theme='dark'] .wf-theme-switcher--open .wf-theme-switcher__panel {
+[data-theme='strato-dark'] .wf-theme-switcher--open .wf-theme-switcher__panel {
   border-radius: 4px;
   background: var(--wf-surface);
   border: 1px solid var(--wf-chrome-border-strong);
   box-shadow: var(--wf-shadow-inset);
 }
 
-[data-theme='dark'] .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']) {
+[data-theme='strato-dark'] .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']) {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: none;
 }
 
-[data-theme='dark'] .wf-theme-switcher:not(.wf-theme-switcher--open) .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']):hover:not(:disabled) {
+[data-theme='strato-dark'] .wf-theme-switcher:not(.wf-theme-switcher--open) .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']):hover:not(:disabled) {
   background: transparent;
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow: none;
   color: var(--wf-text);
 }
 
-[data-theme='dark'] .wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']),
-[data-theme='dark'] .wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']):hover:not(:disabled) {
+[data-theme='strato-dark'] .wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']),
+[data-theme='strato-dark'] .wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn:not([data-tone='primary']):hover:not(:disabled) {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
