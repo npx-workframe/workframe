@@ -37,6 +37,7 @@ _REQUIRED = (
     "_docker_exec",
     "_gateway_exec",
     "_hermes_agent_version",
+    "ensure_profile_api",
 )
 
 

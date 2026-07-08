@@ -6,6 +6,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 2026-07-08T12:05-03:00 | backend-lane | WF-012 done — workframe-build.json stamped at bundle; /api/meta package_version + ui_build; ui_bundle_identity asserts stamp == packed version; run-package-install-evidence --skip-prep allow @ HEAD.
 2026-07-08T09:00-03:00 | pm-workframe | WF-016 done — receipt per run on all six surfaces (mention/kanban/cron-webhook gaps closed); test_run_ledger + test_run_surface_wiring + test_run_authority green; amounts deferred Stage E.
+2026-07-08T15:45-03:00 | pm-workframe | WF-032 — profile_api_lifecycle.py extracted (~65 lines: ensure_profile_api); server.py ~7.8k lines; test_server_reexports extended.
 2026-07-08T15:30-03:00 | pm-workframe | WF-032 — docker_gateway.py extracted (~165 lines: Docker socket + gateway exec); server.py ~8.5k lines; test_server_reexports extended.
 2026-07-08T15:15-03:00 | pm-workframe | WF-032 — chat_sessions.py extracted (~472 lines: session info, chat bootstrap/messages, segment parsing); server.py ~8.8k lines.
 2026-07-08T15:00-03:00 | pm-workframe | WF-032 — turn_overlay.py extracted (~696 lines: per-turn credential leases, LLM proxy overlays); server.py ~9.3k lines; test_server_reexports extended.

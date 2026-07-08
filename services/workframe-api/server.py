@@ -57,6 +57,7 @@ import rooms
 import kanban_cron
 import hermes_profiles
 import profile_gateway
+import profile_api_lifecycle
 import model_surface
 import provider_bootstrap
 import chat_stream
@@ -234,6 +235,9 @@ _profile_api_healthy = profile_gateway._profile_api_healthy
 _wait_profile_api_healthy = profile_gateway._wait_profile_api_healthy
 profile_gateway_stop = profile_gateway.profile_gateway_stop
 profile_gateway_steer = profile_gateway.profile_gateway_steer
+
+# WF-032: profile_api_lifecycle re-exports
+ensure_profile_api = profile_api_lifecycle.ensure_profile_api
 
 
 _AGENT_PROFILE_UUID_RE = rooms._AGENT_PROFILE_UUID_RE
@@ -3484,58 +3488,6 @@ def _assign_agent_avatar(profile: str, *, display_name: str = "") -> dict[str, s
 
 
 
-
-
-
-def ensure_profile_api(
-    profile: str,
-    user_id: str = "",
-    workspace_id: str = "",
-    *,
-    bootstrap_providers: bool = True,
-) -> dict[str, Any]:
-    """Start profile gateway if down. ponytail: bind/chat must not mutate yaml or bootstrap creds."""
-    prof = resolve_hermes_profile(profile)
-    port = _profile_api_port(prof)
-    if _profile_api_healthy(prof):
-        return {"ok": True, "profile": prof, "api_port": port, "started": False}
-    # ponytail: gateway restart (~7s) before supervisor cold start (~37s).
-    if (
-        _is_runtime_profile_slug(prof)
-        and prof != _primary_profile()
-        and _runtime_profile_on_disk(prof)
-    ):
-        with _gateway_lifecycle_lock:
-            if _profile_api_healthy(prof, use_cache=False):
-                return {"ok": True, "profile": prof, "api_port": port, "started": False}
-            code, _out = _gateway_exec(prof, ["gateway", "restart"])
-            if code == 0:
-                _invalidate_profile_health_cache(prof)
-                if _wait_profile_api_healthy(prof, attempts=48, delay=0.25):
-                    return {"ok": True, "profile": prof, "api_port": port, "started": False}
-    if prof == _primary_profile():
-        ok, out, _port = _configure_profile_api(prof)
-        if not ok:
-            raise ValueError(f"profile api config failed: {out}")
-        _restart_stack_gateway()
-        if not _wait_profile_api_healthy(prof):
-            raise ValueError(f"profile api did not become healthy: {prof}")
-        return {"ok": True, "profile": prof, "api_port": port, "started": True}
-    if bootstrap_providers and user_id:
-        _bootstrap_profile_providers(prof, user_id, workspace_id)
-    with _gateway_lifecycle_lock:
-        if _profile_api_healthy(prof):
-            return {"ok": True, "profile": prof, "api_port": port, "started": False}
-        result = profile_gateway_lifecycle(prof, "start", bootstrap_providers=bootstrap_providers)
-        if not _wait_profile_api_healthy(prof):
-            raise ValueError(f"profile api did not become healthy: {prof}")
-        return {
-            **result,
-            "ok": True,
-            "profile": prof,
-            "api_port": port,
-            "started": True,
-        }
 
 
 
