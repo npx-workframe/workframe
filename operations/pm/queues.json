@@ -10,7 +10,7 @@
       "agent": "push-wf037-wf032",
       "items": ["WF-037", "WF-032", "WF-035"],
       "status": "partial",
-      "notes": "WF-037 done (2026-07-07). WF-032 partial (doctor_runtime, api_meta). WF-035 partial."
+      "notes": "WF-037 done (2026-07-07). WF-032 partial (avatar_registry, profile_api_lifecycle, docker_gateway). WF-035 partial."
     },
     {
       "id": "lane-c-broker",

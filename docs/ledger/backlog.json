@@ -846,7 +846,7 @@
     {
       "id": "WF-032",
       "title": "Split server.py monolith (definitive module map)",
-      "summary": "~7.8k lines remain in server.py (2026-07-08). ~43 modules extracted. Target residual <3k.",
+      "summary": "~6.0k lines remain in server.py (2026-07-08). ~45 modules extracted. Target residual <3k.",
       "wave": "code-health",
       "priority": "P1",
       "status": "partial",
@@ -884,6 +884,9 @@
         "services/workframe-api/chat_sessions.py",
         "services/workframe-api/docker_gateway.py",
         "services/workframe-api/profile_api_lifecycle.py",
+        "services/workframe-api/hermes_admin.py",
+        "services/workframe-api/avatar_registry.py",
+        "services/workframe-api/test_hermes_admin.py",
         "services/workframe-api/test_server_reexports.py"
       ],
       "owner_role": "implementer",
@@ -891,7 +894,7 @@
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "notes": "2026-07-08: profile_api_lifecycle.py extracted (~65 lines: ensure_profile_api); server.py ~7.8k lines. Next: handler shell."
+        "notes": "2026-07-08: hermes_admin.py extracted (~757 lines: usage/profile/soul/debug/insights/gquota/commands catalog+exec); server.py ~6.0k lines / 95 defs. Next: handler shell."
       }
     },
     {

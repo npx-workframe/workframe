@@ -4,6 +4,9 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-08T16:00-03:00 | pm-workframe | WF-032 — hermes_admin.py extracted (~757 lines: usage/profile/soul/debug/insights/gquota/commands); server.py ~6.0k lines / 95 defs; test_hermes_admin.py green.
+
+2026-07-08T09:15-03:00 | pm-workframe | WF-032 — avatar_registry.py extracted (~343 lines: catalog, preset picks, agent avatar assignment); server.py ~6.8k lines; test_server_reexports extended.
 2026-07-08T12:05-03:00 | backend-lane | WF-012 done — workframe-build.json stamped at bundle; /api/meta package_version + ui_build; ui_bundle_identity asserts stamp == packed version; run-package-install-evidence --skip-prep allow @ HEAD.
 2026-07-08T09:00-03:00 | pm-workframe | WF-016 done — receipt per run on all six surfaces (mention/kanban/cron-webhook gaps closed); test_run_ledger + test_run_surface_wiring + test_run_authority green; amounts deferred Stage E.
 2026-07-08T15:45-03:00 | pm-workframe | WF-032 — profile_api_lifecycle.py extracted (~65 lines: ensure_profile_api); server.py ~7.8k lines; test_server_reexports extended.
