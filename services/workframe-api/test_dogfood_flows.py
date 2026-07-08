@@ -28,6 +28,18 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 
+def _resolve_install_id(data_dir: Path) -> str:
+    env_id = os.environ.get("WORKFRAME_INSTALL_ID", "").strip()
+    if env_id:
+        return env_id
+    env_file = data_dir.parent.parent / ".env"
+    if env_file.is_file():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("WORKFRAME_INSTALL_ID="):
+                return line.split("=", 1)[1].strip().strip("'\"")
+    raise RuntimeError("WORKFRAME_INSTALL_ID not set — export it or pass --data-dir with install .env")
+
+
 def _req(
     base: str,
     method: str,
@@ -44,8 +56,8 @@ def _req(
     if session_id and not cookie:
         import zk_auth
 
-        os.environ.setdefault("WORKFRAME_API_DATA_DIR", r"D:\ab\projects\MyBusiness\workframe-api\data")
-        os.environ.setdefault("WORKFRAME_INSTALL_ID", "wf_06f00ed848c3")
+        if not os.environ.get("WORKFRAME_INSTALL_ID", "").strip():
+            raise RuntimeError("WORKFRAME_INSTALL_ID required when passing session_id without cookie")
         cookie = f"{zk_auth.session_cookie_name()}={session_id}"
     if cookie:
         headers["Cookie"] = cookie
@@ -70,7 +82,7 @@ def _mint_session_cookie(data_dir: Path, user_id: str) -> tuple[str, str]:
     import zk_auth
 
     os.environ["WORKFRAME_API_DATA_DIR"] = str(data_dir)
-    os.environ["WORKFRAME_INSTALL_ID"] = "wf_06f00ed848c3"
+    os.environ["WORKFRAME_INSTALL_ID"] = _resolve_install_id(data_dir)
 
     # Read-only sqlite — avoid WAL sidecars on the shared data mount.
     db_path = data_dir / "zk_auth.db"
@@ -128,7 +140,7 @@ def _pick_user(data_dir: Path) -> tuple[str, str]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:18644")
-    ap.add_argument("--data-dir", default=r"D:\ab\projects\MyBusiness\workframe-api\data")
+    ap.add_argument("--data-dir", default=os.environ.get("WORKFRAME_API_DATA_DIR", ""))
     ap.add_argument("--email", default="")
     ap.add_argument("--live-mention", action="store_true", help="invoke agents on @mention (Codex gpt-5.4-mini; costs tokens)")
     args = ap.parse_args()
