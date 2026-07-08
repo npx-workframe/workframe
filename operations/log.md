@@ -4,6 +4,8 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-08T10:15-03:00 | functional-lane | WF-036 HermesSessionContext split — 194-line provider + hermes-session/{bind,history,stream} hooks (max 449 lines); pnpm build:web green; provider-label unification still partial.
+
 2026-07-08T09:45-03:00 | pm-workframe | WF-032 — workspace_bootstrap.py extracted (~530 lines: default workspace seed, DM lane bootstrap, member onboarding, provision runtimes); server.py ~5.6k lines; test_server_reexports extended.
 
 2026-07-08T09:30-03:00 | gate-run G0.2 | verify-matrix @ 3fe0405: 13 pass / 3 fail / 2 skip. WF-021 allow (sync+bundle prep, ui_bundle_identity green). Fixes: server _ensure_profile_terminal_cwd re-export, test-scaffold WF-032 API bundle, npm pack --ignore-scripts after prep. FAIL: verify-public (operator path patterns), build-web + harness web-build (cosmetic lane TS6133 useConciergeFlow). Evidence: operations/release-evidence/runs/latest-verify-matrix.json

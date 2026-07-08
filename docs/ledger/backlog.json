@@ -982,7 +982,7 @@
     {
       "id": "WF-036",
       "title": "Frontend decomposition + provider display unification",
-      "summary": "ConciergeFlow split done (189 lines + hook/step modules). HermesSessionContext.tsx (772 lines) still needs splitting; finish billingProviderDisplayLabel adoption; remove inferProviderFromModelId silent openrouter default.",
+      "summary": "ConciergeFlow split done (189 lines + hook/step modules). HermesSessionContext split done (194-line provider + hermes-session/* hooks). Remaining: billingProviderDisplayLabel adoption; inferProviderFromModelId silent openrouter default.",
       "wave": "code-health",
       "priority": "P2",
       "status": "partial",
@@ -999,8 +999,8 @@
       "workflow": {
         "assignee": null,
         "reviewer": null,
-        "patch_refs": ["b8e1355", "faa2298", "e3b15e6"],
-        "notes": "Functional slice e3b15e6: ConciergeFlow.tsx → 189 lines; extracted useConciergeFlow, ConciergeWizardPanels, ConciergeSmtpStep, conciergeFlow* helpers. Composer badge + connectError fixed (b8e1355). Remaining: HermesSessionContext split (772 lines); provider-label unification; inferProviderFromModelId cleanup."
+        "patch_refs": ["b8e1355", "faa2298", "e3b15e6", "d914bd8"],
+        "notes": "Functional slice e3b15e6: ConciergeFlow.tsx → 189 lines; extracted useConciergeFlow, ConciergeWizardPanels, ConciergeSmtpStep, conciergeFlow* helpers. Composer badge + connectError fixed (b8e1355). HermesSessionContext split: 194-line provider + useHermesSessionBind/History/Stream (all <800 lines). Remaining: provider-label unification; inferProviderFromModelId cleanup."
       }
     },
     {
