@@ -846,7 +846,7 @@
     {
       "id": "WF-032",
       "title": "Split server.py monolith (definitive module map)",
-      "summary": "~5.6k lines remain in server.py (2026-07-08). ~46 modules extracted. Target residual <3k.",
+      "summary": "~5.1k lines / 78 defs remain in server.py (2026-07-08 @ fb0ca10). ~31 modules extracted. Target residual <3k.",
       "wave": "code-health",
       "priority": "P1",
       "status": "partial",
@@ -888,14 +888,19 @@
         "services/workframe-api/avatar_registry.py",
         "services/workframe-api/test_hermes_admin.py",
         "services/workframe-api/test_server_reexports.py",
-        "services/workframe-api/workspace_bootstrap.py"
+        "services/workframe-api/workspace_bootstrap.py",
+        "services/workframe-api/runtime_cohort.py",
+        "services/workframe-api/supervisor_client.py",
+        "services/workframe-api/chat_bind.py",
+        "services/workframe-api/handler_modules/handler_install.py",
+        "services/workframe-api/test_chat_bind.py"
       ],
       "owner_role": "implementer",
       "workflow": {
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "notes": "2026-07-08: workspace_bootstrap.py extracted (~530 lines: default workspace seed, DM lane bootstrap, member onboarding rooms, provision runtimes); server.py ~5.6k lines. Next: handler shell."
+        "notes": "2026-07-08 @ fb0ca10: chat_bind.py, runtime_cohort.py, supervisor_client.py, handler_modules/handler_install.py extracted; server.py 5,107 lines / 78 defs (down from 12,144 / 318). Next: continue handler shell extractions to <3k."
       }
     },
     {
@@ -971,7 +976,7 @@
     {
       "id": "WF-036",
       "title": "Frontend decomposition + provider display unification",
-      "summary": "ConciergeFlow.tsx (51 KB) and HermesSessionContext.tsx (29 KB) need splitting; finish billingProviderDisplayLabel adoption everywhere; remove inferProviderFromModelId's silent openrouter default.",
+      "summary": "ConciergeFlow split done (189 lines + hook/step modules). HermesSessionContext.tsx (772 lines) still needs splitting; finish billingProviderDisplayLabel adoption; remove inferProviderFromModelId silent openrouter default.",
       "wave": "code-health",
       "priority": "P2",
       "status": "partial",
@@ -988,8 +993,8 @@
       "workflow": {
         "assignee": null,
         "reviewer": null,
-        "patch_refs": ["b8e1355", "faa2298"],
-        "notes": "Composer badge + new session errors (b8e1355). CommandModelPickerMount wires ModelPickerDialog; /model opens picker. Remaining: split HermesSessionContext/ConciergeFlow; inferProviderFromModelId cleanup."
+        "patch_refs": ["b8e1355", "faa2298", "e3b15e6"],
+        "notes": "Functional slice e3b15e6: ConciergeFlow.tsx → 189 lines; extracted useConciergeFlow, ConciergeWizardPanels, ConciergeSmtpStep, conciergeFlow* helpers. Composer badge + connectError fixed (b8e1355). Remaining: HermesSessionContext split (772 lines); provider-label unification; inferProviderFromModelId cleanup."
       }
     },
     {

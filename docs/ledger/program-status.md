@@ -12,13 +12,13 @@
 | Metric | Value |
 |--------|-------|
 | Backlog items | 50 (35 done · 3 partial · 1 todo · 11 deferred) |
-| **Stage A** (release-truth) | **Complete** |
-| **Stage B** (decompose) | **In flight** — WF-032 partial; WF-037/035 done; WF-036 partial (cosmetic lane) |
+| **Stage A** (release-truth) | **Complete** — WF-012 build-stamp identity done 2026-07-08 |
+| **Stage B** (decompose) | **In flight** — WF-032 partial (5.1k lines); WF-037/035 done; WF-036 partial (ConciergeFlow split done; HermesSessionContext remains) |
 | **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence); WF-NS-P1 done 2026-07-08 |
-| **Stage D** (authority + ledger) | **Complete** — WF-016 receipt slice flipped 2026-07-08 |
+| **Stage D** (authority + ledger) | **Complete** — WF-016 receipt per run flipped 2026-07-08 |
 | **Stage E+** | **STOP** — 11 deferred items; do not start |
 
-**`ledger-next` pick (2026-07-08):** `WF-032` (Stage B) — server.py 12,144 lines / 318 top-level defs; ~30 modules already extracted; target residual <3k.
+**`ledger-next` pick (2026-07-08 @ `fb0ca10`):** `WF-032` (Stage B) — server.py **5,107 lines / 78 top-level defs**; **~31 modules** extracted (incl. `handler_modules/handler_install`); target residual <3k.
 
 **Mission:** close every A–D gap, stop at the E gate — ordered waves in [`gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md).
 
@@ -37,16 +37,16 @@
 
 ### Stage A — release-truth ✅ COMPLETE
 
-WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evidence scripts green at last matrix. No open items.
+WF-001…006, WF-012, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evidence scripts green at last matrix. WF-012 build-stamp (`4a37685`) closes `ui_bundle_identity` stale-bundle class.
 
 ### Stage B — decompose 🔄 IN FLIGHT
 
 | ID | Title | Status | Evidence / remaining gap |
 |----|-------|--------|--------------------------|
 | WF-037 | Declarative route registry | **done** | `route_registry.py`; `test_route_registry.py` audits all 62 patterns (2026-07-07); no `/api` if-chains |
-| WF-032 | Split server.py monolith | **partial** | ~10.9k lines / ~312 defs (2026-07-08); runtime_tokens.py extracted this session. Next: oauth_pending, provider_bindings, mention_helpers |
+| WF-032 | Split server.py monolith | **partial** | **5,107 lines / 78 defs** @ `fb0ca10` (down from 12,144 / 318 at gate-run start). ~31 modules extracted (`chat_bind`, `workspace_bootstrap`, `supervisor_client`, `runtime_cohort`, `handler_modules/handler_install`, …). Handler shell split in progress. Next: continue handler extractions to <3k residual |
 | WF-035 | Exception hygiene (auth/vault) | **done** | `test_exception_hygiene.py` green 2026-07-08 |
-| WF-036 | Frontend decomposition | **partial** | Cosmetic slice active in UI lane. Functional slice remains: `ConciergeFlow.tsx`/`HermesSessionContext.tsx` splits, provider-label unification, no silent openrouter default (badge + connectError already fixed) |
+| WF-036 | Frontend decomposition | **partial** | Functional slice `e3b15e6`: `ConciergeFlow.tsx` → 189 lines + `useConciergeFlow.ts` + step modules. Cosmetic lane active in parallel. Remaining: `HermesSessionContext.tsx` (772 lines), provider-label unification, `inferProviderFromModelId` silent openrouter default (badge + connectError already fixed) |
 
 ### Stage C — secure multi-user ✅ DONE except WF-017
 
@@ -70,31 +70,31 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 | WF-009 | RunAuthorityGate | **done** | `run_authority.py` + tests |
 | WF-008 | Mutation-free doctor | **done** | `workframe doctor --json` |
 | WF-007 | CellAuthorityGate | **done** | `test_cell_authority.py` + `updates.apply_update` authority wiring; connect/adopt deny by default; CLI deferred WF-014 |
-| WF-016 | Funding beyond BYOK | **done** | Receipt per run on all six surfaces (`test_run_ledger.py`, `test_run_surface_wiring.py`); payer enforced (`test_run_authority.py`); `amount_usd` null — billing pricing deferred Stage E |
+| WF-016 | Funding beyond BYOK | **done** | `b08071a`: receipt per run on all six surfaces (`test_run_ledger.py`, `test_run_surface_wiring.py`); payer enforced (`test_run_authority.py`); `amount_usd` null — billing amounts/pricing deferred Stage E |
 | WF-NS-P1 | Harden Hermes stack | **done** | `test_secure_mode_docker_boundary.py` + WF-011 supervisor negatives (2026-07-08) |
 | WF-NS-P2 | Run ledger tables | **done** | All six surfaces + DM chat path (`test_run_ledger.py`, `test_run_surface_wiring.py`) — flipped 2026-07-08 |
 
 ### Stage E+ — STOP 🛑
 
 Deferred (11): WF-013, WF-014, WF-015, WF-029, WF-030, WF-NS-P3…P8.
-Meta todo: WF-SK-001 (spec-kit, not gating). WF-012 **done** 2026-07-08 — `workframe-build.json` stamp + `/api/meta` package_version/ui_build; `ui_bundle_identity` asserts stamp parity.
+Meta todo: WF-SK-001 (spec-kit, not gating). WF-012 **done** 2026-07-08 (`4a37685`) — `workframe-build.json` stamp + `/api/meta` package_version/ui_build; `ui_bundle_identity` asserts stamp parity.
 
 ---
 
 ## Verify matrix
 
-**Latest package-install evidence:** 2026-07-08 @ HEAD — `allow` (`run-package-install-evidence.mjs --skip-prep` after bundle; `ui_bundle_identity` via `workframe-build.json` stamp). Full matrix still stale @ `9a06d88` — refresh with prep when convenient.
+**Latest package-install evidence:** 2026-07-08 @ `fb0ca10` — `allow` (`run-package-install-evidence.mjs --skip-prep` after bundle; `ui_bundle_identity` via `workframe-build.json` stamp / WF-012). Full matrix still stale @ `9a06d88` — refresh with prep when convenient (G0.2).
 
-Spot checks this audit (2026-07-08):
+Spot checks this audit (2026-07-08 @ `fb0ca10`):
 
 | Command | Result |
 |---------|--------|
 | `node scripts/workframe/ledger-next.mjs` | WF-032 [P1] partial (Stage B) |
 | `python test_run_surface_wiring.py` | ok |
 | `python test_run_ledger.py` | ok |
-| `wc -l server.py` | 12,144 |
+| `wc -l server.py` | 5,107 |
 | grep `RunSurface.` call sites | chat, mention, kanban, cron, slash, webhook all recorded |
-| `git status -sb` | main in sync with origin; dirty tree = UI lane WIP + 2 stray backend fixes (Wave 0 commits them) |
+| `git status -sb` | main **ahead 38** of origin; dirty tree = cosmetic UI lane WIP only |
 
 ---
 
@@ -102,23 +102,26 @@ Spot checks this audit (2026-07-08):
 
 | Artifact | Drift | Correct truth |
 |----------|-------|---------------|
-| `backlog.json` WF-032 summary | "~20k lines / 841 KB / 626 defs" | 12,144 lines / 318 defs — refresh with next extraction commit |
-| [`now.md`](now.md) | package 0.1.11; egress broker "planned"; run ledger "minimal hooks" | 0.1.12; WF-025 done; six surfaces record runs |
+| [`gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md) baseline | 12,144 lines / 318 defs; 29 done · 8 partial | 5,107 lines / 78 defs; 35 done · 3 partial — Waves 1+3 largely closed |
+| [`now.md`](now.md) | WF-016 receipts "in flight" | WF-016 done; receipt per run on all six surfaces |
+| [`orchestration.md`](orchestration.md) Stage B row | "12.1k → <3k" | 5.1k → <3k; handler shell extractions in flight |
 | [`backlog.md`](backlog.md) audit table | pointer only, statuses stale | `backlog.json` + this doc |
-| Working tree | `create-workframe.js` `/compose` mount fix + `install-gate.ps1` build guard uncommitted | Commit surgically (G0.1) |
+| Verify matrix | stale @ `9a06d88` | Refresh at HEAD with sync+bundle prep (G0.2) |
 
 ---
 
 ## Recommended next execution
 
-Follow [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md) waves in order:
+Follow [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md) waves — progress @ `fb0ca10`:
 
-1. **Wave 0** — commit stray fixes, refresh verify matrix with prep, branch/stash hygiene.
-2. **Wave 1** — flip WF-NS-P2, WF-NS-P1, WF-007, WF-035 after closing their narrow verified gaps.
-3. **Wave 2** — WF-032 extractions to <3k residual (bulk of the run).
-4. **Wave 3** — WF-012 build-stamp identity.
+1. **Wave 0** — refresh verify matrix with prep (G0.2); branch/stash hygiene.
+2. **Wave 1** — ✅ closed (WF-NS-P2, WF-NS-P1, WF-007, WF-035 all `done`).
+3. **Wave 2** — **in flight** — WF-032: 12.1k → 5.1k; continue handler shell + remaining extractions to <3k.
+4. **Wave 3** — ✅ closed (WF-012 `4a37685`, WF-016 `b08071a`).
 5. **Wave 4** — WF-017 VPS + backup/restore evidence (operator-assisted).
-6. **Wave 5** — WF-036 functional slice.
+6. **Wave 5** — **partial** — ConciergeFlow split done (`e3b15e6`); HermesSessionContext + provider labels remain.
+
+**Before E stop line:** finish Stage B (WF-032, WF-036) + Stage C (WF-017). WF-SK-001 meta may stay open.
 
 Stop at the E gate. Do not start deferred items.
 
