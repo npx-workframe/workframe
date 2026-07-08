@@ -32,20 +32,20 @@ stack_config.patch_stack_config(
     }
 )
 stack_config.mark_smtp_tested()
-stack_config.patch_stack_config({"smtp": {"admin_email": "alan@click.blue"}})
+stack_config.patch_stack_config({"smtp": {"admin_email": "owner@example.com"}})
 
 assert stack_config.smtp_setup_complete()
 assert not stack_config.install_admin_verified()
 assert install_api.resolve_install_wizard_step(db_path) == "smtp"
 
-stack_config.mark_install_admin_verified("alan@click.blue")
+stack_config.mark_install_admin_verified("owner@example.com")
 assert stack_config.install_admin_verified()
 raw = stack_config.read_stack_raw()
-assert raw["smtp"]["admin_email"] == "alan@click.blue"
+assert raw["smtp"]["admin_email"] == "owner@example.com"
 assert raw.get("wizard_step") == "workframe"
 
 payload = stack_config.public_stack_payload()
-assert payload["smtp"]["admin_email"] == "alan@click.blue"
+assert payload["smtp"]["admin_email"] == "owner@example.com"
 assert payload["smtp"]["admin_verified"] is True
 
 wizard = install_api.install_wizard_public_payload(db_path)

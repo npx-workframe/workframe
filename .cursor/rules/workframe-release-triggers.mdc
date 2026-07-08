@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Workframe release triggers
 
-**Before dogfood sync, docker restart on MyBusiness, publish, or install-gate: read** `d:/ab/.cursor/skills/workframe-release/SKILL.md` **first.**
+**Before dogfood sync, docker restart on MyBusiness, publish, or install-gate: read** the `workframe-release` Cursor skill **first.**
 
 ## Hard stops
 

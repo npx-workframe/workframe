@@ -1,17 +1,22 @@
-# Workframe v0.1.12
+# Workframe v0.1.13
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.12 |
+| create-workframe | 0.1.13 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.12 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.13 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.12 MyProject
+npx create-workframe@0.1.13 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.13
+
+- Gate-run A–D: server.py split to ~2.6k lines + handler_modules; WF-012 build stamp; WF-016 receipt per run; WF-036 ConciergeFlow/HermesSession decompositions.
+- Public repo verify: remove operator-specific paths from tracked docs/tests.
 
 ## 0.1.12
 

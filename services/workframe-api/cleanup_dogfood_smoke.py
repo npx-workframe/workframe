@@ -2,7 +2,7 @@
 """Remove smoke-test clutter from a dogfood Workframe install.
 
   python cleanup_dogfood_smoke.py --base http://127.0.0.1:18644 \\
-      --data-dir D:\\ab\\projects\\MyBusiness\\workframe-api\\data
+      --data-dir /path/to/MyBusiness/workframe-api/data
 
 ponytail: dogfood on Windows Docker often cannot DELETE rooms via API (sqlite lock);
 falls back to direct DB soft-delete and Hermes filesystem/registry cleanup.
@@ -179,7 +179,7 @@ def _prune_lane_registry(data_dir: Path) -> int:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:18644")
-    ap.add_argument("--data-dir", default=r"D:\ab\projects\MyBusiness\workframe-api\data")
+    ap.add_argument("--data-dir", required=True, help="workframe-api/data under your install")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 

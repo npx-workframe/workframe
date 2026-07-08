@@ -54,9 +54,9 @@ def test_local_bootstrap_uses_submitted_email() -> None:
         server._zk, "session_cookie_value", return_value="cookie=test",
     ):
         handler._route_post_auth_local_bootstrap(
-            {"email": "Alan@Click.Blue", "display_name": "Alan"},
+            {"email": "Owner@Example.com", "display_name": "Owner"},
         )
-    create_session.assert_called_once_with("alan@click.blue")
+    create_session.assert_called_once_with("owner@example.com")
     assert _CaptureHandler.captured is not None
     assert _CaptureHandler.captured[0] == 200
 
