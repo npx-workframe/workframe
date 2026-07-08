@@ -38,6 +38,19 @@ _REQUIRED = (
     "_gateway_exec",
     "_hermes_agent_version",
     "ensure_profile_api",
+    "_runtime_profile_slug",
+    "ensure_runtime_profile",
+    "ensure_user_agent_cohort",
+    "resolve_runtime_assignee",
+    "cohort_runtime_slugs",
+    "_prepare_runtime_profile_credentials",
+    "purge_stale_runtime_profiles",
+    "list_delegation_grants",
+    "create_delegation_grant",
+    "revoke_delegation_grant",
+    "_delegation_grantor_ids_for_grantee",
+    "_runtime_profile_on_disk",
+    "_invalidate_gateway_registered_cache",
 )
 
 
