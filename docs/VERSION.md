@@ -1,17 +1,22 @@
-# Workframe v0.1.13
+# Workframe v0.1.14
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.13 |
+| create-workframe | 0.1.14 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.13 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.14 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.13 MyProject
+npx create-workframe@0.1.14 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.14
+
+- UI theme rebrand: `strato-dark`, `neo-light`, `neo-blue` (legacy slug migration); relief/line chrome tokens and onboarding polish.
+- Onboarding wizard: `agent_model` step + CopyInput on public URL step (aligned with backend flow).
 
 ## 0.1.13
 
