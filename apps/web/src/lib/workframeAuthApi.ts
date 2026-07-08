@@ -60,7 +60,13 @@ export type StackConfig = {
     configured: boolean
     tested?: boolean
     setup_complete?: boolean
+    admin_verified?: boolean
     has_password: boolean
+  }
+  wizard?: {
+    admin_verified: boolean
+    resume_step: string
+    owner_claimed: boolean
   }
   google_oauth: {
     client_id: string

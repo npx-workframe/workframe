@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,11 @@ def _read_raw() -> dict[str, Any]:
         return data if isinstance(data, dict) else {}
     except (OSError, json.JSONDecodeError):
         return {}
+
+
+def read_stack_raw() -> dict[str, Any]:
+    """Stack file dict (install wizard reads wizard_step)."""
+    return _read_raw()
 
 
 def _write_raw(data: dict[str, Any]) -> None:
@@ -123,6 +129,7 @@ def get_stack_config() -> dict[str, Any]:
             "port": int(smtp.get("port") or 587),
             "user": str(smtp.get("user") or "").strip(),
             "from": str(smtp.get("from") or smtp.get("from_address") or "").strip(),
+            "admin_email": str(smtp.get("admin_email") or "").strip(),
             "secure": str(smtp.get("secure") or "starttls").strip(),
             "has_password": bool(str(smtp.get("password") or "").strip()),
         },
@@ -156,6 +163,10 @@ def patch_stack_config(body: dict[str, Any]) -> dict[str, Any]:
         raw["app_base_url"] = str(body.get("app_base_url") or "").strip().rstrip("/")
     if body.get("install_complete") is True:
         raw["install_complete"] = True
+    if "wizard_step" in body:
+        step = str(body.get("wizard_step") or "").strip()
+        if step:
+            raw["wizard_step"] = step
     if "smtp" in body and isinstance(body["smtp"], dict):
         smtp = dict(raw.get("smtp") if isinstance(raw.get("smtp"), dict) else {})
         creds_changed = False
@@ -348,6 +359,26 @@ def smtp_setup_complete() -> bool:
     return bool(str(stack.get("admin_email") or "").strip()) and smtp_has_password() and smtp_configured()
 
 
+def install_admin_verified() -> bool:
+    """Install admin completed OTP during the install window."""
+    stack = _stack_smtp_raw()
+    return bool(stack.get("admin_verified_at"))
+
+
+def mark_install_admin_verified(email: str) -> None:
+    """Persist verified install admin — survives reload; closes anonymous install mutations."""
+    normalized = str(email or "").strip().lower()
+    if not normalized or "@" not in normalized:
+        return
+    raw = _read_raw()
+    smtp = dict(raw.get("smtp") if isinstance(raw.get("smtp"), dict) else {})
+    smtp["admin_email"] = normalized
+    smtp["admin_verified_at"] = int(time.time())
+    raw["smtp"] = smtp
+    raw["wizard_step"] = "workframe"
+    _write_raw(raw)
+
+
 def mark_smtp_tested() -> None:
     raw = _read_raw()
     smtp = dict(raw.get("smtp") if isinstance(raw.get("smtp"), dict) else {})
@@ -398,11 +429,12 @@ def public_stack_payload() -> dict[str, Any]:
             "port": smtp.get("port") or 587,
             "user": smtp.get("user") or "",
             "from": smtp.get("from") or "",
-            "admin_email": smtp.get("admin_email") or "",
+            "admin_email": str(_stack_smtp_raw().get("admin_email") or "").strip(),
             "secure": smtp.get("secure") or "starttls",
             "configured": smtp_configured(),
             "tested": smtp_tested(),
             "setup_complete": smtp_setup_complete(),
+            "admin_verified": install_admin_verified(),
             "has_password": smtp_has_password(),
         },
         "google_oauth": {

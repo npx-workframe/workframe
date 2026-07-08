@@ -17,8 +17,7 @@ import { buildWizardSteps, enrichWizardSteps, railStepToConciergeStep, stepMeta,
 import { OnboardingWizardShell } from '@/components/onboarding/OnboardingWizardShell'
 import { DialogFrame } from '@/components/dialogs/DialogFrame'
 import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
-import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
-import { PublicUrlWizardStep } from '@/components/onboarding/PublicUrlWizardStep'
+import { PublicUrlWizardStep, runPublicHttpsSetup } from '@/components/onboarding/PublicUrlWizardStep'
 import { WorkframeIntegrationsStep } from '@/components/onboarding/WorkframeIntegrationsStep'
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { BootScreen } from '@/components/shell/BootScreen'
@@ -28,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
+import { fetchHermesModels } from '@/lib/hermesCatalogApi'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
 import { formatWorkframeError, formatWorkframeErrorMessage, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { DEFAULT_USER_AVATAR, DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
@@ -63,6 +63,29 @@ function normalizePublicUrl(url: string): string {
   if (!trimmed) return ''
   if (/^https?:\/\//i.test(trimmed)) return trimmed
   return `https://${trimmed}`
+}
+
+function resolveSmtpAdminEmail(
+  smtp: StackConfig['smtp'] | undefined,
+  sessionEmail?: string,
+): string {
+  const stored = String(smtp?.admin_email || '').trim()
+  if (stored) return stored
+  return String(sessionEmail || '').trim()
+}
+
+function preferAdminEmailOverSmtpLogin(
+  current: string,
+  candidate: string,
+  smtpLogin?: string,
+): string {
+  const cur = current.trim()
+  const cand = candidate.trim()
+  const login = String(smtpLogin || '').trim().toLowerCase()
+  if (!cand) return cur || current
+  if (!cur) return cand
+  if (login && cur.toLowerCase() === login && cand.toLowerCase() !== login) return cand
+  return current
 }
 
 function defaultAgentSoul(name: string, project: string) {
@@ -168,6 +191,8 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
   const [adminAuthDevOtp, setAdminAuthDevOtp] = useState('')
   const [adminOtpStep, setAdminOtpStep] = useState<EmailOtpStep>('otp')
   const [adminVerified, setAdminVerified] = useState(false)
+  const [hasAdminSession, setHasAdminSession] = useState(false)
+  const [smtpFieldsDirty, setSmtpFieldsDirty] = useState(false)
   const [visitedMaxIndex, setVisitedMaxIndex] = useState(0)
   const [workspaceIntegrations, setWorkspaceIntegrations] = useState<WorkspaceDetail['integrations']>()
   const [connectedProviders, setConnectedProviders] = useState<string[]>([])
@@ -187,7 +212,9 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
   const [agentAvatar, setAgentAvatar] = useState(() => pickRandomPreset('agent') || DEFAULT_USER_AVATAR)
   const [inviteEmails, setInviteEmails] = useState('')
   const [publicUrl, setPublicUrl] = useState('')
-  const [providersTab, setProvidersTab] = useState<'keys' | 'accounts' | 'model'>('keys')
+  const [httpsStatus, setHttpsStatus] = useState<string | null>(null)
+  const [agentPrimaryModel, setAgentPrimaryModel] = useState('')
+  const [agentModelTab, setAgentModelTab] = useState<'keys' | 'model'>('model')
   const [agentSteps, setAgentSteps] = useState<OperationStep[]>([])
   const [launching, setLaunching] = useState(false)
   const [launchSteps, setLaunchSteps] = useState<OperationStep[]>([])
@@ -230,8 +257,11 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     return false
   }, [])
 
-  const reloadStack = useCallback(async () => {
+  const markSmtpDirty = useCallback(() => setSmtpFieldsDirty(true), [])
+
+  const reloadStack = useCallback(async (): Promise<StackConfig | null> => {
     try {
+      const session = await workframeAuthApi.peekSession()
       const cfg = await workframeAuthApi.getInstallStack()
       setStack(cfg)
       if (cfg.deployment_mode) {
@@ -240,7 +270,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       }
       if (cfg.app_base_url) setPublicUrl(cfg.app_base_url)
       if (cfg.smtp) {
-        if (cfg.smtp.admin_email) setAdminEmail(cfg.smtp.admin_email)
+        const resolvedEmail = resolveSmtpAdminEmail(cfg.smtp, session?.user?.email ?? undefined)
+        if (resolvedEmail) {
+          setAdminEmail((prev) => preferAdminEmailOverSmtpLogin(prev, resolvedEmail, cfg.smtp?.user))
+        }
         setSmtpHasPassword(Boolean(cfg.smtp.has_password))
         if (cfg.smtp.host) {
           setSmtpHost(cfg.smtp.host)
@@ -249,15 +282,17 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           if (cfg.smtp.from) setSmtpFrom(cfg.smtp.from)
         }
       }
+      return cfg
     } catch {
       const session = await workframeAuthApi.peekSession()
-      if (session) return
+      if (session) return null
       try {
         const status = await workframeAuthApi.getInstallStatus()
         if (status.install_complete) setOwnerSignInRequired(true)
       } catch {
         // best-effort — wizard steps surface errors on save
       }
+      return null
     }
   }, [])
 
@@ -286,6 +321,12 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       // rail summaries are best-effort
     }
   }, [])
+
+  useEffect(() => {
+    if (credentialMode !== 'byok' && agentModelTab === 'keys') {
+      setAgentModelTab('model')
+    }
+  }, [agentModelTab, credentialMode])
 
   useEffect(() => {
     void fetchWorkframeMeta()
@@ -342,13 +383,58 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         } catch {
           // continue — reloadStack may still succeed during install window
         }
-        await reloadStack()
+        const cfg = await reloadStack()
+        let session = await workframeAuthApi.peekSession()
+        if (!session) {
+          try {
+            session = await workframeAuthApi.restoreSession()
+          } catch {
+            // pre-verify install path
+          }
+        }
+        const wizard = cfg?.wizard
+        const smtpAdmin = String(cfg?.smtp?.admin_email || '').trim()
+        if (smtpAdmin) {
+          setAdminEmail(smtpAdmin)
+        }
+        const installAdminVerified = Boolean(
+          wizard?.admin_verified || cfg?.smtp?.admin_verified,
+        )
+        if (installAdminVerified) {
+          setAdminVerified(true)
+          setHasAdminSession(Boolean(session))
+        }
+        if (cfg?.deployment_mode) {
+          setModeChosen(true)
+        }
+        const resumeRaw = String(wizard?.resume_step || '').trim()
+        const resumeStep = (
+          resumeRaw === 'admin_auth' && installAdminVerified
+            ? 'workframe'
+            : resumeRaw === 'smtp' && installAdminVerified && cfg?.smtp?.setup_complete
+              ? 'workframe'
+              : resumeRaw
+        ) as ConciergeStep
+        const allowedSteps: ConciergeStep[] = [
+          'intro', 'welcome', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing',
+          'integrations', 'profile', 'agent', 'agent_model', 'invites', 'done',
+        ]
+        if (allowedSteps.includes(resumeStep) && resumeStep !== 'intro') {
+          setStep(resumeStep)
+        }
         try {
           const me = await workframeAuthApi.getMe()
           const wsId = me.current_workspace?.id || me.default_workspace?.id || ''
           if (wsId) setWorkspaceId(wsId)
-          if (me.user.email) setAdminEmail(me.user.email)
-          if (me.ok) setAdminVerified(true)
+          if (me.user.email) {
+            setAdminEmail((prev) =>
+              preferAdminEmailOverSmtpLogin(prev, me.user.email || '', cfg?.smtp?.user),
+            )
+          }
+          if (me.ok) {
+            setAdminVerified(true)
+            setHasAdminSession(true)
+          }
 
           const onboarding = await workframeAuthApi.getOnboarding()
           if (onboarding.complete) {
@@ -363,6 +449,16 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     })()
   }, [inviteEmail, inviteToken, isInvitee, onComplete, reloadStack])
 
+  useEffect(() => {
+    if (!bootstrapDone || isInvitee) return
+    void workframeAuthApi.getInstallStatus()
+      .then((status) => {
+        if (!status.install_window_open || status.install_complete) return
+        return patchInstallStackWhenAllowed({ wizard_step: step })
+      })
+      .catch(() => {})
+  }, [bootstrapDone, isInvitee, patchInstallStackWhenAllowed, step])
+
   const smtpReady = useMemo(
     () => Boolean(stack?.smtp?.configured || stack?.smtp?.has_password || smtpHost.trim()),
     [stack?.smtp?.configured, stack?.smtp?.has_password, smtpHost],
@@ -373,11 +469,28 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     [stack?.smtp?.setup_complete],
   )
 
+  const canKeepAdminSetup = useMemo(
+    () => smtpSetupComplete && (adminVerified || hasAdminSession) && !smtpFieldsDirty,
+    [adminVerified, hasAdminSession, smtpFieldsDirty, smtpSetupComplete],
+  )
+
   const canContinueFromSmtp = useMemo(() => {
+    if (canKeepAdminSetup) return true
     if (adminVerified) return true
     if (!adminEmail.trim()) return false
     return smtpSetupComplete
-  }, [adminVerified, adminEmail, smtpSetupComplete])
+  }, [adminVerified, adminEmail, canKeepAdminSetup, smtpSetupComplete])
+
+  useEffect(() => {
+    if (step !== 'smtp') return
+    void workframeAuthApi.peekSession().then((session) => {
+      setHasAdminSession(Boolean(session))
+      if (session?.user?.email) {
+        setAdminEmail((prev) => preferAdminEmailOverSmtpLogin(prev, session.user.email || '', smtpUser))
+        if (smtpSetupComplete) setAdminVerified(true)
+      }
+    })
+  }, [smtpSetupComplete, smtpUser, step])
 
   const unlockedMaxIndex = useMemo(() => {
     const steps = buildWizardSteps(deploymentMode, modeChosen, isInvitee)
@@ -390,13 +503,13 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     let max = 0
     if (modeChosen) max = Math.max(max, idx('welcome'))
     if (deploymentMode === 'single_user_local' && modeChosen && adminVerified) {
-      max = Math.max(max, idx('integrations'))
+      max = Math.max(max, idx('workframe'))
     }
     if (deploymentMode !== 'single_user_local' && modeChosen) {
       max = Math.max(max, idx('smtp'))
     }
     if (smtpReady && adminVerified) {
-      max = Math.max(max, idx('integrations'))
+      max = Math.max(max, idx('workframe'))
     }
     if (adminVerified && workspaceId) {
       max = steps.length - 1
@@ -408,7 +521,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
 
   useEffect(() => {
     if (step === 'admin_auth' && adminVerified) {
-      setStep('integrations')
+      setStep('workframe')
     }
   }, [adminVerified, step])
 
@@ -447,7 +560,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         const me = await workframeAuthApi.getMe()
         setWorkspaceId(me.current_workspace?.id || me.default_workspace?.id || '')
         setAdminVerified(true)
-        setStep('integrations')
+        setStep('workframe')
       } else if (mode === 'public_multi_user') {
         setStep('publish')
       } else {
@@ -480,6 +593,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     const port = Number(smtpPort) || 587
     const from = smtpFrom.trim()
     const password = smtpPass.trim()
+    const resolvedAdminEmail = adminEmail.trim()
+    if (requirePassword && !resolvedAdminEmail) {
+      throw new Error('Admin email is required')
+    }
     if (requirePassword && !password && !smtpHasPassword) {
       throw new Error('SMTP password is required')
     }
@@ -488,7 +605,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         host: smtpHost,
         port,
         user: smtpUser,
-        admin_email: adminEmail.trim(),
+        ...(resolvedAdminEmail ? { admin_email: resolvedAdminEmail } : {}),
         ...(password ? { password } : {}),
         ...(from ? { from } : {}),
         secure: port === 465 ? 'ssl' : 'starttls',
@@ -511,13 +628,16 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       setSmtpPhase('smtp')
       const ok = await saveSmtpForInstall(true)
       if (!ok) return false
-      if (!adminEmail.trim()) {
+      const testEmail = adminEmail.trim()
+      if (!testEmail) {
         throw new Error('Admin email is required')
       }
       setSmtpPhase('test-email')
-      const test = await workframeAuthApi.testInstallEmail(adminEmail.trim())
+      const test = await workframeAuthApi.testInstallEmail(testEmail)
       if (!test.ok) throw new Error('Test email failed')
       await reloadStack()
+      setSmtpFieldsDirty(false)
+      setError(null)
       return true
     } catch (err) {
       setError(formatWorkframeError(err, 'SMTP test'))
@@ -557,6 +677,23 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
   }
 
   async function continueFromSmtp() {
+    if (canKeepAdminSetup) {
+      setBusy(true)
+      setError(null)
+      try {
+        if (smtpHost.trim()) {
+          const ok = await saveSmtpForInstall(false)
+          if (!ok) return
+        }
+        setSmtpFieldsDirty(false)
+        setStep('workframe')
+      } catch (err) {
+        setError(formatWorkframeError(err, 'Save SMTP'))
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     if (adminVerified) {
       setBusy(true)
       setError(null)
@@ -565,12 +702,21 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           const ok = await saveSmtpForInstall(false)
           if (!ok) return
         }
-        setStep('integrations')
+        setSmtpFieldsDirty(false)
+        setStep('workframe')
       } catch (err) {
         setError(formatWorkframeError(err, 'Save SMTP'))
       } finally {
         setBusy(false)
       }
+      return
+    }
+    if (smtpFieldsDirty && smtpSetupComplete) {
+      setError({
+        tone: 'caution',
+        message: 'SMTP settings changed.',
+        hint: 'Send a test email to confirm your changes before continuing.',
+      })
       return
     }
     if (!smtpSetupComplete) {
@@ -589,7 +735,17 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     setAdminAuthNotice(null)
     setAdminAuthDevOtp('')
     setAdminVerified(true)
-    setStep('integrations')
+    setHasAdminSession(true)
+    setSmtpFieldsDirty(false)
+    if (deploymentMode === 'public_multi_user') {
+      void workframeAuthApi
+        .completeSetup({
+          workframe_name: resolveWorkframeName(),
+          agent_name: agentName,
+        })
+        .catch(() => {})
+    }
+    setStep('workframe')
   }
 
   function handleOwnerSignedIn(profile: SessionProfile) {
@@ -597,19 +753,20 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
     if (profile.user.email) setAdminEmail(profile.user.email)
     setAdminVerified(true)
+    setHasAdminSession(true)
     void reloadStack()
     if (!modeChosen) {
       setStep('intro')
       return
     }
     if (deploymentMode === 'single_user_local') {
-      setStep('integrations')
+      setStep('workframe')
     } else if (deploymentMode === 'public_multi_user' && !smtpReady) {
       setStep('publish')
     } else if (!smtpReady) {
       setStep('smtp')
     } else {
-      setStep('integrations')
+      setStep('workframe')
     }
   }
 
@@ -637,7 +794,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           admin_integrations_done: true,
         })
       }
-      setStep('billing')
+      setStep('profile')
     } catch (err) {
       setError(formatWorkframeError(err, 'Save integrations'))
     } finally {
@@ -645,13 +802,13 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     }
   }
 
-  async function skipToBilling() {
+  async function skipIntegrations() {
     await saveIntegrations(true)
   }
 
   async function saveBilling() {
     if (!workspaceId) {
-      setStep('workframe')
+      setStep('integrations')
       return
     }
     setBusy(true)
@@ -661,7 +818,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         credential_mode: credentialMode,
         admin_integrations_done: true,
       })
-      setStep('workframe')
+      setStep('integrations')
     } catch (err) {
       setError(formatWorkframeError(err, 'Save billing'))
     } finally {
@@ -684,7 +841,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       await workframeAuthApi.patchWorkspaceIntegrations(workspaceId, {
         admin_onboarding_done: true,
       })
-      setStep('profile')
+      setStep('billing')
     } catch (err) {
       setError(formatWorkframeError(err, 'Save workframe'))
     } finally {
@@ -702,7 +859,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         bio: bio || undefined,
         ...(avatar ?? {}),
       })
-      setStep('providers')
+      setStep('agent')
     } catch (err) {
       setError(formatWorkframeError(err, 'Save profile'))
     } finally {
@@ -710,13 +867,41 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     }
   }
 
-  async function saveProviders() {
+  async function saveAgentModel() {
+    if (!workspaceId) return
     setBusy(true)
     setError(null)
     try {
-      setStep('agent')
+      const models = await fetchHermesModels(undefined, workspaceId, { selectionOnly: true })
+      const primary = (agentPrimaryModel || models.primary || '').trim()
+      if (!primary) {
+        setError({
+          tone: 'caution',
+          message: 'Choose a primary model for your agent.',
+          hint:
+            credentialMode === 'byok' && !connectedProviders.length
+              ? 'Connect at least one LLM provider key, then pick a model from the refreshed list.'
+              : 'Select a primary model before continuing.',
+        })
+        if (credentialMode === 'byok' && !connectedProviders.length) {
+          setAgentModelTab('keys')
+        } else {
+          setAgentModelTab('model')
+        }
+        return
+      }
+      setAgentPrimaryModel(primary)
+      if (isInvitee) {
+        await finishInviteeOnboarding()
+        return
+      }
+      if (deploymentMode === 'single_user_local') {
+        await finishInstall()
+        return
+      }
+      setStep('invites')
     } catch (err) {
-      setError(formatWorkframeError(err, 'Save providers'))
+      setError(formatWorkframeError(err, 'Save agent model'))
     } finally {
       setBusy(false)
     }
@@ -741,23 +926,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         soul,
       })
       setAgentSteps(AGENT_SAVE_STEP_LABELS.map((entry) => ({ ...entry, status: 'done' })))
-      if (isInvitee) {
-        await finishInviteeOnboarding()
-        return
-      }
-      if (deploymentMode === 'public_multi_user') {
-        if (!adminVerified) {
-          setStep('smtp')
-          return
-        }
-        if (publicUrl.trim()) {
-          await finishInstall()
-        } else {
-          setStep('publish')
-        }
-      } else {
-        setStep('invites')
-      }
+      setStep('agent_model')
     } catch (err) {
       setAgentSteps(
         AGENT_SAVE_STEP_LABELS.map((entry) => ({
@@ -950,14 +1119,30 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       if (!result.ok) {
         setError({
           tone: 'caution',
-          message: `URL test: ${result.error || 'failed'}`,
-          hint: result.hint,
+          message: result.error || 'Connection test failed',
+          hint: result.hint || 'Confirm DNS points at this server, then try again.',
         })
       } else {
-        setError(null)
+        setError({
+          tone: 'info',
+          message: 'Connection test passed.',
+          hint: 'Your public URL is reachable from this install.',
+        })
       }
     } catch (err) {
       setError(formatWorkframeError(err, 'URL test'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function setupPublicHttps() {
+    setBusy(true)
+    setHttpsStatus(null)
+    try {
+      const url = normalizePublicUrl(publicUrl)
+      setPublicUrl(url)
+      setHttpsStatus(await runPublicHttpsSetup(url))
     } finally {
       setBusy(false)
     }
@@ -983,6 +1168,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       connectedProviders,
       agentName,
       agentTagline,
+      agentPrimaryModel,
       inviteEmails,
       publicUrl,
     })
@@ -991,6 +1177,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     adminVerified,
     agentName,
     agentTagline,
+    agentPrimaryModel,
     connectedProviders,
     credentialMode,
     deploymentMode,
@@ -1043,10 +1230,12 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       break
     case 'smtp':
       footer = (
-        <div className="wf-wizard-footer-actions">
+        <div
+          className={`wf-wizard-footer-actions${canKeepAdminSetup ? ' wf-wizard-footer-actions--cluster' : ''}`}
+        >
           <WfActionButton
             wizardSize
-            tone={smtpSetupComplete ? 'default' : 'primary'}
+            tone={canKeepAdminSetup || smtpSetupComplete ? 'default' : 'primary'}
             className="wf-wizard-footer-actions__btn"
             disabled={busy}
             onClick={() => void testSmtpOnly()}
@@ -1055,12 +1244,16 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           </WfActionButton>
           <WfActionButton
             wizardSize
-            tone={smtpSetupComplete ? 'primary' : 'inactive'}
+            tone={canKeepAdminSetup || smtpSetupComplete ? 'primary' : 'inactive'}
             className="wf-wizard-footer-actions__btn"
             disabled={busy || !canContinueFromSmtp}
             onClick={() => void continueFromSmtp()}
           >
-            {adminVerified ? 'Continue' : 'Continue to verification'}
+            {canKeepAdminSetup
+              ? 'Continue with current setup'
+              : adminVerified
+                ? 'Continue'
+                : 'Continue to verification'}
           </WfActionButton>
         </div>
       )
@@ -1070,7 +1263,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     case 'integrations':
       footer = (
         <>
-          <WfActionButton wizardSize disabled={busy} onClick={() => void skipToBilling()}>
+          <WfActionButton wizardSize disabled={busy} onClick={() => void skipIntegrations()}>
             Skip
           </WfActionButton>
           <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveIntegrations()}>
@@ -1100,11 +1293,15 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         </WfActionButton>
       )
       break
-    case 'providers':
+    case 'agent_model':
       if (workspaceId) {
         footer = (
-          <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveProviders()}>
-            Continue
+          <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveAgentModel()}>
+            {busy
+              ? 'Saving…'
+              : isInvitee || deploymentMode === 'single_user_local'
+                ? 'Launch Workframe'
+                : 'Continue'}
           </WfActionButton>
         )
       }
@@ -1112,11 +1309,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     case 'agent':
       footer = (
         <WfActionButton wizardSize tone="primary" disabled={busy} onClick={() => void saveAgent()}>
-          {busy
-            ? 'Saving agent…'
-            : deploymentMode === 'public_multi_user' && adminVerified && publicUrl.trim()
-              ? 'Launch Workframe'
-              : 'Continue'}
+          {busy ? 'Saving agent…' : 'Continue'}
         </WfActionButton>
       )
       break
@@ -1134,13 +1327,27 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       break
     case 'publish':
       footer = (
-        <>
-          <WfActionButton wizardSize disabled={busy} onClick={() => void testPublicUrl()}>
+        <div className="wf-wizard-footer-actions wf-wizard-footer-actions--cluster">
+          <WfActionButton
+            wizardSize
+            tone="primary"
+            className="wf-wizard-footer-actions__btn"
+            disabled={busy || !publicUrl.trim()}
+            onClick={() => void setupPublicHttps()}
+          >
+            {busy ? 'Setting up…' : 'Set up HTTPS'}
+          </WfActionButton>
+          <WfActionButton
+            wizardSize
+            className="wf-wizard-footer-actions__btn"
+            disabled={busy || !publicUrl.trim()}
+            onClick={() => void testPublicUrl()}
+          >
             Test connection
           </WfActionButton>
           <WfActionButton
             wizardSize
-            tone="primary"
+            className="wf-wizard-footer-actions__btn"
             disabled={busy || !publicUrl.trim()}
             onClick={async () => {
               setBusy(true)
@@ -1159,7 +1366,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           >
             Continue
           </WfActionButton>
-        </>
+        </div>
       )
       break
     default:
@@ -1215,7 +1422,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       description={description || undefined}
       footer={footer}
     >
-      {error ? <WorkframeNotice info={error} /> : null}
+      {error ? <WorkframeNotice info={error} className="wf-notice--wizard" /> : null}
 
       {step === 'intro' ? (
         <div className="wf-wizard-panel">
@@ -1257,7 +1464,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               <Input
                 id="wf-smtp-host"
                 value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
+                onChange={(e) => {
+                  markSmtpDirty()
+                  setSmtpHost(e.target.value)
+                }}
                 placeholder="smtp.sendgrid.net"
                 disabled={busy}
               />
@@ -1272,7 +1482,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               <Input
                 id="wf-smtp-port"
                 value={smtpPort}
-                onChange={(e) => setSmtpPort(e.target.value)}
+                onChange={(e) => {
+                  markSmtpDirty()
+                  setSmtpPort(e.target.value)
+                }}
                 placeholder="587"
                 disabled={busy}
               />
@@ -1284,7 +1497,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               <Input
                 id="wf-smtp-user"
                 value={smtpUser}
-                onChange={(e) => setSmtpUser(e.target.value)}
+                onChange={(e) => {
+                  markSmtpDirty()
+                  setSmtpUser(e.target.value)
+                }}
                 disabled={busy}
               />
             </div>
@@ -1293,7 +1509,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
               <SecretInput
                 id="wf-smtp-pass"
                 value={smtpPass}
-                onChange={(e) => setSmtpPass(e.target.value)}
+                onChange={(e) => {
+                  markSmtpDirty()
+                  setSmtpPass(e.target.value)
+                }}
                 saved={smtpHasPassword}
                 emptyPlaceholder="SMTP password or API key"
                 disabled={busy}
@@ -1305,7 +1524,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
             <Input
               id="wf-smtp-from"
               value={smtpFrom}
-              onChange={(e) => setSmtpFrom(e.target.value)}
+              onChange={(e) => {
+                markSmtpDirty()
+                setSmtpFrom(e.target.value)
+              }}
               placeholder={smtpUser || 'same as username'}
               disabled={busy}
             />
@@ -1352,17 +1574,31 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       ) : null}
 
       {step === 'billing' ? (
-        <div className="wf-wizard-choice-grid">
+        <div className="wf-wizard-choice-grid" role="radiogroup" aria-label="Billing model">
           <label className={`wf-wizard-choice-card${credentialMode === 'byok' ? ' is-selected' : ''}`}>
-            <input type="radio" checked={credentialMode === 'byok'} onChange={() => setCredentialMode('byok')} />
-            <span>
+            <input
+              type="radio"
+              className="wf-wizard-choice-card__input"
+              name="wf-credential-mode"
+              checked={credentialMode === 'byok'}
+              onChange={() => setCredentialMode('byok')}
+            />
+            <span className="wf-wizard-choice-card__radio" aria-hidden="true" />
+            <span className="wf-wizard-choice-card__body">
               <strong>BYOK — bring your own keys</strong>
               <span>Each member connects personal LLM keys. Usage bills to them.</span>
             </span>
           </label>
           <label className={`wf-wizard-choice-card${credentialMode === 'workspace' ? ' is-selected' : ''}`}>
-            <input type="radio" checked={credentialMode === 'workspace'} onChange={() => setCredentialMode('workspace')} />
-            <span>
+            <input
+              type="radio"
+              className="wf-wizard-choice-card__input"
+              name="wf-credential-mode"
+              checked={credentialMode === 'workspace'}
+              onChange={() => setCredentialMode('workspace')}
+            />
+            <span className="wf-wizard-choice-card__radio" aria-hidden="true" />
+            <span className="wf-wizard-choice-card__body">
               <strong>Company-pays — shared keys</strong>
               <span>One shared key pool for all members. Admin manages provider keys.</span>
             </span>
@@ -1431,42 +1667,50 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         </div>
       ) : null}
 
-      {step === 'providers' && workspaceId ? (
+      {step === 'agent_model' && workspaceId ? (
         <div className="wf-wizard-panel wf-onboarding-form">
-          <div className="wf-wizard-subtabs" role="tablist" aria-label="Model keys sections">
+          <div className="wf-wizard-subtabs" role="tablist" aria-label="Agent model sections">
             {(
               [
-                ['keys', 'Provider keys'],
-                ['accounts', 'Linked accounts'],
-                ['model', 'LLM models'],
+                ...(credentialMode === 'byok' ? [['keys', 'Provider keys'] as const] : []),
+                ['model', 'LLM model'] as const,
               ] as const
             ).map(([id, label]) => (
               <button
                 key={id}
                 type="button"
                 role="tab"
-                aria-selected={providersTab === id}
-                className={`wf-wizard-subtabs__btn${providersTab === id ? ' is-active' : ''}`}
-                onClick={() => setProvidersTab(id)}
+                aria-selected={agentModelTab === id}
+                className={`wf-wizard-subtabs__btn${agentModelTab === id ? ' is-active' : ''}`}
+                onClick={() => setAgentModelTab(id)}
               >
                 {label}
               </button>
             ))}
           </div>
-          {providersTab === 'keys' ? (
+          {agentModelTab === 'keys' && credentialMode === 'byok' ? (
             <ProviderConnectPanel
               workspaceId={workspaceId}
               credentialScope="user"
-              categories={['llm', 'dev', 'search']}
+              categories={['llm']}
               hint="none"
               layout="tabs"
               disabled={busy}
             />
           ) : null}
-          {providersTab === 'accounts' ? (
-            <PlatformIdentityPanel workspaceId={workspaceId} disabled={busy} />
+          {agentModelTab === 'model' ? (
+            <ModelPickerPanel
+              workspaceId={workspaceId}
+              embedded
+              selectionOnly
+              value={agentPrimaryModel}
+              onChanged={setAgentPrimaryModel}
+              onLoaded={(data) => {
+                if (data.primary?.trim()) setAgentPrimaryModel(data.primary.trim())
+              }}
+              onError={(message) => setError({ tone: 'caution', message })}
+            />
           ) : null}
-          {providersTab === 'model' ? <ModelPickerPanel workspaceId={workspaceId} embedded /> : null}
         </div>
       ) : null}
 
@@ -1524,6 +1768,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           publicUrl={publicUrl}
           onPublicUrlChange={setPublicUrl}
           disabled={busy}
+          httpsStatus={httpsStatus}
         />
       ) : null}
     </OnboardingWizardShell>

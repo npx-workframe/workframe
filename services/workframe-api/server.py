@@ -541,6 +541,16 @@ def _install_complete() -> bool:
   return not _install_window_open()
 
 
+def _install_owner_session_ok(handler: BaseHTTPRequestHandler) -> bool:
+    """During install, stack mutations require the verified owner after bootstrap."""
+    if not _install_window_open():
+        return _role_allows(handler, OWNER_ADMIN_ROLES)
+    if not install_api.install_mutations_require_owner(str(_workframe_db_path())):
+        return True
+    user_id = str(getattr(handler, "auth_user", "") or "").strip()
+    return bool(user_id) and _role_allows(handler, OWNER_ADMIN_ROLES)
+
+
 
 def _primary_workspace_row(conn: sqlite3.Connection) -> sqlite3.Row | None:
     return conn.execute(
@@ -6602,6 +6612,8 @@ class Handler(BaseHTTPRequestHandler):
         cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
         self.auth_user = result["user_id"]
         self._ensure_user(result["user_id"], email, email)
+        if _install_window_open():
+            stack_config.mark_install_admin_verified(email)
         self._log_audit("login", "session", result["session_id"],
                         f"user={result['user_id']} new={result['is_new_user']}")
         me_payload = _session_profile_payload(result["user_id"])
@@ -7036,7 +7048,9 @@ class Handler(BaseHTTPRequestHandler):
         if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
             self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
             return
-        self._json(200, {"ok": True, **stack_config.public_stack_payload()})
+        payload = stack_config.public_stack_payload()
+        payload["wizard"] = install_api.install_wizard_public_payload(str(_workframe_db_path()))
+        self._json(200, {"ok": True, **payload})
 
     def _route_get_install_url_test(self, qs: dict[str, list[str]]) -> None:
         if not _install_window_open():
@@ -7148,6 +7162,9 @@ class Handler(BaseHTTPRequestHandler):
     def _route_post_install_email_test(self, body: dict) -> None:
         if not _install_window_open():
             self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        if not _install_owner_session_ok(self):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
             return
         try:
             to_email = str(body.get("email", "")).strip()
@@ -9190,6 +9207,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _route_patch_install_stack(self, body: dict) -> None:
         if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
+            return
+        if not _install_owner_session_ok(self):
             self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
             return
         try:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import sqlite3
@@ -16,6 +17,37 @@ from email_sender import send_email_with_config
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
 NATIVE_PROFILE = os.environ.get("WORKFRAME_NATIVE_PROFILE", "workframe-agent").strip() or "workframe-agent"
+
+INSTALL_WIZARD_STEPS = frozenset({
+    "intro",
+    "welcome",
+    "publish",
+    "smtp",
+    "admin_auth",
+    "workframe",
+    "billing",
+    "integrations",
+    "profile",
+    "agent",
+    "agent_model",
+    "invites",
+    "done",
+})
+INSTALL_WIZARD_STEP_ORDER = (
+    "intro",
+    "welcome",
+    "publish",
+    "smtp",
+    "admin_auth",
+    "workframe",
+    "billing",
+    "integrations",
+    "profile",
+    "agent",
+    "agent_model",
+    "invites",
+    "done",
+)
 
 
 def _user_count(db_path: str) -> int:
@@ -32,6 +64,97 @@ def install_window_open(db_path: str) -> bool:
     """Open until operator marks install complete — users may exist mid-onboarding."""
     del db_path  # ponytail: reserved for future per-install DB path checks
     return not bool(stack_config.get_stack_config().get("install_complete"))
+
+
+def install_owner_claimed(db_path: str) -> bool:
+    """True once the first install admin has verified and owns the default workspace."""
+    try:
+        conn = sqlite3.connect(db_path, timeout=2.0)
+        row = conn.execute(
+            """
+            SELECT 1 FROM workspaces
+            WHERE deleted_at IS NULL
+              AND TRIM(COALESCE(owner_id, '')) != ''
+            LIMIT 1
+            """,
+        ).fetchone()
+        conn.close()
+        return bool(row)
+    except (sqlite3.Error, OSError):
+        return False
+
+
+def install_mutations_require_owner(db_path: str) -> bool:
+    """After admin verify, install stack mutations require the owner session."""
+    return install_owner_claimed(db_path) or stack_config.install_admin_verified()
+
+
+def _default_workspace_settings(db_path: str) -> dict[str, Any]:
+    try:
+        conn = sqlite3.connect(db_path, timeout=2.0)
+        row = conn.execute(
+            """
+            SELECT settings_json FROM workspaces
+            WHERE deleted_at IS NULL
+            ORDER BY CASE WHEN slug = 'default' THEN 0 ELSE 1 END, created_at ASC
+            LIMIT 1
+            """,
+        ).fetchone()
+        conn.close()
+        if not row:
+            return {}
+        raw = str(row[0] or "{}")
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except (sqlite3.Error, OSError, json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _wizard_step_index(step: str) -> int:
+    try:
+        return INSTALL_WIZARD_STEP_ORDER.index(step)
+    except ValueError:
+        return -1
+
+
+def _derive_install_wizard_step(db_path: str) -> str:
+    cfg = stack_config.get_stack_config()
+    mode = str(cfg.get("deployment_mode") or "").strip()
+    if not mode:
+        return "welcome"
+    if mode == "public_multi_user" and not str(cfg.get("app_base_url") or "").strip():
+        return "publish"
+    if mode != "single_user_local" and not stack_config.install_admin_verified() and not install_owner_claimed(db_path):
+        return "smtp"
+
+    settings = _default_workspace_settings(db_path)
+    if not settings.get("admin_onboarding_done"):
+        return "workframe"
+    if not settings.get("admin_integrations_done"):
+        return "billing"
+
+    return "profile"
+
+
+def resolve_install_wizard_step(db_path: str) -> str:
+    """Resume ConciergeFlow at the last persisted or derived wizard step."""
+    derived = _derive_install_wizard_step(db_path)
+    raw = stack_config.read_stack_raw()
+    saved = str(raw.get("wizard_step") or "").strip()
+    if saved in INSTALL_WIZARD_STEPS:
+        if _wizard_step_index(derived) > _wizard_step_index(saved):
+            return derived
+        return saved
+    return derived
+
+
+def install_wizard_public_payload(db_path: str) -> dict[str, Any]:
+    admin_verified = stack_config.install_admin_verified() or install_owner_claimed(db_path)
+    return {
+        "admin_verified": admin_verified,
+        "resume_step": resolve_install_wizard_step(db_path),
+        "owner_claimed": install_owner_claimed(db_path),
+    }
 
 
 def _hermes_native_present() -> bool:

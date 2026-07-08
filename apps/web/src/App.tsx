@@ -111,14 +111,6 @@ function App() {
       installStatus = await workframeAuthApi.getInstallStatus()
       const inInstallWindow = installStatus.install_window_open && !installStatus.install_complete
       markInstallWindow(inInstallWindow)
-      if (inInstallWindow) {
-        clearStoredSessionTokens()
-        try {
-          await workframeAuthApi.logout()
-        } catch {
-          // best-effort — clears HttpOnly session cookie when present
-        }
-      }
     } catch {
       markInstallWindow(false)
     }

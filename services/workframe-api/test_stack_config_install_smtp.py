@@ -53,4 +53,11 @@ os.environ["WORKFRAME_DEPLOYMENT_MODE"] = "trusted_team"
 stack_config.patch_stack_config({"deployment_mode": "single_user_local"})
 assert stack_config.resolve_deployment_mode() == "single_user_local"
 
+# Admin verify survives reload
+stack_config.patch_stack_config({"install_complete": False})
+stack_config.mark_install_admin_verified("owner@example.com")
+assert stack_config.install_admin_verified()
+cfg = stack_config.get_stack_config()
+assert cfg["smtp"]["admin_email"] == "owner@example.com"
+
 print("stack_config install-window smtp self-check ok")
