@@ -4490,6 +4490,30 @@ def _action_proxy_env_var(provider_id: str) -> str:
     }.get(str(provider_id or "").strip().lower(), "")
 
 
+def _user_action_env_specs() -> list[tuple[str, str]]:
+    specs: list[tuple[str, str]] = []
+    for row in PROVIDER_CONNECT_CATALOG:
+        if not row.get("user_only"):
+            continue
+        for env_var in _provider_env_vars(row):
+            specs.append((str(row["id"]), env_var))
+    return specs
+
+
+def _overlay_turn_user_env(profile: str, user_id: str, workspace_id: str, run_id: str = "") -> None:
+    """Issue per-run lease tokens for user-only tool credentials (never raw PATs on Agents mount)."""
+    user = str(user_id or "").strip()
+    if not user:
+        return
+    base_run = str(run_id or "").strip() or str(uuid.uuid4())
+    for provider_id, _env_var in _user_action_env_specs():
+        sub_run = f"{base_run}::{provider_id}"
+        try:
+            _apply_action_credential_lease(profile, user, workspace_id, provider_id, sub_run)
+        except ValueError:
+            continue
+
+
 def _apply_action_credential_lease(
     profile: str,
     user_id: str,
@@ -4626,6 +4650,35 @@ def _strip_profile_llm_env(profile: str, *, include_leases: bool = False) -> boo
                 if not include_leases and _val.startswith(turn_credentials.LEASE_PREFIX):
                     kept.append(line)
                     continue
+                changed = True
+                continue
+        kept.append(line)
+    if changed:
+        path.write_text("\n".join(kept).rstrip() + ("\n" if kept else ""), encoding="utf-8")
+    return changed
+
+
+def _strip_profile_action_env(profile: str) -> bool:
+    """Remove dev PAT tokens from specialist profile .env (never shared-stack keys)."""
+    try:
+        prof = resolve_hermes_profile(profile)
+    except ValueError:
+        return False
+    if prof == _primary_profile() and not _is_runtime_profile_slug(prof):
+        return False
+    path = _profile_dir(prof) / ".env"
+    if not path.is_file():
+        return False
+    drop = set()
+    for _pid, env_var in _user_action_env_specs():
+        drop.add(env_var)
+    kept: list[str] = []
+    changed = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in line:
+            key = line.partition("=")[0].strip()
+            if key in drop:
                 changed = True
                 continue
         kept.append(line)
