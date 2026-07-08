@@ -9,8 +9,8 @@ export type ConciergeStep =
   | 'billing'
   | 'workframe'
   | 'profile'
-  | 'providers'
   | 'agent'
+  | 'agent_model'
   | 'invites'
   | 'publish'
   | 'done'
@@ -22,9 +22,9 @@ export function wizardRailStep(step: ConciergeStep): string {
 }
 
 const INVITEE_STEPS: WizardStepItem[] = [
-  { id: 'profile', label: 'Your profile', group: 'You' },
-  { id: 'providers', label: 'Model keys', group: 'You' },
-  { id: 'agent', label: 'Native agent', group: 'You' },
+  { id: 'profile', label: 'Your Identity', group: 'User Profile' },
+  { id: 'agent', label: 'Your Agent', group: 'User Profile' },
+  { id: 'agent_model', label: "Agent's Model", group: 'User Profile' },
 ]
 
 export function buildWizardSteps(
@@ -36,35 +36,35 @@ export function buildWizardSteps(
 
   if (!modeChosen) {
     return [
-      { id: 'intro', label: 'Welcome', group: 'Start' },
-      { id: 'welcome', label: 'Deployment', group: 'Start' },
+      { id: 'intro', label: 'Welcome', group: 'Setup' },
+      { id: 'welcome', label: 'Deployment', group: 'Setup' },
     ]
   }
 
   const steps: WizardStepItem[] = [
-    { id: 'intro', label: 'Welcome', group: 'Start' },
-    { id: 'welcome', label: 'Deployment', group: 'Start' },
+    { id: 'intro', label: 'Welcome', group: 'Setup' },
+    { id: 'welcome', label: 'Deployment', group: 'Setup' },
   ]
 
   if (deploymentMode === 'public_multi_user') {
-    steps.push({ id: 'publish', label: 'Public URL', group: 'Start' })
+    steps.push({ id: 'publish', label: 'Public URL', group: 'Setup' })
   }
 
   if (deploymentMode !== 'single_user_local') {
-    steps.push({ id: 'smtp', label: 'Email & admin', group: 'Access' })
+    steps.push({ id: 'smtp', label: 'Admin', group: 'Setup' })
   }
 
   steps.push(
+    { id: 'workframe', label: 'Business Profile', group: 'Workframe' },
+    { id: 'billing', label: 'Billing Model', group: 'Workframe' },
     { id: 'integrations', label: 'Integrations', group: 'Workframe' },
-    { id: 'billing', label: 'Model billing', group: 'Workframe' },
-    { id: 'workframe', label: 'Business profile', group: 'Workframe' },
-    { id: 'profile', label: 'Your profile', group: 'You' },
-    { id: 'providers', label: 'Model keys', group: 'You' },
-    { id: 'agent', label: 'Native agent', group: 'You' },
+    { id: 'profile', label: 'Your Identity', group: 'User Profile' },
+    { id: 'agent', label: 'Your Agent', group: 'User Profile' },
+    { id: 'agent_model', label: "Agent's Model", group: 'User Profile' },
   )
 
-  if (deploymentMode !== 'public_multi_user') {
-    steps.push({ id: 'invites', label: 'Invite team', group: 'Finish' })
+  if (deploymentMode !== 'single_user_local') {
+    steps.push({ id: 'invites', label: 'Your Team', group: 'User Profile' })
   }
 
   return steps
@@ -77,26 +77,29 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'welcome':
       return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
     case 'smtp':
-      return { title: 'Email & admin', description: 'Configure SMTP for sign-in codes, then verify your admin email.' }
+      return { title: 'Admin', description: 'Configure SMTP for sign-in codes, then verify your admin email.' }
     case 'admin_auth':
       return { title: 'Verify admin', description: 'Confirm your email to finish admin setup.' }
     case 'integrations':
       return { title: 'Integrations', description: 'Optional — member sign-in (OAuth) and agent messaging bots.' }
     case 'billing':
-      return { title: 'Model billing', description: 'Choose BYOK (each member’s keys) or company-pays (shared keys).' }
+      return { title: 'Billing Model', description: 'Choose BYOK (each member’s keys) or company-pays (shared keys).' }
     case 'workframe':
-      return { title: 'Business profile', description: 'Name, logo, and mission shown across your Workframe.' }
+      return { title: 'Business Profile', description: 'Name, logo, and mission shown across your Workframe.' }
     case 'profile':
       return {
-        title: isInvitee ? `Join ${projectName}` : 'Your profile',
+        title: isInvitee ? `Join ${projectName}` : 'Your Identity',
         description: isInvitee ? 'Set how teammates see you in chat and rooms.' : 'Your display name and avatar in Workframe.',
       }
-    case 'providers':
-      return { title: 'Model keys', description: 'Connect LLM providers — optional before your first chat.' }
     case 'agent':
-      return { title: 'Native agent', description: 'Your concierge agent — name, avatar, and operating instructions.' }
+      return { title: 'Your Agent', description: 'Your concierge agent — name, avatar, and operating instructions.' }
+    case 'agent_model':
+      return {
+        title: "Agent's Model",
+        description: 'Choose the primary model for your native agent. Connect provider keys first when using BYOK.',
+      }
     case 'invites':
-      return { title: 'Invite team', description: 'Send email invites now, or skip and invite later in Workframe Settings.' }
+      return { title: 'Your Team', description: 'Send email invites now, or skip and invite later in Workframe Settings.' }
     case 'publish':
       return { title: 'Public URL', description: 'Point DNS at this server, enable HTTPS, then test the connection.' }
     default:
@@ -140,6 +143,7 @@ export type WizardStatusContext = {
   connectedProviders: string[]
   agentName: string
   agentTagline: string
+  agentPrimaryModel: string
   inviteEmails: string
   publicUrl: string
 }
@@ -221,18 +225,18 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
         const detail = ctx.userTagline.trim() || ctx.displayName.trim() || undefined
         return { ...step, configured: Boolean(detail), detail }
       }
-      case 'providers': {
-        const detail = joinParts(ctx.connectedProviders)
-        return detail
-          ? { ...step, configured: true, detail }
-          : { ...step, detail: 'Optional' }
-      }
       case 'agent':
         return {
           ...step,
           configured: Boolean(ctx.agentName.trim()),
           detail: ctx.agentTagline.trim() || ctx.agentName.trim() || undefined,
         }
+      case 'agent_model': {
+        const detail = truncate(ctx.agentPrimaryModel, 42)
+        return ctx.agentPrimaryModel.trim()
+          ? { ...step, configured: true, detail }
+          : { ...step, detail: ctx.connectedProviders.length ? 'Choose model' : 'Connect keys' }
+      }
       case 'invites': {
         const emails = ctx.inviteEmails.split(/[,\s]+/).map((e) => e.trim()).filter(Boolean)
         return emails.length

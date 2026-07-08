@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { Button } from '@/components/ui/button'
+import { CopyInput } from '@/components/ui/CopyInput'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi, type PublishHints } from '@/lib/workframeAuthApi'
 
@@ -10,6 +11,7 @@ type PublicUrlWizardStepProps = {
   publicUrl: string
   onPublicUrlChange: (value: string) => void
   disabled?: boolean
+  httpsStatus?: string | null
 }
 
 function hostFromPublicUrl(url: string): string {
@@ -23,37 +25,14 @@ function hostFromPublicUrl(url: string): string {
   }
 }
 
-function CopyField({
-  label,
-  value,
-  fullWidth,
-}: {
-  label: string
-  value: string
-  fullWidth?: boolean
-}) {
-  const copy = useCallback(() => {
-    void navigator.clipboard.writeText(value).catch(() => {})
-  }, [value])
-
-  return (
-    <div className={`wf-sign-in-app__field${fullWidth ? ' wf-sign-in-app__field--full' : ''}`}>
-      <Label>{label}</Label>
-      <div className="wf-copy-field">
-        <Input readOnly value={value} aria-label={label} />
-        <Button type="button" variant="outline" size="sm" onClick={copy} disabled={!value}>
-          Copy
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-export function PublicUrlWizardStep({ publicUrl, onPublicUrlChange, disabled }: PublicUrlWizardStepProps) {
+export function PublicUrlWizardStep({
+  publicUrl,
+  onPublicUrlChange,
+  disabled,
+  httpsStatus,
+}: PublicUrlWizardStepProps) {
   const host = hostFromPublicUrl(publicUrl)
   const [hints, setHints] = useState<PublishHints | null>(null)
-  const [httpsBusy, setHttpsBusy] = useState(false)
-  const [httpsStatus, setHttpsStatus] = useState('')
 
   useEffect(() => {
     if (!host.trim()) {
@@ -82,30 +61,10 @@ export function PublicUrlWizardStep({ publicUrl, onPublicUrlChange, disabled }: 
   const setupCommand =
     hints?.setup_command ||
     `sudo bash /opt/workframe/scripts/workframe/setup-public-https.sh ${host || 'your.domain.com'} ${hints?.ui_port ?? 28644}`
-  const godaddy =
-    hints?.registrar_links.find((l) => l.label.includes('GoDaddy'))?.url ||
-    'https://dcc.godaddy.com/control/portfolio'
-
-  async function setupHttpsOnServer() {
-    if (!host.trim()) return
-    setHttpsBusy(true)
-    setHttpsStatus('')
-    try {
-      const result = await workframeAuthApi.setupPublicHttps(publicUrl)
-      if (result.ok) {
-        setHttpsStatus('HTTPS installed. The certificate will activate once DNS points to this server.')
-      } else {
-        setHttpsStatus(formatWorkframeErrorMessage(result.error || 'HTTPS setup failed'))
-      }
-    } catch (err) {
-      setHttpsStatus(formatWorkframeErrorMessage(err, 'HTTPS setup'))
-    } finally {
-      setHttpsBusy(false)
-    }
-  }
+  const registrarLinks = hints?.registrar_links ?? []
 
   return (
-    <div className="wf-wizard-panel wf-onboarding-form">
+    <div className="wf-wizard-panel wf-onboarding-form wf-publish-step">
       <div className="wf-dialog-field">
         <Label htmlFor="wf-publish-url">Public domain</Label>
         <Input
@@ -119,61 +78,115 @@ export function PublicUrlWizardStep({ publicUrl, onPublicUrlChange, disabled }: 
 
       {host ? (
         <div className="wf-publish-setup">
-          <details className="wf-publish-card" open>
-            <summary className="wf-publish-card__title">1 — DNS</summary>
-            <div className="wf-publish-card__body">
-              <p className="wf-publish-card__lede">
-                <a className="text-primary underline" href={godaddy} target="_blank" rel="noreferrer">
-                  Open DNS
-                </a>
-                {hints?.apex_domain ? ` (${hints.apex_domain})` : ''} — A record for <code>{host}</code>:
+          <section className="wf-publish-section" aria-labelledby="wf-publish-dns-title">
+            <header className="wf-publish-section__head">
+              <h3 id="wf-publish-dns-title" className="wf-publish-section__title">
+                1 — DNS
+              </h3>
+              <p className="wf-publish-section__lede">
+                Add an <strong>A record</strong> at your registrar so <code>{host}</code> points at this
+                server.
               </p>
-              <div className="wf-sign-in-app__grid">
-                <CopyField label="Type" value="A" />
-                <CopyField label="Name" value={dnsName} />
-                <CopyField label="Value" value={serverIp} fullWidth />
-              </div>
-              {hints?.dns_cname ? (
-                <details className="wf-publish-nested">
-                  <summary>CNAME instead (optional)</summary>
-                  <div className="wf-sign-in-app__grid wf-mt-2">
-                    <CopyField label="Type" value="CNAME" />
-                    <CopyField label="Name" value={hints.dns_cname.name} />
-                    <CopyField label="Value" value={hints.dns_cname.value} fullWidth />
-                  </div>
-                </details>
-              ) : null}
-              {hints?.registrar_links && hints.registrar_links.length > 1 ? (
-                <p className="wf-publish-card__links">
-                  {hints.registrar_links
-                    .filter((l) => !l.label.includes('GoDaddy'))
-                    .map((link, i) => (
-                      <span key={link.url}>
-                        {i > 0 ? ' · ' : ''}
-                        <a className="text-primary underline" href={link.url} target="_blank" rel="noreferrer">
-                          {link.label}
-                        </a>
-                      </span>
-                    ))}
-                </p>
-              ) : null}
-            </div>
-          </details>
+            </header>
 
-          <details className="wf-publish-card" open>
-            <summary className="wf-publish-card__title">2 — HTTPS</summary>
-            <div className="wf-publish-card__body">
-              <div className="wf-publish-card__actions">
-                <Button type="button" disabled={disabled || httpsBusy || !host} onClick={() => void setupHttpsOnServer()}>
-                  {httpsBusy ? 'Installing…' : 'Set up HTTPS'}
-                </Button>
+            <div className="wf-publish-dns-grid">
+              <div className="wf-dialog-field wf-publish-dns-grid__type">
+                <Label>Type</Label>
+                <CopyInput value="A" mono={false} />
               </div>
-              {httpsStatus ? <p className="wf-sign-in-app__hint">{httpsStatus}</p> : null}
-              <CopyField label="SSH command" value={setupCommand} fullWidth />
+              <div className="wf-dialog-field wf-publish-dns-grid__name">
+                <Label>Name</Label>
+                <CopyInput value={dnsName} />
+              </div>
+              <div className="wf-dialog-field wf-publish-dns-grid__value">
+                <Label>Value (server IP)</Label>
+                <CopyInput value={serverIp} />
+              </div>
             </div>
-          </details>
+
+            {registrarLinks.length ? (
+              <div className="wf-publish-registrars">
+                <span className="wf-publish-registrars__label">Open DNS at</span>
+                <div className="wf-publish-registrars__links">
+                  {registrarLinks.map((link) => (
+                    <a
+                      key={link.url}
+                      className="wf-publish-registrars__link"
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="wf-publish-section__hint">
+                Use your domain registrar&apos;s DNS panel to add the record above.
+              </p>
+            )}
+
+            {hints?.dns_cname ? (
+              <details className="wf-publish-alt">
+                <summary>Use CNAME instead (optional)</summary>
+                <div className="wf-publish-dns-grid wf-publish-alt__grid">
+                  <div className="wf-dialog-field wf-publish-dns-grid__type">
+                    <Label>Type</Label>
+                    <CopyInput value="CNAME" mono={false} />
+                  </div>
+                  <div className="wf-dialog-field wf-publish-dns-grid__name">
+                    <Label>Name</Label>
+                    <CopyInput value={hints.dns_cname.name} />
+                  </div>
+                  <div className="wf-dialog-field wf-publish-dns-grid__value">
+                    <Label>Target</Label>
+                    <CopyInput value={hints.dns_cname.value} />
+                  </div>
+                </div>
+              </details>
+            ) : null}
+          </section>
+
+          <section className="wf-publish-section" aria-labelledby="wf-publish-https-title">
+            <header className="wf-publish-section__head">
+              <h3 id="wf-publish-https-title" className="wf-publish-section__title">
+                2 — HTTPS
+              </h3>
+              <p className="wf-publish-section__lede">
+                After DNS propagates, run <strong>Set up HTTPS</strong> below (or use the SSH command if you
+                prefer the shell).
+              </p>
+            </header>
+
+            {httpsStatus ? (
+              <WorkframeNotice
+                message={httpsStatus}
+                tone={/installed|activated/i.test(httpsStatus) ? 'info' : 'caution'}
+                className="wf-notice--wizard"
+              />
+            ) : null}
+
+            <div className="wf-dialog-field">
+              <Label>SSH command</Label>
+              <CopyInput value={setupCommand} />
+            </div>
+          </section>
         </div>
       ) : null}
     </div>
   )
+}
+
+export async function runPublicHttpsSetup(publicUrl: string): Promise<string> {
+  if (!publicUrl.trim()) return ''
+  try {
+    const result = await workframeAuthApi.setupPublicHttps(publicUrl)
+    if (result.ok) {
+      return 'HTTPS installed. The certificate will activate once DNS points to this server.'
+    }
+    return formatWorkframeErrorMessage(result.error || 'HTTPS setup failed', 'HTTPS setup')
+  } catch (err) {
+    return formatWorkframeErrorMessage(err, 'HTTPS setup')
+  }
 }
