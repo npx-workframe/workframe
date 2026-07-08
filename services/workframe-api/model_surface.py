@@ -895,7 +895,7 @@ def hermes_models(
     }
 
     if selection_only:
-        user_primary, user_chain = _read_user_llm_prefs(user_id) if user_id else ("", [])
+        user_primary, user_chain = user_prefs.read_user_llm_prefs(user_id) if user_id else ("", [])
         primary = user_primary or (HERMES_DEFAULT_PRIMARY if has_llm else "")
         billing = _resolve_billing_provider_for_model(primary, connected_llm) if primary else ""
         suggestions = _augment_model_suggestions(
@@ -1032,7 +1032,7 @@ def hermes_model_set(
             billing = _resolve_billing_provider_for_model(model_id, connected)
         if not billing and not _srv()._user_llm_has_provider(user, workspace_id):
             return {"ok": False, "error": "connect an LLM provider first"}
-        _write_user_llm_prefs(user, primary=model_id)
+        user_prefs.write_user_llm_prefs(user, primary=model_id)
         return {
             "ok": True,
             "profile": "",
@@ -1119,7 +1119,7 @@ def hermes_fallback_chain_set(
         user = str(user_id or "").strip()
         if not user:
             return {"ok": False, "error": "unauthorized"}
-        _write_user_llm_prefs(user, fallback_chain=normalized)
+        user_prefs.write_user_llm_prefs(user, fallback_chain=normalized)
         return {"ok": True, "profile": "", "fallback_chain": normalized, "selection_only": True}
     target = profile or _srv()._primary_profile()
     if not target:
