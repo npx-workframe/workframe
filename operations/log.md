@@ -4,6 +4,7 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-08T10:40-03:00 | pm-workframe | Release 0.1.13 prep — install-gate green, dogfood reset @ local pack 0.1.13 (MyBusiness slot 1); npm publish blocked on npm login (run publish-npm.ps1 or tag v0.1.13 for CI).
 2026-07-08T11:00-03:00 | pm-workframe | WF-036 done — build:web green; provider labels unified; useConciergeFlow unused-import fix; backlog flipped.
 2026-07-08T10:15-03:00 | functional-lane | WF-036 HermesSessionContext split — 194-line provider + hermes-session/{bind,history,stream} hooks (max 449 lines); pnpm build:web green; provider-label unification still partial.
 
