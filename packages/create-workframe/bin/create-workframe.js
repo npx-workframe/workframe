@@ -535,7 +535,7 @@ services:
       context: \${WORKFRAME_HOST_PROJECT_ROOT}/workframe-supervisor
     volumes:
       - \${WORKFRAME_HOST_PROJECT_ROOT}/Agents:/opt/data
-      - \${WORKFRAME_HOST_PROJECT_ROOT}:\${WORKFRAME_HOST_PROJECT_ROOT}
+      - \${WORKFRAME_HOST_PROJECT_ROOT}:/compose
 
   workframe:
     volumes:
