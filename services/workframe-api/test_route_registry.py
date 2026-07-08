@@ -13,6 +13,18 @@ sys.path.insert(0, str(ROOT))
 import route_registry  # noqa: E402
 
 
+def _handler_source_text() -> str:
+    """server.Handler bodies plus extracted handler_modules mixins (WF-032)."""
+    parts = [(ROOT / "server.py").read_text(encoding="utf-8")]
+    mods = ROOT / "handler_modules"
+    if mods.is_dir():
+        for path in sorted(mods.glob("*.py")):
+            if path.name == "__init__.py":
+                continue
+            parts.append(path.read_text(encoding="utf-8"))
+    return "\n".join(parts)
+
+
 def _sample_path_from_label(label: str, pattern: re.Pattern[str] | None = None) -> str:
     sample = (
         label.replace("{id}", "sample-id")
@@ -62,13 +74,13 @@ assert not route_registry.authorize_request(
     attach_user=lambda _u: None,
 )
 
-# ROUTES table: dispatched routes have handlers on server.Handler
-server_src = (ROOT / "server.py").read_text(encoding="utf-8")
+# ROUTES table: dispatched routes have handlers on server.Handler (+ handler_modules)
+handler_src = _handler_source_text()
 missing_handlers: list[str] = []
 for route in route_registry.ROUTES:
     if not route.handler:
         continue
-    if f"def {route.handler}(" not in server_src:
+    if f"def {route.handler}(" not in handler_src:
         missing_handlers.append(f"{route.method} {route.path} -> {route.handler}")
 assert not missing_handlers, f"missing handler methods: {missing_handlers}"
 
@@ -79,7 +91,7 @@ for rp in route_registry.ROUTE_PATTERNS:
     if not rp.handler:
         missing_pattern_handlers.append(f"{rp.method} {rp.label}")
         continue
-    if f"def {rp.handler}(" not in server_src:
+    if f"def {rp.handler}(" not in handler_src:
         missing_pattern_handlers.append(f"{rp.method} {rp.label} -> {rp.handler}")
     sample = _sample_path_from_label(rp.label, rp.pattern)
     if route_registry.lookup_auth(rp.method, sample) is None:
@@ -88,6 +100,7 @@ assert not missing_pattern_handlers, f"missing pattern handlers: {missing_patter
 assert not missing_pattern_auth, f"missing pattern auth: {missing_pattern_auth}"
 
 # Pattern handlers must not re-dispatch with legacy startswith guards
+server_src = (ROOT / "server.py").read_text(encoding="utf-8")
 pattern_method_blocks = re.findall(
     r"(def (_route_pattern_\w+)\([^)]*\)[^:]*:.*?)(?=\n    def |\Z)",
     server_src,

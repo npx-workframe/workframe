@@ -39,6 +39,7 @@ from typing import Any, Iterator
 from email_sender import APP_BASE_URL, send_branded_invite_email, send_email, send_verification_email
 import profile_config_yaml
 import route_registry
+from handler_modules import InstallRoutesMixin
 import db_schema
 
 WORKFRAME_DB_SCHEMA = db_schema.WORKFRAME_DB_SCHEMA
@@ -62,6 +63,7 @@ import model_surface
 import provider_bootstrap
 import chat_stream
 import lane_bindings
+import chat_bind
 import workspace_files
 import run_surface_wiring
 
@@ -188,6 +190,16 @@ _source_binding_key = lane_bindings._source_binding_key
 _registry_profile_bucket = lane_bindings._registry_profile_bucket
 chat_resolve = lane_bindings.chat_resolve
 chat_dispatch = lane_bindings.chat_dispatch
+
+# WF-032: chat_bind re-exports
+room_chat_bind = chat_bind.room_chat_bind
+profile_chat_bind = chat_bind.profile_chat_bind
+list_room_sessions = chat_bind.list_room_sessions
+profile_chat_activate_room_session = chat_bind.profile_chat_activate_room_session
+profile_chat_message = chat_bind.profile_chat_message
+_enrich_room_chat_payload = chat_bind._enrich_room_chat_payload
+_room_session_rows = chat_bind._room_session_rows
+_extract_title = chat_bind._extract_title
 
 
 # WF-032: chat_stream re-exports
@@ -2165,324 +2177,6 @@ def _resolve_bind_profile_arg(
 
 
 
-def room_chat_bind(room_id: str, payload: dict[str, Any], user_id: str = "") -> dict[str, Any]:
-    """Room-scoped bind â€” identity from room.agent_profile_id, not the URL."""
-    body = dict(payload or {})
-    body["room_id"] = str(room_id or "").strip()
-    return profile_chat_bind("", body, user_id)
-
-
-def profile_chat_bind(profile: str, payload: dict[str, Any], user_id: str = "") -> dict[str, Any]:
-    session = profile_chat_session(profile, payload, user_id)
-    sid = str(session.get("session_id") or "").strip()
-    hermes_prof = str(session.get("profile") or resolve_validated_profile(profile))
-    template_prof = str(session.get("template_profile") or "").strip()
-    if not template_prof:
-        template_prof = (
-            _runtime_template_slug(hermes_prof)
-            if _is_runtime_profile_slug(hermes_prof)
-            else resolve_validated_profile(profile)
-        )
-    workspace_id = str(session.get("workspace_id") or payload.get("workspace_id") or "").strip()
-    history = chat_messages(hermes_prof, sid)
-    # ponytail: cohort manifest is lazy â€” GET /api/me/cohort; bind must stay fast
-    cohort: list[dict[str, Any]] = []
-    display_name = (
-        _runtime_display_label(user_id, template_prof, workspace_id)
-        if user_id and _is_runtime_profile_slug(hermes_prof)
-        else _profile_display_name(hermes_prof, workspace_id)
-    )
-    return {
-        "ok": True,
-        "profile": session.get("profile") or profile,
-        "template_profile": template_prof,
-        "agent_display_name": display_name,
-        "cohort": cohort,
-        "session_id": sid,
-        "title": session.get("title") or "",
-        "created": bool(session.get("created")),
-        "api_port": session.get("api_port"),
-        "llm_ready": bool(session.get("llm_ready")),
-        "has_llm_provider": bool(session.get("has_llm_provider")),
-        "messages": history.get("messages") or [],
-        "session": history.get("session") or {},
-    }
-
-
-def _room_session_rows(conn: sqlite3.Connection, room_id: str) -> list[sqlite3.Row]:
-    return conn.execute(
-        """
-        SELECT rs.*, ap.slug AS agent_slug, ap.display_name AS agent_display_name
-        FROM room_sessions rs
-        LEFT JOIN agent_profiles ap ON ap.id = rs.agent_profile_id
-        WHERE rs.room_id = ? AND rs.deleted_at IS NULL
-        ORDER BY rs.updated_at DESC, rs.created_at DESC
-        """,
-        (room_id,),
-    ).fetchall()
-
-
-def list_room_sessions(room_id: str, user_id: str) -> dict[str, Any]:
-    room_id = str(room_id or "").strip()
-    user_id = str(user_id or "").strip()
-    if not room_id or not user_id:
-        raise ValueError("room_id and user required")
-    conn = _workframe_db()
-    try:
-        room = conn.execute(
-            "SELECT * FROM rooms WHERE id = ? AND deleted_at IS NULL",
-            (room_id,),
-        ).fetchone()
-        if not room:
-            raise ValueError("room_not_found")
-        if not _user_can_access_room(conn, room_id, user_id):
-            raise ValueError("room_access_denied")
-        workspace_id = str(room["workspace_id"])
-        rows = _room_session_rows(conn, room_id)
-    finally:
-        conn.close()
-
-    sessions: list[dict[str, Any]] = []
-    for row in rows:
-        template_slug = str(row["agent_slug"] or "").strip()
-        agent_db_id = str(row["agent_profile_id"] or "").strip()
-        if not template_slug or not agent_db_id:
-            continue
-        sid = str(row["session_id"] or "").strip()
-        try:
-            hermes_prof = _resolve_chat_hermes_profile(template_slug, user_id, room_id, workspace_id)
-            if not sid or not _session_exists(hermes_prof, sid):
-                continue
-            info = _session_info(hermes_prof, sid)
-        except ValueError:
-            # ponytail: skip orphaned bindings (e.g. deleted smoke-agent profiles)
-            continue
-        sessions.append(
-            {
-                "id": str(row["id"]),
-                "room_id": room_id,
-                "agent_profile_id": agent_db_id,
-                "agent_slug": template_slug,
-                "hermes_profile": hermes_prof,
-                "session_id": sid,
-                "title": _resolved_session_title(hermes_prof, sid, str(row["title"] or "")),
-                "status": str(row["status"] or "active"),
-                "message_count": int(info.get("message_count") or 0),
-                "created_at": _iso_from_unix(row["created_at"]),
-                "updated_at": _iso_from_unix(row["updated_at"]),
-                "active": str(row["status"] or "") == "active",
-            }
-        )
-    return {"ok": True, "room_id": room_id, "sessions": sessions}
-
-
-def profile_chat_activate_room_session(
-    room_id: str,
-    session_id: str,
-    user_id: str,
-    template_prof: str = "",
-    *,
-    source_id: str = "ui",
-    client_id: str = "default",
-    binding_version: int = 0,
-) -> dict[str, Any]:
-    room_id = str(room_id or "").strip()
-    session_id = str(session_id or "").strip()
-    user_id = str(user_id or "").strip()
-    if not room_id or not session_id or not user_id:
-        raise ValueError("room_id, session_id, and user required")
-
-    conn = _workframe_db()
-    try:
-        room = conn.execute(
-            "SELECT * FROM rooms WHERE id = ? AND deleted_at IS NULL",
-            (room_id,),
-        ).fetchone()
-        if not room:
-            raise ValueError("room_not_found")
-        if not _user_can_access_room(conn, room_id, user_id):
-            raise ValueError("room_access_denied")
-        workspace_id = str(room["workspace_id"])
-        row = conn.execute(
-            """
-            SELECT rs.*, ap.slug AS agent_slug
-            FROM room_sessions rs
-            LEFT JOIN agent_profiles ap ON ap.id = rs.agent_profile_id
-            WHERE rs.room_id = ? AND rs.session_id = ? AND rs.deleted_at IS NULL
-            LIMIT 1
-            """,
-            (room_id, session_id),
-        ).fetchone()
-        if not row:
-            raise ValueError("room_session_not_found")
-        template_slug = str(template_prof or row["agent_slug"] or "").strip()
-        if not template_slug:
-            raise ValueError("agent_profile_not_found")
-        agent_db_id = str(row["agent_profile_id"] or "").strip()
-        hermes_prof = _resolve_chat_hermes_profile(template_slug, user_id, room_id, workspace_id)
-        if not _session_exists(hermes_prof, session_id):
-            raise ValueError("session_not_found")
-        gateway_sid = str(row["gateway_session_id"] or f"api:{hermes_prof}:{session_id}").strip()
-        title = str(_session_info(hermes_prof, session_id).get("title") or row["title"] or "")
-        _upsert_room_session(
-            conn,
-            room_id=room_id,
-            agent_profile_id=agent_db_id,
-            session_id=session_id,
-            gateway_session_id=gateway_sid,
-            created_by=user_id,
-            title=title,
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-    _sync_lane_binding(
-        hermes_prof,
-        source_id,
-        client_id,
-        binding_version,
-        session_id,
-        gateway_sid,
-    )
-
-    if user_id:
-        _reconcile_profile_llm_for_user(hermes_prof, user_id, workspace_id)
-    llm_provider = _llm_billing_provider(hermes_prof, user_id=user_id, workspace_id=workspace_id)
-    llm_ready = _overlay_chat_llm_env(hermes_prof, user_id, workspace_id, llm_provider)
-
-    history = chat_messages(hermes_prof, session_id)
-    cohort = ensure_user_agent_cohort(user_id, workspace_id)
-    return {
-        "ok": True,
-        "profile": hermes_prof,
-        "template_profile": template_slug,
-        "agent_display_name": _runtime_display_label(user_id, template_slug, workspace_id),
-        "cohort": cohort,
-        "room_id": room_id,
-        "session_id": session_id,
-        "title": title,
-        "created": False,
-        "resumed": True,
-        "llm_ready": llm_ready,
-        "has_llm_provider": llm_ready,
-        "messages": history.get("messages") or [],
-        "session": history.get("session") or {},
-    }
-
-
-
-
-
-def profile_chat_message(profile: str, payload: dict[str, Any]) -> dict[str, Any]:
-    source_id = str(payload.get("source_id") or "ui").strip() or "ui"
-    client_id = str(payload.get("client_id") or "default").strip() or "default"
-    session_id = str(payload.get("session_id") or "").strip()
-    text = str(payload.get("text") or "").strip()
-    if not session_id:
-        raise ValueError("session_id required")
-    if not text:
-        raise ValueError("text required")
-    payer = str(payload.get("user_id") or "").strip()
-    workspace_id = str(payload.get("workspace_id") or "").strip()
-    room_id = str(payload.get("room_id") or "").strip()
-    hermes_prof, _template_prof = _resolve_bind_profile_arg(
-        profile, payer, room_id, workspace_id,
-    )
-    if payer:
-        _reconcile_profile_llm_for_user(hermes_prof, payer, workspace_id)
-    llm_provider = _llm_billing_provider(hermes_prof, user_id=payer, workspace_id=workspace_id)
-    lifecycle = ensure_profile_api(
-        hermes_prof,
-        payer,
-        workspace_id,
-    )
-    turn_run_id = str(uuid.uuid4())
-    try:
-        if payer:
-            _overlay_turn_provider_env(
-                hermes_prof, payer, workspace_id, llm_provider, turn_run_id,
-            )
-            _overlay_turn_user_env(hermes_prof, payer, workspace_id, turn_run_id)
-        turn_body = _profile_turn_payload(hermes_prof, text, room_id)
-        if payer and workspace_id:
-            _inject_turn_credentials(turn_body, payer, workspace_id, llm_provider)
-        status, data = _profile_api_request(
-            hermes_prof,
-            "POST",
-            f"/api/sessions/{urllib.parse.quote(session_id, safe='')}/chat",
-            turn_body,
-        )
-        if status >= 300:
-            raise ValueError(f"session chat failed: {data}")
-        assistant = ""
-        if isinstance(data, dict):
-            msg = data.get("message")
-            if isinstance(msg, dict):
-                assistant = str(msg.get("content") or "")
-        chat_dispatch(
-            {
-                "profile": hermes_prof,
-                "session_id": session_id,
-                "gateway_session_id": f"api:{hermes_prof}:{session_id}",
-                "source_id": source_id,
-                "client_id": client_id,
-                "room_id": room_id,
-                "user_id": payer,
-                "text": text,
-            }
-        )
-        return {
-            "ok": True,
-            "profile": hermes_prof,
-            "session_id": session_id,
-            "api_port": lifecycle["api_port"],
-            "assistant": assistant,
-        }
-    finally:
-        if payer:
-            _revoke_turn_credential_lease(turn_run_id, hermes_prof)
-
-
-def _enrich_room_chat_payload(payload: dict[str, Any], user_id: str) -> dict[str, Any]:
-    body = dict(payload) if isinstance(payload, dict) else {}
-    body["user_id"] = user_id
-    room_id = str(body.get("room_id") or "").strip()
-    if room_id and not str(body.get("workspace_id") or "").strip():
-        try:
-            conn = _workframe_db()
-            row = conn.execute(
-                "SELECT workspace_id FROM rooms WHERE id = ? AND deleted_at IS NULL",
-                (room_id,),
-            ).fetchone()
-            conn.close()
-            if row:
-                body["workspace_id"] = str(row["workspace_id"])
-        except Exception:  # noqa: BLE001
-            pass
-    return body
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def _extract_title(text: str, fallback: str) -> str:
-    for line in text.splitlines():
-        m = re.match(r"^#\s+(.+)$", line.strip())
-        if m:
-            return m.group(1).strip()
-    return fallback
-
-
 def content_list() -> list[dict[str, Any]]:
     docs: list[dict[str, Any]] = []
     if not WORKSPACE.is_dir():
@@ -2593,7 +2287,7 @@ def board_delete(task_id: str) -> None:
 
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(InstallRoutesMixin, BaseHTTPRequestHandler):
     server_version = "WorkframeAPI/0.1.0"
 
     def log_message(self, fmt: str, *args: Any) -> None:
@@ -2806,20 +2500,6 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"setup_complete": bool(agents and agents["c"] > 0)})
         except Exception:
             self._json(200, {"setup_complete": False})
-
-    def _route_get_install_status(self, qs: dict[str, list[str]]) -> None:
-        if install_api.install_window_open(str(_workframe_db_path())):
-            try:
-                _ensure_native_hermes_profile()
-            except Exception:
-                pass
-        payload = install_api.install_status_payload(
-            DEPLOYMENT_MODE,
-            SECURE_MODE,
-            DEV_LOCAL_UNSAFE,
-            str(_workframe_db_path()),
-        )
-        self._json(200, payload)
 
     def _route_get_public_site_meta(self, qs: dict[str, list[str]]) -> None:
         self._json(200, _public_site_meta_payload())
@@ -3708,28 +3388,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(403, {"ok": False, "error": "dashboard_forbidden"})
 
-    def _route_get_install_stack(self, qs: dict[str, list[str]]) -> None:
-        if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
-            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-            return
-        payload = stack_config.public_stack_payload()
-        payload["wizard"] = install_api.install_wizard_public_payload(str(_workframe_db_path()))
-        self._json(200, {"ok": True, **payload})
-
-    def _route_get_install_url_test(self, qs: dict[str, list[str]]) -> None:
-        if not _install_window_open():
-            self._json(403, {"ok": False, "error": "install_closed"})
-            return
-        url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
-        self._json(200, install_api.url_test(str(url)))
-
-    def _route_get_install_publish_hints(self, qs: dict[str, list[str]]) -> None:
-        if not _install_window_open():
-            self._json(403, {"ok": False, "error": "install_closed"})
-            return
-        url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
-        self._json(200, install_api.publish_hints_payload(str(url)))
-
     def _route_get_auth_google_callback(self, qs: dict[str, list[str]]) -> None:
         code = (qs.get("code") or [""])[0]
         state = (qs.get("state") or [""])[0]
@@ -3821,100 +3479,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(302)
         self.send_header("Location", location)
         self.end_headers()
-
-    # WF-037 admin/install POST handlers (batch 2)
-    def _route_post_install_email_test(self, body: dict) -> None:
-        if not _install_window_open():
-            self._json(403, {"ok": False, "error": "install_closed"})
-            return
-        if not _install_owner_session_ok(self):
-            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-            return
-        try:
-            to_email = str(body.get("email", "")).strip()
-            result = install_api.smtp_test_send(to_email)
-            self._json(200, result)
-        except ValueError as exc:
-            self._json(400, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
-        except Exception as exc:
-            self._json(500, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
-
-    def _route_post_install_url_test(self, body: dict) -> None:
-        if not _install_window_open():
-            self._json(403, {"ok": False, "error": "install_closed"})
-            return
-        url = str(body.get("url") or body.get("app_base_url") or "").strip()
-        self._json(200, install_api.url_test(url))
-
-    def _route_post_install_setup_https(self, body: dict) -> None:
-        if not _install_window_open():
-            self._json(403, {"ok": False, "error": "install_closed"})
-            return
-        try:
-            host, port = install_api.normalize_setup_https(
-                str(body.get("host") or body.get("url") or body.get("app_base_url") or ""),
-                body.get("port"),
-            )
-        except ValueError as exc:
-            self._json(400, {"ok": False, "error": str(exc)})
-            return
-        if not _supervisor_ready():
-            self._json(503, {"ok": False, "error": "supervisor_unavailable"})
-            return
-        status, data = _supervisor_request(
-            "POST",
-            "/v1/host.setup_public_https",
-            {"host": host, "port": port},
-            timeout=600.0,
-        )
-        if status < 400:
-            sync = _maybe_sync_compose_public_url(f"https://{host}")
-            if isinstance(data, dict) and sync:
-                data = {**data, "compose_sync": sync}
-        self._json(status, data if isinstance(data, dict) else {"ok": False, "error": "invalid_response"})
-
-    def _route_post_install_complete(self, body: dict) -> None:
-        user_id = str(getattr(self, "auth_user", "") or "").strip()
-        if not user_id and DEPLOYMENT_MODE != "single_user_local":
-            self._json(401, {"ok": False, "error": "no_session"})
-            return
-        self._json(200, self._complete_install(user_id, body))
-
-    def _route_post_install_stack_branding_asset(self, body: dict) -> None:
-        if not _role_allows(self, OWNER_ADMIN_ROLES):
-            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-            return
-        kind = str(body.get("kind") or "").strip().lower()
-        if kind not in {"og", "favicon"}:
-            self._json(400, {"ok": False, "error": "invalid_kind"})
-            return
-        raw_b64 = str(body.get("data_base64") or "").strip()
-        if raw_b64.startswith("data:"):
-            header, _, encoded = raw_b64.partition(",")
-            content_type = header.split(";")[0].replace("data:", "").strip()
-            raw_b64 = encoded
-        else:
-            content_type = str(body.get("content_type") or "").strip()
-        try:
-            data = base64.b64decode(raw_b64, validate=False)
-        except Exception:
-            self._json(400, {"ok": False, "error": "invalid_base64"})
-            return
-        try:
-            site_meta.save_branding_asset(kind, data, content_type)
-        except ValueError as exc:
-            self._json(400, {"ok": False, "error": str(exc)})
-            return
-        meta = _public_site_meta_payload()
-        self._json(
-            200,
-            {
-                "ok": True,
-                "kind": kind,
-                "og_image": meta.get("og_image"),
-                "favicon": meta.get("favicon"),
-            },
-        )
 
     def _route_post_admin_updates_apply(self, body: dict) -> None:
         if not _role_allows(self, OWNER_ADMIN_ROLES):
@@ -5868,27 +5432,6 @@ class Handler(BaseHTTPRequestHandler):
                 f"repaired={len(result.get('repaired') or [])} failed={len(result.get('failed') or [])}",
             )
         self._json(200, result)
-
-    def _route_patch_install_stack(self, body: dict) -> None:
-        if not _install_window_open() and not _role_allows(self, OWNER_ADMIN_ROLES):
-            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-            return
-        if not _install_owner_session_ok(self):
-            self._json(403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"})
-            return
-        try:
-            global DEPLOYMENT_MODE
-            updated = stack_config.patch_stack_config(body if isinstance(body, dict) else {})
-            compose_sync = None
-            if isinstance(body, dict) and body.get("app_base_url"):
-                compose_sync = _maybe_sync_compose_public_url(str(body.get("app_base_url") or ""))
-            DEPLOYMENT_MODE = _resolve_deployment_mode()
-            payload: dict[str, Any] = {"ok": True, **updated}
-            if compose_sync is not None:
-                payload["compose_sync"] = compose_sync
-            self._json(200, payload)
-        except ValueError as exc:
-            self._json(400, {"ok": False, "error": str(exc)})
 
     def _route_pattern_patch_hermes_profile(self, path: str, body: dict) -> None:
         profile_patch_match = re.fullmatch(r"/api/hermes/profiles/([^/]+)", path)
