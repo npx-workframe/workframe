@@ -19,7 +19,6 @@ import { isElectronRuntime } from '@/lib/runtime'
 import { ButtonShowcasePage } from '@/pages/dev/ButtonShowcasePage'
 import { ThemeShowcasePage } from '@/pages/dev/ThemeShowcasePage'
 import { WORKFRAME_SESSION_EXPIRED } from '@/lib/authenticatedFetch'
-import { clearStoredSessionTokens } from '@/lib/workframeSession'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
 
 console.log('[workframe] App module loaded')
