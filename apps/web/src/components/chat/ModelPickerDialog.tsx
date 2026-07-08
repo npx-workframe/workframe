@@ -4,8 +4,7 @@ import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { DialogCancelButton } from '@/components/dialogs/DialogActions'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
-import { billingProviderDisplayLabel } from '@/lib/brandAssets'
-import { modelLabelFromId } from '@/lib/chatTypes'
+import { formatComposerModelLabel } from '@/lib/chatTypes'
 import type { FallbackEntry, HermesModelsResponse } from '@/lib/hermesCatalogApi'
 
 type ModelPickerDialogProps = {
@@ -29,9 +28,9 @@ export function ModelPickerDialog({
   const [error, setError] = useState<string | null>(null)
 
   const handleLoaded = (data: HermesModelsResponse) => {
-    const provider = billingProviderDisplayLabel(data.billing_provider || data.provider || '')
-    const model = modelLabelFromId(data.primary || '')
-    setSummary(provider && model ? `${provider} · ${model}` : model || provider || undefined)
+    setSummary(
+      formatComposerModelLabel(data.billing_provider || data.provider || '', data.primary || '') || undefined,
+    )
   }
 
   return (

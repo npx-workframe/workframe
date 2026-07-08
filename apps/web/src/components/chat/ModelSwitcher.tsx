@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
-import { modelLabelFromId } from '@/lib/chatTypes'
-import { billingProviderDisplayLabel, inferProviderFromModelId, providerIconForId } from '@/lib/workframeAssets'
+import { formatComposerModelLabel } from '@/lib/chatTypes'
+import { inferProviderFromModelId, providerIconForId } from '@/lib/workframeAssets'
 import { cn } from '@/lib/utils'
 
 type ModelSwitcherProps = {
@@ -25,18 +25,11 @@ export function ModelSwitcher({
 }: ModelSwitcherProps) {
   const { openModelPicker } = useCommandDialogs()
   const inactive = !hasProvider
-  const billingProvider =
-    billingProviderDisplayLabel(providerId) ||
-    billingProviderDisplayLabel(inferProviderFromModelId(modelId)) ||
-    ''
-  const modelLabel = modelLabelFromId(modelId)
-  const label = inactive
-    ? 'Connect provider'
-    : billingProvider
-      ? `${billingProvider} · ${modelLabel}`
-      : modelLabel
+  const label = inactive ? 'Connect provider' : formatComposerModelLabel(providerId, modelId)
+  const inferredProvider = inferProviderFromModelId(modelId)
   const iconProvider =
-    providerIconForId(providerId || inferProviderFromModelId(modelId)) ??
+    providerIconForId(providerId) ??
+    (inferredProvider ? providerIconForId(inferredProvider) : null) ??
     providerIconForId(modelId.split('/')[0] ?? '')
 
   return (

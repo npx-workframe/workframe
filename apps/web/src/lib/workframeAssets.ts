@@ -21,7 +21,7 @@ export function agentAvatarForSlug(slug: string): string | null {
   return mapped || null
 }
 
-export function inferProviderFromModelId(modelId: string): ProviderBrandId {
+export function inferProviderFromModelId(modelId: string): ProviderBrandId | null {
   const normalized = modelId.toLowerCase()
   if (normalized.startsWith('openai-codex/') || normalized.startsWith('codex/')) return 'codex'
   if (normalized.startsWith('anthropic/')) return 'anthropic'
@@ -29,5 +29,5 @@ export function inferProviderFromModelId(modelId: string): ProviderBrandId {
   if (normalized.startsWith('nous/')) return 'nous'
   if (normalized.includes('cursor')) return 'cursor'
   if (normalized.includes('perplexity')) return 'perplexity'
-  return 'openrouter'
+  return null
 }

@@ -1,5 +1,6 @@
 import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { billingProviderDisplayLabel } from '@/lib/brandAssets'
+import { inferProviderFromModelId } from '@/lib/workframeAssets'
 
 export type ChatSegment =
   | { kind: 'text'; text: string }
@@ -50,17 +51,28 @@ export function modelLabelFromId(modelId: string): string {
   return slash >= 0 ? trimmed.slice(slash + 1) : trimmed
 }
 
+/** Known provider label from explicit billing id or recognized model prefix only. */
+export function resolveProviderDisplayLabel(providerId?: string, modelId?: string): string {
+  const fromProvider = billingProviderDisplayLabel(providerId ?? '')
+  if (fromProvider) return fromProvider
+  const inferred = inferProviderFromModelId(modelId ?? '')
+  if (!inferred) return ''
+  return billingProviderDisplayLabel(inferred)
+}
+
+/** Composer/settings badge: "Provider · model" or model-only when provider is unknown. */
+export function formatComposerModelLabel(providerId?: string, modelId?: string): string {
+  const modelLabel = modelLabelFromId(modelId ?? '')
+  const provider = resolveProviderDisplayLabel(providerId, modelId)
+  if (provider && modelLabel) return `${provider} · ${modelLabel}`
+  return modelLabel || provider
+}
+
 /** Compact provider · model label for message attribution. */
 export function formatModelAttribution(modelId?: string, llmProvider?: string): string {
   const model = modelId?.trim() ?? ''
   if (model && /^u-[a-z0-9][a-z0-9-]*$/i.test(model)) return ''
-  const provider =
-    billingProviderDisplayLabel(llmProvider ?? '') ||
-    (model.includes('/') ? billingProviderDisplayLabel(model.split('/')[0] ?? '') : '')
-  if (provider && model) return `${provider} · ${modelLabelFromId(model)}`
-  if (model) return modelLabelFromId(model)
-  if (provider) return provider
-  return ''
+  return formatComposerModelLabel(llmProvider, model)
 }
 
 export function emptyAgentStreamMessage(
