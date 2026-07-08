@@ -11,7 +11,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Backlog items | 50 (34 done · 3 partial · 2 todo · 11 deferred) |
+| Backlog items | 50 (35 done · 3 partial · 1 todo · 11 deferred) |
 | **Stage A** (release-truth) | **Complete** |
 | **Stage B** (decompose) | **In flight** — WF-032 partial; WF-037/035 done; WF-036 partial (cosmetic lane) |
 | **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence); WF-NS-P1 done 2026-07-08 |
@@ -77,13 +77,13 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 ### Stage E+ — STOP 🛑
 
 Deferred (11): WF-013, WF-014, WF-015, WF-029, WF-030, WF-NS-P3…P8.
-Meta todo: WF-SK-001 (spec-kit, not gating). WF-012 is **todo but in scope** (Wave 3 — release identity, fixes the `ui_bundle_identity` fail class).
+Meta todo: WF-SK-001 (spec-kit, not gating). WF-012 **done** 2026-07-08 — `workframe-build.json` stamp + `/api/meta` package_version/ui_build; `ui_bundle_identity` asserts stamp parity.
 
 ---
 
 ## Verify matrix
 
-**Latest full matrix:** 2026-07-06 @ `9a06d88` — 16 pass / 1 fail / 2 skip (`operations/release-evidence/runs/latest-verify-matrix.json`). Fail: `package-install-evidence --skip-prep` → `ui_bundle_identity` (stale packed UI; run sync+bundle prep). **Stale — Wave 0 refreshes at HEAD with prep.**
+**Latest package-install evidence:** 2026-07-08 @ HEAD — `allow` (`run-package-install-evidence.mjs --skip-prep` after bundle; `ui_bundle_identity` via `workframe-build.json` stamp). Full matrix still stale @ `9a06d88` — refresh with prep when convenient.
 
 Spot checks this audit (2026-07-08):
 

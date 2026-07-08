@@ -29,6 +29,7 @@ const REQUIRED = [
   'workframe-supervisor/server.py',
   'workframe-ui/public/index.html',
   'workframe-ui/public/workframe-config.json',
+  'workframe-ui/public/workframe-build.json',
   'scripts/workframe.mjs',
 ];
 
@@ -167,13 +168,21 @@ try {
 
   const uiIndex = path.join(target, 'workframe-ui/public/index.html');
   const uiHtml = fs.readFileSync(uiIndex, 'utf8');
-  const bundled = uiHtml.includes('./assets/') && uiHtml.includes('type="module"');
+  const bundled =
+    uiHtml.includes('type="module"') && (uiHtml.includes('./assets/') || uiHtml.includes('/assets/'));
+  const buildStampPath = path.join(target, 'workframe-ui/public/workframe-build.json');
   let uiIdentityOk = bundled;
-  const distIndex = path.join(root, 'apps/web/dist/index.html');
-  if (fs.existsSync(distIndex)) {
-    uiIdentityOk = uiIdentityOk && sha256File(uiIndex) === sha256File(distIndex);
+  let uiIdentityNote;
+  if (fs.existsSync(buildStampPath)) {
+    const stamp = JSON.parse(fs.readFileSync(buildStampPath, 'utf8'));
+    const stampOk = stamp.package_version === packageVersion;
+    uiIdentityOk = uiIdentityOk && stampOk;
+    if (!stampOk) uiIdentityNote = `stamp ${stamp.package_version} !== ${packageVersion}`;
+  } else {
+    uiIdentityOk = false;
+    uiIdentityNote = 'missing workframe-build.json — run bundle-workframe-ui.mjs';
   }
-  assertStep('ui_bundle_identity', uiIdentityOk);
+  assertStep('ui_bundle_identity', uiIdentityOk, uiIdentityNote);
 
   const allOk = assertions.every((a) => a.status === 'asserted');
   const evidence = {

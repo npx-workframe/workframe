@@ -2527,7 +2527,7 @@ async function main() {
     copyWorkframeUiTemplate(target, [nativeSlug]);
     writeText(
       path.join(target, 'workframe-ui', 'public', 'workframe-config.json'),
-      `${JSON.stringify({ project_name: safeName, native_profile: nativeSlug }, null, 2)}\n`,
+      `${JSON.stringify({ project_name: safeName, native_profile: nativeSlug, package_version: PKG_VERSION }, null, 2)}\n`,
     );
 
     writeText(path.join(target, 'SETUP.md'), onboardingDoc({

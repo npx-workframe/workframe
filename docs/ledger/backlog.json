@@ -304,15 +304,28 @@
       "summary": "Generated install exposes build/package identity so PackageInstallEvidence can assert bundled UI parity.",
       "wave": "release-truth",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "sources": ["25-audit:P1-12", "RT-05"],
       "acceptance": [
         "UI and/or API expose package-version or build stamp",
         "PackageTruthGate asserts match to packed version"
       ],
       "depends_on": ["WF-002"],
+      "evidence": [
+        "packages/create-workframe/scripts/bundle-workframe-ui.mjs",
+        "packages/create-workframe/workframe-ui/public/workframe-build.json",
+        "services/workframe-api/api_meta.py",
+        "services/workframe-api/test_api_meta_build_stamp.py",
+        "scripts/workframe/run-package-install-evidence.mjs"
+      ],
       "owner_role": "implementer",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+      "workflow": {
+        "assignee": null,
+        "reviewer": null,
+        "patch_refs": [],
+        "completed_at": "2026-07-08",
+        "notes": "workframe-build.json stamped at bundle; /api/meta exposes package_version + ui_build; ui_bundle_identity asserts stamp == packed version (not dist SHA256)."
+      }
     },
     {
       "id": "WF-013",

@@ -59,6 +59,15 @@ if (!fs.existsSync(path.join(dist, 'index.html'))) {
 console.log(`Copying ${dist} -> ${UI_DEST}`);
 copyTree(dist, UI_DEST);
 
+const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
+const gitRef = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
+const buildStamp = {
+  package_version: pkgVersion,
+  bundled_at: new Date().toISOString(),
+  git_ref: gitRef.status === 0 ? gitRef.stdout.trim() : '',
+};
+fs.writeFileSync(path.join(UI_DEST, 'workframe-build.json'), `${JSON.stringify(buildStamp, null, 2)}\n`);
+
 const avatarShared = path.join(PKG_ROOT, 'shared', 'agent-avatars');
 
 function copyPresetPngs(src, dst, { keepCatalog = false } = {}) {

@@ -68,6 +68,7 @@ const REQUIRED = [
   'workframe-supervisor/Dockerfile',
   'workframe-ui/public/index.html',
   'workframe-ui/public/workframe-config.json',
+  'workframe-ui/public/workframe-build.json',
   'workframe-ui/docker/nginx.conf',
   'docker/dashboard-proxy.conf',
   'workframe-manifest.json',
@@ -267,6 +268,15 @@ for (const pack of PACKS) {
   }
   if (wfCfg.project_name !== name) {
     fail(`pack ${pack}: workframe-config project_name expected ${name}, got ${wfCfg.project_name}`);
+  }
+
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
+  const wfBuild = JSON.parse(fs.readFileSync(path.join(root, 'workframe-ui/public/workframe-build.json'), 'utf8'));
+  if (wfBuild.package_version !== pkgVersion) {
+    fail(`pack ${pack}: workframe-build package_version expected ${pkgVersion}, got ${wfBuild.package_version}`);
+  }
+  if (wfCfg.package_version !== pkgVersion) {
+    fail(`pack ${pack}: workframe-config package_version expected ${pkgVersion}, got ${wfCfg.package_version}`);
   }
 
   const workspaceFiles = fs.readdirSync(path.join(root, 'Files')).sort();
