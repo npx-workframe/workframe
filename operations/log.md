@@ -4,6 +4,10 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-08T15:15-03:00 | pm-workframe | WF-032 — chat_sessions.py extracted (~472 lines: session info, chat bootstrap/messages, segment parsing); server.py ~8.8k lines.
+2026-07-08T15:00-03:00 | pm-workframe | WF-032 — turn_overlay.py extracted (~696 lines: per-turn credential leases, LLM proxy overlays); server.py ~9.3k lines; test_server_reexports extended.
+2026-07-08T08:15-03:00 | pm-workframe | Removed owner@local.workframe synthetic identity — local bootstrap + complete_install require real email; test_local_bootstrap.py.
+2026-07-08T08:10-03:00 | pm-workframe | Hotfix 73afd5d — restored _strip_profile_action_env + action-env helpers dropped in WF-032 oauth_redirect extract; reverted broken ConciergeFlow session-gate WIP; dogfood API recreated.
 2026-07-08T14:30-03:00 | pm-workframe | WF-032 — credential_store.py extracted; server.py ~8.9k lines.
 2026-07-08T14:20-03:00 | pm-workframe | WF-032 — credential_resolve.py extracted; server.py ~9.1k lines.
 2026-07-08T14:10-03:00 | pm-workframe | WF-032 — mention_invoke.py extracted; server.py ~9.3k lines.

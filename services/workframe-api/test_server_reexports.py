@@ -20,8 +20,18 @@ import server  # noqa: E402
 _REQUIRED = (
     "_parse_workspace_settings",
     "_strip_profile_action_env",
+    "_strip_profile_llm_env",
     "_user_action_env_specs",
     "_overlay_turn_user_env",
+    "_overlay_turn_provider_env",
+    "_llm_proxy_base_url",
+    "_require_user_provider",
+    "_ensure_profile_llm_proxy",
+    "_revoke_turn_credential_lease",
+    "_sync_profile_provider_env",
+    "_session_info",
+    "chat_messages",
+    "chat_bootstrap",
 )
 
 
