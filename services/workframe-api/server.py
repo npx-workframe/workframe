@@ -39,7 +39,7 @@ from typing import Any, Iterator
 from email_sender import APP_BASE_URL, send_branded_invite_email, send_email, send_verification_email
 import profile_config_yaml
 import route_registry
-from handler_modules import ChatRoutesMixin, InstallRoutesMixin
+from handler_modules import ChatRoutesMixin, InstallRoutesMixin, WorkspaceRoutesMixin
 import db_schema
 
 WORKFRAME_DB_SCHEMA = db_schema.WORKFRAME_DB_SCHEMA
@@ -1802,7 +1802,7 @@ def board_delete(task_id: str) -> None:
 
 
 
-class Handler(ChatRoutesMixin, InstallRoutesMixin, BaseHTTPRequestHandler):
+class Handler(WorkspaceRoutesMixin, ChatRoutesMixin, InstallRoutesMixin, BaseHTTPRequestHandler):
     server_version = "WorkframeAPI/0.1.0"
 
     def log_message(self, fmt: str, *args: Any) -> None:
