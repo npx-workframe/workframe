@@ -134,6 +134,13 @@ def _user_has_llm_provider(user_id: str) -> bool:
     return bool(_srv()._user_llm_providers_for_picker(user_id))
 
 
+def _user_llm_has_provider(user_id: str, workspace_id: str = "") -> bool:
+    if _user_has_llm_provider(user_id):
+        return True
+    ws = str(workspace_id or "").strip()
+    return bool(ws and _workspace_has_llm_provider(ws))
+
+
 def _workspace_has_llm_provider(workspace_id: str) -> bool:
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id:
