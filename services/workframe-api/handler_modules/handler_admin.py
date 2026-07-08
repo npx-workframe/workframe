@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import credential_vault
+import internal_proxy_auth
 import site_meta
 import updates as stack_updates
 from supervisor_client import _supervisor_request
