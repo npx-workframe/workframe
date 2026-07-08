@@ -14,6 +14,7 @@ type ConciergeWizardFooterProps = {
   smtpSetupComplete: boolean
   canContinueFromSmtp: boolean
   adminVerified: boolean
+  adminEmail: string
   onTestSmtp: () => void
   onContinueFromSmtp: () => void
   onSkipIntegrations: () => void
@@ -42,6 +43,7 @@ export function ConciergeWizardFooter({
   smtpSetupComplete,
   canContinueFromSmtp,
   adminVerified,
+  adminEmail,
   onTestSmtp,
   onContinueFromSmtp,
   onSkipIntegrations,
@@ -61,7 +63,12 @@ export function ConciergeWizardFooter({
   switch (step) {
     case 'intro':
       return (
-        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={onGetStarted}>
+        <WfActionButton
+          wizardSize
+          tone="primary"
+          disabled={busy || !adminEmail.trim()}
+          onClick={onGetStarted}
+        >
           Get started
         </WfActionButton>
       )

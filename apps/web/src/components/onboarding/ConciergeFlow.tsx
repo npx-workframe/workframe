@@ -75,6 +75,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       smtpSetupComplete={flow.smtpSetupComplete}
       canContinueFromSmtp={flow.canContinueFromSmtp}
       adminVerified={flow.adminVerified}
+      adminEmail={flow.adminEmail}
       onTestSmtp={() => void flow.testSmtpOnly()}
       onContinueFromSmtp={() => void flow.continueFromSmtp()}
       onSkipIntegrations={() => void flow.skipIntegrations()}
@@ -98,7 +99,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           setError: flow.setError,
         })
       }
-      onGetStarted={() => flow.setStep('welcome')}
+      onGetStarted={() => void flow.continueFromIntro()}
     />
   )
 
@@ -138,8 +139,6 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           onSmtpUserChange={flow.setSmtpUser}
           onSmtpPassChange={flow.setSmtpPass}
           onSmtpFromChange={flow.setSmtpFrom}
-          onAdminEmailChange={flow.setAdminEmail}
-          onAdminEmailBlur={() => void flow.persistAdminEmail()}
           onMarkSmtpDirty={flow.markSmtpDirty}
           onGoogleSignIn={() => void flow.startGoogleSignIn()}
           onAdminOtpStepChange={flow.setAdminOtpStep}
@@ -172,6 +171,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           httpsStatus={flow.httpsStatus}
           resolveWorkframeName={flow.resolveWorkframeName}
           onAdminEmailChange={flow.setAdminEmail}
+          onAdminEmailBlur={() => void flow.persistAdminEmail()}
           onPickMode={(mode) => void flow.pickMode(mode)}
           onCredentialModeChange={flow.setCredentialMode}
           onLogoUrlChange={flow.setLogoUrl}

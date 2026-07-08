@@ -565,6 +565,25 @@ export function useConciergeFlow({
     setStep,
   })
 
+  async function continueFromIntro() {
+    const email = adminEmail.trim().toLowerCase()
+    if (!email || !email.includes('@')) {
+      setError(formatWorkframeError({ error: 'email_required' }, 'Admin email'))
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      const patched = await patchInstallStackWhenAllowed({ smtp: { admin_email: email } })
+      if (!patched) return
+      setStep('welcome')
+    } catch (err) {
+      setError(formatWorkframeError(err, 'Admin email'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function handleAdminRegistered(profile: SessionProfile) {
     setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
     setAdminAuthNotice(null)
@@ -814,6 +833,7 @@ export function useConciergeFlow({
     startGoogleSignIn,
     testSmtpOnly,
     continueFromSmtp,
+    continueFromIntro,
     persistAdminEmail,
     saveIntegrations,
     skipIntegrations,

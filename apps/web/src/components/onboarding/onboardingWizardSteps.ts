@@ -73,11 +73,14 @@ export function buildWizardSteps(
 export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: boolean) {
   switch (step) {
     case 'intro':
-      return { title: `Set up ${projectName}`, description: '' }
+      return {
+        title: `Set up ${projectName}`,
+        description: 'Enter the admin email for this install, then continue through deployment and profile setup.',
+      }
     case 'welcome':
       return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
     case 'smtp':
-      return { title: 'Admin', description: 'Configure SMTP for sign-in codes, then verify your admin email.' }
+      return { title: 'Admin', description: 'Configure SMTP for sign-in codes, then verify the admin account.' }
     case 'admin_auth':
       return { title: 'Verify admin', description: 'Confirm your email to finish admin setup.' }
     case 'integrations':
@@ -166,7 +169,9 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
   return steps.map((step) => {
     switch (step.id) {
       case 'intro':
-        return { ...step, configured: true, detail: 'Started' }
+        return ctx.adminEmail.trim()
+          ? { ...step, configured: true, detail: truncate(ctx.adminEmail, 42) }
+          : step
       case 'welcome':
         return ctx.modeChosen
           ? { ...step, configured: true, detail: MODE_LABELS[ctx.deploymentMode] ?? ctx.deploymentMode }

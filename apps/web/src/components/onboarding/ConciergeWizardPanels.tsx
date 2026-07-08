@@ -36,6 +36,7 @@ type ConciergeWizardPanelsProps = {
   httpsStatus: string | null
   resolveWorkframeName: () => string
   onAdminEmailChange: (value: string) => void
+  onAdminEmailBlur: () => void
   onPickMode: (mode: string) => void
   onCredentialModeChange: (mode: 'byok' | 'workspace') => void
   onLogoUrlChange: (value: string) => void
@@ -84,6 +85,7 @@ export function ConciergeWizardPanels({
   httpsStatus,
   resolveWorkframeName,
   onAdminEmailChange,
+  onAdminEmailBlur,
   onPickMode,
   onCredentialModeChange,
   onLogoUrlChange,
@@ -107,7 +109,23 @@ export function ConciergeWizardPanels({
 }: ConciergeWizardPanelsProps) {
   if (step === 'intro') {
     return (
-      <div className="wf-wizard-panel">
+      <div className="wf-wizard-panel wf-onboarding-form">
+        <div className="wf-dialog-field">
+          <Label htmlFor="wf-intro-admin-email">Admin email</Label>
+          <Input
+            id="wf-intro-admin-email"
+            type="email"
+            value={adminEmail}
+            onChange={(e) => onAdminEmailChange(e.target.value)}
+            onBlur={onAdminEmailBlur}
+            placeholder="admin@company.com"
+            disabled={busy}
+            autoComplete="email"
+          />
+          <p className="wf-dialog-field__hint">
+            Primary admin account for this install — used for sign-in codes and setup notifications.
+          </p>
+        </div>
         <ul className="wf-wizard-checklist">
           <li>Deployment mode and admin sign-in</li>
           <li>Integrations, billing (BYOK or company-pays)</li>
@@ -120,21 +138,6 @@ export function ConciergeWizardPanels({
   if (step === 'welcome') {
     return (
       <div className="wf-wizard-mode-grid">
-        <div className="wf-dialog-field wf-wizard-mode-grid__email">
-          <Label htmlFor="wf-welcome-email">Your email</Label>
-          <Input
-            id="wf-welcome-email"
-            type="email"
-            value={adminEmail}
-            onChange={(e) => onAdminEmailChange(e.target.value)}
-            placeholder="you@company.com"
-            disabled={busy}
-            autoComplete="email"
-          />
-          <p className="wf-dialog-field__hint">
-            Required for &quot;Just me on this machine&quot;. Other modes verify email on the Admin step.
-          </p>
-        </div>
         {DEPLOYMENT_MODES.map((m) => (
           <button
             key={m.id}

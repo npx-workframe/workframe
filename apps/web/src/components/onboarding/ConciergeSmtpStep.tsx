@@ -50,8 +50,6 @@ type ConciergeSmtpStepProps = {
   onSmtpUserChange: (value: string) => void
   onSmtpPassChange: (value: string) => void
   onSmtpFromChange: (value: string) => void
-  onAdminEmailChange: (value: string) => void
-  onAdminEmailBlur: () => void
   onMarkSmtpDirty: () => void
   onGoogleSignIn: () => void
   onAdminOtpStepChange: (step: EmailOtpStep) => void
@@ -79,8 +77,6 @@ export function ConciergeSmtpStep({
   onSmtpUserChange,
   onSmtpPassChange,
   onSmtpFromChange,
-  onAdminEmailChange,
-  onAdminEmailBlur,
   onMarkSmtpDirty,
   onGoogleSignIn,
   onAdminOtpStepChange,
@@ -167,17 +163,6 @@ export function ConciergeSmtpStep({
               disabled={busy}
             />
             <p className="wf-dialog-field__hint">Leave blank to use the login email as the sender.</p>
-          </div>
-          <div className="wf-dialog-field">
-            <Label htmlFor="wf-smtp-admin">Admin email</Label>
-            <Input
-              id="wf-smtp-admin"
-              type="email"
-              value={adminEmail}
-              onChange={(e) => onAdminEmailChange(e.target.value)}
-              onBlur={onAdminEmailBlur}
-              disabled={busy}
-            />
           </div>
         </>
       ) : (
