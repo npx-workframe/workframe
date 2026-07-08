@@ -32,6 +32,11 @@ _REQUIRED = (
     "_session_info",
     "chat_messages",
     "chat_bootstrap",
+    "_gateway_container_exec",
+    "_gateway_container_exec_detached",
+    "_docker_exec",
+    "_gateway_exec",
+    "_hermes_agent_version",
 )
 
 

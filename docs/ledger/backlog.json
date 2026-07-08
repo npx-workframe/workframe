@@ -830,7 +830,7 @@
     {
       "id": "WF-032",
       "title": "Split server.py monolith (definitive module map)",
-      "summary": "~8.8k lines remain in server.py (2026-07-08). ~41 modules extracted. Target residual <3k.",
+      "summary": "~8.5k lines remain in server.py (2026-07-08). ~42 modules extracted. Target residual <3k.",
       "wave": "code-health",
       "priority": "P1",
       "status": "partial",
@@ -866,6 +866,7 @@
         "services/workframe-api/credential_store.py",
         "services/workframe-api/turn_overlay.py",
         "services/workframe-api/chat_sessions.py",
+        "services/workframe-api/docker_gateway.py",
         "services/workframe-api/test_server_reexports.py"
       ],
       "owner_role": "implementer",
@@ -873,7 +874,7 @@
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "notes": "2026-07-08: turn_overlay.py + chat_sessions.py extracted (~8.8k lines remain). Next: docker_gateway, handler shell."
+        "notes": "2026-07-08: docker_gateway.py extracted (~165 lines: Docker socket + gateway exec); server.py ~8.5k lines. Next: handler shell."
       }
     },
     {
