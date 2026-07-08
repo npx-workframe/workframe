@@ -552,14 +552,21 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       const patched = await patchInstallStackWhenAllowed({ deployment_mode: mode })
       if (!patched) return
       if (mode === 'single_user_local') {
+        const email = adminEmail.trim().toLowerCase()
+        if (!email || !email.includes('@')) {
+          setError(formatWorkframeError({ error: 'email_required' }, 'Choose deployment'))
+          return
+        }
         await workframeAuthApi.completeSetup({
           workframe_name: resolveWorkframeName(),
           agent_name: agentName,
         })
-        await workframeAuthApi.localBootstrap(displayName || 'Owner')
+        await patchInstallStackWhenAllowed({ smtp: { admin_email: email } })
+        await workframeAuthApi.localBootstrap(displayName || email.split('@')[0] || 'Owner', email)
         const me = await workframeAuthApi.getMe()
         setWorkspaceId(me.current_workspace?.id || me.default_workspace?.id || '')
         setAdminVerified(true)
+        setHasAdminSession(true)
         setStep('workframe')
       } else if (mode === 'public_multi_user') {
         setStep('publish')
@@ -1063,24 +1070,39 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     }
     setBusy(true)
     try {
-      const payload =
-        deploymentMode === 'single_user_local' && !isInvitee
-          ? {
-              display_name: displayName || 'Owner',
-              email: adminEmail || 'owner@local.workframe',
-              bio,
-              workframe_name: resolveWorkframeName(),
-              agent_name: agentName,
-              agent_tagline: agentTagline,
-              agent_soul: agentSoul.trim() || bio,
-            }
-          : {
-              bio,
-              workframe_name: resolveWorkframeName(),
-              agent_name: agentName,
-              agent_tagline: agentTagline,
-              agent_soul: agentSoul.trim() || bio,
-            }
+      if (deploymentMode === 'single_user_local' && !isInvitee) {
+        const email = adminEmail.trim().toLowerCase()
+        if (!email || !email.includes('@')) {
+          throw new Error('email_required')
+        }
+        const payload = {
+          display_name: displayName || email.split('@')[0] || 'Owner',
+          email,
+          bio,
+          workframe_name: resolveWorkframeName(),
+          agent_name: agentName,
+          agent_tagline: agentTagline,
+          agent_soul: agentSoul.trim() || bio,
+        }
+        const result = await workframeAuthApi.completeInstall(payload)
+        if (!result.ok) {
+          throw new Error(result.error || 'Finish setup failed')
+        }
+        setLaunchSteps(buildFinishInstallSteps(result.steps, 'active'))
+        await new Promise((resolve) => window.setTimeout(resolve, 450))
+        setLaunchSteps(buildFinishInstallSteps(result.steps, 'done'))
+        setStep('done')
+        await new Promise((resolve) => window.setTimeout(resolve, 350))
+        onComplete()
+        return
+      }
+      const payload = {
+        bio,
+        workframe_name: resolveWorkframeName(),
+        agent_name: agentName,
+        agent_tagline: agentTagline,
+        agent_soul: agentSoul.trim() || bio,
+      }
       const result = await workframeAuthApi.completeInstall(payload)
       if (!result.ok) {
         throw new Error(result.error || 'Finish setup failed')
@@ -1436,6 +1458,21 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
 
       {step === 'welcome' ? (
         <div className="wf-wizard-mode-grid">
+          <div className="wf-dialog-field wf-wizard-mode-grid__email">
+            <Label htmlFor="wf-welcome-email">Your email</Label>
+            <Input
+              id="wf-welcome-email"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              placeholder="you@company.com"
+              disabled={busy}
+              autoComplete="email"
+            />
+            <p className="wf-dialog-field__hint">
+              Required for &quot;Just me on this machine&quot;. Other modes verify email on the Admin step.
+            </p>
+          </div>
           {MODES.map((m) => (
             <button
               key={m.id}

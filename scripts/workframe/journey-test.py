@@ -141,7 +141,7 @@ setup = step(
     "/api/install/complete",
     {
         "display_name": "Owner",
-        "email": "owner@local.workframe",
+        "email": "owner@example.com",
         "bio": "Journey owner",
         "workframe_name": PROJECT,
         "agent_name": f"{PROJECT} Agent",

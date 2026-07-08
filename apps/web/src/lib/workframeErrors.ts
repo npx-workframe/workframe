@@ -61,7 +61,14 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
     message: 'This provider does not support device sign-in on this stack.',
     hint: 'Use an API key or a different connect method.',
   },
-  forbidden: { message: 'You do not have permission for this action.' },
+  email_required: {
+    message: 'Email is required.',
+    hint: 'Enter your email address before continuing.',
+  },
+  forbidden: {
+    message: 'You do not have permission for this action.',
+    hint: 'Sign in as the workspace admin, or finish the Admin step before saving Workframe settings.',
+  },
   room_access_denied: { message: 'You cannot access this room.' },
   room_not_found: { message: 'Room not found.', hint: 'Refresh the room list or open another chat.' },
   room_not_agent_chat: { message: 'This room is not an agent chat.' },

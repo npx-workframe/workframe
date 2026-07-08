@@ -6481,8 +6481,11 @@ class Handler(BaseHTTPRequestHandler):
         if DEPLOYMENT_MODE != "single_user_local" or not _install_window_open():
             self._json(403, {"ok": False, "error": "local_bootstrap_unavailable"})
             return
-        display = str(body.get("display_name") or "Owner")
-        email = "owner@local.workframe"
+        email = str(body.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            self._json(400, {"ok": False, "error": "email_required"})
+            return
+        display = str(body.get("display_name") or "").strip() or email.split("@", 1)[0]
         try:
             result = _zk.create_session_for_email(email)
         except (RuntimeError, OSError, sqlite3.Error) as exc:
@@ -9399,12 +9402,6 @@ class Handler(BaseHTTPRequestHandler):
         if not _native_profile_present():
             _ensure_native_hermes_profile()
         data = body if isinstance(body, dict) else {}
-        if not user_id and DEPLOYMENT_MODE == "single_user_local":
-            user_id = str(data.get("user_id") or secrets.token_hex(8))
-            email = str(data.get("email") or "owner@local.workframe")
-            display = str(data.get("display_name") or "Owner")
-            self._ensure_user(user_id, display, email)
-            self._first_owner_bootstrap(user_id, display, email)
         if not user_id:
             return {"ok": False, "error": "no_session"}
         ws_id = _primary_workspace_id(user_id)

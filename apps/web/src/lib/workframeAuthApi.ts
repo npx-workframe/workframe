@@ -1047,10 +1047,20 @@ export const workframeAuthApi = {
     }, false)
   },
 
-  localBootstrap(displayName = 'Owner') {
+  localBootstrap(displayName: string, email: string) {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      return Promise.reject(new Error('email_required'))
+    }
     return request<SessionProfile & { user_id?: string; session_id?: string; refresh_token?: string }>(
       '/auth/local-bootstrap',
-      { method: 'POST', body: JSON.stringify({ display_name: displayName }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          display_name: displayName.trim() || normalizedEmail.split('@')[0] || 'Owner',
+          email: normalizedEmail,
+        }),
+      },
       false,
     ).then((data) => {
       if (data.session_id) {
