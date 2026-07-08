@@ -13,7 +13,7 @@ from typing import Any
 
 import credential_vault
 import site_meta
-import stack_updates
+import updates as stack_updates
 from supervisor_client import _supervisor_request
 
 

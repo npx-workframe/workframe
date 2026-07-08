@@ -846,10 +846,10 @@
     {
       "id": "WF-032",
       "title": "Split server.py monolith (definitive module map)",
-      "summary": "~5.1k lines / 78 defs remain in server.py (2026-07-08 @ fb0ca10). ~31 modules extracted. Target residual <3k.",
+      "summary": "~2.6k lines remain in server.py (2026-07-08 @ 9538eec). ~50 modules + handler_modules/ mixins. Residual under 3k target met.",
       "wave": "code-health",
       "priority": "P1",
-      "status": "partial",
+      "status": "done",
       "sources": ["audit-2026-07-05: def-density map of server.py"],
       "acceptance": [
         "Stage 0: characterization tests for model surface, auth gate, credential resolve (extends WF-034)",
@@ -893,14 +893,20 @@
         "services/workframe-api/supervisor_client.py",
         "services/workframe-api/chat_bind.py",
         "services/workframe-api/handler_modules/handler_install.py",
+        "services/workframe-api/handler_modules/handler_chat.py",
+        "services/workframe-api/handler_modules/handler_workspace.py",
+        "services/workframe-api/handler_modules/handler_auth.py",
+        "services/workframe-api/handler_modules/handler_provider.py",
+        "services/workframe-api/handler_modules/handler_admin.py",
         "services/workframe-api/test_chat_bind.py"
       ],
       "owner_role": "implementer",
       "workflow": {
         "assignee": null,
         "reviewer": null,
-        "patch_refs": [],
-        "notes": "2026-07-08 @ fb0ca10: chat_bind.py, runtime_cohort.py, supervisor_client.py, handler_modules/handler_install.py extracted; server.py 5,107 lines / 78 defs (down from 12,144 / 318). Next: continue handler shell extractions to <3k."
+        "patch_refs": ["9538eec"],
+        "completed_at": "2026-07-08",
+        "notes": "2026-07-08 @ 9538eec: server.py 2,602 lines / Handler shell 683; handler_modules/ six mixins; residual <3k acceptance met."
       }
     },
     {
