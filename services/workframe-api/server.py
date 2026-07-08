@@ -1230,6 +1230,7 @@ _provider_user_only = provider_catalog.provider_user_only
 _provider_env_vars = provider_catalog.provider_env_vars
 GITHUB_OAUTH_SCOPES = oauth_redirect.GITHUB_OAUTH_SCOPES
 STRIPE_CONNECT_SCOPES = oauth_redirect.STRIPE_CONNECT_SCOPES
+_parse_workspace_settings = oauth_redirect._parse_workspace_settings
 _stripe_connect_app_config = oauth_redirect._stripe_connect_app_config
 _stripe_connect_configured = oauth_redirect._stripe_connect_configured
 _stripe_oauth_redirect_uri = oauth_redirect._stripe_oauth_redirect_uri
