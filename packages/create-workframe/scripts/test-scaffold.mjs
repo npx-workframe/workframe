@@ -90,6 +90,26 @@ function dockerStack(name) {
   return slugify(name);
 }
 
+/** WF-032: bootstrap invariants may live in extracted modules, not only server.py */
+function readWorkframeApiSources(root) {
+  const apiDir = path.join(root, 'workframe-api');
+  const names = [
+    'server.py',
+    'chat_sessions.py',
+    'lane_bindings.py',
+    'profile_gateway.py',
+    'turn_overlay.py',
+    'credential_vault.py',
+    'auth_gate.py',
+    'internal_proxy_auth.py',
+  ];
+  return names
+    .map((name) => path.join(apiDir, name))
+    .filter((fp) => fs.existsSync(fp))
+    .map((fp) => fs.readFileSync(fp, 'utf8'))
+    .join('\n');
+}
+
 function fail(msg) {
   console.error(`FAIL: ${msg}`);
   process.exit(1);
@@ -337,7 +357,7 @@ for (const pack of PACKS) {
   if (!verify.includes('bootstrap-native')) fail(`pack ${pack}: verify-bootstrap should mention bootstrap-native`);
   if (!verify.includes('Agents\\SOUL.md')) fail(`pack ${pack}: verify-bootstrap must check Agents\\SOUL.md`);
 
-  const workframeApi = fs.readFileSync(path.join(root, 'workframe-api/server.py'), 'utf8');
+  const workframeApi = readWorkframeApiSources(root);
   if (!workframeApi.includes('active_id = persistent_id if persistent_valid else ""')) {
     fail(`pack ${pack}: workframe-api bootstrap should not treat latest native session as active`);
   }

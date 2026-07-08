@@ -165,6 +165,7 @@ _purge_runtime_profile = runtime_cohort._purge_runtime_profile
 _register_runtime_profile = runtime_cohort._register_runtime_profile
 _inherit_runtime_profile_config = runtime_cohort._inherit_runtime_profile_config
 ensure_runtime_profile = runtime_cohort.ensure_runtime_profile
+_ensure_profile_terminal_cwd = runtime_cohort._ensure_profile_terminal_cwd
 
 health_data = health_monitor.health_data
 build_snapshot = snapshot_feed.build_snapshot

@@ -54,7 +54,8 @@ function run(cmd, cmdArgs, opts = {}) {
 }
 
 function runNpmPack(cwd, dest) {
-  const label = `npm pack --pack-destination "${dest}"`;
+  // ponytail: prep is explicit above; prepack rebuild would duplicate and ignore --skip-build
+  const label = `npm pack --ignore-scripts --pack-destination "${dest}"`;
   commands.push(label);
   const res = spawnSync(label, {
     shell: true,
