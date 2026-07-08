@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-08T14:20-03:00 | pm-workframe | WF-032 — credential_resolve.py extracted; server.py ~9.1k lines.
 2026-07-08T14:10-03:00 | pm-workframe | WF-032 — mention_invoke.py extracted; server.py ~9.3k lines.
 2026-07-08T14:00-03:00 | pm-workframe | WF-032 — provider_catalog + oauth_redirect extracted; server.py ~9.6k lines.
 2026-07-08T13:15-03:00 | pm-workframe | WF-032 — provider_bindings.py extracted; server.py ~10.1k lines.

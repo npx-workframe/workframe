@@ -830,7 +830,7 @@
     {
       "id": "WF-032",
       "title": "Split server.py monolith (definitive module map)",
-      "summary": "~9.3k lines remain in server.py (2026-07-08). ~37 modules extracted. Target residual <3k.",
+      "summary": "~9.1k lines remain in server.py (2026-07-08). ~38 modules extracted. Target residual <3k.",
       "wave": "code-health",
       "priority": "P1",
       "status": "partial",
@@ -861,14 +861,15 @@
         "services/workframe-api/provider_bindings.py",
         "services/workframe-api/provider_catalog.py",
         "services/workframe-api/oauth_redirect.py",
-        "services/workframe-api/mention_invoke.py"
+        "services/workframe-api/mention_invoke.py",
+        "services/workframe-api/credential_resolve.py"
       ],
       "owner_role": "implementer",
       "workflow": {
         "assignee": null,
         "reviewer": null,
         "patch_refs": [],
-        "notes": "2026-07-08: mention_invoke.py extracted (~9.3k lines remain). Next: handler shell, credential resolve helpers."
+        "notes": "2026-07-08: credential_resolve.py extracted (~9.1k lines remain). Next: handler shell, credential store/lease helpers."
       }
     },
     {
