@@ -18,7 +18,11 @@ $ErrorActionPreference = $prevEapBuild
 Write-Host 'OK: syncing API/supervisor to installer package'
 node (Join-Path $Pkg 'scripts\sync-canonical-to-package.mjs')
 Write-Host 'OK: bundling UI into installer package'
+$prevEapBundle = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 node (Join-Path $Pkg 'scripts\bundle-workframe-ui.mjs')
+if ($LASTEXITCODE -ne 0) { throw "bundle-workframe-ui failed ($LASTEXITCODE)" }
+$ErrorActionPreference = $prevEapBundle
 Write-Host 'OK: API tests'
 pnpm test:api
 Write-Host 'OK: installer scaffold tests'
