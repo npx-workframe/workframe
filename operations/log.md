@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-08T12:50-03:00 | pm-workframe | WF-032 — runtime_tokens.py extracted; server.py ~10.9k lines; Wave 1 complete (4 items flipped).
 2026-07-08T12:45-03:00 | pm-workframe | Wave 0–1 backend — G0.1 commits (create-workframe /compose, install-gate build guard); WF-035/007/NS-P1/NS-P2 flipped with test evidence; ledger-next → WF-032.
 2026-07-08T05:30-03:00 | fable-planning | Gate run planned — docs/ledger/handoffs/gate-run-2026-07-08.md (waves 0–5: hygiene → P1 flips → WF-032 split → WF-012/016 → WF-017 VPS evidence → WF-036 functional). program-status.md refreshed (29/8/2/11); now.md synced to 0.1.12; verified run-ledger six surfaces + tests green; E stop line unchanged.
 2026-07-07T05:45-03:00 | pm-workframe | WF-037 done — invites_accept guard fix; test_route_registry audits all 62 patterns; backlog + program-status updated; ledger-next → WF-032.
