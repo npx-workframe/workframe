@@ -452,6 +452,7 @@ import install_api
 import run_authority
 import run_ledger
 import runtime_tokens
+import oauth_pending
 from domain.entities import RunStatus
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
@@ -1575,61 +1576,10 @@ def _github_oauth_redirect_uri() -> str:
     return f"{base}/api/oauth/github/callback"
 
 
-def _pkce_pair() -> tuple[str, str]:
-    verifier = secrets.token_urlsafe(48)
-    digest = hashlib.sha256(verifier.encode("utf-8")).digest()
-    challenge = base64.urlsafe_b64encode(digest).decode("utf-8").rstrip("=")
-    return verifier, challenge
-
-
-def _store_oauth_pending(state: str, user_id: str, provider: str, code_verifier: str, workspace_id: str = "") -> None:
-    _ensure_oauth_pending_table()
-    now = _utc_now()
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
-    conn = _workframe_db()
-    try:
-        conn.execute(
-            """
-            INSERT INTO oauth_pending_states (state, user_id, provider, code_verifier, workspace_id, expires_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(state) DO UPDATE SET
-                user_id = excluded.user_id,
-                provider = excluded.provider,
-                code_verifier = excluded.code_verifier,
-                workspace_id = excluded.workspace_id,
-                expires_at = excluded.expires_at,
-                created_at = excluded.created_at
-            """,
-            (state, user_id, provider, code_verifier, workspace_id or None, expires, now),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def _take_oauth_pending(state: str) -> dict[str, Any] | None:
-    _ensure_oauth_pending_table()
-    conn = _workframe_db()
-    conn.row_factory = sqlite3.Row
-    try:
-        row = conn.execute(
-            "SELECT * FROM oauth_pending_states WHERE state = ?",
-            (str(state or "").strip(),),
-        ).fetchone()
-        if not row:
-            return None
-        conn.execute("DELETE FROM oauth_pending_states WHERE state = ?", (row["state"],))
-        conn.commit()
-        expires_at = str(row["expires_at"] or "")
-        if expires_at:
-            try:
-                if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) < datetime.now(timezone.utc):
-                    return None
-            except ValueError:
-                pass
-        return dict(row)
-    finally:
-        conn.close()
+_pkce_pair = oauth_pending.pkce_pair
+_store_oauth_pending = oauth_pending.store_pending
+_take_oauth_pending = oauth_pending.take_pending
+_ensure_oauth_pending_table = oauth_pending.ensure_schema
 
 
 def _github_exchange_code(code: str, client_id: str, client_secret: str, redirect_uri: str, code_verifier: str) -> dict[str, Any]:
@@ -4072,10 +4022,6 @@ def _install_profile_slug() -> str:
 
 
 
-
-
-def _ensure_oauth_pending_table() -> None:
-    db_schema.ensure_oauth_pending_migrations(_workframe_db)
 
 
 def _room_agents_for_mentions(conn: sqlite3.Connection, room_id: str, workspace_id: str) -> list[dict[str, Any]]:
