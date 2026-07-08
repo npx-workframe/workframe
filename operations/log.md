@@ -4,6 +4,7 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-08T10:50-03:00 | pm-workframe | create-workframe@0.1.13 published via CI (tag v0.1.13); dogfood API health green; install-gate green.
 2026-07-08T10:45-03:00 | pm-workframe | Dogfood MyBusiness up @ 0.1.13; fixed handler_admin health 500; install-gate green; pushed main + tag v0.1.13 for CI npm publish.
 2026-07-08T10:40-03:00 | pm-workframe | Release 0.1.13 prep — install-gate green, dogfood reset @ local pack 0.1.13 (MyBusiness slot 1); npm publish blocked on npm login (run publish-npm.ps1 or tag v0.1.13 for CI).
 2026-07-08T11:00-03:00 | pm-workframe | WF-036 done — build:web green; provider labels unified; useConciergeFlow unused-import fix; backlog flipped.
