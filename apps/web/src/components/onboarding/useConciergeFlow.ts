@@ -24,10 +24,9 @@ import {
   type SmtpProgressPhase,
 } from '@/components/onboarding/conciergeFlowUtils'
 import { type OperationStep } from '@/components/ui/OperationProgress'
-import { fetchHermesModels } from '@/lib/hermesCatalogApi'
-import { formatWorkframeError, formatWorkframeErrorMessage, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
+import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { DEFAULT_USER_AVATAR, DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
-import { agentAvatarPersistPayload, logoAvatarPersistPayload, logoAvatarPickerValue, pickRandomPreset, userAvatarPersistPayload } from '@/lib/presetAssets'
+import { logoAvatarPickerValue, pickRandomPreset } from '@/lib/presetAssets'
 import {
   workframeAuthApi,
   type ProviderConnectRow,

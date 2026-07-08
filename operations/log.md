@@ -4,6 +4,7 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-08T11:00-03:00 | pm-workframe | WF-036 done — build:web green; provider labels unified; useConciergeFlow unused-import fix; backlog flipped.
 2026-07-08T10:15-03:00 | functional-lane | WF-036 HermesSessionContext split — 194-line provider + hermes-session/{bind,history,stream} hooks (max 449 lines); pnpm build:web green; provider-label unification still partial.
 
 2026-07-08T09:45-03:00 | pm-workframe | WF-032 — workspace_bootstrap.py extracted (~530 lines: default workspace seed, DM lane bootstrap, member onboarding, provision runtimes); server.py ~5.6k lines; test_server_reexports extended.

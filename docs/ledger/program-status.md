@@ -11,14 +11,14 @@
 
 | Metric | Value |
 |--------|-------|
-| Backlog items | 50 (36 done · 2 partial · 1 todo · 11 deferred) |
-| **Stage A** (release-truth) | **Complete** — WF-012 build-stamp identity done 2026-07-08 |
-| **Stage B** (decompose) | **Nearly done** — WF-032 done (2.6k lines); WF-037/035 done; WF-036 partial (HermesSessionContext remains) |
-| **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence); WF-NS-P1 done 2026-07-08 |
-| **Stage D** (authority + ledger) | **Complete** — WF-016 receipt per run flipped 2026-07-08 |
+| Backlog items | 50 (37 done · 1 partial · 1 todo · 11 deferred) |
+| **Stage A** (release-truth) | **Complete** |
+| **Stage B** (decompose) | **Complete** — WF-032/037/035/036 done |
+| **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence) |
+| **Stage D** (authority + ledger) | **Complete** |
 | **Stage E+** | **STOP** — 11 deferred items; do not start |
 
-**`ledger-next` pick (2026-07-08 @ `9538eec`):** `WF-036` (Stage B) — HermesSessionContext split + provider-label cleanup; then `WF-017` (Stage C VPS evidence).
+**`ledger-next` pick (2026-07-08):** `WF-017` (Stage C) — VPS green run + backup/restore evidence (operator-assisted).
 
 **Mission:** close every A–D gap, stop at the E gate — ordered waves in [`gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md).
 
@@ -39,14 +39,14 @@
 
 WF-001…006, WF-012, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evidence scripts green at last matrix. WF-012 build-stamp (`4a37685`) closes `ui_bundle_identity` stale-bundle class.
 
-### Stage B — decompose 🟡 NEARLY DONE
+### Stage B — decompose ✅ COMPLETE
 
-| ID | Title | Status | Evidence / remaining gap |
-|----|-------|--------|--------------------------|
-| WF-037 | Declarative route registry | **done** | `route_registry.py`; `test_route_registry.py` audits all patterns |
-| WF-032 | Split server.py monolith | **done** | **2,602 lines** @ `9538eec` (down from 12,144). ~50 modules + `handler_modules/` six mixins; residual <3k met |
-| WF-035 | Exception hygiene (auth/vault) | **done** | `test_exception_hygiene.py` green 2026-07-08 |
-| WF-036 | Frontend decomposition | **partial** | Functional slice `e3b15e6`: ConciergeFlow split + provider labels + no silent openrouter default. Remaining: `HermesSessionContext.tsx` split (cosmetic lane coordination) |
+| ID | Title | Status | Evidence |
+|----|-------|--------|----------|
+| WF-037 | Declarative route registry | **done** | `route_registry.py` + audit tests |
+| WF-032 | Split server.py monolith | **done** | 2,602 lines + `handler_modules/` @ `9538eec` |
+| WF-035 | Exception hygiene | **done** | `test_exception_hygiene.py` |
+| WF-036 | Frontend decomposition | **done** | ConciergeFlow + HermesSession splits; provider labels; `8085e68` |
 
 ### Stage C — secure multi-user ✅ DONE except WF-017
 

@@ -982,10 +982,10 @@
     {
       "id": "WF-036",
       "title": "Frontend decomposition + provider display unification",
-      "summary": "ConciergeFlow split done (189 lines + hook/step modules). HermesSessionContext split done (194-line provider + hermes-session/* hooks). Remaining: billingProviderDisplayLabel adoption; inferProviderFromModelId silent openrouter default.",
+      "summary": "ConciergeFlow + HermesSessionContext decomposed; provider labels unified via resolveProviderDisplayLabel/formatComposerModelLabel; build:web green.",
       "wave": "code-health",
       "priority": "P2",
-      "status": "partial",
+      "status": "done",
       "sources": ["audit-2026-07-05:largest tsx files", "provider label duplication fixed partially 2026-07-05"],
       "acceptance": [
         "No component file over ~800 lines in touched areas",
@@ -999,8 +999,9 @@
       "workflow": {
         "assignee": null,
         "reviewer": null,
-        "patch_refs": ["b8e1355", "faa2298", "e3b15e6", "d914bd8"],
-        "notes": "Functional slice e3b15e6: ConciergeFlow.tsx → 189 lines; extracted useConciergeFlow, ConciergeWizardPanels, ConciergeSmtpStep, conciergeFlow* helpers. Composer badge + connectError fixed (b8e1355). HermesSessionContext split: 194-line provider + useHermesSessionBind/History/Stream (all <800 lines). Remaining: provider-label unification; inferProviderFromModelId cleanup."
+        "patch_refs": ["b8e1355", "faa2298", "e3b15e6", "8085e68"],
+        "completed_at": "2026-07-08",
+        "notes": "Functional slice complete: ConciergeFlow 189 lines + useConciergeFlow hook; HermesSessionContext 194-line provider + hermes-session/* hooks (all <800 except hook 834); resolveProviderDisplayLabel across composer/settings/messages; inferProviderFromModelId returns null for unknown prefixes; build:web green."
       }
     },
     {

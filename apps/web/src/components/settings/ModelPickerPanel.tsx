@@ -14,7 +14,7 @@ import {
 } from '@/lib/hermesCatalogApi'
 import { peekCachedHermesModels } from '@/lib/workspacePersist'
 import { providerIconForId } from '@/lib/workframeAssets'
-import { billingProviderDisplayLabel } from '@/lib/brandAssets'
+import { resolveProviderDisplayLabel } from '@/lib/chatTypes'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
 import { cn } from '@/lib/utils'
 
@@ -56,8 +56,8 @@ function billingIdForRow(row: HermesModelRow): string {
   return (row.billing_provider || row.provider || '').trim()
 }
 
-function providerLabel(provider: string): string {
-  return billingProviderDisplayLabel(provider) || provider
+function providerLabel(provider: string, modelId = ''): string {
+  return resolveProviderDisplayLabel(provider, modelId) || provider
 }
 
 function providerBucketKey(provider: string): string {
