@@ -49,17 +49,17 @@ Quick truth checks (examples):
 | WF-037 | `python test_route_registry.py`, no `GET_PUBLIC_ROUTES` in server.py |
 | WF-039 | `services/workframe-api/domain/`, `test_domain_entities.py` |
 
-## Mission (2026-07-06): push to deferred threshold
+## Mission (2026-07-08): gate run — close A→D, stop at E
 
-Complete **Stages A→D**; **do not** start Stage E items. **Parallel lanes** on `main`: backend (API/ledger) and cosmetic UI (WF-036) — surgical commits only; see `handoffs/cosmetic-ui-lane.md`.
+**Active plan: [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md)** — ordered waves 0–5 with per-item verified gaps. Complete **Stages A→D**; **do not** start Stage E items. **Parallel lanes** on `main`: backend (API/ledger) and cosmetic UI (WF-036 cosmetic slice) — surgical commits only; see `handoffs/cosmetic-ui-lane.md`.
 
-| Stage | Items | Status | Lane |
-|-------|-------|--------|------|
-| **A** release-truth | WF-006, WF-019, WF-020, WF-004 | **done** | release-truth subagent (commits 2a16df8, 9a06d88) |
-| **B** decompose | WF-037, WF-032, WF-035 (API only) | **in flight** (WF-037 done 2026-07-07) | api-decompose subagent |
-| **C** secure multi | WF-026→028→027→011→025→017 | queued | broker-secure |
-| **D** authority | WF-039→009→NS-P2→016→007, WF-008, WF-010 | queued | domain-design + authority-impl |
-| **E** platform | deferred IDs | **STOP** | — |
+| Stage | Status (2026-07-08) | Remaining |
+|-------|---------------------|-----------|
+| **A** release-truth | **done** | — |
+| **B** decompose | in flight | WF-032 (12.1k → <3k), WF-035 verify/flip, WF-036 functional slice |
+| **C** secure multi | done except one | WF-017 VPS + backup/restore evidence (operator-assisted) |
+| **D** authority | nearly done | WF-NS-P2 flip, WF-NS-P1 socket test, WF-007 connect/adopt check, WF-016 receipt slice; plus WF-012 (release identity) |
+| **E** platform | **STOP** | deferred IDs — do not start |
 
 **Stage gates:** [`program-status.md`](program-status.md) — verified checklist; `ledger-next` picks B→C→D via `backlog.json` `program_stages` (WF-040).
 

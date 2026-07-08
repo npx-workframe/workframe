@@ -1,7 +1,8 @@
 # Now — shipping wedge (v0.1.x)
 
-**Last updated:** 2026-07-05  
-**Package:** `0.1.11` (see [VERSION.md](../VERSION.md))
+**Last updated:** 2026-07-08  
+**Package:** `0.1.12` (see [VERSION.md](../VERSION.md))  
+**Active plan:** [gate-run-2026-07-08.md](handoffs/gate-run-2026-07-08.md) — close Stages A→D, stop at E
 
 ## One line
 
@@ -27,9 +28,9 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 From [final convergence synthesis](../../archive/planning/living-audit/final-convergence-synthesis.md):
 
 1. **PackageTruthGate** — **done** (Alan sign-off MyBusiness Docker; WF-020 automates FirstRunEvidence JSON).
-2. **Forced egress broker** — network-unavoidable credential traffic (`WORKFRAME_FORCE_AGENT_EGRESS_BROKER` is **planned**, verify fails if set).
-3. **Runtime adapter seam** — `runtime_kind` column + resolver; Hermes remains default executable runtime.
-4. **Run ledger** — authority, cost, artifacts, audit per run (north-star primitive; minimal hooks today).
+2. **Forced egress broker** — **done** (WF-025: compose + iptables enforcement; WF-027 broker audit events).
+3. **Run ledger** — **landed** (WF-NS-P2: runs/run_events/run_line_items; chat, mention, kanban, cron, slash, webhook surfaces record; activity panel reads run_events). Receipts per run (WF-016 slice) in flight.
+4. **Runtime adapter seam** — `runtime_kind` column + resolver; **deferred to E gate** (Hermes remains the only executable runtime this wedge).
 
 ## Explicitly deferred (north star)
 
