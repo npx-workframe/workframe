@@ -41,6 +41,9 @@
   --wf-space-1: 4px;
   --wf-space-2: 8px;
   --wf-space-4: 16px;
+  --wf-shell-width: 840px;
+  --wf-shell-height: 540px;
+  --wf-shell-margin: 16px;
   --wf-type-meta: 10px;
   --wf-type-micro: 9px;
   --wf-type-caption: 11px;

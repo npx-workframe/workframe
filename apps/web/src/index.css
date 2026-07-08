@@ -9,6 +9,7 @@
 @import './styles/themes/dark.css';
 @import './styles/themes/neo.css';
 @import './styles/themes/blueprint.css';
+@import './styles/tokens/relief-primitives.css';
 
 /* ── Content / vendor adapters ──────────────────────────────────────────── */
 @import './styles/highlight-themes.css';
@@ -39,6 +40,7 @@
 @import './styles/components/stack-updates.css';
 @import './styles/components/btn-showcase.css';
 @import './styles/components/theme-showcase.css';
+@import './styles/components/relief-surfaces.css';
 
 /* Single-line truncation inside flex/grid rows */
 .wf-truncate {

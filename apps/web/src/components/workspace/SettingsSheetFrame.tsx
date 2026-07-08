@@ -83,7 +83,11 @@ export function SettingsSheetFrame({
           <div className="wf-settings-shell__rail-head">
             <h2 className="wf-settings-shell__rail-title">{shellTitle}</h2>
           </div>
-          <nav className="wf-settings-shell__nav" role="tablist" aria-label="Settings sections">
+          <nav
+            className="wf-settings-shell__nav wf-scroll wf-scroll--vertical wf-scroll--inset-rail"
+            role="tablist"
+            aria-label="Settings sections"
+          >
             {effectiveTabs.map((tab) =>
               soloRail ? (
                 <span

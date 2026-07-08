@@ -9,10 +9,7 @@
   box-sizing: border-box;
   overflow: hidden;
   color: var(--wf-text);
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--wf-violet-glow) 14%, transparent), transparent),
-    radial-gradient(ellipse 60% 50% at 100% 100%, color-mix(in srgb, var(--wf-cyan) 8%, transparent), transparent),
-    var(--wf-bg);
+  background: transparent;
 }
 
 .wf-onboarding-page__theme {
@@ -28,16 +25,17 @@
 
 .wf-onboarding-wizard {
   display: grid;
-  grid-template-columns: minmax(200px, 220px) minmax(0, 1fr);
-  align-items: start;
-  width: min(100%, 920px);
-  height: auto;
-  max-height: calc(100dvh - 48px);
+  grid-template-columns: minmax(11rem, 12rem) minmax(0, 1fr);
+  align-items: stretch;
+  width: min(100%, var(--wf-shell-width));
+  height: min(var(--wf-shell-height), calc(100dvh - var(--wf-shell-margin) * 2));
+  min-height: min(var(--wf-shell-height), calc(100dvh - var(--wf-shell-margin) * 2));
+  max-height: min(var(--wf-shell-height), calc(100dvh - var(--wf-shell-margin) * 2));
   min-height: 0;
   border-radius: var(--wf-radius-shell);
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
-  background: color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg));
-  box-shadow: var(--wf-shadow-xl);
+  background: var(--wf-chrome-fill, var(--wf-surface));
+  box-shadow: var(--wf-relief-well-l, var(--wf-relief-surface));
   overflow: hidden;
 }
 
@@ -45,11 +43,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--wf-panel-stack-gap);
-  padding: var(--wf-gap);
+  padding: var(--wf-space-4);
   min-height: 0;
-  max-height: calc(100dvh - 48px);
-  overflow-x: visible;
-  overflow-y: hidden;
+  height: 100%;
+  max-height: none;
+  overflow: hidden;
 }
 
 .wf-onboarding-wizard__brand {
@@ -124,12 +122,18 @@
   flex: 1 1 auto;
   min-height: 0;
   justify-content: flex-start;
-  overflow-y: auto;
-  overflow-x: visible;
-  /* ponytail: inset for step row shadows — scrollport clips box-shadow without this */
-  padding-inline: var(--wf-rail-inset-gutter);
-  padding-top: var(--wf-panel-stack-gap);
-  padding-bottom: var(--wf-rail-inset-gutter);
+  margin-inline-end: calc(-1 * var(--wf-scroll-gutter-inline, 0px));
+  padding-inline: 0;
+  padding-block: 0;
+}
+
+.wf-onboarding-wizard__nav.wf-scroll--inset-rail.wf-scroll--vertical {
+  --wf-scroll-gutter-inline: var(--wf-space-2);
+  --wf-scroll-gutter-block: var(--wf-space-2);
+  /* ponytail: S outset bleeds ~3px+blur left — inset nav only, brand stays on rail gutter */
+  padding-inline-start: var(--wf-space-2);
+  padding-block-start: 0;
+  padding-block-end: 0;
 }
 
 .wf-onboarding-wizard__group {
@@ -226,20 +230,22 @@
 }
 
 .wf-onboarding-wizard__step-mark {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
   display: grid;
   place-items: center;
   border-radius: var(--wf-radius-pill);
-  font-size: var(--wf-type-meta);
+  font-size: 8px;
   font-weight: 700;
+  line-height: 1;
   background: color-mix(in srgb, var(--wf-muted) 18%, transparent);
   color: var(--wf-muted);
 }
 
 .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-mark {
-  background: var(--wf-accent);
+  /* ponytail: accent fill + bg text vanishes when accent === bg (blueprint) */
+  background: var(--wf-text);
   color: var(--wf-bg);
 }
 
@@ -256,7 +262,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-height: calc(100dvh - 48px);
+  height: 100%;
+  max-height: none;
   min-width: 0;
   overflow: hidden;
 }
@@ -348,9 +355,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--wf-violet-glow) 18%, transparent), transparent),
-    color-mix(in srgb, var(--wf-bg) 92%, #000);
+  background: transparent;
 }
 
 .wf-onboarding-launch__card {
@@ -360,8 +365,8 @@
   padding: 24px 22px;
   border-radius: var(--wf-radius-card);
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
-  background: color-mix(in srgb, var(--wf-surface) 94%, transparent);
-  box-shadow: 0 24px 80px color-mix(in srgb, #000 35%, transparent);
+  background: var(--wf-chrome-fill, color-mix(in srgb, var(--wf-surface) 94%, transparent));
+  box-shadow: var(--wf-relief-surface);
 }
 
 .wf-onboarding-launch__eyebrow {
@@ -428,7 +433,7 @@
   flex: 0 0 auto;
   padding: var(--wf-gap) var(--wf-space-4) var(--wf-panel-stack-gap);
   border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
-  background: color-mix(in srgb, var(--wf-surface) 96%, transparent);
+  background: var(--wf-chrome-fill, var(--wf-surface));
 }
 
 /* ponytail: paired wizard actions — same height/footprint; color is theme-only */
@@ -854,12 +859,14 @@
   .wf-onboarding-wizard {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
+    width: min(100%, calc(100vw - var(--wf-shell-margin) * 2));
     height: auto;
-    max-height: calc(100dvh - 24px);
     min-height: 0;
+    max-height: calc(100dvh - 24px);
   }
 
   .wf-onboarding-wizard__rail {
+    height: auto;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;

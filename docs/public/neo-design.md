@@ -21,10 +21,14 @@ colors:
   mint: "#6a9e8a"
   ring: "rgba(124, 106, 158, 0.22)"
 relief:
-  shadow_color: "163, 163, 176"
-  shadow_alpha: 0.9
-  highlight_color: "255, 255, 255"
-  highlight_alpha: 0.4
+  shadow_rgb: "163 163 176"
+  shadow_alpha: 0.24
+  highlight_rgb: "255 255 255"
+  highlight_alpha: 0.78
+dot_grid:
+  tile: 10px
+  rgb: "42 42 50"
+  opacity: 0.16
 rounded:
   knob_sm: 4px
   knob_md: 4px
@@ -35,33 +39,36 @@ border_width: 2px
 
 # Neo theme
 
-**Parent:** [design.md](design.md) · **CSS:** `apps/web/src/styles/themes/neo.css` · **Selector:** `[data-theme='neo']`
+**Parent:** [design.md](design.md) · **CSS:** `themes/neo.css` + `relief-surfaces.css` · **Selector:** `[data-theme='neo']`
 
-Light soft UI with **relief chrome**: borderless edges, depth from dual light/dark shadow stacks (neo-morphic). Default raised surfaces match `--wf-bg` family (`#e0e0e6`).
+Light soft UI with **relief chrome**: borderless edges, depth from dual L/S shadow stacks. Chrome is **transparent** (`--wf-chrome-fill: transparent`) so the dot grid shows through workspace, onboarding wizard, dialogs, and controls.
 
 ## Chrome mode: relief
 
-- `--wf-chrome-mode: relief`
+- `--wf-chrome-mode: relief` (also `--wf-chrome-fill: transparent` on theme block)
 - `--wf-border: transparent` — edges implied by shadow, not stroke
 - All `--wf-chrome-border-*` → `transparent`
 - `--wf-border-width: 2px` (divider/tool chrome uses white `#fff` as relief edge color)
 - `--wf-divider-color: #fff`, `--wf-tool-chrome-border: #fff`
+- Shared relief overrides: `components/relief-surfaces.css` (not in `neo.css`)
 
 ## Relief tuning
 
 | Token | Value |
 |-------|-------|
-| `--wf-relief-shadow-color` | `163, 163, 176` |
-| `--wf-relief-shadow-alpha` | `0.9` |
-| `--wf-relief-highlight-color` | `255, 255, 255` |
-| `--wf-relief-highlight-alpha` | `0.4` |
+| `--wf-relief-shadow-rgb` | `163 163 176` |
+| `--wf-relief-shadow-alpha` | `0.24` |
+| `--wf-relief-highlight-rgb` | `255 255 255` |
+| `--wf-relief-highlight-alpha` | `0.78` |
 
-Composed shadows:
+Primitives (`relief-primitives.css`): **L** = 4px offset / 8px blur; **S** = 3px / 6px. No spread radius.
 
-- `--wf-neo-flat`: 3px drop + -3px highlight
-- `--wf-neo-highlight`: inverted emphasis pair
-- Inset pair: `--wf-neo-shadow-inset-light` + `inset-dark`
-- Controls: flush default; hover/active → `--wf-control-shadow-raised` (`--wf-neo-flat`)
+Semantic wiring:
+
+- Wizard / onboarding shell: inset **L** (`--wf-relief-inset-l`)
+- Dialog / auth card: outset **L**
+- Controls, tabs, hover: **S** outset / inset
+- Flush default: `--wf-relief-flat` (no shadow)
 
 ## Palette
 
@@ -77,36 +84,35 @@ Composed shadows:
 | `--wf-mint` | `#6a9e8a` |
 | `--wf-ring` | `rgba(124, 106, 158, 0.22)` |
 
-Status colors match dark theme hex (`#ef4444`, `#22c55e`, `#f59e0b`).
+Status colors: `#ef4444`, `#22c55e`, `#f59e0b`.
 
 ## Canvas
 
-- **Gradient:** `linear-gradient(145deg, #d8d8de, #e8e8ee)`
-- **Orbs:** low-opacity violet/cyan tints (6% / 5%)
-- **Grid:** 10px dark pixel tile at 2% opacity
-- **Overlay:** subtle top highlight + 4% bottom shade
+**Component stack:** `AtmosphereBg` + `DotGrid` (see `canvas-layers.ts`).
+
+| Layer | Tokens |
+|-------|--------|
+| Color | `--wf-bg-gradient`: `linear-gradient(145deg, #d8d8de, #e8e8ee)`; orbs violet/cyan at 6% / 5% |
+| Texture | `--wf-dot-grid-tile: 10px`; `--wf-dot-grid-rgb: 42 42 50`; `--wf-dot-grid-opacity: 0.16` |
+| Vignette | `--wf-overlay`: subtle top highlight + 4% bottom shade (on atmosphere only) |
+
+Dot ink uses mask-based tiles in `canvas.css` — theme sets color/opacity only.
 
 ## Controls
 
 - `--wf-control-border-width: 0` — no stroke on controls
-- Hover/active: `--wf-control-bg-raised` + `--wf-control-shadow-raised`
-- Buttons: flush → raised on hover/primary via `--wf-btn-shadow-hover/primary`
+- Relief fills: `--wf-chrome-fill` (transparent) via `relief-primitives.css`
+- Hover/active: shadow delta only (`--wf-control-shadow-raised` = outset **S**)
 - `--wf-control-border-ring-closed: #fff` (composer ring)
 - DnD indicator: white 50% fill, `#fff` border
 
 **Radius:** `--wf-radius-icon-btn: 50%` (circular icon controls).
 
-## Component overrides (neo-specific)
+## Onboarding & dialogs
 
-Large block in `neo.css` under `[data-theme='neo']` — patterns:
-
-- **Shell header:** raised bg + `--wf-control-shadow-elevated`, no bottom border
-- **Shell footer / theme menu:** elevated relief shadows
-- **Activity tree active rows / composer expanded tools / thinking blocks:** inset or flat relief pairs
-- **Tool runs (collapsed):** flat relief; expanded → inset shadows
-- **Send button:** primary relief stack; disabled flattened
-
-When adding neo styles: default **flush**, pop **raised** on interaction; never add visible `border-color` on panels.
+- `.wf-onboarding-page`: `background: transparent` — same `CanvasBackground` as workspace
+- `.wf-onboarding-wizard`: `--wf-shell-width` 840px × `--wf-shell-height` 540px; relief inset **L** well on transparent fill
+- Step badge (current): `background: var(--wf-text)`; `color: var(--wf-bg)` for contrast
 
 ## Dialog hovers
 
@@ -117,6 +123,6 @@ When adding neo styles: default **flush**, pop **raised** on interaction; never 
 
 ## Do's and Don'ts
 
-**Do:** Use `--wf-neo-flat` / `--wf-control-shadow-raised` for depth; keep palette muted/desaturated.
+**Do:** Use relief **L/S** stacks for depth; keep chrome transparent so dot grid reads through; tune dot opacity via `--wf-dot-grid-opacity`.
 
-**Don't:** Re-introduce `--wf-border` strokes on panels; don't use dark-theme glass rgba borders.
+**Don't:** Re-introduce opaque `--wf-bg` fills on panels; don't add visible border strokes; don't put vignette on `DotGrid`.

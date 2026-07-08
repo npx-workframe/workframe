@@ -29,11 +29,13 @@
     <script>
       ;(() => {
         try {
-          const valid = ['dark', 'neo']
+          const chrome = { dark: 'line', neo: 'relief', blueprint: 'relief' }
+          const valid = ['dark', 'neo', 'blueprint']
           const stored = localStorage.getItem('wf-theme')
           const theme = valid.includes(stored) ? stored : 'neo'
           document.documentElement.dataset.theme = theme
-          document.documentElement.style.colorScheme = theme === 'neo' ? 'light' : 'dark'
+          document.documentElement.dataset.chromeMode = chrome[theme]
+          document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
         } catch (_) {}
       })()
     </script>

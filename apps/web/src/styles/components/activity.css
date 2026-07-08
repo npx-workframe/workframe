@@ -368,11 +368,30 @@
 .wf-theme-switcher {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   font-family: var(--wf-font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.wf-theme-switcher__panel {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.wf-theme-switcher--open {
+  z-index: var(--wf-z-dropdown);
+}
+
+.wf-theme-switcher--open .wf-theme-switcher__panel {
+  min-width: 10.5rem;
+  padding: var(--wf-space-4);
+}
+
+.wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn {
+  width: 100%;
 }
 
 .wf-theme-switcher__trigger.wf-action-btn {
@@ -380,57 +399,66 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  gap: var(--wf-gap-tight);
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .wf-theme-switcher__trigger svg {
-  opacity: 0.6;
+  width: 12px;
+  height: 12px;
+  opacity: 0.65;
+  flex-shrink: 0;
 }
 
+.wf-theme-switcher__trigger .wf-theme-switcher__chevron--open,
 .wf-theme-switcher__chevron--open {
+  margin-left: auto;
   transform: rotate(180deg);
 }
 
 .wf-theme-switcher__menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: var(--wf-z-dropdown);
-  min-width: 140px;
   list-style: none;
   margin: 0;
-  padding: var(--wf-gap-tight);
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--wf-rail-list-gap);
+  gap: var(--wf-space-2);
+}
+
+.wf-theme-switcher--open .wf-theme-switcher__menu {
+  margin-top: var(--wf-space-2);
 }
 
 .wf-theme-switcher__item {
   display: flex;
   align-items: center;
-  gap: var(--wf-gap);
+  gap: 6px;
   width: 100%;
-  padding: var(--wf-gap-tight) var(--wf-gap);
-  border-radius: var(--wf-radius-control);
+  padding: 6px 8px;
+  border-radius: 4px;
   font-family: var(--wf-font-mono);
   font-size: var(--wf-type-caption);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
   text-align: left;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    color 0.15s ease;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
 }
 
 .wf-theme-switcher__item svg {
-  opacity: 0.6;
+  width: 12px;
+  height: 12px;
+  opacity: 0.65;
   flex-shrink: 0;
 }
 
 .wf-theme-switcher__check {
+  width: 12px;
+  height: 12px;
   margin-left: auto;
   opacity: 1;
 }

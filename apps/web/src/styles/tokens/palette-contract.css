@@ -5,11 +5,13 @@
    Surfaces: --wf-bg, --wf-text, --wf-muted, --wf-border, --wf-border-strong,
              --wf-surface, --wf-surface-soft, --wf-primary, --wf-primary-foreground
    Body: --wf-bg on body (base.css)
-   Canvas (.wf-canvas): --wf-bg-gradient, orbs, grid, overlay — see theme-architecture.css
+   Canvas: AtmosphereBg + DotGrid | MoleskineGrid — see lib/canvas-layers.ts
+   Dot grid: --wf-dot-grid-tile, --wf-dot-grid-rgb, --wf-dot-grid-opacity (mask-based; no vignette here)
+   Moleskine: --wf-moleskine-grid-tile, --wf-moleskine-grid-line
    Chrome mode: --wf-chrome-mode (line | relief)
-   Relief tuning: --wf-relief-shadow-color, --wf-relief-shadow-alpha,
-                  --wf-relief-highlight-color, --wf-relief-highlight-alpha
-   Workspace fill: --wf-workspace-chrome-fill (transparent on blueprint panels)
+   Chrome fill: --wf-chrome-fill (transparent relief | var(--wf-surface) line)
+   Relief tuning: --wf-relief-shadow-rgb, --wf-relief-shadow-alpha,
+                  --wf-relief-highlight-rgb, --wf-relief-highlight-alpha
    Notices: --wf-notice-fg, --wf-notice-muted, --wf-notice-border, --wf-notice-bg,
             --wf-notice-info-bg, --wf-notice-info-border, --wf-status-fg
    Status: --wf-error, --wf-error-soft, --wf-success, --wf-warning

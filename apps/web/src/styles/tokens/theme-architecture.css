@@ -1,20 +1,23 @@
 /* Theme architecture contract
-   ─────────────────────────────────────────────────────────────────────────
-   LAYER STACK (bottom → top)
-   1. body          — --wf-bg (solid base color)
-   2. .wf-canvas    — --wf-bg-gradient, orbs, overlay, grid/moleskine (canvas.css)
-   3. .wf-shell     — transparent chrome; panels opt into surface fill
+   LAYER STACK (bottom to top)
+   1. COLOR     - body + AtmosphereBg gradient: --wf-bg (solid base)
+   2. TEXTURE   - DotGrid | MoleskineGrid (canvas-layers.ts + shell/canvas/*)
+   3. SHELL     - chrome depth only; no opaque re-paint over texture
+   4. THEME     - per [data-theme]: palette, texture recipe, typography, shell family
 
-   CHROME MODE — --wf-chrome-mode on [data-theme] (mirrored as data-chrome-mode on html)
-   • line   — dark: visible border lines (--wf-chrome-border-*), flat shadows
-   • relief — neo, blueprint, brutalist (future): borderless edges; neo box-shadow stacks
+   SHELL FAMILIES - --wf-chrome-mode on [data-theme] (mirrored as data-chrome-mode on html)
+   line   - dark: visible borders (--wf-chrome-border-*), flat shadows, surface fills
+   relief - neo, blueprint: borderless; depth from L/S box-shadow stacks only
+
+   Custom themes (e.g. brutalist) may override shell tokens per-component without
+   changing the base layer contract.
+
+   CHROME FILL - --wf-chrome-fill (interactive + shell surfaces above texture)
+   relief default: transparent (texture shows through; depth = shadows only)
+   line default: var(--wf-surface) (glass/surface panels over canvas)
+   Legacy alias: --wf-workspace-chrome-fill = --wf-chrome-fill
 
    RELIEF TUNING (relief themes only)
-   --wf-relief-shadow-color, --wf-relief-shadow-alpha   — drop / depth side
-   --wf-relief-highlight-color, --wf-relief-highlight-alpha — top-left catch light
-   Composed into --wf-neo-* tokens per theme. Lower highlight alpha on dark canvases.
-
-   WORKSPACE CHROME FILL — --wf-workspace-chrome-fill (optional scope on workspace panels)
-   • unset / surface — neo default; controls use raised surface fill
-   • transparent     — blueprint workspace; moleskine shows through, relief shadows stay
-*/
+   --wf-relief-shadow-rgb, --wf-relief-shadow-alpha
+   --wf-relief-highlight-rgb, --wf-relief-highlight-alpha
+   Composed into --wf-relief-* primitives (relief-primitives.css). */

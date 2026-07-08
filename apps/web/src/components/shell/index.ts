@@ -1,5 +1,6 @@
 export { AppShell } from '@/components/shell/AppShell'
 export { CanvasBackground } from '@/components/shell/CanvasBackground'
+export { AtmosphereBg, DotGrid, MoleskineGrid } from '@/components/shell/canvas'
 /** @deprecated Use CanvasBackground */
 export { CanvasBackground as AtmosphereBackground } from '@/components/shell/CanvasBackground'
 export { BrandMark } from '@/components/shell/BrandMark'

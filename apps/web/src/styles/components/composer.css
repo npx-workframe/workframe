@@ -74,15 +74,14 @@
    Blur + higher-opacity fill so lists don't bleed through underlying UI. */
 .wf-floating-menu,
 .wf-popover,
-.wf-dialog-select__menu,
-.wf-theme-switcher__menu {
+.wf-dialog-select__menu {
   background: color-mix(in srgb, var(--wf-bg) 88%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid color-mix(in srgb, var(--wf-border-strong) 80%, transparent);
   border-radius: var(--wf-radius-surface);
   box-shadow:
-    var(--wf-shadow-xl),
+    var(--wf-relief-raised, var(--wf-shadow-md)),
     0 0 0 1px color-mix(in srgb, var(--wf-text) 4%, transparent) inset;
   color: var(--wf-text);
 }

@@ -12,8 +12,8 @@
   padding: clamp(24px, 4vw, 32px);
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   border-radius: var(--wf-radius-shell);
-  background: color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg));
-  box-shadow: var(--wf-shadow-xl);
+  background: var(--wf-chrome-fill, color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg)));
+  box-shadow: var(--wf-relief-surface);
   backdrop-filter: blur(24px) saturate(140%);
 }
 
@@ -140,7 +140,7 @@
   gap: 18px;
   border-radius: var(--wf-radius-shell);
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-heavy);
-  background: color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg));
+  background: var(--wf-chrome-fill, color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg)));
 }
 
 .wf-auth-otp-panel__notice {
@@ -245,10 +245,7 @@
   justify-content: center;
   gap: 16px;
   padding: 24px;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--wf-violet-glow) 14%, transparent), transparent),
-    radial-gradient(ellipse 60% 50% at 100% 100%, color-mix(in srgb, var(--wf-cyan) 8%, transparent), transparent),
-    var(--wf-bg);
+  background: var(--wf-chrome-fill, var(--wf-bg));
 }
 
 .wf-boot-screen__label {

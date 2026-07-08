@@ -24,6 +24,10 @@ colors:
   error: "#ef4444"
   success: "#22c55e"
   warning: "#f59e0b"
+dot_grid:
+  tile: 10px
+  rgb: "255 255 255"
+  opacity: 0.08
 rounded:
   knob_sm: 4px
   knob_md: 4px
@@ -34,17 +38,18 @@ border_width: 1px
 
 # Dark theme
 
-**Parent:** [design.md](design.md) · **CSS:** `apps/web/src/styles/themes/dark.css` · **Selector:** `[data-theme='dark']`
+**Parent:** [design.md](design.md) · **CSS:** `themes/dark.css` · **Selector:** `[data-theme='dark']`
 
-Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, violet/cyan ambient orbs. Neo relief tokens are present but **inert** (`--wf-neo-shadow-light/dark` → transparent).
+Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, violet/cyan ambient orbs. Uses the same `DotGrid` texture component as neo; panels paint `--wf-chrome-fill: var(--wf-surface)` (semi-transparent glass) over the grid.
 
 ## Chrome mode: line
 
 - `--wf-chrome-mode: line`
+- `--wf-chrome-fill: var(--wf-surface)` — glass panels over texture
 - `--wf-border` / `--wf-border-strong` drive panel edges
 - `--wf-chrome-border-*` scale = `color-mix` of `--wf-border` at 30%–90%
 - `--wf-divider-color: rgba(255, 255, 255, 0.1)`
-- `--wf-neo-flat` falls back to `--wf-shadow-md` (not dual relief)
+- Relief primitives map to flat `--wf-shadow-*` (neo stacks inert in line mode)
 
 ## Palette
 
@@ -69,10 +74,15 @@ Status: `--wf-error` `#ef4444`, `--wf-success` `#22c55e`, `--wf-warning` `#f59e0
 
 ## Canvas
 
-- **Gradient:** multi radial (violet top-left, cyan bottom-right) + `var(--wf-bg)`
-- **Orbs:** `--wf-orb-primary` violet ~0.18 opacity; `--wf-orb-secondary` cyan ~0.15
-- **Grid:** 10px pixel SVG tile, white 5% opacity; mask fade `--wf-grid-mask`
-- **Overlay:** light top wash + bottom vignette
+**Component stack:** `AtmosphereBg` + `DotGrid` (see `canvas-layers.ts`).
+
+| Layer | Tokens |
+|-------|--------|
+| Color | Multi radial violet/cyan gradients + `var(--wf-bg)`; orbs violet ~0.18 / cyan ~0.15 |
+| Texture | `--wf-dot-grid-tile: 10px`; `--wf-dot-grid-rgb: 255 255 255`; `--wf-dot-grid-opacity: 0.08` |
+| Vignette | `--wf-overlay` on atmosphere (light top wash + bottom vignette) |
+
+Dot grid uses mask-based tiles in `canvas.css` — no separate vignette mask on the dot layer.
 
 ## Controls & borders
 
@@ -80,9 +90,9 @@ Status: `--wf-error` `#ef4444`, `--wf-success` `#22c55e`, `--wf-warning` `#f59e0
 
 - Border: `rgba(255, 255, 255, 0.1)`; inactive `0.05`
 - Hover/active fill: `rgba(255, 255, 255, 0.1)`
-- `--wf-control-shadow-*` use flat `--wf-shadow-md` / inset, not neo stacks
+- `--wf-control-shadow-*` use flat `--wf-shadow-md` / inset
 - `--wf-btn-border-width: 1px` with same glass border pattern
-- Scrollbar thumb: `color-mix(muted 32%, transparent)` — brighter than divider alone
+- Scrollbar thumb: `color-mix(muted 32%, transparent)`
 
 **Radius:** knobs 4/4/12px; `--wf-radius-icon-btn: 4px` (square controls, not circles).
 
@@ -90,10 +100,9 @@ Status: `--wf-error` `#ef4444`, `--wf-success` `#22c55e`, `--wf-warning` `#f59e0
 
 From `dark.css` selectors — apply only under `[data-theme='dark']`:
 
-- Panel icon controls (`.wf-panel__control-btn`, rail section actions, browser tab close): **no border, no shadow**; hover → `rgba(255,255,255,0.1)` fill
-- `.wf-tool-run`, `.wf-activity-tree__row--child`: `1px solid var(--wf-tool-chrome-border)` (`rgba(255,255,255,0.05)`)
+- Panel icon controls: **no border, no shadow**; hover → `rgba(255,255,255,0.1)` fill
+- `.wf-tool-run`, `.wf-activity-tree__row--child`: `1px solid var(--wf-tool-chrome-border)`
 - `.wf-theme-switcher__menu`: surface fill + `--wf-chrome-border-strong` + `--wf-shadow-lg`
-- Theme switcher trigger: glass border default; hover fill like other controls
 
 ## Shadows
 
@@ -107,6 +116,6 @@ From `dark.css` selectors — apply only under `[data-theme='dark']`:
 
 ## Do's and Don'ts
 
-**Do:** Use border + subtle glass hover for interactive chrome; keep orbs restrained.
+**Do:** Use border + subtle glass hover for interactive chrome; keep orbs restrained; tune dot visibility via `--wf-dot-grid-opacity`.
 
-**Don't:** Apply neo dual-shadow stacks or 2px relief borders — they belong to neo/blueprint only.
+**Don't:** Apply neo dual-shadow stacks or 2px relief borders; don't put vignette masks on `DotGrid`.

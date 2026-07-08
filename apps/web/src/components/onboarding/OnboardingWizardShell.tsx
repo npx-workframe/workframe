@@ -78,7 +78,7 @@ export function OnboardingWizardShell({
             </div>
           </div>
 
-          <nav className="wf-onboarding-wizard__nav">
+          <nav className="wf-onboarding-wizard__nav wf-scroll wf-scroll--vertical wf-scroll--inset-rail wf-scroll-host">
             {groups.map(([group, items]) => (
               <div key={group} className="wf-onboarding-wizard__group">
                 <span className="wf-onboarding-wizard__group-label">{group}</span>

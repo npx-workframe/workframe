@@ -1,0 +1,133 @@
+/* Relief primitives — L + S only (+ flat). Line mode uses legacy --wf-shadow-*. */
+
+[data-chrome-mode='relief'] {
+  /* Relief chrome never re-paints the canvas; texture shows through everywhere. */
+  --wf-chrome-fill: transparent;
+  --wf-workspace-chrome-fill: var(--wf-chrome-fill);
+
+  /* L — 4px offset, 8px blur (surfaces: wizard, dialog, auth) */
+  --wf-relief-off-l: 4px;
+  --wf-relief-blur-l: 8px;
+
+  /* S — 3px offset, 6px blur (controls, wells, tabs, buttons) */
+  --wf-relief-off-s: 3px;
+  --wf-relief-blur-s: 6px;
+
+  --wf-relief-flat: none;
+
+  /* L outset — raised island (large surfaces) */
+  --wf-relief-outset-l:
+    calc(-1 * var(--wf-relief-off-l)) calc(-1 * var(--wf-relief-off-l)) var(--wf-relief-blur-l)
+      rgb(var(--wf-relief-highlight-rgb) / var(--wf-relief-highlight-alpha)),
+    var(--wf-relief-off-l) var(--wf-relief-off-l) var(--wf-relief-blur-l)
+      rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha));
+
+  /* S outset — raised control / hover / selected */
+  --wf-relief-outset-s:
+    calc(-1 * var(--wf-relief-off-s)) calc(-1 * var(--wf-relief-off-s)) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-highlight-rgb) / var(--wf-relief-highlight-alpha)),
+    var(--wf-relief-off-s) var(--wf-relief-off-s) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha));
+
+  /* S inset — field well */
+  --wf-relief-inset-s:
+    inset var(--wf-relief-off-s) var(--wf-relief-off-s) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha)),
+    inset calc(-1 * var(--wf-relief-off-s)) calc(-1 * var(--wf-relief-off-s)) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-highlight-rgb) / var(--wf-relief-highlight-alpha));
+
+  /* L inset — large shell well (wizard) */
+  --wf-relief-inset-l:
+    inset var(--wf-relief-off-l) var(--wf-relief-off-l) var(--wf-relief-blur-l)
+      rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha)),
+    inset calc(-1 * var(--wf-relief-off-l)) calc(-1 * var(--wf-relief-off-l)) var(--wf-relief-blur-l)
+      rgb(var(--wf-relief-highlight-rgb) / var(--wf-relief-highlight-alpha));
+
+  /* S asymmetric — dockview tab, browser tab */
+  --wf-relief-tab:
+    calc(-1 * var(--wf-relief-off-s)) calc(-1 * var(--wf-relief-off-s)) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-highlight-rgb) / var(--wf-relief-highlight-alpha)),
+    var(--wf-relief-off-s) 0 var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha));
+
+  /* S asymmetric — browser toolbar lip */
+  --wf-relief-toolbar:
+    calc(-1 * var(--wf-relief-off-s)) calc(-1 * var(--wf-relief-off-s)) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-highlight-rgb) / var(--wf-relief-highlight-alpha)),
+    var(--wf-relief-off-s) calc(-1 * var(--wf-relief-off-s)) var(--wf-relief-blur-s)
+      rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha));
+
+  --wf-relief-footer: 0 calc(-1 * var(--wf-relief-off-s)) var(--wf-relief-blur-s)
+    rgb(var(--wf-relief-shadow-rgb) / var(--wf-relief-shadow-alpha));
+
+  /* Semantic */
+  --wf-relief-surface: var(--wf-relief-outset-l);
+  --wf-relief-well-l: var(--wf-relief-inset-l);
+  --wf-relief-field: var(--wf-relief-inset-s);
+  --wf-relief-high: var(--wf-relief-outset-l);
+  --wf-relief-low: var(--wf-relief-inset-s);
+  --wf-relief-raised: var(--wf-relief-outset-s);
+
+  /* ponytail: relief depth = shadow only; all chrome fills transparent */
+  --wf-control-bg: var(--wf-chrome-fill);
+  --wf-control-bg-flush: var(--wf-chrome-fill);
+  --wf-control-bg-raised: var(--wf-chrome-fill);
+  --wf-control-bg-hover: var(--wf-chrome-fill);
+  --wf-control-bg-active: var(--wf-chrome-fill);
+  --wf-btn-bg: var(--wf-chrome-fill);
+  --wf-btn-bg-hover: var(--wf-chrome-fill);
+  --wf-btn-bg-primary: var(--wf-chrome-fill);
+
+  /* shadcn surfaces — transparent in relief; depth from shadows on wf-* chrome */
+  --card: var(--wf-chrome-fill);
+  --popover: var(--wf-chrome-fill);
+
+  /* Control wiring */
+  --wf-control-shadow-flush: var(--wf-relief-flat);
+  --wf-control-shadow-raised: var(--wf-relief-outset-s);
+  --wf-control-shadow-highlight: var(--wf-relief-tab);
+  --wf-control-shadow-inset: var(--wf-relief-inset-s);
+  --wf-control-shadow-elevated: var(--wf-relief-outset-l);
+  --wf-control-shadow-right: var(--wf-relief-tab);
+  --wf-control-shadow-footer: var(--wf-relief-footer);
+  --wf-control-shadow: var(--wf-relief-flat);
+  --wf-control-shadow-hover: var(--wf-relief-outset-s);
+  --wf-control-shadow-active: var(--wf-relief-outset-s);
+
+  --wf-btn-shadow: var(--wf-relief-flat);
+  --wf-btn-shadow-hover: var(--wf-relief-outset-s);
+  --wf-btn-shadow-primary: var(--wf-relief-outset-s);
+
+  /* Legacy aliases */
+  --wf-neo-flat: var(--wf-relief-outset-s);
+  --wf-neo-highlight: var(--wf-relief-tab);
+  --wf-neo-shadow-light: var(--wf-relief-outset-s);
+  --wf-neo-shadow-dark: var(--wf-relief-outset-s);
+  --wf-neo-shadow-inset-light: var(--wf-relief-inset-s);
+  --wf-neo-shadow-inset-dark: var(--wf-relief-inset-s);
+
+  /* shadcn/Tailwind — no xl; L for panels, S for controls */
+  --shadow-sm: var(--wf-relief-outset-s);
+  --shadow-md: var(--wf-relief-outset-s);
+  --shadow-lg: var(--wf-relief-outset-l);
+  --shadow-xl: var(--wf-relief-outset-l);
+}
+
+[data-chrome-mode='line'] {
+  --wf-chrome-fill: var(--wf-surface);
+  --wf-workspace-chrome-fill: var(--wf-chrome-fill);
+
+  --wf-relief-flat: none;
+  --wf-relief-outset-l: var(--wf-shadow-lg);
+  --wf-relief-outset-s: var(--wf-shadow-sm);
+  --wf-relief-inset-s: var(--wf-shadow-inset);
+  --wf-relief-inset-l: var(--wf-shadow-inset);
+  --wf-relief-high: var(--wf-shadow-lg);
+  --wf-relief-low: var(--wf-shadow-inset);
+  --wf-relief-surface: var(--wf-shadow-lg);
+  --wf-relief-well-l: var(--wf-shadow-inset);
+  --wf-relief-field: var(--wf-shadow-inset);
+  --wf-relief-tab: var(--wf-shadow-sm);
+  --wf-relief-toolbar: var(--wf-shadow-sm);
+  --wf-relief-footer: none;
+}

@@ -17,7 +17,7 @@ body,
   isolation: isolate;
 }
 
-/* Layer 1 — solid base; gradient/grid live on .wf-canvas (canvas.css). */
+/* Layer 1 — solid base; atmosphere + texture live on wf-canvas components. */
 body {
   margin: 0;
   overflow-x: hidden;
