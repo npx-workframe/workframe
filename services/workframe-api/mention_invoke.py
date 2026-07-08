@@ -16,6 +16,7 @@ import profile_gateway
 import rooms
 import run_authority
 import run_ledger
+from domain.entities import RunStatus
 
 
 def _srv():
@@ -85,6 +86,9 @@ def _invoke_room_agent_mention(
     run_id = str(uuid.uuid4())
     session_id = ""
     user_text = ""
+    provider = ""
+    auth_decision: run_authority.RunAuthorityDecision | None = None
+    run_completed_ok = False
 
     def publish_update(*, force: bool = False, status: str | None = None) -> None:
         nonlocal last_flush
@@ -351,6 +355,7 @@ def _invoke_room_agent_mention(
         finally:
             conn.close()
         _srv()._bump_workspace_event_state()
+        run_completed_ok = True
         finish_turn(mid)
         _srv()._log_agent_run(
             run_id,
@@ -401,3 +406,26 @@ def _invoke_room_agent_mention(
         fail_turn(reply)
     finally:
         _srv()._revoke_turn_credential_lease(run_id, hermes_slug)
+        if triggered_by_user_id and auth_decision and auth_decision.allowed:
+            try:
+                conn = _srv()._workframe_db()
+                try:
+                    existing = run_ledger.get_run(conn, run_id)
+                    if existing and existing.status == RunStatus.RUNNING:
+                        if run_completed_ok:
+                            run_ledger.complete_run(
+                                conn,
+                                run_id,
+                                model=str(agent_row.get("model_name") or ""),
+                                provider=provider,
+                                funding_source=auth_decision.funding_source,
+                                payer_user_id=auth_decision.payer_user_id or triggered_by_user_id,
+                                receipt={"room_id": room_id, "session_id": session_id},
+                            )
+                        else:
+                            run_ledger.fail_run(conn, run_id, reason="mention_failed")
+                        conn.commit()
+                finally:
+                    conn.close()
+            except Exception:  # noqa: BLE001
+                pass

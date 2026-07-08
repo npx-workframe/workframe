@@ -11,11 +11,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Backlog items | 50 (33 done · 4 partial · 2 todo · 11 deferred) |
+| Backlog items | 50 (34 done · 3 partial · 2 todo · 11 deferred) |
 | **Stage A** (release-truth) | **Complete** |
 | **Stage B** (decompose) | **In flight** — WF-032 partial; WF-037/035 done; WF-036 partial (cosmetic lane) |
 | **Stage C** (secure multi-user) | **Done except WF-017** (VPS + backup/restore evidence); WF-NS-P1 done 2026-07-08 |
-| **Stage D** (authority + ledger) | **Done except WF-016** (receipt slice) — WF-007/NS-P1/NS-P2 flipped 2026-07-08 |
+| **Stage D** (authority + ledger) | **Complete** — WF-016 receipt slice flipped 2026-07-08 |
 | **Stage E+** | **STOP** — 11 deferred items; do not start |
 
 **`ledger-next` pick (2026-07-08):** `WF-032` (Stage B) — server.py 12,144 lines / 318 top-level defs; ~30 modules already extracted; target residual <3k.
@@ -60,7 +60,7 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 | WF-025 | Force agent egress broker | **done** | compose + iptables |
 | WF-017 | Public/VPS hardening evidence | **partial** | `verify-public-deploy.sh` exists; **missing:** green run on reference VPS + tested backup/restore cycle. Gate for first real team cell (operator-assisted — Wave 4) |
 
-### Stage D — authority + ledger 🟡 NEARLY DONE
+### Stage D — authority + ledger ✅ COMPLETE
 
 | ID | Title | Status | Evidence / remaining gap |
 |----|-------|--------|--------------------------|
@@ -70,7 +70,7 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 | WF-009 | RunAuthorityGate | **done** | `run_authority.py` + tests |
 | WF-008 | Mutation-free doctor | **done** | `workframe doctor --json` |
 | WF-007 | CellAuthorityGate | **done** | `test_cell_authority.py` + `updates.apply_update` authority wiring; connect/adopt deny by default; CLI deferred WF-014 |
-| WF-016 | Funding beyond BYOK | **partial** | Payer enforced (`test_run_authority.py`); `run_line_items` table exists. Gap: receipt per run (amounts stay deferred) |
+| WF-016 | Funding beyond BYOK | **done** | Receipt per run on all six surfaces (`test_run_ledger.py`, `test_run_surface_wiring.py`); payer enforced (`test_run_authority.py`); `amount_usd` null — billing pricing deferred Stage E |
 | WF-NS-P1 | Harden Hermes stack | **done** | `test_secure_mode_docker_boundary.py` + WF-011 supervisor negatives (2026-07-08) |
 | WF-NS-P2 | Run ledger tables | **done** | All six surfaces + DM chat path (`test_run_ledger.py`, `test_run_surface_wiring.py`) — flipped 2026-07-08 |
 
@@ -116,7 +116,7 @@ Follow [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md) wave
 1. **Wave 0** — commit stray fixes, refresh verify matrix with prep, branch/stash hygiene.
 2. **Wave 1** — flip WF-NS-P2, WF-NS-P1, WF-007, WF-035 after closing their narrow verified gaps.
 3. **Wave 2** — WF-032 extractions to <3k residual (bulk of the run).
-4. **Wave 3** — WF-012 build-stamp identity; WF-016 receipt slice.
+4. **Wave 3** — WF-012 build-stamp identity.
 5. **Wave 4** — WF-017 VPS + backup/restore evidence (operator-assisted).
 6. **Wave 5** — WF-036 functional slice.
 

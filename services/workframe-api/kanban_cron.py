@@ -250,6 +250,15 @@ def _record_kanban_dispatch_run(
             event_type="kanban.task_created",
             payload={"title": title, "board": board, "assignee": runtime},
         )
+        run_ledger.complete_run(
+            conn,
+            run_id,
+            model="",
+            provider="",
+            funding_source=FundingSource.BYOK,
+            payer_user_id=user_id,
+            receipt={"title": title, "board": board, "assignee": runtime},
+        )
         conn.commit()
     finally:
         conn.close()

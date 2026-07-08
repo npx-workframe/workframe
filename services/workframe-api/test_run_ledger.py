@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 import sys
@@ -74,11 +75,15 @@ def test_schema_and_round_trip() -> None:
             conn.commit()
 
             items = conn.execute(
-                "SELECT kind, funding_source FROM run_line_items WHERE run_id = ?",
+                "SELECT kind, funding_source, amount_usd, receipt_json FROM run_line_items WHERE run_id = ?",
                 ("run-test-1",),
             ).fetchall()
             assert len(items) == 1
             assert str(items[0]["kind"]) == "llm_turn"
+            assert items[0]["amount_usd"] is None
+            receipt = json.loads(str(items[0]["receipt_json"]))
+            assert receipt["run_id"] == "run-test-1"
+            assert receipt["payer_user_id"] == "user-1"
         finally:
             conn.close()
 

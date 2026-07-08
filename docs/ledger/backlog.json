@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-07-06",
+  "updated": "2026-07-08",
   "north_star_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "program_stages": {
     "ref": "WF-040",
@@ -368,7 +368,7 @@
       "summary": "Company-pays and hybrid with visible payer, no user_only fallback, receipt evidence.",
       "wave": "run-ledger",
       "priority": "P2",
-      "status": "partial",
+      "status": "done",
       "sources": ["25-audit:P2-16", "multi-user-provider-policy", "north-star:phase-2"],
       "acceptance": [
         "RunAuthorityGate enforces payer",
@@ -378,12 +378,15 @@
       "depends_on": ["WF-009", "WF-NS-P2"],
       "evidence": [
         "services/workframe-api/run_authority.py",
-        "services/workframe-api/run_ledger.py"
+        "services/workframe-api/run_ledger.py",
+        "services/workframe-api/test_run_authority.py",
+        "services/workframe-api/test_run_ledger.py",
+        "services/workframe-api/test_run_surface_wiring.py"
       ],
       "owner_role": "implementer",
       "workflow": {
-        "notes": "Verified 2026-07-06: test_run_authority.py green; payer + chat turn receipt on run_line_items. Gap: billing-grade amounts.",
-        "completed_at": "2026-07-06"
+        "notes": "Verified 2026-07-08: receipt per run on all six surfaces (chat, mention, kanban, cron, slash, webhook) via run_line_items; amount_usd null — billing amounts/pricing deferred to Stage E.",
+        "completed_at": "2026-07-08"
       }
     },
     {

@@ -254,6 +254,7 @@ def record_automated_surface_run(body: dict[str, Any]) -> dict[str, Any]:
         room_id=room_id,
         provider=provider,
     )
+    finish_surface_run(run_id, ok=True)
     return {"ok": True, "run_id": run_id, "surface": surface.value}
 
 
