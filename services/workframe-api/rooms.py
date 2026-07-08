@@ -926,15 +926,12 @@ def _patch_workspace(workspace_id: str, body: dict[str, Any], user_id: str) -> t
     try:
         if not _workspace_exists(conn, workspace_id):
             return 404, {"ok": False, "error": "workspace_not_found", "workspace_id": workspace_id}
-        member = conn.execute(
-            """
-            SELECT role FROM workspace_memberships
-            WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL AND status = 'active'
-            """,
-            (workspace_id, user_id),
-        ).fetchone()
-        if not member or str(member["role"]) not in OWNER_ADMIN_ROLES:
+        role = _resolve_workspace_integrations_role(conn, workspace_id, user_id, {})
+        if not role or (
+            role not in OWNER_ADMIN_ROLES and not _srv()._install_window_open()
+        ):
             return 403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"}
+        member_role = str(role)
         row = conn.execute(
             "SELECT * FROM workspaces WHERE id = ? AND deleted_at IS NULL",
             (workspace_id,),
@@ -960,7 +957,7 @@ def _patch_workspace(workspace_id: str, body: dict[str, Any], user_id: str) -> t
         ).fetchone()
         if not row:
             return 500, {"ok": False, "error": "workspace_lookup_failed"}
-        return 200, {"ok": True, "workspace": _workspace_payload(row, viewer_role=str(member["role"]))}
+        return 200, {"ok": True, "workspace": _workspace_payload(row, viewer_role=member_role)}
     except sqlite3.Error as exc:
         return 500, {"ok": False, "error": f"workspace_update_failed: {exc}"}
     finally:
@@ -1013,7 +1010,7 @@ def _patch_workspace_integrations(
             settings["admin_onboarding_done"] = True
         if body.get("admin_integrations_done") is True:
             settings["admin_integrations_done"] = True
-        settings = _parse_messaging_settings_patch(body, settings)
+        settings = _srv()._parse_messaging_settings_patch(body, settings)
         now_ts = str(int(time.time()))
         conn.execute(
             "UPDATE workspaces SET settings_json = ?, updated_at = ? WHERE id = ?",
