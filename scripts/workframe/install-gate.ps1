@@ -10,7 +10,11 @@ $GateDir = Join-Path $Root '.install-gate'
 
 Set-Location $Root
 Write-Host 'OK: building web'
+$prevEapBuild = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 pnpm build:web
+if ($LASTEXITCODE -ne 0) { throw "pnpm build:web failed ($LASTEXITCODE)" }
+$ErrorActionPreference = $prevEapBuild
 Write-Host 'OK: syncing API/supervisor to installer package'
 node (Join-Path $Pkg 'scripts\sync-canonical-to-package.mjs')
 Write-Host 'OK: bundling UI into installer package'
