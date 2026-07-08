@@ -100,10 +100,9 @@ assert not missing_pattern_handlers, f"missing pattern handlers: {missing_patter
 assert not missing_pattern_auth, f"missing pattern auth: {missing_pattern_auth}"
 
 # Pattern handlers must not re-dispatch with legacy startswith guards
-server_src = (ROOT / "server.py").read_text(encoding="utf-8")
 pattern_method_blocks = re.findall(
     r"(def (_route_pattern_\w+)\([^)]*\)[^:]*:.*?)(?=\n    def |\Z)",
-    server_src,
+    handler_src,
     flags=re.DOTALL,
 )
 legacy_guards: list[str] = []
@@ -113,6 +112,7 @@ for block, name in pattern_method_blocks:
 assert not legacy_guards, f"legacy startswith guards in pattern handlers: {legacy_guards}"
 
 # Every if-chain literal /api path must be registered with explicit auth
+server_src = (ROOT / "server.py").read_text(encoding="utf-8")
 handler_paths = set(re.findall(r'if path == "(/api/[^"]+)"', server_src))
 handler_paths |= set(re.findall(r"if path == \'(/api/[^\']+)\'", server_src))
 unregistered: list[str] = []
