@@ -4,6 +4,7 @@ Append-only. Format: `ISO timestamp | Role | one-line outcome`
 
 ## Entries
 
+2026-07-08T13:15-03:00 | pm-workframe | WF-032 — provider_bindings.py extracted; server.py ~10.1k lines.
 2026-07-08T13:00-03:00 | pm-workframe | WF-032 — oauth_pending.py + mention_helpers.py extracted; server.py ~10.7k lines.
 2026-07-08T12:50-03:00 | pm-workframe | WF-032 — runtime_tokens.py extracted; server.py ~10.9k lines; Wave 1 complete (4 items flipped).
 2026-07-08T12:45-03:00 | pm-workframe | Wave 0–1 backend — G0.1 commits (create-workframe /compose, install-gate build guard); WF-035/007/NS-P1/NS-P2 flipped with test evidence; ledger-next → WF-032.
