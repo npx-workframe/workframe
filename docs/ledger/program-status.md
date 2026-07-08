@@ -44,7 +44,7 @@ WF-001…006, WF-018…022, WF-031, WF-033, WF-034, WF-038 — all `done`, evide
 | ID | Title | Status | Evidence / remaining gap |
 |----|-------|--------|--------------------------|
 | WF-037 | Declarative route registry | **done** | `route_registry.py`; `test_route_registry.py` audits all 62 patterns (2026-07-07); no `/api` if-chains |
-| WF-032 | Split server.py monolith | **partial** | 12,144 lines / 318 defs remain (item summary says ~20k — stale, refresh with next extraction). ~30 modules extracted incl. `chat_stream`, `hermes_profiles`, `profile_gateway`, `model_surface`, `provider_bootstrap`, `db_schema`, `auth_gate`, `rooms`, `kanban_cron`, `activity_feed`, `crew_registry`, `health_monitor`, `snapshot_feed`, `doctor_runtime`, `api_meta`, `run_ledger`, `run_surface_wiring`. Remaining dense zones: credential/provider bindings + oauth/mention helpers (L2000–8000), runtime tokens (L10000–12000), handler shell |
+| WF-032 | Split server.py monolith | **partial** | ~10.9k lines / ~312 defs (2026-07-08); runtime_tokens.py extracted this session. Next: oauth_pending, provider_bindings, mention_helpers |
 | WF-035 | Exception hygiene (auth/vault) | **done** | `test_exception_hygiene.py` green 2026-07-08 |
 | WF-036 | Frontend decomposition | **partial** | Cosmetic slice active in UI lane. Functional slice remains: `ConciergeFlow.tsx`/`HermesSessionContext.tsx` splits, provider-label unification, no silent openrouter default (badge + connectError already fixed) |
 

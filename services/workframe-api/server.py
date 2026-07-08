@@ -451,6 +451,7 @@ import updates as stack_updates
 import install_api
 import run_authority
 import run_ledger
+import runtime_tokens
 from domain.entities import RunStatus
 
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
@@ -497,7 +498,7 @@ WORKFRAME_SESSION_TTL = int(os.environ.get("WORKFRAME_SESSION_TTL", "2592000"))
 WORKFRAME_REFRESH_TTL = int(os.environ.get("WORKFRAME_REFRESH_TTL", str(14 * 86400)))
 DASHBOARD_HTTP_TIMEOUT = float(os.environ.get("HERMES_DASHBOARD_HTTP_TIMEOUT", "15"))
 WORKFRAME_REFRESH_WINDOW = 300  # refresh session ID when expires within 5 min
-WORKFRAME_RUNTIME_TOKEN_TTL = int(os.environ.get("WORKFRAME_RUNTIME_TOKEN_TTL", "3600"))
+WORKFRAME_RUNTIME_TOKEN_TTL = runtime_tokens.DEFAULT_TTL
 WORKFRAME_LLM_PROXY_INTERNAL = os.environ.get(
     "WORKFRAME_LLM_PROXY_INTERNAL", "http://workframe-api:8080"
 ).rstrip("/")
@@ -11719,111 +11720,9 @@ def _resolve_credential(
 
 
 
-def _ensure_runtime_tokens_table() -> None:
-    """Create provider_runtime_tokens table and indexes if needed."""
-    conn = _workframe_db()
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("""CREATE TABLE IF NOT EXISTS provider_runtime_tokens (
-        id TEXT PRIMARY KEY,
-        run_id TEXT NOT NULL,
-        token_hash TEXT NOT NULL UNIQUE,
-        expires_at TEXT NOT NULL,
-        used_at TEXT,
-        revoked_at TEXT,
-        created_at TEXT NOT NULL
-    )""")
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_provider_runtime_tokens_run "
-        "ON provider_runtime_tokens(run_id, created_at DESC)"
-    )
-    conn.execute(
-        "CREATE INDEX IF NOT EXISTS idx_provider_runtime_tokens_expiry "
-        "ON provider_runtime_tokens(expires_at)"
-    )
-    conn.commit()
-    conn.close()
-
-
-def _hash_runtime_token(token: str) -> str:
-    """Hash a bearer runtime token before storing it."""
-    return hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
-
-
-def _runtime_token_expired(expires_at: str) -> bool:
-    """Return True when an expires_at value is expired or invalid."""
-    value = str(expires_at or "").strip()
-    if not value:
-        return True
-    if value.isdigit():
-        return int(value) < int(time.time())
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00")) < datetime.now(timezone.utc)
-    except ValueError:
-        return True
-
-
-def _create_runtime_token(run_id: str, ttl_seconds: int = WORKFRAME_RUNTIME_TOKEN_TTL) -> str:
-    """Create a short-lived runtime token for an agent run. Returns the token."""
-    run = str(run_id or "").strip()
-    if not run:
-        raise ValueError("run_id required")
-    ttl = int(ttl_seconds or WORKFRAME_RUNTIME_TOKEN_TTL)
-    if ttl <= 0:
-        raise ValueError("ttl_seconds must be positive")
-
-    _ensure_runtime_tokens_table()
-    token = secrets.token_hex(32)
-    now = _utc_now()
-    expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).isoformat()
-    conn = _workframe_db()
-    conn.execute(
-        "INSERT INTO provider_runtime_tokens "
-        "(id, run_id, token_hash, expires_at, created_at) VALUES (?,?,?,?,?)",
-        (secrets.token_hex(16), run, _hash_runtime_token(token), expires_at, now),
-    )
-    conn.commit()
-    conn.close()
-    return token
-
-
-def _validate_runtime_token(token: str) -> dict[str, Any] | None:
-    """Validate a runtime token once. Returns {"run_id": str} or None."""
-    raw = str(token or "").strip()
-    if not raw:
-        return None
-
-    _ensure_runtime_tokens_table()
-    conn = _workframe_db()
-    conn.row_factory = sqlite3.Row
-    token_hash = _hash_runtime_token(raw)
-    row = conn.execute(
-        "SELECT id, run_id, expires_at, revoked_at, used_at "
-        "FROM provider_runtime_tokens WHERE token_hash = ?",
-        (token_hash,),
-    ).fetchone()
-    if not row:
-        conn.close()
-        return None
-
-    now = _utc_now()
-    if row["revoked_at"] or row["used_at"] or _runtime_token_expired(row["expires_at"]):
-        conn.close()
-        return None
-
-    cursor = conn.execute(
-        "UPDATE provider_runtime_tokens "
-        "SET used_at = ? "
-        "WHERE id = ? AND revoked_at IS NULL AND used_at IS NULL AND expires_at > ?",
-        (now, row["id"], now),
-    )
-    if cursor.rowcount != 1:
-        conn.close()
-        return None
-    conn.commit()
-    run_id = row["run_id"]
-    conn.close()
-    return {"run_id": run_id}
-
+_ensure_runtime_tokens_table = runtime_tokens.ensure_schema
+_create_runtime_token = runtime_tokens.create_token
+_validate_runtime_token = runtime_tokens.validate_token
 
 def _log_agent_run(run_id: str, agent_profile_id: str, room_id: str, user_id: str,
                    session_id: str, status: str, model_provider: str, model_name: str,
