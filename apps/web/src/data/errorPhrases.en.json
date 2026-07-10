@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "locale": "en",
+    "version": 1,
+    "description": "User-facing Workframe error phrases. Keys map to API error codes, HTTP status, or pattern matchers."
+  },
+  "fallback": {
+    "message": "Something went wrong.",
+    "hint": "Try again in a moment. If it keeps happening, contact your admin."
+  },
+  "internal": {
+    "message": "Workframe hit an unexpected problem.",
+    "hint": "Try again. If it persists, an admin can check server logs."
+  },
+  "http": {
+    "400": {
+      "message": "Request could not be processed.",
+      "hint": "Check the fields and try again."
+    },
+    "401": {
+      "message": "Session expired or not signed in.",
+      "hint": "Refresh the page and sign in again."
+    },
+    "403": {
+      "message": "You do not have permission for this action."
+    },
+    "404": {
+      "message": "That resource was not found.",
+      "hint": "It may have been removed or renamed."
+    },
+    "409": {
+      "message": "This conflicts with existing data.",
+      "hint": "Refresh and try again."
+    },
+    "413": {
+      "message": "Upload is too large for the server.",
+      "hint": "Use a smaller file (avatars: under 256 KB; images: compress or resize first)."
+    },
+    "415": {
+      "message": "Unsupported request format.",
+      "hint": "Try again from the latest UI build."
+    },
+    "429": {
+      "message": "Too many requests.",
+      "hint": "Wait a moment and try again."
+    },
+    "500": {
+      "message": "Server error.",
+      "hint": "Check API logs if this keeps happening."
+    },
+    "502": {
+      "message": "Upstream service unavailable.",
+      "hint": "Is the Workframe stack running?"
+    },
+    "503": {
+      "message": "Service temporarily unavailable.",
+      "hint": "Retry in a few seconds."
+    }
+  },
+  "codes": {
+    "no_session": {
+      "message": "You are not signed in.",
+      "hint": "Sign in and try again."
+    },
+    "install_closed": {
+      "message": "Install setup is already finished.",
+      "hint": "Open the main app or finish user onboarding in Settings."
+    },
+    "oauth_start_failed": {
+      "message": "Could not start provider sign-in inside the gateway.",
+      "hint": "Retry in a moment. If it keeps failing, ask an admin to rebuild the workframe-supervisor container."
+    },
+    "raw_container_exec_disabled": {
+      "message": "Provider sign-in is blocked on this secure stack.",
+      "hint": "Rebuild workframe-api and workframe-supervisor from the latest release, then try again."
+    },
+    "device_oauth_start_failed": {
+      "message": "Could not start device sign-in for this provider.",
+      "hint": "Retry, or connect with an API key instead."
+    },
+    "invalid_device_oauth_provider": {
+      "message": "This provider does not support device sign-in on this stack.",
+      "hint": "Use an API key or a different connect method."
+    },
+    "email_required": {
+      "message": "Email is required.",
+      "hint": "Enter your email address before continuing."
+    },
+    "forbidden": {
+      "message": "You do not have permission for this action.",
+      "hint": "Sign in as the workspace admin, or finish the Admin step before saving Workframe settings."
+    },
+    "room_access_denied": {
+      "message": "You cannot access this room.",
+      "hint": "Ask a workspace admin for access."
+    },
+    "room_not_found": {
+      "message": "Room not found.",
+      "hint": "Refresh the room list or open another chat."
+    },
+    "room_not_agent_chat": {
+      "message": "This room is not an agent chat."
+    },
+    "profile_not_installed": {
+      "message": "Agent profile is not installed on this stack."
+    },
+    "unknown_profile": {
+      "message": "Unknown agent profile."
+    },
+    "avatar_too_large": {
+      "message": "Avatar image is too large.",
+      "hint": "Use a square image under 256 KB (JPEG or PNG)."
+    },
+    "avatar_type": {
+      "message": "Avatar must be an image file.",
+      "hint": "Use JPEG, PNG, GIF, or WebP."
+    },
+    "provider_empty_reply": {
+      "message": "The model provider returned no reply.",
+      "hint": "Check your API key, credits, and model selection in Settings.",
+      "actionLabel": "Choose model"
+    },
+    "model_unavailable": {
+      "message": "The selected model is not available on your provider right now.",
+      "hint": "Pick a different model — free models on OpenRouter rotate often.",
+      "actionLabel": "Choose model"
+    },
+    "model_invalid_id": {
+      "message": "That model ID is not valid for your provider.",
+      "hint": "Open the model picker and select a listed model.",
+      "actionLabel": "Choose model"
+    },
+    "provider_invalid_key": {
+      "message": "Your API key was rejected by the provider.",
+      "hint": "Reset the key at the integration, then paste it again under Settings → Integrations.",
+      "actionLabel": "Update API key"
+    },
+    "provider_no_credits": {
+      "message": "Your provider account has no credits remaining.",
+      "hint": "Add credits at your provider billing page, then try again.",
+      "actionLabel": "Add credits"
+    },
+    "invalid_lease": {
+      "message": "Your session credential expired before the model replied.",
+      "hint": "Send the message again.",
+      "actionLabel": "Try again"
+    },
+    "concierge_add_keys": {
+      "message": "Connect an LLM integration to enable chat.",
+      "hint": "OpenRouter is the fastest path — paste your API key under Settings → Integrations.",
+      "actionLabel": "Add API key"
+    },
+    "concierge_change_model": {
+      "message": "Choose which model this agent uses.",
+      "hint": "Open the model picker and select a model your provider supports.",
+      "actionLabel": "Choose model"
+    },
+    "no_llm_provider_for_user": {
+      "message": "No LLM integration is connected for your account.",
+      "hint": "Add an OpenRouter or other LLM key under Settings → Integrations.",
+      "actionLabel": "Connect integration"
+    },
+    "no_llm_provider": {
+      "message": "No LLM integration is connected.",
+      "hint": "Add an API key under Settings → Integrations.",
+      "actionLabel": "Connect integration"
+    },
+    "unauthorized": {
+      "message": "Authentication required.",
+      "hint": "Sign in and try again."
+    },
+    "supervisor_unavailable": {
+      "message": "Supervisor service is not running.",
+      "hint": "On the server: cd infra/compose/workframe && docker compose up -d"
+    },
+    "private_workspace": {
+      "message": "This Workframe is private.",
+      "hint": "Contact your Workframe admin for an invite link."
+    },
+    "request_failed": {
+      "message": "Something went wrong.",
+      "hint": "Try again in a moment. If it keeps happening, contact your admin."
+    },
+    "runtime_profile_permission_denied": {
+      "message": "Workframe could not prepare your agent workspace on disk.",
+      "hint": "An admin should restart the stack or fix permissions on the Agents data volume."
+    },
+    "runtime_profile_create_failed": {
+      "message": "Workframe could not create your personal agent profile.",
+      "hint": "Try again in a moment. If it persists, restart Workframe or contact your admin."
+    },
+    "runtime_profile_api_config_failed": {
+      "message": "Workframe could not start the agent API for this profile.",
+      "hint": "Check that the Hermes gateway is running and try again."
+    },
+    "runtime_profile_bootstrap_failed": {
+      "message": "Workframe could not finish setting up this agent profile.",
+      "hint": "Try again or pick another agent from the crew list."
+    },
+    "session_bootstrap_failed": {
+      "message": "Workframe could not start this chat session.",
+      "hint": "Refresh the page or open another agent room."
+    },
+    "network_unreachable": {
+      "message": "Could not reach the Workframe API.",
+      "hint": "Use http://127.0.0.1:18644 for dogfood, confirm Docker is up, or sign in again if the session expired."
+    },
+    "provider_rejected": {
+      "message": "Model provider rejected the request.",
+      "hint": "Check your API key and the model selected in Settings.",
+      "actionLabel": "Connect integration"
+    },
+    "model_not_available": {
+      "message": "The selected model is not available.",
+      "hint": "Pick another model in Settings or confirm your provider account supports it.",
+      "actionLabel": "Choose model"
+    },
+    "agent_no_reply": {
+      "message": "The agent returned no reply.",
+      "hint": "The model gateway may have rejected the request — try sending again. If it persists, check Settings → Integrations and the model in Agent Settings.",
+      "actionLabel": "Connect integration"
+    },
+    "agent_error_unknown": {
+      "message": "The agent reported an error without details.",
+      "hint": "Check integration keys, model selection, and gateway logs."
+    },
+    "agent_provider_unreachable": {
+      "message": "The agent could not reach the model provider.",
+      "hint": "Check API keys in Settings → Integrations and the model in Agent Settings.",
+      "actionLabel": "Connect integration"
+    },
+    "turn_interrupted": {
+      "message": "The agent turn was interrupted."
+    }
+  },
+  "patterns": [
+    {
+      "id": "permission_denied",
+      "match": "PermissionError|Permission denied",
+      "code": "runtime_profile_permission_denied"
+    },
+    {
+      "id": "runtime_profile_create",
+      "match": "runtime profile create failed",
+      "code": "runtime_profile_create_failed"
+    },
+    {
+      "id": "runtime_profile_api",
+      "match": "runtime profile api config failed",
+      "code": "runtime_profile_api_config_failed"
+    },
+    {
+      "id": "runtime_profile_bootstrap",
+      "match": "runtime profile bootstrap failed",
+      "code": "runtime_profile_bootstrap_failed"
+    },
+    {
+      "id": "session_creation",
+      "match": "Session creation failed|session_bootstrap_failed",
+      "code": "session_bootstrap_failed"
+    },
+    {
+      "id": "profile_api_down",
+      "match": "Connection refused|Errno 111|profile api did not become healthy|profile api unavailable",
+      "code": "runtime_profile_api_config_failed"
+    },
+    {
+      "id": "traceback",
+      "match": "Traceback \\(most recent|  File \"",
+      "code": "request_failed"
+    },
+    {
+      "id": "payload_too_large",
+      "match": "too large|entity too large|payload too large|413",
+      "code": "http_413"
+    },
+    {
+      "id": "no_llm",
+      "match": "no llm provider|openrouter_api_key not set|provider configured|no_llm_provider_for_user",
+      "code": "no_llm_provider_for_user"
+    },
+    {
+      "id": "network",
+      "match": "failed to fetch|networkerror|load failed",
+      "code": "network_unreachable"
+    },
+    {
+      "id": "invalid_api_key",
+      "match": "invalid.*(api[_ ]?key|token)|authentication failed|incorrect api key",
+      "code": "provider_invalid_key"
+    },
+    {
+      "id": "model_missing",
+      "match": "model.*(not found|does not exist|unknown)|invalid model",
+      "code": "model_not_available"
+    }
+  ],
+  "contexts": {
+    "session_bootstrap": {
+      "message": "Workframe could not start this chat session.",
+      "hint": "Refresh the page or open another agent room."
+    },
+    "new_session": {
+      "message": "Workframe could not start a new session.",
+      "hint": "Try again or refresh the page."
+    },
+    "send_message": {
+      "message": "Your message could not be sent.",
+      "hint": "Check your connection and try again."
+    }
+  }
+}

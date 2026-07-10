@@ -570,10 +570,12 @@ def _purge_runtime_profile(runtime: str) -> None:
 
 
 def _register_runtime_profile(runtime: str, template: str) -> None:
+    _srv()._ensure_profiles_dir_ready()
     cmd = ["profile", "create", "--clone-from", template, runtime]
     code, out = _srv()._gateway_exec(_srv()._primary_profile(), cmd)
     if code == 0:
         _inherit_runtime_profile_config(runtime, template)
+        _srv()._chown_profile_tree(_srv()._profile_dir(runtime))
         return
     out_l = out.lower()
     if "already exists" in out_l:
@@ -583,6 +585,7 @@ def _register_runtime_profile(runtime: str, template: str) -> None:
         code, out = _srv()._gateway_exec(_srv()._primary_profile(), cmd)
         if code == 0:
             _inherit_runtime_profile_config(runtime, template)
+            _srv()._chown_profile_tree(_srv()._profile_dir(runtime))
             return
     if code != 0:
         raise ValueError(f"runtime profile create failed: {out.strip()}")
@@ -709,6 +712,7 @@ def ensure_runtime_profile(
     user_id: str,
     workspace_id: str = "",
 ) -> None:
+    _srv()._ensure_profiles_dir_ready()
     runtime = _srv().safe_profile_slug(runtime_slug)
     template = _srv().resolve_validated_profile(template_slug)
     if _runtime_profile_on_disk(runtime):
@@ -730,6 +734,7 @@ def ensure_runtime_profile(
         return
     _purge_runtime_profile(runtime)
     _register_runtime_profile(runtime, template)
+    _srv()._chown_profile_tree(_srv()._profile_dir(runtime))
     if _srv()._profile_config_path(runtime) is None:
         raise ValueError(f"runtime profile bootstrap failed: {runtime}")
     # SOUL: clone inherits template at profile create; do not auto-overwrite on disk later.

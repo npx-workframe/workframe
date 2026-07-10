@@ -13,6 +13,7 @@ import urllib.parse
 import uuid
 
 import activity_feed
+import api_errors
 import chat_bind
 from email_sender import APP_BASE_URL, send_branded_invite_email
 
@@ -402,14 +403,13 @@ class WorkspaceRoutesMixin:
             return
         try:
             self._json(200, srv.room_chat_bind(rid, body, user_id))
-        except ValueError as exc:
-            err = str(exc)
-            if "not_found" in err:
-                self._json(404, {"ok": False, "error": err})
-            elif "denied" in err or "forbidden" in err:
-                self._json(403, {"ok": False, "error": err})
-            else:
-                self._json(400, {"ok": False, "error": err})
+        except (ValueError, OSError) as exc:
+            payload = api_errors.public_api_error_payload(exc, context="room_bind")
+            status = api_errors.http_status_for_code(str(payload.get("error") or ""))
+            self._json(status, {"ok": False, **payload})
+        except Exception as exc:  # noqa: BLE001 — urllib.URLError etc.
+            payload = api_errors.public_api_error_payload(exc, context="room_bind")
+            self._json(500, {"ok": False, **payload})
 
     def _route_pattern_post_room_sessions_activate(self, path: str, body: dict) -> None:
         srv = _srv()
@@ -437,13 +437,9 @@ class WorkspaceRoutesMixin:
                 binding_version=binding_version,
             )
         except ValueError as exc:
-            err = str(exc)
-            if "not_found" in err:
-                self._json(404, {"ok": False, "error": err})
-            elif "denied" in err:
-                self._json(403, {"ok": False, "error": err})
-            else:
-                self._json(400, {"ok": False, "error": err})
+            payload = api_errors.public_api_error_payload(exc, context="room_session_activate")
+            status = api_errors.http_status_for_code(str(payload.get("error") or ""))
+            self._json(status, {"ok": False, **payload})
             return
         self._json(200, payload)
 

@@ -57,8 +57,20 @@ def _hermes_data_uid_gid() -> tuple[int, int]:
         return 10000, 10000
 
 
+def _ensure_profiles_dir_ready() -> None:
+    """Gateway creates runtime profiles — parent dir must be writable by hermes uid."""
+    profiles = _srv().HERMES_DATA / "profiles"
+    profiles.mkdir(parents=True, exist_ok=True)
+    uid, gid = _hermes_data_uid_gid()
+    try:
+        os.chown(profiles, uid, gid)
+    except OSError:
+        pass
+
+
 def _chown_profile_tree(prof_dir: Path) -> None:
     """Gateway runs as the Agents volume owner — seeded files must match."""
+    _ensure_profiles_dir_ready()
     uid, gid = _hermes_data_uid_gid()
     prof_dir.mkdir(parents=True, exist_ok=True)
     (prof_dir / "logs").mkdir(parents=True, exist_ok=True)

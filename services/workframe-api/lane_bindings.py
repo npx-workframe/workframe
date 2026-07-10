@@ -76,6 +76,21 @@ def _binding_session_for(profile: str, source_id: str, client_id: str, binding_v
     row = _binding_row_for(profile, source_id, client_id, binding_version)
     return str((row or {}).get("session_id") or "").strip()
 
+
+def _ensure_profile_api_for_session_create(
+    profile: str,
+    user_id: str,
+    workspace_id: str,
+) -> dict[str, Any]:
+    """WF-034: bind skips provider bootstrap; POST /api/sessions still needs a live gateway."""
+    return _srv().ensure_profile_api(
+        profile,
+        user_id,
+        workspace_id,
+        bootstrap_providers=False,
+    )
+
+
 def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "") -> dict[str, Any]:
     source_id = str(payload.get("source_id") or "ui").strip() or "ui"
     client_id = str(payload.get("client_id") or "default").strip() or "default"
@@ -211,6 +226,7 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
                 }
             new_id = f"wf_room_{room_id[:8]}_{int(time.time())}_{uuid.uuid4().hex[:6]}"
             requested_title = str(payload.get("title") or "").strip() or _srv()._default_session_title(template_prof)
+            lifecycle = _ensure_profile_api_for_session_create(hermes_prof, payer, workspace_id)
             status, data, session_title = _srv()._create_profile_session_via_api(hermes_prof, new_id, requested_title)
             if status >= 300:
                 raise ValueError(f"create session failed: {data}")
@@ -265,6 +281,7 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
         }
     new_id = f"wf_{source_id}_{client_id}_{int(time.time())}_{uuid.uuid4().hex[:6]}"
     requested_title = str(payload.get("title") or "").strip() or _srv()._default_session_title(template_prof)
+    lifecycle = _ensure_profile_api_for_session_create(hermes_prof, payer, workspace_id)
     status, data, session_title = _srv()._create_profile_session_via_api(hermes_prof, new_id, requested_title)
     if status >= 300:
         raise ValueError(f"create session failed: {data}")

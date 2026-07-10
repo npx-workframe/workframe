@@ -333,6 +333,7 @@ _native_profile_slug = hermes_profiles._native_profile_slug
 _native_profile_present = hermes_profiles._native_profile_present
 _hermes_data_uid_gid = hermes_profiles._hermes_data_uid_gid
 _chown_profile_tree = hermes_profiles._chown_profile_tree
+_ensure_profiles_dir_ready = hermes_profiles._ensure_profiles_dir_ready
 _seed_native_profile_on_disk = hermes_profiles._seed_native_profile_on_disk
 _ensure_native_hermes_profile = hermes_profiles._ensure_native_hermes_profile
 _primary_profile = hermes_profiles._primary_profile
