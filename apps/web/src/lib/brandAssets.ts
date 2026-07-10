@@ -1,9 +1,13 @@
 import anthropic from '@/assets/brands/anthropic.svg?url'
+import brave from '@/assets/brands/brave.svg?url'
 import cursor from '@/assets/brands/cursor.svg?url'
 import discord from '@/assets/brands/discord.svg?url'
+import gemini from '@/assets/brands/gemini.svg?url'
 import github from '@/assets/brands/github.svg?url'
 import google from '@/assets/brands/google.svg?url'
+import grok from '@/assets/brands/grok.svg?url'
 import netlify from '@/assets/brands/netlify.svg?url'
+import nvidia from '@/assets/brands/nvidia.svg?url'
 import openai from '@/assets/brands/openai.svg?url'
 import openrouter from '@/assets/brands/openrouter.svg?url'
 import perplexity from '@/assets/brands/perplexity.svg?url'
@@ -29,6 +33,10 @@ export const BRAND_ICON = {
   openai,
   openrouter,
   perplexity,
+  nvidia,
+  gemini,
+  grok,
+  brave,
 } as const
 
 export type BrandIconId = keyof typeof BRAND_ICON
@@ -43,8 +51,11 @@ export type ProviderBrandId =
   | 'github'
   | 'codex'
   | 'google'
+  | 'gemini'
   | 'deepseek'
   | 'brave'
+  | 'grok'
+  | 'nvidia'
   | 'stripe'
 
 const PROVIDER_ICON_BY_ID: Record<ProviderBrandId, string> = {
@@ -57,8 +68,11 @@ const PROVIDER_ICON_BY_ID: Record<ProviderBrandId, string> = {
   github: BRAND_ICON.github,
   codex: BRAND_ICON.openai,
   google: BRAND_ICON.google,
+  gemini: BRAND_ICON.gemini,
   deepseek: BRAND_ICON.openrouter,
-  brave: BRAND_ICON.perplexity,
+  brave: BRAND_ICON.brave,
+  grok: BRAND_ICON.grok,
+  nvidia: BRAND_ICON.nvidia,
   stripe: BRAND_ICON.stripe,
 }
 

@@ -10,7 +10,7 @@ export function SignInBrandIcon({ id, className }: SignInBrandIconProps) {
     <img
       src={BRAND_ICON[id]}
       alt=""
-      className={className ?? 'wf-sign-in-app__brand-img wf-brand-img--mono'}
+      className={className ?? 'wf-sign-in-app__brand-img wf-brand-img--theme'}
     />
   )
 }

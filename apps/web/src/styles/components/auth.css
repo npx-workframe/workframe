@@ -196,6 +196,26 @@
   text-align: center;
 }
 
+.wf-device-oauth__code {
+  justify-content: center;
+}
+
+.wf-device-oauth__code-cell {
+  pointer-events: none;
+  user-select: all;
+}
+
+.wf-device-oauth__sep {
+  display: grid;
+  place-items: center;
+  width: 0.65rem;
+  font-family: var(--wf-font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--wf-muted);
+  margin-inline: -2px;
+}
+
 @media (max-width: 640px) {
   .wf-auth__card {
     border-radius: var(--wf-radius-shell);

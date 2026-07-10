@@ -47,7 +47,7 @@ export function OnboardingLaunchScreen({
 
 export const FINISH_INSTALL_STEP_LABELS = [
   { id: 'runtime_profile', label: 'Create your personal agent runtime' },
-  { id: 'bootstrap_providers', label: 'Apply model and provider settings' },
+  { id: 'bootstrap_providers', label: 'Apply model and integration settings' },
   { id: 'start_gateway', label: 'Start Hermes gateway' },
   { id: 'dm_room', label: 'Open agent chat room' },
   { id: 'room_chat_bind', label: 'Connect chat session' },

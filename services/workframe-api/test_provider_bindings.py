@@ -44,9 +44,19 @@ def test_parse_device_oauth_log() -> None:
     assert parsed["user_code"] == "ABCD-1234"
 
 
+def test_device_oauth_error_from_log() -> None:
+    text = (
+        "hermes_cli.auth.AuthError: OpenAI is rate-limiting Codex login requests (HTTP 429). "
+        "Wait a minute and run the login again."
+    )
+    msg = provider_bindings._device_oauth_error_from_log(text)
+    assert msg and "429" in msg
+
+
 if __name__ == "__main__":
     test_hermes_oauth_auth_keys()
     test_auth_json_has_oauth_material()
     test_merge_oauth_auth_into_profile()
     test_parse_device_oauth_log()
+    test_device_oauth_error_from_log()
     print("test_provider_bindings: ok")

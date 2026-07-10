@@ -1,19 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ProviderList } from '@/components/settings/ProviderList'
 import { ProviderOptionRow } from '@/components/settings/ProviderOptionRow'
-import { DeviceCodeOAuthDialog } from '@/components/workspace/DeviceCodeOAuthDialog'
+import { PanelStatus } from '@/components/ui/PanelPrimitives'
+import {
+  DeviceCodeOAuthFlow,
+  type DeviceCodeOAuthPresentation,
+} from '@/components/integrations/DeviceCodeOAuthFlow'
 import type { ProviderConnectRow } from '@/lib/workframeAuthApi'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
-
-const DEVICE_OAUTH_PROVIDER_IDS = new Set(['codex', 'nous'])
+import { isDeviceOAuthProvider } from '@/lib/providerOAuth'
+import { clearProviderConnectReturn, peekProviderConnectReturn } from '@/lib/providerConnectReturn'
 
 export const PROVIDER_CATEGORY_LABELS: Record<string, string> = {
-  llm: 'LLM providers',
-  search: 'Search & tools',
-  messaging: 'Messaging bots',
-  dev: 'Developer accounts',
-  payments: 'Payments',
+  llm: 'LLM integrations',
+  search: 'Search integrations',
+  messaging: 'Messaging integrations',
+  dev: 'Developer integrations',
+  payments: 'Payment integrations',
 }
 
 type ProviderConnectPanelProps = {
@@ -26,6 +30,10 @@ type ProviderConnectPanelProps = {
   hint?: 'none' | 'compact' | 'full'
   /** stack = all categories; tabs = one category at a time. */
   layout?: 'stack' | 'tabs'
+  /** When false, panel scroll is delegated to parent (wizard body). */
+  scrollInner?: boolean
+  /** Device-code OAuth: use inline inside an existing settings sheet; dialog on standalone surfaces. */
+  deviceOAuthPresentation?: DeviceCodeOAuthPresentation
   onStatus?: (message: string) => void
   onError?: (message: string) => void
   onConnected?: () => void
@@ -39,6 +47,8 @@ export function ProviderConnectPanel({
   providerIds,
   hint = 'full',
   layout = 'stack',
+  scrollInner = true,
+  deviceOAuthPresentation = 'dialog',
   onStatus,
   onError,
   onConnected,
@@ -52,6 +62,14 @@ export function ProviderConnectPanel({
   const [oauthOutput, setOauthOutput] = useState<Record<string, string>>({})
   const [deviceOAuthRow, setDeviceOAuthRow] = useState<ProviderConnectRow | null>(null)
   const [activeCategory, setActiveCategory] = useState('')
+  const deviceOAuthRowRef = useRef<ProviderConnectRow | null>(null)
+  const onErrorRef = useRef(onError)
+  const onStatusRef = useRef(onStatus)
+  const onConnectedRef = useRef(onConnected)
+  deviceOAuthRowRef.current = deviceOAuthRow
+  onErrorRef.current = onError
+  onStatusRef.current = onStatus
+  onConnectedRef.current = onConnected
 
   const loadProviders = useCallback(async () => {
     setLoading(true)
@@ -59,14 +77,27 @@ export function ProviderConnectPanel({
       const result = await workframeAuthApi.listProviders(workspaceId)
       setProviders(result.providers ?? [])
     } catch (err) {
-      onError?.(err instanceof Error ? err.message : 'Failed to load providers')
+      onErrorRef.current?.(err instanceof Error ? err.message : 'Failed to load integrations')
     } finally {
       setLoading(false)
     }
-  }, [onError, workspaceId])
+  }, [workspaceId])
 
   useEffect(() => {
     void loadProviders()
+  }, [loadProviders])
+
+  useEffect(() => {
+    const returned = peekProviderConnectReturn()
+    if (!returned) return
+    if (returned.status === 'ok') {
+      onStatusRef.current?.(returned.message)
+      void loadProviders()
+      onConnectedRef.current?.()
+    } else {
+      onErrorRef.current?.(returned.message)
+    }
+    clearProviderConnectReturn()
   }, [loadProviders])
 
   const grouped = useMemo(() => {
@@ -187,7 +218,8 @@ export function ProviderConnectPanel({
   }
 
   const startOAuth = async (row: ProviderConnectRow) => {
-    if (DEVICE_OAUTH_PROVIDER_IDS.has(row.id)) {
+    if (isDeviceOAuthProvider(row.id)) {
+      onStatusRef.current?.('')
       setDeviceOAuthRow(row)
       return
     }
@@ -216,14 +248,15 @@ export function ProviderConnectPanel({
     }
   }
 
-  const onDeviceOAuthConnected = () => {
-    if (!deviceOAuthRow) return
-    refreshRow(deviceOAuthRow.id, { connected: true })
-    onStatus?.(`Connected ${deviceOAuthRow.label}.`)
-    if (deviceOAuthRow.category === 'llm') onConnected?.()
+  const onDeviceOAuthConnected = useCallback(() => {
+    const row = deviceOAuthRowRef.current
+    if (!row) return
+    refreshRow(row.id, { connected: true })
+    onStatusRef.current?.(`Connected ${row.label}.`)
+    if (row.category === 'llm') onConnectedRef.current?.()
     void loadProviders()
     setDeviceOAuthRow(null)
-  }
+  }, [loadProviders])
 
   const onToggle = async (row: ProviderConnectRow, nextOn: boolean) => {
     if (disabled || busyId) return
@@ -253,7 +286,23 @@ export function ProviderConnectPanel({
   }
 
   if (loading && !providers.length) {
-    return <p className="wf-user-settings__hint">Loading provider connections…</p>
+    return <PanelStatus>Loading integrations…</PanelStatus>
+  }
+
+  if (deviceOAuthRow && deviceOAuthPresentation === 'inline') {
+    return (
+      <DeviceCodeOAuthFlow
+        row={deviceOAuthRow}
+        workspaceId={workspaceId}
+        active
+        presentation="inline"
+        reportToParent={false}
+        onActiveChange={(next) => {
+          if (!next) setDeviceOAuthRow(null)
+        }}
+        onConnected={onDeviceOAuthConnected}
+      />
+    )
   }
 
   const visibleGroups =
@@ -283,7 +332,7 @@ export function ProviderConnectPanel({
       ) : null}
 
       {layout === 'tabs' && grouped.length > 1 ? (
-        <div className="wf-provider-connect__tabs" role="tablist" aria-label="Provider categories">
+        <div className="wf-provider-connect__tabs" role="tablist" aria-label="Integration categories">
           {grouped.map(([category]) => (
             <button
               key={category}
@@ -299,7 +348,15 @@ export function ProviderConnectPanel({
         </div>
       ) : null}
 
-      <div className={layout === 'tabs' ? 'wf-provider-connect__tab-panel wf-scroll wf-scroll--vertical' : undefined}>
+      <div
+        className={
+          layout === 'tabs' && scrollInner
+            ? 'wf-provider-connect__tab-panel wf-scroll wf-scroll--vertical'
+            : layout === 'tabs'
+              ? 'wf-provider-connect__tab-panel'
+              : undefined
+        }
+      >
       {visibleGroups.map(([category, rows]) => (
         <ProviderList key={category} title={PROVIDER_CATEGORY_LABELS[category] ?? category}>
           {rows.map((row) => (
@@ -331,12 +388,13 @@ export function ProviderConnectPanel({
       ))}
       </div>
 
-      <DeviceCodeOAuthDialog
+      <DeviceCodeOAuthFlow
         row={deviceOAuthRow}
         workspaceId={workspaceId}
-        open={deviceOAuthRow !== null}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setDeviceOAuthRow(null)
+        active={deviceOAuthRow !== null}
+        presentation="dialog"
+        onActiveChange={(next) => {
+          if (!next) setDeviceOAuthRow(null)
         }}
         onConnected={onDeviceOAuthConnected}
         onError={onError}

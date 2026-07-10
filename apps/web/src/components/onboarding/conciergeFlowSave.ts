@@ -4,7 +4,7 @@ import { AGENT_SAVE_STEP_LABELS } from '@/components/onboarding/OnboardingLaunch
 import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
 import { defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
 import type { OperationStep } from '@/components/ui/OperationProgress'
-import { fetchHermesModels } from '@/lib/hermesCatalogApi'
+import { fetchHermesModels, type FallbackEntry } from '@/lib/hermesCatalogApi'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { agentAvatarPersistPayload, logoAvatarPersistPayload, userAvatarPersistPayload } from '@/lib/presetAssets'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -24,6 +24,7 @@ export type ConciergeSaveDeps = {
   agentSoul: string
   agentAvatar: string
   agentPrimaryModel: string
+  agentFallbackChain: FallbackEntry[]
   connectedProviders: string[]
   isInvitee: boolean
   deploymentMode: string
@@ -140,22 +141,35 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
     try {
       const models = await fetchHermesModels(undefined, deps.workspaceId, { selectionOnly: true })
       const primary = (deps.agentPrimaryModel || models.primary || '').trim()
-      if (!primary) {
+      const fallbacks = deps.agentFallbackChain.length >= 2
+        ? deps.agentFallbackChain
+        : (models.fallback_chain ?? [])
+      const fb0 = fallbacks[0]?.model?.trim() ?? ''
+      const fb1 = fallbacks[1]?.model?.trim() ?? ''
+
+      if (!deps.connectedProviders.length) {
         deps.setError({
           tone: 'caution',
-          message: 'Choose a primary model for your agent.',
+          message: 'Connect at least one LLM integration first.',
           hint:
-            deps.credentialMode === 'byok' && !deps.connectedProviders.length
-              ? 'Connect at least one LLM provider key, then pick a model from the refreshed list.'
-              : 'Select a primary model before continuing.',
+            deps.credentialMode === 'workspace'
+              ? 'Add a shared workspace provider key, then use Select Model to pick primary and fallbacks.'
+              : 'Add a provider key, then use Select Model to pick primary and fallbacks.',
         })
-        if (deps.credentialMode === 'byok' && !deps.connectedProviders.length) {
-          deps.setAgentModelTab('keys')
-        } else {
-          deps.setAgentModelTab('model')
-        }
+        deps.setAgentModelTab('keys')
         return
       }
+
+      if (!primary || !fb0 || !fb1) {
+        deps.setError({
+          tone: 'caution',
+          message: 'Configure primary and both fallback models.',
+          hint: 'Pick one model for each slot — Primary, Fallback 1, and Fallback 2.',
+        })
+        deps.setAgentModelTab('model')
+        return
+      }
+
       deps.setAgentPrimaryModel(primary)
       if (deps.isInvitee) {
         await deps.finishInviteeOnboarding()

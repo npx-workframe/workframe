@@ -3,9 +3,17 @@ import { stepsFromApiResults, type OperationStep } from '@/components/ui/Operati
 import type { StackConfig } from '@/lib/workframeAuthApi'
 
 export const DEPLOYMENT_MODES = [
-  { id: 'single_user_local', title: 'Just me on this machine', blurb: 'Solo use — skip email sign-in.' },
+  { id: 'single_user_local', title: 'Just me on this environment', blurb: 'Solo use — skip email sign-in.' },
   { id: 'trusted_team', title: 'My team on Docker', blurb: 'Teammates sign in with email verification.' },
   { id: 'public_multi_user', title: 'Public on the web', blurb: 'Shared URL — DNS, HTTPS, and full security.' },
+] as const
+
+export const DEPLOYMENT_MODES_PLANNED = [
+  {
+    id: 'cloud',
+    title: 'Cloud (coming soon)',
+    blurb: 'Provision your server, own your data, work from anywhere.',
+  },
 ] as const
 
 export type SmtpProgressPhase = 'setup' | 'smtp' | 'test-email' | 'verify'

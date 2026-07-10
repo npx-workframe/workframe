@@ -28,6 +28,7 @@ export type EmailOtpVerificationProps = {
   onStepChange?: (step: EmailOtpStep) => void
   layout?: 'inline' | 'footer'
   variant?: 'default' | 'wizard'
+  skipEmailStep?: boolean
 }
 
 export function authStartNotice(result: AuthStartResponse, targetEmail: string) {
@@ -85,8 +86,10 @@ export function EmailOtpVerification({
   onStepChange,
   layout = 'inline',
   variant = 'default',
+  skipEmailStep = false,
 }: EmailOtpVerificationProps) {
-  const [step, setStep] = useState<EmailOtpStep>(startStep)
+  const resolvedStartStep = skipEmailStep && initialEmail.trim() && startStep === 'email' ? 'otp' : startStep
+  const [step, setStep] = useState<EmailOtpStep>(resolvedStartStep)
   const [email, setEmail] = useState(initialEmail)
   const [otp, setOtp] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -110,8 +113,9 @@ export function EmailOtpVerification({
   }, [initialEmail])
 
   useEffect(() => {
-    setStep(startStep)
-  }, [startStep])
+    const next = skipEmailStep && initialEmail.trim() && startStep === 'email' ? 'otp' : startStep
+    setStep(next)
+  }, [initialEmail, skipEmailStep, startStep])
 
   useEffect(() => {
     onStepChange?.(step)
@@ -335,9 +339,11 @@ export function EmailOtpVerification({
         >
           {step === 'verifying' || busy ? 'Verifying…' : 'Verify code'}
         </WfActionButton>
-        <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
-          Use another email
-        </WfActionButton>
+        {!skipEmailStep ? (
+          <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
+            Use another email
+          </WfActionButton>
+        ) : null}
         <WfActionButton
           wizardSize
           tone={resendCooldown > 0 ? 'inactive' : 'default'}
@@ -348,7 +354,7 @@ export function EmailOtpVerification({
         </WfActionButton>
       </>
     )
-  }, [useFooter, step, busy, email, otp.length, resendCooldown, googleOAuthEnabled])
+  }, [useFooter, step, busy, email, otp.length, resendCooldown, googleOAuthEnabled, skipEmailStep])
 
   useEffect(() => {
     if (useFooter && onFooterChange) onFooterChange(footer)
@@ -365,7 +371,7 @@ export function EmailOtpVerification({
         </div>
       ) : null}
 
-      {step === 'email' ? (
+      {step === 'email' && !skipEmailStep ? (
         <form id="wf-email-otp-email-form" className="wf-auth__form" onSubmit={handleEmailSubmit}>
           {purpose === 'register' ? (
             <p className="wf-auth__muted">This registers you as the Workframe admin.</p>
@@ -456,9 +462,11 @@ export function EmailOtpVerification({
                   >
                     {step === 'verifying' || busy ? 'Verifying…' : 'Verify code'}
                   </WfActionButton>
-                  <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
-                    Use another email
-                  </WfActionButton>
+                  {!skipEmailStep ? (
+                    <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
+                      Use another email
+                    </WfActionButton>
+                  ) : null}
                 </div>
                 <div className={`wf-auth__row${wizardOtp ? ' wf-auth-otp-panel__resend' : ' wf-auth__row--between'}`}>
                   <span className="wf-auth__muted">

@@ -16,6 +16,7 @@ from typing import Any
 import auth_rate_limit
 import google_auth
 import stack_config
+import zk_auth as _zk
 from email_sender import APP_BASE_URL
 
 
@@ -384,53 +385,58 @@ class AuthRoutesMixin:
             srv._log_handler_error("GET /api/auth/google/callback", exc)
             self._json(401, {"ok": False, "error": str(exc)})
 
+    def _redirect_provider_connect(self, provider: str, *, ok: bool, message: str = "") -> None:
+        status = "ok" if ok else "error"
+        detail = message or ("connected" if ok else "failed")
+        location = (
+            f"{APP_BASE_URL.rstrip('/')}/?provider_connect={urllib.parse.quote(provider)}"
+            f"&status={status}&message={urllib.parse.quote(detail)}"
+        )
+        self.send_response(302)
+        self.send_header("Location", location)
+        self.end_headers()
+
     def _route_get_oauth_github_callback(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()
         user_id = str(getattr(self, "auth_user", "") or "")
         if not user_id:
-            self._json(401, {"ok": False, "error": "no_session"})
+            self._redirect_provider_connect("github", ok=False, message="no_session")
             return
         code = qs.get("code", [""])[0]
         state = qs.get("state", [""])[0]
         result = srv._complete_github_oauth(user_id, str(code or ""), str(state or ""))
-        status = "ok" if result.get("ok") else "error"
-        message = urllib.parse.quote(str(result.get("error") or "connected"))
-        location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=github&status={status}&message={message}"
-        self.send_response(302)
-        self.send_header("Location", location)
-        self.end_headers()
+        if result.get("ok"):
+            self._redirect_provider_connect("github", ok=True)
+            return
+        self._redirect_provider_connect("github", ok=False, message=str(result.get("error") or "failed"))
 
     def _route_get_oauth_discord_callback(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()
         user_id = str(getattr(self, "auth_user", "") or "")
         if not user_id:
-            self._json(401, {"ok": False, "error": "no_session"})
+            self._redirect_provider_connect("discord", ok=False, message="no_session")
             return
         code = qs.get("code", [""])[0]
         state = qs.get("state", [""])[0]
         result = srv._complete_discord_oauth(user_id, str(code or ""), str(state or ""))
-        status = "ok" if result.get("ok") else "error"
-        message = urllib.parse.quote(str(result.get("error") or "connected"))
-        location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=discord&status={status}&message={message}"
-        self.send_response(302)
-        self.send_header("Location", location)
-        self.end_headers()
+        if result.get("ok"):
+            self._redirect_provider_connect("discord", ok=True)
+            return
+        self._redirect_provider_connect("discord", ok=False, message=str(result.get("error") or "failed"))
 
     def _route_get_oauth_stripe_callback(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()
         user_id = str(getattr(self, "auth_user", "") or "")
         if not user_id:
-            self._json(401, {"ok": False, "error": "no_session"})
+            self._redirect_provider_connect("stripe", ok=False, message="no_session")
             return
         code = qs.get("code", [""])[0]
         state = qs.get("state", [""])[0]
         result = srv._complete_stripe_oauth(user_id, str(code or ""), str(state or ""))
-        status = "ok" if result.get("ok") else "error"
-        message = urllib.parse.quote(str(result.get("error") or "connected"))
-        location = f"{APP_BASE_URL.rstrip('/')}/?provider_connect=stripe&status={status}&message={message}"
-        self.send_response(302)
-        self.send_header("Location", location)
-        self.end_headers()
+        if result.get("ok"):
+            self._redirect_provider_connect("stripe", ok=True)
+            return
+        self._redirect_provider_connect("stripe", ok=False, message=str(result.get("error") or "failed"))
 
     def _route_get_me(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()

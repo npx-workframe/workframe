@@ -1,11 +1,9 @@
 import { useState } from 'react'
 
-import { AvatarPickerGrid } from '@/components/onboarding/AvatarPickerGrid'
+import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
 import { DialogCancelButton, DialogConfirmButton } from '@/components/dialogs/DialogActions'
-import { DialogField } from '@/components/dialogs/DialogField'
-import { Input } from '@/components/ui/input'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WizardFormActions } from '@/components/workspace/WizardFormActions'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
@@ -127,37 +125,31 @@ export function CreateProjectDialog({
         </WizardFormActions>
       }
     >
-      <div className="space-y-4" role="tabpanel">
-        {error ? <WorkframeNotice message={error} /> : null}
+      <div className="space-y-4">
         {busy ? <OperationProgress steps={steps} title="Creating project…" /> : null}
 
-        <div className="wf-wizard-panel wf-onboarding-form">
-          <DialogField label="Logo">
-            <AvatarPickerGrid kind="logo" value={logoUrl} onChange={setLogoUrl} disabled={busy} />
-          </DialogField>
-
-          <DialogField label="Name" htmlFor="wf-create-project-name">
-            <Input
-              id="wf-create-project-name"
-              className="wf-dialog-input"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Engineering"
-              disabled={busy}
-            />
-          </DialogField>
-
-          <DialogField label="Topic" htmlFor="wf-create-project-topic" hint="Optional short description.">
-            <Input
-              id="wf-create-project-topic"
-              className="wf-dialog-input"
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              placeholder="Ship logs, standups, releases…"
-              disabled={busy}
-            />
-          </DialogField>
-        </div>
+        <SettingsPanelBody error={error}>
+          <OnboardingIdentityFields
+            avatarKind="logo"
+            avatarLabel="Logo"
+            avatarUrl={logoUrl}
+            onAvatarChange={setLogoUrl}
+            disabled={busy}
+            primary={{
+              id: 'wf-create-project-name',
+              label: 'Name',
+              value: name,
+              onChange: setName,
+            }}
+            secondary={{
+              id: 'wf-create-project-topic',
+              label: 'Topic',
+              value: topic,
+              onChange: setTopic,
+            }}
+          />
+          <p className="wf-dialog-field__hint m-0">Optional short description.</p>
+        </SettingsPanelBody>
       </div>
     </SettingsSheetFrame>
   )

@@ -4,6 +4,14 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-09T22:52-03:00 | pm-workframe | Device OAuth dialog — opaque overlay + OTP-panel layout (code cells, copy, wizard buttons); dogfood UI restart.
+2026-07-09T22:45-03:00 | pm-workframe | LLM provider icons — reuse sign-in-app inset well (div + brand img); relief backdrop cleared; dogfood UI restart.
+2026-07-09T22:38-03:00 | pm-workframe | Fix step 9 company-pays — always show Providers tab (workspace-scoped keys) before Models; dogfood UI restart.
+2026-07-09T22:27-03:00 | pm-workframe | Step 9 Agent Model guided flow — land Providers tab; Select Model after ≥1 LLM integration; Continue when primary + 2 fallbacks set; dogfood sync.
+2026-07-09T22:22-03:00 | pm-workframe | Normalize UI copy providers→integrations (wizard, settings, errors); fix provider_catalog em-dash mojibake; dogfood sync.
+2026-07-09T22:18-03:00 | pm-workframe | Provider logos — transparent mono SVGs (openrouter/openai/anthropic/perplexity/nvidia) + theme invert on icon wells; dogfood UI restart.
+2026-07-09T22:13-03:00 | pm-workframe | WF-032 re-export gaps — _USER_LLM_PICKER_TTL_SEC, _invalidate_profile_health_cache, _profile_toolsets_ready; provider logos + rail stand-up + wizard scroll fix; dogfood sync + restart.
+2026-07-09T21:50-03:00 | pm-workframe | Integrations audit patch dogfood sync @ 4e1dcdb+ — OAuth return redirects (GitHub/Discord/Stripe), Google pending SQLite, provider_connect UI banner; build→sync→bundle→MyBusiness recreate; parity OK; fixed server._profile_model re-export for /api/meta 500.
 2026-07-08T15:30-03:00 | pm-workframe | Admin email on Welcome step; dogfood UI synced @ ad4254b (build→bundle→MyBusiness workframe recreate).
 2026-07-08T11:30-03:00 | pm-workframe | UI theme rebrand committed; bump 0.1.14; install-gate green; tag v0.1.14 pushed for npm publish + dogfood reset.
 2026-07-08T10:50-03:00 | pm-workframe | create-workframe@0.1.13 published via CI (tag v0.1.13); dogfood API health green; install-gate green.

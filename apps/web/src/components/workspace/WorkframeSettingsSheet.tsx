@@ -11,7 +11,7 @@ import { SmtpSettingsFields } from '@/components/settings/SmtpSettingsFields'
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
 import { ReducedProfileCard } from '@/components/ui/ReducedProfileCard'
-import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { AgentDelegationPanel } from '@/components/workspace/AgentDelegationPanel'
 import { StackUpdatesPanel } from '@/components/workspace/StackUpdatesPanel'
@@ -182,7 +182,6 @@ export function WorkframeSettingsSheet({
         smtpSaveRef.current?.() ?? Promise.resolve(true),
       ])
       if (results.some((ok) => !ok)) {
-        setError('Some integration settings could not be saved. Review the messages above and try again.')
         return
       }
       setStatus('Integrations saved. Changes apply on the next agent run.')
@@ -256,39 +255,34 @@ export function WorkframeSettingsSheet({
     >
       <div className="wf-workframe-settings space-y-4">
         {tab === 'workframe' ? (
-          <div className="space-y-4" role="tabpanel">
-            {error ? <WorkframeNotice message={error} /> : null}
-            {status ? <WorkframeStatusNotice message={status} /> : null}
-
-            <div className="wf-wizard-panel wf-onboarding-form">
-              <OnboardingIdentityFields
-                avatarKind="logo"
-                avatarLabel="Logo"
-                avatarUrl={avatarDisplayUrl}
-                onAvatarChange={setAvatarUrl}
-                disabled={fieldsDisabled}
-                primary={{
-                  id: 'wf-workframe-name',
-                  label: 'Workframe name',
-                  value: displayName,
-                  onChange: setDisplayName,
-                }}
-                secondary={{
-                  id: 'wf-workframe-tagline',
-                  label: 'Tagline',
-                  value: workframeTagline,
-                  onChange: setWorkframeTagline,
-                }}
-                body={{
-                  id: 'wf-workframe-description',
-                  label: 'Mission',
-                  value: description,
-                  onChange: setDescription,
-                  rows: 4,
-                  placeholder: 'What this Workframe is for',
-                }}
-              />
-            </div>
+          <SettingsPanelBody error={error} status={status}>
+            <OnboardingIdentityFields
+              avatarKind="logo"
+              avatarLabel="Logo"
+              avatarUrl={avatarDisplayUrl}
+              onAvatarChange={setAvatarUrl}
+              disabled={fieldsDisabled}
+              primary={{
+                id: 'wf-workframe-name',
+                label: 'Workframe name',
+                value: displayName,
+                onChange: setDisplayName,
+              }}
+              secondary={{
+                id: 'wf-workframe-tagline',
+                label: 'Tagline',
+                value: workframeTagline,
+                onChange: setWorkframeTagline,
+              }}
+              body={{
+                id: 'wf-workframe-description',
+                label: 'Mission',
+                value: description,
+                onChange: setDescription,
+                rows: 4,
+                placeholder: 'What this Workframe is for',
+              }}
+            />
 
             {canManage ? (
               <SettingsSection
@@ -302,11 +296,11 @@ export function WorkframeSettingsSheet({
             {!canManage ? (
               <p className="wf-user-settings__hint">Only a Workframe admin can edit these details.</p>
             ) : null}
-          </div>
+          </SettingsPanelBody>
         ) : null}
 
         {tab === 'members' ? (
-          <div className="space-y-4" role="tabpanel">
+          <div className="space-y-4">
             {canManage ? (
               <div className="flex items-center justify-end gap-3">
                 <WfActionButton type="button" tone="primary" onClick={onInviteClick}>
@@ -315,47 +309,46 @@ export function WorkframeSettingsSheet({
               </div>
             ) : null}
 
-            {error ? <WorkframeNotice message={error} /> : null}
-            {status ? <WorkframeStatusNotice message={status} /> : null}
-
-            {members.length ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {members.map((member) => {
-                  const label = member.display_name || member.email || member.user_id
-                  const isSelf = member.user_id === currentUserId
-                  return (
-                    <div key={member.membership_id} className="relative group">
-                      <ReducedProfileCard
-                        type={member.role || 'Member'}
-                        name={label}
-                        tagline={member.tagline || member.email || member.user_id}
-                        avatarUrl={resolveUserAvatarUrl(member.avatar_url) || null}
-                      />
-                      {canManage && !isSelf ? (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            disabled={busyUserId === member.user_id}
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              void removeMember(member)
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
-                No members yet.
-              </p>
-            )}
+            <SettingsPanelBody error={error} status={status} bare>
+              {members.length ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {members.map((member) => {
+                    const label = member.display_name || member.email || member.user_id
+                    const isSelf = member.user_id === currentUserId
+                    return (
+                      <div key={member.membership_id} className="relative group">
+                        <ReducedProfileCard
+                          type={member.role || 'Member'}
+                          name={label}
+                          tagline={member.tagline || member.email || member.user_id}
+                          avatarUrl={resolveUserAvatarUrl(member.avatar_url) || null}
+                        />
+                        {canManage && !isSelf ? (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              disabled={busyUserId === member.user_id}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                void removeMember(member)
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
+                  No members yet.
+                </p>
+              )}
+            </SettingsPanelBody>
           </div>
         ) : null}
 
@@ -370,39 +363,38 @@ export function WorkframeSettingsSheet({
         ) : null}
 
         {tab === 'invites' && canManage ? (
-          <div className="space-y-4" role="tabpanel">
+          <div className="space-y-4">
             <div className="flex items-center justify-end gap-3">
               <WfActionButton type="button" tone="primary" onClick={onInviteClick}>
                 Invite member
               </WfActionButton>
             </div>
 
-            {error ? <WorkframeNotice message={error} /> : null}
-            {status ? <WorkframeStatusNotice message={status} /> : null}
-
-            {pendingInvites.length ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {pendingInvites.map((invite) => (
-                  <ReducedProfileCard
-                    key={invite.id}
-                    type="Pending"
-                    name={invite.email}
-                    tagline={invite.role || 'Member'}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
-                No pending invites.
-              </p>
-            )}
+            <SettingsPanelBody error={error} status={status} bare>
+              {pendingInvites.length ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {pendingInvites.map((invite) => (
+                    <ReducedProfileCard
+                      key={invite.id}
+                      type="Pending"
+                      name={invite.email}
+                      tagline={invite.role || 'Member'}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
+                  No pending invites.
+                </p>
+              )}
+            </SettingsPanelBody>
           </div>
         ) : null}
 
-          {tab === 'updates' && canManage ? <StackUpdatesPanel onBadgeChange={setUpdatesBadge} /> : null}
+        {tab === 'updates' && canManage ? <StackUpdatesPanel onBadgeChange={setUpdatesBadge} /> : null}
 
         {tab === 'integrations' && canManage ? (
-          <div className="space-y-4" role="tabpanel">
+          <div className="space-y-4">
             <div className="flex items-center justify-end gap-3">
               <WfActionButton
                 type="button"
@@ -415,10 +407,7 @@ export function WorkframeSettingsSheet({
               </WfActionButton>
             </div>
 
-            {error ? <WorkframeNotice message={error} /> : null}
-            {status ? <WorkframeStatusNotice message={status} /> : null}
-
-            <div className="wf-wizard-panel wf-onboarding-form space-y-8">
+            <SettingsPanelBody error={error} status={status} className="space-y-8">
               <SettingsSection
                 title="Email delivery"
                 hint="SMTP for invites, sign-in codes, and notifications. Password is vault-encrypted on the stack."
@@ -469,7 +458,7 @@ export function WorkframeSettingsSheet({
                   onError={setError}
                 />
               </SettingsSection>
-            </div>
+            </SettingsPanelBody>
           </div>
         ) : null}
       </div>

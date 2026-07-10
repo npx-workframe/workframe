@@ -434,6 +434,33 @@ def _parse_device_oauth_log(text: str) -> dict[str, str | None]:
     return {"verification_uri": verification_uri, "user_code": user_code}
 
 
+def _device_oauth_error_from_log(log_text: str) -> str | None:
+    clean = _strip_ansi(log_text).strip()
+    if not clean:
+        return None
+    lowered = clean.lower()
+    auth_err = re.search(r"AuthError:\s*(.+)", clean)
+    if auth_err:
+        return auth_err.group(1).strip()[:500]
+    if "rate-limit" in lowered or "rate limiting" in lowered or "http 429" in lowered or re.search(r"\b429\b", lowered):
+        return (
+            "OpenAI is rate-limiting Codex login requests (HTTP 429). "
+            "Wait a minute and try again."
+        )
+    if any(token in lowered for token in ("login timed out", "login cancelled", "oauth_start_failed")):
+        lines = [line.strip() for line in clean.splitlines() if line.strip()]
+        return (lines[-1] if lines else "OAuth failed")[:500]
+    if "traceback" in lowered and any(token in lowered for token in ("error", "exception", "failed")):
+        for line in reversed(clean.splitlines()):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("File ") or "Traceback" in stripped:
+                continue
+            if stripped.endswith(":") and "Error" not in stripped:
+                continue
+            return stripped[:500]
+    return None
+
+
 def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: str) -> None:
     if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
         return
@@ -527,11 +554,13 @@ def _start_device_oauth(user_id: str, provider_id: str, spec: dict[str, Any]) ->
     except (RuntimeError, ValueError) as exc:
         return {"ok": False, "provider": provider_id, "error": str(exc)}
     if rc != 0:
+        output = (out or "").strip()
         return {
             "ok": False,
             "provider": provider_id,
             "error": "oauth_start_failed",
-            "output": (out or "").strip(),
+            "output": output,
+            "message": _device_oauth_error_from_log(output) or output[-500:] or "Could not start OAuth",
         }
     with _oauth_device_lock:
         _oauth_device_sessions[session_id] = {
@@ -583,6 +612,19 @@ def device_oauth_status(user_id: str, provider_id: str, session_id: str) -> dict
     if patch:
         _device_oauth_session_patch(session_id, patch)
         sess.update(patch)
+    log_error = _device_oauth_error_from_log(log_text)
+    if log_error:
+        _device_oauth_session_patch(session_id, {"status": "error"})
+        return {
+            "ok": False,
+            "provider": provider_id,
+            "session_id": session_id,
+            "status": "error",
+            "error": "oauth_failed",
+            "message": log_error,
+            "verification_uri": sess.get("verification_uri"),
+            "user_code": sess.get("user_code"),
+        }
     if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
         if not sess.get("finalized"):
             _finalize_hermes_device_oauth(user_id, provider_id, spec)
@@ -617,7 +659,7 @@ def device_oauth_status(user_id: str, provider_id: str, session_id: str) -> dict
             "session_id": session_id,
             "status": "error",
             "error": "oauth_failed",
-            "message": _strip_ansi(log_text).strip()[-500:] or "OAuth failed",
+            "message": _device_oauth_error_from_log(log_text) or _strip_ansi(log_text).strip()[-500:] or "OAuth failed",
             "verification_uri": sess.get("verification_uri"),
             "user_code": sess.get("user_code"),
         }

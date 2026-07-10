@@ -19,6 +19,12 @@ import { isElectronRuntime } from '@/lib/runtime'
 import { ButtonShowcasePage } from '@/pages/dev/ButtonShowcasePage'
 import { ThemeShowcasePage } from '@/pages/dev/ThemeShowcasePage'
 import { WORKFRAME_SESSION_EXPIRED } from '@/lib/authenticatedFetch'
+import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import {
+  clearProviderConnectReturn,
+  peekProviderConnectReturn,
+  type ProviderConnectReturn,
+} from '@/lib/providerConnectReturn'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
 
 console.log('[workframe] App module loaded')
@@ -87,8 +93,16 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState(false)
   const [installWindowActive, setInstallWindowActive] = useState(false)
+  const [providerConnectNotice, setProviderConnectNotice] = useState<ProviderConnectReturn | null>(null)
   const installWindowRef = useRef(false)
   const resolvingPhaseRef = useRef(false)
+
+  useEffect(() => {
+    const returned = peekProviderConnectReturn()
+    if (!returned) return
+    setProviderConnectNotice(returned)
+    clearProviderConnectReturn()
+  }, [])
 
   const navigate = useCallback((path: string) => {
     window.history.pushState({}, '', path)
@@ -283,10 +297,24 @@ function App() {
     content = <WorkframeShell projectName={projectName} onLogout={handleLogout} />
   }
 
+  const providerConnectBanner =
+    providerConnectNotice && phase === 'shell' ? (
+      <WorkframeNotice
+        message={providerConnectNotice.message}
+        className={
+          providerConnectNotice.status === 'ok'
+            ? 'wf-notice--success wf-provider-connect-return'
+            : 'wf-notice--wizard wf-provider-connect-return'
+        }
+        role="status"
+      />
+    ) : null
+
   if (!isElectronRuntime()) {
     return (
       <>
         <CanvasBackground />
+        {providerConnectBanner}
         {content}
       </>
     )
@@ -297,7 +325,10 @@ function App() {
       <CanvasBackground />
       <div className="wf-desktop-frame">
         <DesktopTitleBar title={projectName} />
-        <div className="wf-desktop-frame__body">{content}</div>
+        <div className="wf-desktop-frame__body">
+          {providerConnectBanner}
+          {content}
+        </div>
       </div>
     </>
   )

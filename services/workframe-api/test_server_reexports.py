@@ -86,6 +86,10 @@ _REQUIRED = (
     "_promote_workspace_owner_if_unclaimed",
     "_sync_workspace_home_room",
     "_onboard_workspace_member_rooms",
+    "_profile_model",
+    "_USER_LLM_PICKER_TTL_SEC",
+    "_invalidate_profile_health_cache",
+    "_profile_toolsets_ready",
 )
 
 

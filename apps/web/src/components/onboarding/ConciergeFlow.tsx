@@ -84,6 +84,10 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       onSaveWorkframe={() => void flow.saveWorkframe()}
       onSaveProfile={() => void flow.saveProfile()}
       onSaveAgentModel={() => void flow.saveAgentModel()}
+      onSelectAgentModel={() => flow.setAgentModelTab('model')}
+      agentModelTab={flow.agentModelTab}
+      agentModelsComplete={flow.agentModelsComplete}
+      connectedProviderCount={flow.connectedProviders.length}
       onSaveAgent={() => void flow.saveAgent()}
       onFinishInstall={() => void flow.finishInstall()}
       onSendInvites={() => void flow.sendInvites()}
@@ -128,6 +132,8 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           smtpPass={flow.smtpPass}
           smtpHasPassword={flow.smtpHasPassword}
           smtpFrom={flow.smtpFrom}
+          smtpSetupComplete={flow.smtpSetupComplete}
+          smtpTested={Boolean(flow.stack?.smtp?.tested)}
           adminEmail={flow.adminEmail}
           adminOtpStep={flow.adminOtpStep}
           adminAuthDevOtp={flow.adminAuthDevOtp}
@@ -188,6 +194,8 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           onAgentAvatarChange={flow.setAgentAvatar}
           onAgentModelTabChange={flow.setAgentModelTab}
           onAgentPrimaryModelChange={flow.setAgentPrimaryModel}
+          onAgentFallbackChainChange={flow.setAgentFallbackChain}
+          onAgentProvidersConnected={flow.refreshAgentModelStep}
           onInviteEmailsChange={flow.setInviteEmails}
           onPublicUrlChange={flow.setPublicUrl}
           onBindOAuthSave={flow.bindOAuthSave}

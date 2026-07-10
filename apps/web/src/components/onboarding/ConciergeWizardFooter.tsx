@@ -23,6 +23,10 @@ type ConciergeWizardFooterProps = {
   onSaveWorkframe: () => void
   onSaveProfile: () => void
   onSaveAgentModel: () => void
+  onSelectAgentModel: () => void
+  agentModelTab: 'keys' | 'model'
+  agentModelsComplete: boolean
+  connectedProviderCount: number
   onSaveAgent: () => void
   onFinishInstall: () => void
   onSendInvites: () => void
@@ -52,6 +56,10 @@ export function ConciergeWizardFooter({
   onSaveWorkframe,
   onSaveProfile,
   onSaveAgentModel,
+  onSelectAgentModel,
+  agentModelTab,
+  agentModelsComplete,
+  connectedProviderCount,
   onSaveAgent,
   onFinishInstall,
   onSendInvites,
@@ -134,8 +142,25 @@ export function ConciergeWizardFooter({
       )
     case 'agent_model':
       if (!workspaceId) return null
+      if (agentModelTab === 'keys') {
+        return (
+          <WfActionButton
+            wizardSize
+            tone="primary"
+            disabled={busy || connectedProviderCount < 1}
+            onClick={onSelectAgentModel}
+          >
+            Select Model
+          </WfActionButton>
+        )
+      }
       return (
-        <WfActionButton wizardSize tone="primary" disabled={busy} onClick={onSaveAgentModel}>
+        <WfActionButton
+          wizardSize
+          tone="primary"
+          disabled={busy || !agentModelsComplete}
+          onClick={onSaveAgentModel}
+        >
           {busy
             ? 'Saving…'
             : isInvitee || deploymentMode === 'single_user_local'

@@ -95,7 +95,7 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
   },
   provider_invalid_key: {
     message: 'Your API key was rejected by the provider.',
-    hint: 'Reset the key at your provider, then paste it again under Settings → Provider keys.',
+    hint: 'Reset the key at the integration, then paste it again under Settings → Integrations.',
     actionLabel: 'Update API key',
   },
   provider_no_credits: {
@@ -109,8 +109,8 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
     actionLabel: 'Try again',
   },
   concierge_add_keys: {
-    message: 'Connect an LLM provider to enable chat.',
-    hint: 'OpenRouter is the fastest path — paste your API key under Settings → Provider keys.',
+    message: 'Connect an LLM integration to enable chat.',
+    hint: 'OpenRouter is the fastest path — paste your API key under Settings → Integrations.',
     actionLabel: 'Add API key',
   },
   concierge_change_model: {
@@ -119,9 +119,9 @@ const CODE_COPY: Record<string, { message: string; hint?: string; actionLabel?: 
     actionLabel: 'Choose model',
   },
   no_llm_provider_for_user: {
-    message: 'No model provider is connected for your account.',
-    hint: 'Add an OpenRouter or other LLM key under Settings → Provider keys.',
-    actionLabel: 'Connect provider',
+    message: 'No LLM integration is connected for your account.',
+    hint: 'Add an OpenRouter or other LLM key under Settings → Integrations.',
+    actionLabel: 'Connect integration',
   },
   unauthorized: { message: 'Authentication required.', hint: 'Sign in and try again.' },
   supervisor_unavailable: {
@@ -256,7 +256,7 @@ function providerFailureNotice(raw: string): WorkframeNoticeInfo | null {
       tone: 'caution',
       message: 'Model provider rejected the request.',
       hint: 'Check your API key and the model selected in Settings.',
-      actionLabel: 'Connect provider',
+      actionLabel: 'Connect integration',
     }
   }
   if (/model.*(not found|does not exist|unknown)|invalid model/i.test(trimmed)) {
@@ -422,15 +422,15 @@ export function streamErrorText(payload: Record<string, unknown>): string {
     return noticeMessage({
       tone: 'caution',
       message: 'The agent could not reach the model provider.',
-      hint: 'Check API keys in Settings → Provider keys and the model in Agent Settings.',
-      actionLabel: 'Connect provider',
+      hint: 'Check API keys in Settings → Integrations and the model in Agent Settings.',
+      actionLabel: 'Connect integration',
     })
   }
   if (status === 'interrupted') return 'The agent turn was interrupted.'
   return noticeMessage({
     tone: 'caution',
     message: 'The agent reported an error without details.',
-    hint: 'Check provider keys, model selection, and gateway logs.',
+    hint: 'Check integration keys, model selection, and gateway logs.',
   })
 }
 
@@ -451,8 +451,8 @@ export function emptyAgentReplyText(options?: { streamError?: string; llmReady?:
   return noticeMessage({
     tone: 'caution',
     message: 'The agent returned no reply.',
-    hint: 'The model gateway may have rejected the request — try sending again. If it persists, check Settings → Provider keys and the model in Agent Settings.',
-    actionLabel: 'Connect provider',
+    hint: 'The model gateway may have rejected the request — try sending again. If it persists, check Settings → Integrations and the model in Agent Settings.',
+    actionLabel: 'Connect integration',
   })
 }
 

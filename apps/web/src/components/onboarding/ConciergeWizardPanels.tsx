@@ -4,10 +4,12 @@ import { WorkframeIntegrationsStep } from '@/components/onboarding/WorkframeInte
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { FallbackEntry } from '@/lib/hermesCatalogApi'
 import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
-import { DEPLOYMENT_MODES, defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
+import { DEPLOYMENT_MODES, DEPLOYMENT_MODES_PLANNED, defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
 import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
 
 type ConciergeWizardPanelsProps = {
@@ -53,6 +55,8 @@ type ConciergeWizardPanelsProps = {
   onAgentAvatarChange: (value: string) => void
   onAgentModelTabChange: (tab: 'keys' | 'model') => void
   onAgentPrimaryModelChange: (model: string) => void
+  onAgentFallbackChainChange: (chain: FallbackEntry[]) => void
+  onAgentProvidersConnected: () => void
   onInviteEmailsChange: (value: string) => void
   onPublicUrlChange: (value: string) => void
   onBindOAuthSave: (save: (() => Promise<boolean>) | null) => void
@@ -102,6 +106,8 @@ export function ConciergeWizardPanels({
   onAgentAvatarChange,
   onAgentModelTabChange,
   onAgentPrimaryModelChange,
+  onAgentFallbackChainChange,
+  onAgentProvidersConnected,
   onInviteEmailsChange,
   onPublicUrlChange,
   onBindOAuthSave,
@@ -126,11 +132,6 @@ export function ConciergeWizardPanels({
             Primary admin account for this install — used for sign-in codes and setup notifications.
           </p>
         </div>
-        <ul className="wf-wizard-checklist">
-          <li>Deployment mode and admin sign-in</li>
-          <li>Integrations, billing (BYOK or company-pays)</li>
-          <li>Workframe profile, your keys, and native agent</li>
-        </ul>
       </div>
     )
   }
@@ -149,6 +150,12 @@ export function ConciergeWizardPanels({
             <strong>{m.title}</strong>
             <span>{m.blurb}</span>
           </button>
+        ))}
+        {DEPLOYMENT_MODES_PLANNED.map((m) => (
+          <div key={m.id} className="wf-wizard-mode-card is-inactive" aria-disabled="true">
+            <strong>{m.title}</strong>
+            <span>{m.blurb}</span>
+          </div>
         ))}
       </div>
     )
@@ -193,7 +200,7 @@ export function ConciergeWizardPanels({
           <span className="wf-wizard-choice-card__radio" aria-hidden="true" />
           <span className="wf-wizard-choice-card__body">
             <strong>Company-pays — shared keys</strong>
-            <span>One shared key pool for all members. Admin manages provider keys.</span>
+            <span>One shared key pool for all members. Admin manages integration keys.</span>
           </span>
         </label>
       </div>
@@ -267,34 +274,26 @@ export function ConciergeWizardPanels({
 
   if (step === 'agent_model' && workspaceId) {
     return (
-      <div className="wf-wizard-panel wf-onboarding-form">
-        <div className="wf-wizard-subtabs" role="tablist" aria-label="Agent model sections">
-          {(
-            [
-              ...(credentialMode === 'byok' ? [['keys', 'Provider keys'] as const] : []),
-              ['model', 'LLM model'] as const,
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={agentModelTab === id}
-              className={`wf-wizard-subtabs__btn${agentModelTab === id ? ' is-active' : ''}`}
-              onClick={() => onAgentModelTabChange(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {agentModelTab === 'keys' && credentialMode === 'byok' ? (
+      <SettingsPanelBody
+        tabs={[
+          { id: 'keys', label: 'Providers' },
+          { id: 'model', label: 'Models' },
+        ]}
+        activeTab={agentModelTab}
+        onTabChange={(id) => onAgentModelTabChange(id as 'keys' | 'model')}
+        tablistLabel="Agent model sections"
+      >
+        {agentModelTab === 'keys' ? (
           <ProviderConnectPanel
             workspaceId={workspaceId}
-            credentialScope="user"
+            credentialScope={credentialMode === 'workspace' ? 'workspace' : 'user'}
             categories={['llm']}
             hint="none"
-            layout="tabs"
+            layout="stack"
+            scrollInner={false}
             disabled={busy}
+            onConnected={onAgentProvidersConnected}
+            onError={(message) => onError({ tone: 'caution', message })}
           />
         ) : null}
         {agentModelTab === 'model' ? (
@@ -304,13 +303,18 @@ export function ConciergeWizardPanels({
             selectionOnly
             value={agentPrimaryModel}
             onChanged={onAgentPrimaryModelChange}
+            onFallbacksDraftChange={onAgentFallbackChainChange}
             onLoaded={(data) => {
               if (data.primary?.trim()) onAgentPrimaryModelChange(data.primary.trim())
+              const chain = (data.fallback_chain ?? []).filter(
+                (entry): entry is FallbackEntry => Boolean(entry?.provider?.trim() && entry?.model?.trim()),
+              )
+              if (chain.length) onAgentFallbackChainChange(chain)
             }}
             onError={(message) => onError({ tone: 'caution', message })}
           />
         ) : null}
-      </div>
+      </SettingsPanelBody>
     )
   }
 

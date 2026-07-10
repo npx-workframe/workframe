@@ -47,7 +47,7 @@ export function ModelSwitcher({
       }
       title={
         inactive
-          ? 'Connect OpenRouter or another LLM provider'
+          ? 'Connect OpenRouter or another LLM integration'
           : readOnly
             ? 'Change model in Agent Settings → LLM Models'
             : modelId || 'Model from Hermes profile'

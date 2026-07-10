@@ -12,7 +12,7 @@ PROVIDER_CONNECT_CATALOG: tuple[dict[str, Any], ...] = (
         "category": "llm",
         "connect_mode": "api_key",
         "env_var": "OPENROUTER_API_KEY",
-        "description": "Primary LLM router â€” any model via one API key.",
+        "description": "Primary LLM router — any model via one API key.",
     },
     {
         "id": "anthropic",
@@ -104,7 +104,7 @@ PROVIDER_CONNECT_CATALOG: tuple[dict[str, Any], ...] = (
         "oauth_provider": "github",
         "hermes_auth_id": "github",
         "user_only": True,
-        "description": "OAuth (admin registers app) or fine-grained PAT â€” repo push and GitHub API.",
+        "description": "OAuth (admin registers app) or fine-grained PAT — repo push and GitHub API.",
     },
     {
         "id": "stripe",
@@ -114,7 +114,7 @@ PROVIDER_CONNECT_CATALOG: tuple[dict[str, Any], ...] = (
         "env_var": "STRIPE_SECRET_KEY",
         "oauth_provider": "stripe",
         "user_only": True,
-        "description": "Connect your Stripe account â€” charges, customers, and billing tools.",
+        "description": "Connect your Stripe account — charges, customers, and billing tools.",
     },
     {
         "id": "vercel",

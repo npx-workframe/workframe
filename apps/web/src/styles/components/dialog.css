@@ -8,6 +8,11 @@
   backdrop-filter: blur(10px) saturate(140%);
 }
 
+.wf-dialog-overlay--opaque {
+  background: color-mix(in srgb, var(--wf-bg) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+
 /* Electron: portaled dialogs must not cover the desktop title bar */
 html:has(.wf-desktop-frame) .wf-dialog-overlay {
   inset: var(--wf-desktop-titlebar-height) 0 0 0;
@@ -188,6 +193,79 @@ html:has(.wf-desktop-frame) .wf-dialog-overlay {
 
 .wf-dialog-content.wf-auth-dialog .wf-dialog-header {
   margin-bottom: 0.75rem;
+}
+
+.wf-dialog-content.wf-dialog-content--device-oauth {
+  width: min(calc(100vw - 32px), 30rem);
+  background: color-mix(in srgb, var(--wf-surface) 96%, var(--wf-bg));
+}
+
+.wf-dialog-content--device-oauth .wf-auth-otp-panel {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.wf-device-oauth-panel {
+  gap: 20px;
+}
+
+.wf-device-oauth__open-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.wf-device-oauth__uri {
+  margin: 0;
+  font-family: var(--wf-font-mono);
+  font-size: var(--wf-type-caption);
+  word-break: break-all;
+  text-align: center;
+}
+
+.wf-device-oauth__status {
+  margin: 0;
+  text-align: center;
+}
+
+/* Inline device OAuth — inside settings sheets (no nested Dialog) */
+.wf-device-oauth-panel--inline {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.wf-onboarding-form .wf-device-oauth-panel--inline,
+.wf-wizard-panel .wf-device-oauth-panel--inline {
+  gap: 18px;
+}
+
+.wf-device-oauth-panel--inline .wf-panel-footer {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.wf-device-oauth-panel--inline .wf-auth__dev-code-value {
+  font-size: clamp(1.35rem, 4.5vw, 2rem);
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wf-auth-otp-panel__field > .wf-auth__muted {
+  margin: 0;
+  text-align: center;
 }
 
 .wf-dialog-footer {

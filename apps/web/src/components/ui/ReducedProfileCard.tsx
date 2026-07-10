@@ -1,4 +1,5 @@
 import { Bot, ChevronRight, User } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 
 export type ReducedProfileCardProps = {
@@ -20,36 +21,38 @@ export function ReducedProfileCard({
   className,
   asAgent = false,
 }: ReducedProfileCardProps) {
+  const interactive = Boolean(onClick)
+
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={!interactive}
       className={cn(
-        'w-full flex items-center gap-4 bg-card text-card-foreground border border-border rounded-xl p-3 text-left transition-all hover:border-primary hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        className
+        'wf-profile-entity-card',
+        interactive && 'wf-profile-entity-card--interactive',
+        className,
       )}
     >
-      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted shrink-0 flex items-center justify-center border border-border/50">
+      <span className="wf-profile-entity-card__avatar" aria-hidden="true">
         {avatarUrl ? (
-          <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+          <img src={avatarUrl} alt="" className="wf-profile-entity-card__avatar-img" />
         ) : asAgent ? (
-          <Bot className="w-6 h-6 text-muted-foreground" />
+          <Bot className="wf-profile-entity-card__avatar-icon" />
         ) : (
-          <User className="w-6 h-6 text-muted-foreground" />
+          <User className="wf-profile-entity-card__avatar-icon" />
         )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-sm truncate flex items-center gap-2">
-          {name}
-          {type && (
-            <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium">
-              {type}
-            </span>
-          )}
-        </h4>
-        {tagline && <p className="text-xs text-muted-foreground truncate mt-0.5">{tagline}</p>}
-      </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 opacity-50" />
+      </span>
+      <span className="wf-profile-entity-card__copy">
+        <span className="wf-profile-entity-card__name-row">
+          <span className="wf-profile-entity-card__name">{name}</span>
+          {type ? <span className="wf-profile-entity-card__badge">{type}</span> : null}
+        </span>
+        {tagline ? <span className="wf-profile-entity-card__tagline">{tagline}</span> : null}
+      </span>
+      {interactive ? (
+        <ChevronRight className="wf-profile-entity-card__chevron" aria-hidden="true" />
+      ) : null}
     </button>
   )
 }

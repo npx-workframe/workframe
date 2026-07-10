@@ -190,6 +190,7 @@ _register_runtime_profile = runtime_cohort._register_runtime_profile
 _inherit_runtime_profile_config = runtime_cohort._inherit_runtime_profile_config
 ensure_runtime_profile = runtime_cohort.ensure_runtime_profile
 _ensure_profile_terminal_cwd = runtime_cohort._ensure_profile_terminal_cwd
+_profile_toolsets_ready = runtime_cohort._profile_toolsets_ready
 
 health_data = health_monitor.health_data
 build_snapshot = snapshot_feed.build_snapshot
@@ -613,7 +614,12 @@ import zk_auth as _zk
 _profile_health_cache: dict[str, tuple[bool, float]] = {}
 _PROFILE_HEALTH_TTL_SEC = 8.0
 _user_llm_picker_cache: dict[str, tuple[frozenset[str], float]] = {}
+_USER_LLM_PICKER_TTL_SEC = 60.0
 _SESSION_INFO_TTL_SEC = 5.0
+
+
+def _invalidate_profile_health_cache(profile: str) -> None:
+    _profile_health_cache.pop(str(profile or "").strip(), None)
 
 
 def _install_window_open() -> bool:
@@ -1388,6 +1394,7 @@ _parse_user_content_segments = chat_sessions._parse_user_content_segments
 _parse_tool_content = chat_sessions._parse_tool_content
 _message_row_segments = chat_sessions._message_row_segments
 _llm_attribution_for_profile = chat_sessions._llm_attribution_for_profile
+_profile_model = chat_sessions._profile_model
 _latest_session_id = chat_sessions._latest_session_id
 _session_info = chat_sessions._session_info
 _is_blank_session_title = chat_sessions._is_blank_session_title

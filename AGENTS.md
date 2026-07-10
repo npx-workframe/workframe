@@ -15,6 +15,14 @@ Full commands and anti-patterns: Cursor skill `workframe-release`.
 
 **Before dogfood sync, docker restart on MyBusiness, publish, or any touch of `workframe-api/data/`:** read that skill first (rule: `workframe-release-triggers`). **Banned:** `robocopy /MIR`, full-tree copy into an install, improvised rsync/scp hotfix.
 
+## Patch finish
+
+When a bounded patch should be visible in dogfood: skill `ab-patch-finish` → `abkb/projects/workframe/deploy-routine.md` and Cursor skill `workframe-release` (build → sync → bundle → docker → verify at `http://127.0.0.1:18644`). Commit in this repo before saying done.
+
+## Coding discipline
+
+Ponytail (lazy senior dev): `d:/ab/projects/abkb/knowledge/llm/engineering-discipline.md` + `d:/ab/.cursor/rules/ponytail.mdc`. Edit canonical source only (`services/workframe-api/`, `apps/web/src/`); see developer loop above.
+
 ## Source Hierarchy
 
 1. Primary source artifacts in this repository.

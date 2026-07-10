@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { PanelStatus } from '@/components/ui/PanelPrimitives'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -68,7 +69,7 @@ export function SmtpSettingsFields({ disabled, onBindSave, onError }: SmtpSettin
   }, [onBindSave, save])
 
   if (loading) {
-    return <p className="wf-user-settings__hint">Loading email delivery…</p>
+    return <PanelStatus>Loading email delivery…</PanelStatus>
   }
 
   return (

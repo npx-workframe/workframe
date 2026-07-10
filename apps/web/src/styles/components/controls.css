@@ -91,6 +91,7 @@
   border-color: var(--wf-control-border-color-active);
   box-shadow: var(--wf-control-shadow-active);
   color: var(--wf-control-fg-hover, var(--wf-text));
+  transform: translateY(-1px);
 }
 
 :is(

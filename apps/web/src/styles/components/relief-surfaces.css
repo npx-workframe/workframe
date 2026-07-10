@@ -72,11 +72,7 @@
   box-shadow: var(--wf-control-shadow-footer);
 }
 
-[data-chrome-mode='relief'] .wf-brand-img--mono {
-  filter: none;
-}
-
-/* Neo interactive â€” special cases; shared rows/buttons use controls.css + --wf-control-* tokens */
+/* Neo interactive — special cases; shared rows/buttons use controls.css + --wf-control-* tokens */
 
 [data-chrome-mode='relief'] .wf-activity-tree__row--active,
 [data-chrome-mode='relief'] .wf-activity-tree__row--active:hover,
@@ -523,25 +519,43 @@
   color: var(--wf-text);
 }
 
+/* Wizard rail: one neo level on the step control — not li + btn nested tabs */
 [data-chrome-mode='relief'] .wf-onboarding-wizard__steps li {
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-chrome-mode='relief'] .wf-onboarding-wizard__step-btn {
   background: var(--wf-control-bg-flush);
+  border: none;
   box-shadow: var(--wf-control-shadow-flush);
 }
 
-[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-current {
+[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn {
   background: var(--wf-control-bg-raised);
   box-shadow: var(--wf-control-shadow-raised);
   color: var(--wf-text);
+  transform: translateY(-1px);
 }
 
-[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-clickable:not(.is-current):hover {
+[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked) .wf-sign-in-app__icon,
+[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__editor) .wf-sign-in-app__icon {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked),
+[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__editor) {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  transform: translateY(-1px);
+}
+
+[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-clickable:not(.is-current):hover .wf-onboarding-wizard__step-btn {
   background: var(--wf-control-bg-raised);
   box-shadow: var(--wf-control-shadow-raised);
-}
-
-[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-clickable:hover .wf-onboarding-wizard__step-btn,
-[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn {
-  background: var(--wf-control-bg-flush);
+  color: var(--wf-text);
 }
 
 [data-chrome-mode='relief'] :is(
@@ -556,7 +570,8 @@
   .wf-dialog__mode-tab,
   .wf-dialog__option,
   .wf-dialog-select-list__option,
-  .wf-avatar-grid__item
+  .wf-avatar-grid__item,
+  .wf-onboarding-identity__preview-btn
 ) {
   background: var(--wf-control-bg-flush);
   border: none;
@@ -577,7 +592,8 @@
   .wf-dialog__option:focus-visible:not(.is-selected):not([data-current='true']),
   .wf-dialog-select-list__option:hover:not(.is-selected),
   .wf-dialog-select-list__option:focus-visible:not(.is-selected),
-  .wf-avatar-grid__item:hover:not(.wf-avatar-grid__item--active)
+  .wf-avatar-grid__item:hover:not(.wf-avatar-grid__item--active),
+  .wf-onboarding-identity__preview-btn:hover:not(.wf-avatar-grid__item--active)
 ) {
   background: var(--wf-control-bg-raised);
   border: none;
@@ -598,7 +614,8 @@
   .wf-dialog__option.is-selected,
   .wf-dialog__option[data-current='true'],
   .wf-dialog-select-list__option.is-selected,
-  .wf-avatar-grid__item--active
+  .wf-avatar-grid__item--active,
+  .wf-onboarding-identity__preview-btn.wf-avatar-grid__item--active
 ) {
   background: var(--wf-control-bg-raised);
   border: none;
@@ -682,10 +699,38 @@
   padding: 0;
 }
 
+@media (max-width: 720px) {
+  [data-chrome-mode='relief'] .wf-onboarding-wizard__steps li {
+    padding-block: 6px;
+    padding-inline: 0;
+  }
+}
+
 [data-chrome-mode='relief'] .wf-dialog-content {
   background: var(--wf-chrome-fill);
   border: none;
   box-shadow: var(--wf-relief-outset-l);
+}
+
+[data-chrome-mode='relief'] .wf-dialog-content.wf-dialog-content--device-oauth {
+  background: color-mix(in srgb, var(--wf-bg) 94%, var(--wf-surface));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-chrome-mode='relief'] .wf-dialog-overlay--opaque {
+  background: color-mix(in srgb, var(--wf-bg) 88%, transparent);
+}
+
+[data-chrome-mode='relief'] .wf-device-oauth-panel--inline {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+[data-chrome-mode='relief'] .wf-device-oauth-panel--inline.wf-auth-otp-panel {
+  background: transparent;
+  box-shadow: none;
 }
 
 /* ponytail: wizard/dialog inner cards — transparent; selected/hover = shadow delta */
@@ -702,11 +747,71 @@
   .wf-settings-stack .wf-settings-section,
   .wf-settings-card,
   .wf-sign-in-app,
+  .wf-profile-entity-card,
   .wf-onboarding-progress,
   .wf-onboarding-intro__points,
   .wf-onboarding-launch__card
 ) {
   background: var(--wf-chrome-fill);
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app__icon {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-inset);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app.is-on {
+  border: none;
+  box-shadow: var(--wf-control-shadow-highlight);
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app.is-on .wf-sign-in-app__icon {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-chrome-mode='relief'] .wf-profile-entity-card__avatar {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] .wf-profile-entity-card--interactive:not(:disabled):hover,
+[data-chrome-mode='relief'] .wf-profile-entity-card--interactive:not(:disabled):focus-visible {
+  border: none;
+  box-shadow: var(--wf-control-shadow-highlight);
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app .wf-provider-connect__switch-ui {
+  background: var(--wf-control-bg-flush);
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app .wf-provider-connect__switch input:checked + .wf-provider-connect__switch-ui {
+  background: color-mix(in srgb, var(--wf-cyan) 38%, var(--wf-control-bg-raised));
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app .wf-provider-connect__switch-ui::after {
+  background: var(--wf-text);
+  box-shadow: var(--wf-control-shadow-elevated);
+}
+
+[data-chrome-mode='relief'] .wf-provider-connect__switch-ui {
+  background: var(--wf-control-bg-flush);
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] .wf-provider-connect__switch input:checked + .wf-provider-connect__switch-ui {
+  background: color-mix(in srgb, var(--wf-cyan) 38%, var(--wf-control-bg-raised));
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-chrome-mode='relief'] .wf-provider-connect__switch-ui::after {
+  box-shadow: var(--wf-control-shadow-elevated);
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard :is(

@@ -2,6 +2,7 @@ import { DialogCancelButton } from '@/components/dialogs/DialogActions'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WizardFormActions } from '@/components/workspace/WizardFormActions'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 
 type ProviderRequiredDialogProps = {
   open: boolean
@@ -23,8 +24,8 @@ export function ProviderRequiredDialog({
       open={open}
       onClose={() => onOpenChange(false)}
       title="Connect provider"
-      sectionLabel="Provider keys"
-      summary={errorMessage?.trim() || 'Connect an LLM provider to start chatting.'}
+      sectionLabel="Integrations"
+      summary={errorMessage?.trim() || 'Connect an LLM integration to start chatting.'}
       titleId="wf-provider-required-title"
       sheetClassName="wf-dialog-content--settings-compact"
       actions={
@@ -33,15 +34,16 @@ export function ProviderRequiredDialog({
         </WizardFormActions>
       }
     >
-      <div className="wf-wizard-panel wf-onboarding-form">
+      <SettingsPanelBody>
         <ProviderConnectPanel
           workspaceId={workspaceId}
           categories={['llm']}
           hint="none"
           layout="stack"
+          deviceOAuthPresentation="inline"
           onConnected={onConnected}
         />
-      </div>
+      </SettingsPanelBody>
     </SettingsSheetFrame>
   )
 }

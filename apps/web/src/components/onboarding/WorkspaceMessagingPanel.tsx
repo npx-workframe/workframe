@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { PanelStatus } from '@/components/ui/PanelPrimitives'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -116,7 +117,7 @@ export function WorkspaceMessagingPanel({
   }, [onBindSave, saveAll])
 
   if (loading) {
-    return <p className="wf-user-settings__hint">Loading messaging channels…</p>
+    return <PanelStatus>Loading messaging channels…</PanelStatus>
   }
 
   return (

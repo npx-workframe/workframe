@@ -8,7 +8,7 @@ All product imagery lives under `apps/web/src/assets/`. Edit files here; catalog
 |--------|-----------|----------|
 | `avatars/` | `/assets/avatars` | User + agent profile avatars (one catalog) |
 | `project-logos/` | `/assets/project-logos` | Workframe workspace + space (channel/group) logos |
-| `brands/` | Vite-bundled (`brandAssets.ts`) | Sign-in OAuth marks + LLM/integration provider SVGs |
+| `brands/` | Vite-bundled (`brandAssets.ts`) | Sign-in OAuth marks + LLM/integration provider SVGs (single folder) |
 | `branding/` | — | Reserved for internal Workframe kit exports from Figma |
 
 Retired: `users/` (merged into `avatars/`), `providers/` (merged into `brands/`), `textures/`, `public/assets/brands/`.

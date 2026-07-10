@@ -55,7 +55,7 @@ export function buildWizardSteps(
   }
 
   steps.push(
-    { id: 'workframe', label: 'Business Profile', group: 'Workframe' },
+    { id: 'workframe', label: 'Workframe Profile', group: 'Workframe' },
     { id: 'billing', label: 'Billing Model', group: 'Workframe' },
     { id: 'integrations', label: 'Integrations', group: 'Workframe' },
     { id: 'profile', label: 'Your Identity', group: 'User Profile' },
@@ -80,7 +80,7 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'welcome':
       return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
     case 'smtp':
-      return { title: 'Admin', description: 'Configure SMTP for sign-in codes, then verify the admin account.' }
+      return { title: 'Admin', description: 'Configure SMTP for sign-in codes and delivery status.' }
     case 'admin_auth':
       return { title: 'Verify admin', description: 'Confirm your email to finish admin setup.' }
     case 'integrations':
@@ -88,7 +88,7 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'billing':
       return { title: 'Billing Model', description: 'Choose BYOK (each member’s keys) or company-pays (shared keys).' }
     case 'workframe':
-      return { title: 'Business Profile', description: 'Name, logo, and mission shown across your Workframe.' }
+      return { title: 'Workframe Profile', description: 'Name, logo, and mission shown across your Workframe.' }
     case 'profile':
       return {
         title: isInvitee ? `Join ${projectName}` : 'Your Identity',
@@ -99,7 +99,7 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'agent_model':
       return {
         title: "Agent's Model",
-        description: 'Choose the primary model for your native agent. Connect provider keys first when using BYOK.',
+        description: 'Choose the primary model for your native agent. Connect integration keys first when using BYOK.',
       }
     case 'invites':
       return { title: 'Your Team', description: 'Send email invites now, or skip and invite later in Workframe Settings.' }
@@ -111,7 +111,7 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
 }
 
 const MODE_LABELS: Record<string, string> = {
-  single_user_local: 'Just me on this machine',
+  single_user_local: 'Just me on this environment',
   trusted_team: 'My team on Docker',
   public_multi_user: 'Public on the web',
 }
@@ -183,7 +183,9 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
           return {
             ...step,
             configured: true,
-            detail: ctx.adminEmail.trim() || ctx.smtpUser.trim() || 'Admin verified',
+            detail: host
+              ? `${host} · verified`
+              : ctx.smtpUser.trim() || 'Admin verified',
           }
         }
         if (smtpReady) {
@@ -191,8 +193,8 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
             ...step,
             configured: Boolean(ctx.stack?.smtp?.setup_complete),
             detail: host
-              ? `${host}${ctx.stack?.smtp?.setup_complete ? ' · ready' : ctx.stack?.smtp?.tested ? ' · tested' : ''}${ctx.adminEmail ? ` → ${ctx.adminEmail}` : ''}`
-              : 'Verify admin',
+              ? `${host}${ctx.stack?.smtp?.setup_complete ? ' · ready' : ctx.stack?.smtp?.tested ? ' · tested' : ''}`
+              : 'Configure SMTP',
           }
         }
         return step

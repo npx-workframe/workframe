@@ -5,7 +5,7 @@ import { SignInBrandIcon } from '@/components/settings/SignInBrandIcon'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SecretInput } from '@/components/ui/SecretInput'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { PanelInlineNotice } from '@/components/ui/PanelPrimitives'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
 
@@ -165,7 +165,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
 
   return (
     <div className="wf-sign-in-apps">
-      {error ? <WorkframeNotice message={error} tone="caution" /> : null}
+      {error ? <PanelInlineNotice>{error}</PanelInlineNotice> : null}
       <ul className="wf-sign-in-apps__list">
         <OAuthProviderRow
           label="Google"

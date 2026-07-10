@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import json
-import os
 import secrets
 import urllib.parse
 import urllib.request
 from typing import Any
 
+import oauth_pending
 import oidc_jwt
 import stack_config
-
-APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:18644").rstrip("/")
-_PENDING: dict[str, dict[str, str]] = {}
+from email_sender import APP_BASE_URL
+GOOGLE_SIGNIN_PROVIDER = "google_signin"
 
 
 def _google_creds() -> tuple[str, str]:
@@ -28,10 +27,13 @@ def _google_creds() -> tuple[str, str]:
 def start_google_auth(invite_email: str = "", invite_token: str = "") -> dict[str, Any]:
     client_id, _ = _google_creds()
     state = secrets.token_urlsafe(24)
-    _PENDING[state] = {
-        "invite_email": invite_email.strip().lower(),
-        "invite_token": invite_token.strip(),
-    }
+    meta = json.dumps(
+        {
+            "invite_email": invite_email.strip().lower(),
+            "invite_token": invite_token.strip(),
+        },
+    )
+    oauth_pending.store_pending(state, "", GOOGLE_SIGNIN_PROVIDER, "", meta)
     redirect_uri = f"{APP_BASE_URL}/api/auth/google/callback"
     params = {
         "client_id": client_id,
@@ -49,9 +51,15 @@ def start_google_auth(invite_email: str = "", invite_token: str = "") -> dict[st
 
 
 def exchange_google_code(code: str, state: str) -> dict[str, Any]:
-    pending = _PENDING.pop(state, None)
-    if not pending:
+    pending = oauth_pending.take_pending(state)
+    if not pending or str(pending.get("provider") or "") != GOOGLE_SIGNIN_PROVIDER:
         raise ValueError("invalid or expired OAuth state")
+    try:
+        meta = json.loads(str(pending.get("workspace_id") or "{}"))
+    except json.JSONDecodeError:
+        meta = {}
+    if not isinstance(meta, dict):
+        meta = {}
     client_id, client_secret = _google_creds()
     redirect_uri = f"{APP_BASE_URL}/api/auth/google/callback"
     data = urllib.parse.urlencode(
@@ -80,11 +88,11 @@ def exchange_google_code(code: str, state: str) -> dict[str, Any]:
         raise ValueError("Google account has no email")
     if claims.get("email_verified") is False:
         raise ValueError("Google email is not verified")
-    invite_email = pending.get("invite_email") or ""
+    invite_email = str(meta.get("invite_email") or "").strip().lower()
     if invite_email and email != invite_email:
         raise ValueError("Google email does not match the invited address")
     return {
         "email": email,
         "display_name": str(claims.get("name") or email),
-        "invite_token": pending.get("invite_token") or "",
+        "invite_token": str(meta.get("invite_token") or ""),
     }

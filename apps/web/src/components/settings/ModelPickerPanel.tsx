@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ModelListGroup } from '@/components/settings/ModelListGroup'
 import { ModelOptionButton } from '@/components/settings/ModelOptionButton'
 import { DialogConfirmButton } from '@/components/dialogs/DialogActions'
+import { PanelStatus } from '@/components/ui/PanelPrimitives'
 import { Input } from '@/components/ui/input'
 import {
   fetchHermesModels,
@@ -352,7 +353,7 @@ export function ModelPickerPanel({
   }
 
   if (loading) {
-    return <p className="wf-auth__status">Loading models…</p>
+    return <PanelStatus>Loading models…</PanelStatus>
   }
 
   if (loadError) {
@@ -378,7 +379,7 @@ export function ModelPickerPanel({
   if (!data.has_llm_provider) {
     return (
       <p className="text-sm text-muted-foreground">
-        Connect an LLM provider first.
+        Connect an LLM integration first.
       </p>
     )
   }
@@ -412,7 +413,7 @@ export function ModelPickerPanel({
 
       <div className="wf-llm-models__body">
         {providers.length > 1 ? (
-          <div className="wf-llm-models__providers" role="tablist" aria-label="Filter by provider">
+          <div className="wf-llm-models__providers" role="tablist" aria-label="Filter by integration">
             <button
               type="button"
               role="tab"

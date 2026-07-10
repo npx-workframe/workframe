@@ -42,11 +42,13 @@ export function ProviderOptionRow({
   return (
     <li className="wf-provider-connect__item">
       <div className="wf-provider-connect__row">
-        {providerIcon ? (
-          <img src={providerIcon} alt="" className="wf-provider-connect__icon" aria-hidden="true" />
-        ) : (
-          <span className="wf-provider-connect__icon wf-provider-connect__icon--placeholder" aria-hidden="true" />
-        )}
+        <div className="wf-sign-in-app__icon" aria-hidden="true">
+          {providerIcon ? (
+            <img src={providerIcon} alt="" className="wf-sign-in-app__brand-img wf-brand-img--theme" />
+          ) : (
+            <span className="wf-provider-connect__icon--placeholder" />
+          )}
+        </div>
         <div className="wf-provider-connect__copy">
           <div className="wf-provider-connect__title-row">
             <strong>{row.label}</strong>

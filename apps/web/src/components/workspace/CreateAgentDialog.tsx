@@ -7,7 +7,7 @@ import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WizardFormActions } from '@/components/workspace/WizardFormActions'
 import { setHermesFallbackChain, type FallbackEntry } from '@/lib/hermesCatalogApi'
@@ -232,15 +232,11 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
         </WizardFormActions>
       }
     >
-      <div
-        className={cn('space-y-4', tab === 'model' && 'wf-settings-fill-stack')}
-        role="tabpanel"
-      >
-        {error ? <WorkframeNotice message={error} /> : null}
+      <div className={cn('space-y-4', tab === 'model' && 'wf-settings-fill-stack')}>
         {busy ? <OperationProgress steps={steps} title="Creating agent…" /> : null}
 
         {tab === 'identity' ? (
-          <div className="wf-wizard-panel wf-onboarding-form">
+          <SettingsPanelBody error={error}>
             <DialogField
               label="Profile slug"
               htmlFor="wf-create-agent-slug"
@@ -293,9 +289,9 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
                 onChange: setTagline,
               }}
             />
-          </div>
+          </SettingsPanelBody>
         ) : tab === 'instructions' ? (
-          <div className="wf-wizard-panel wf-onboarding-form">
+          <SettingsPanelBody error={error}>
             <DialogField
               label="Operating instructions"
               htmlFor="wf-create-agent-soul"
@@ -311,9 +307,10 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
                 disabled={busy}
               />
             </DialogField>
-          </div>
+          </SettingsPanelBody>
         ) : (
-          <ModelPickerPanel
+          <SettingsPanelBody error={error} bare>
+            <ModelPickerPanel
             workspaceId={workspaceId}
             embedded
             selectionOnly
@@ -322,6 +319,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
             onFallbacksDraftChange={setFallbackDraft}
             onError={setError}
           />
+          </SettingsPanelBody>
         )}
       </div>
     </SettingsSheetFrame>

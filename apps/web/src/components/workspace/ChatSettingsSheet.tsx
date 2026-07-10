@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Save } from 'lucide-react'
 
-import { AvatarPickerGrid } from '@/components/onboarding/AvatarPickerGrid'
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
 import { AgentListItem } from '@/components/settings/AgentListItem'
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { SettingsSection } from '@/components/settings/SettingsSection'
-import { DialogField } from '@/components/dialogs/DialogField'
 import { DialogSelect } from '@/components/dialogs/DialogSelect'
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { ReducedProfileCard } from '@/components/ui/ReducedProfileCard'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
@@ -566,50 +564,33 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
 
           {mode === 'project' && activeRoom ? (
             projectTab === 'details' ? (
-              <div className="space-y-4" role="tabpanel">
-                {error ? <WorkframeNotice message={error} /> : null}
-                {status ? <WorkframeStatusNotice message={status} /> : null}
-
-                <div className="wf-wizard-panel wf-onboarding-form">
-                  <DialogField label="Logo">
-                    <AvatarPickerGrid
-                      kind="logo"
-                      value={projectAvatarDisplayUrl}
-                      onChange={(url) => {
-                        setProjectRoomAvatarUrl(url)
-                        setProjectRoomAvatarFileName('')
-                      }}
-                      disabled={projectFieldsDisabled}
-                    />
-                  </DialogField>
-
-                  <DialogField label="Name" htmlFor="wf-project-name">
-                    <Input
-                      id="wf-project-name"
-                      className="wf-dialog-input"
-                      value={projectRoomName}
-                      onChange={(event) => setProjectRoomName(event.target.value)}
-                      disabled={projectFieldsDisabled}
-                      placeholder="Project name"
-                    />
-                  </DialogField>
-
-                  <DialogField label="Topic" htmlFor="wf-project-topic">
-                    <Textarea
-                      id="wf-project-topic"
-                      value={projectRoomTopic}
-                      onChange={(event) => setProjectRoomTopic(event.target.value)}
-                      disabled={projectFieldsDisabled}
-                      rows={2}
-                      placeholder="What this project is for"
-                    />
-                  </DialogField>
-
-                  {activeRoom?.slug ? (
-                    <p className="text-xs font-mono text-muted-foreground">Slug: {activeRoom.slug}</p>
-                  ) : null}
-                </div>
-              </div>
+              <SettingsPanelBody error={error} status={status}>
+                <OnboardingIdentityFields
+                  avatarKind="logo"
+                  avatarLabel="Logo"
+                  avatarUrl={projectAvatarDisplayUrl}
+                  onAvatarChange={(url) => {
+                    setProjectRoomAvatarUrl(url)
+                    setProjectRoomAvatarFileName('')
+                  }}
+                  disabled={projectFieldsDisabled}
+                  primary={{
+                    id: 'wf-project-name',
+                    label: 'Name',
+                    value: projectRoomName,
+                    onChange: setProjectRoomName,
+                  }}
+                  secondary={{
+                    id: 'wf-project-topic',
+                    label: 'Topic',
+                    value: projectRoomTopic,
+                    onChange: setProjectRoomTopic,
+                  }}
+                />
+                {activeRoom?.slug ? (
+                  <p className="wf-user-settings__hint font-mono">Slug: {activeRoom.slug}</p>
+                ) : null}
+              </SettingsPanelBody>
             ) : projectTab === 'members' ? (
               <div className="space-y-4" role="tabpanel">
                 {error ? <WorkframeNotice message={error} /> : null}

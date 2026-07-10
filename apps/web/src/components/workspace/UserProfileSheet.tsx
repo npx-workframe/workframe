@@ -3,11 +3,11 @@ import { LogOut, Save } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
 import { WfActionButton } from '@/components/ui/WfActionButton'
-import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
 import { AgentDelegationPanel } from '@/components/workspace/AgentDelegationPanel'
 import { ThemeSettingsPanel } from '@/components/settings/ThemeSettingsPanel'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveUserAvatarUrl } from '@/lib/avatarResolve'
@@ -188,16 +188,9 @@ export function UserProfileSheet({
       }
     >
       <div className="space-y-6">
-        {tab === 'agents' && error ? <WorkframeNotice message={error} /> : null}
-        {tab === 'agents' && status ? <WorkframeStatusNotice message={status} /> : null}
-
         {tab === 'profile' ? (
-          <div className="space-y-4" role="tabpanel">
-            {error ? <WorkframeNotice message={error} /> : null}
-            {status ? <WorkframeStatusNotice message={status} /> : null}
-
-            <div className="wf-wizard-panel wf-onboarding-form">
-              <OnboardingIdentityFields
+          <SettingsPanelBody error={error} status={status}>
+            <OnboardingIdentityFields
                 avatarKind="user"
                 avatarUrl={avatarDisplayUrl}
                 onAvatarChange={setAvatarUrl}
@@ -222,42 +215,28 @@ export function UserProfileSheet({
                   rows: 3,
                 }}
               />
-            </div>
-          </div>
+          </SettingsPanelBody>
         ) : tab === 'connect' ? (
-          <div className="space-y-4" role="tabpanel">
-            {error ? <WorkframeNotice message={error} /> : null}
-            {status ? <WorkframeStatusNotice message={status} /> : null}
-
-            <div className="wf-wizard-panel wf-onboarding-form">
-              <div className="wf-wizard-subtabs" role="tablist" aria-label="Model keys sections">
-                {(
-                  [
-                    ['providers', 'Provider keys'],
-                    ['messaging', 'Linked accounts'],
-                  ] as const
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={connectTab === id}
-                    className={`wf-wizard-subtabs__btn${connectTab === id ? ' is-active' : ''}`}
-                    onClick={() => setConnectTab(id)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {connectTab === 'providers' ? (
-                <ProviderConnectPanel
+          <SettingsPanelBody
+            error={error}
+            status={status}
+            tabs={[
+              { id: 'providers', label: 'Integrations' },
+              { id: 'messaging', label: 'Linked accounts' },
+            ]}
+            activeTab={connectTab}
+            onTabChange={(id) => setConnectTab(id as ConnectTab)}
+            tablistLabel="Model keys sections"
+          >
+            {connectTab === 'providers' ? (
+              <ProviderConnectPanel
                   disabled={loading}
                   workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
                   credentialScope="user"
                   categories={['llm', 'dev', 'search']}
                   hint="none"
                   layout="stack"
+                  deviceOAuthPresentation="inline"
                   onError={(message) => {
                     setError(message)
                     setStatus('')
@@ -272,25 +251,24 @@ export function UserProfileSheet({
                 />
               ) : null}
 
-              {connectTab === 'messaging' ? (
-                <PlatformIdentityPanel
-                  embedded
-                  workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
-                  disabled={loading}
-                  onLinked={() => setStatus('Account linked.')}
-                />
-              ) : null}
-            </div>
-          </div>
+            {connectTab === 'messaging' ? (
+              <PlatformIdentityPanel
+                embedded
+                workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
+                disabled={loading}
+                onLinked={() => setStatus('Account linked.')}
+              />
+            ) : null}
+          </SettingsPanelBody>
         ) : tab === 'agents' ? (
-          <div className="space-y-6" role="tabpanel">
+          <SettingsPanelBody error={error} status={status}>
             <AgentDelegationPanel
               workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id ?? ''}
               currentUserId={profile?.user.user_id ?? ''}
               members={workspaceMembers}
               loading={loading}
             />
-          </div>
+          </SettingsPanelBody>
         ) : (
           <ThemeSettingsPanel />
         )}

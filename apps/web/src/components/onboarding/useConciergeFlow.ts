@@ -27,6 +27,7 @@ import { type OperationStep } from '@/components/ui/OperationProgress'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { DEFAULT_USER_AVATAR, DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
 import { logoAvatarPickerValue, pickRandomPreset } from '@/lib/presetAssets'
+import type { FallbackEntry } from '@/lib/hermesCatalogApi'
 import {
   workframeAuthApi,
   type ProviderConnectRow,
@@ -92,7 +93,8 @@ export function useConciergeFlow({
   const [publicUrl, setPublicUrl] = useState('')
   const [httpsStatus, setHttpsStatus] = useState<string | null>(null)
   const [agentPrimaryModel, setAgentPrimaryModel] = useState('')
-  const [agentModelTab, setAgentModelTab] = useState<'keys' | 'model'>('model')
+  const [agentFallbackChain, setAgentFallbackChain] = useState<FallbackEntry[]>([])
+  const [agentModelTab, setAgentModelTab] = useState<'keys' | 'model'>('keys')
   const [agentSteps, setAgentSteps] = useState<OperationStep[]>([])
   const [launching, setLaunching] = useState(false)
   const [launchSteps, setLaunchSteps] = useState<OperationStep[]>([])
@@ -204,10 +206,18 @@ export function useConciergeFlow({
   }, [])
 
   useEffect(() => {
-    if (credentialMode !== 'byok' && agentModelTab === 'keys') {
-      setAgentModelTab('model')
-    }
-  }, [agentModelTab, credentialMode])
+    if (step !== 'agent_model') return
+    setAgentModelTab('keys')
+  }, [step])
+
+  const agentModelsComplete = useMemo(() => {
+    const primary = agentPrimaryModel.trim()
+    const fb0 = agentFallbackChain[0]?.model?.trim() ?? ''
+    const fb1 = agentFallbackChain[1]?.model?.trim() ?? ''
+    return Boolean(primary && fb0 && fb1)
+  }, [agentFallbackChain, agentPrimaryModel])
+
+  const hasLlmProvider = connectedProviders.length > 0
 
   useEffect(() => {
     void fetchWorkframeMeta()
@@ -522,6 +532,7 @@ export function useConciergeFlow({
     agentSoul,
     agentAvatar,
     agentPrimaryModel,
+    agentFallbackChain,
     connectedProviders,
     isInvitee,
     deploymentMode,
@@ -784,7 +795,11 @@ export function useConciergeFlow({
     agentSoul,
     agentAvatar,
     agentPrimaryModel,
+    agentFallbackChain,
     agentModelTab,
+    agentModelsComplete,
+    hasLlmProvider,
+    connectedProviders,
     agentSteps,
     inviteEmails,
     publicUrl,
@@ -826,6 +841,7 @@ export function useConciergeFlow({
     setAgentAvatar,
     setAgentModelTab,
     setAgentPrimaryModel,
+    setAgentFallbackChain,
     setInviteEmails,
     setPublicUrl,
     markSmtpDirty,
@@ -842,6 +858,9 @@ export function useConciergeFlow({
     saveProfile,
     saveAgentModel,
     saveAgent,
+    refreshAgentModelStep: () => {
+      if (workspaceId) void reloadWorkspaceStatus(workspaceId)
+    },
     sendInvites,
     finishInstall,
     testPublicUrl,
