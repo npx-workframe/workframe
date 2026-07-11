@@ -517,6 +517,9 @@ class AuthRoutesMixin:
         if not user_id:
             self._json(401, {"ok": False, "error": "no_session"})
             return
+        if not srv._role_allows(self, srv.OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "native_agent_identity_owner_only"})
+            return
         native_slug = str(srv.NATIVE_PROFILE or "workframe-agent")
         runtime = srv._runtime_profile_slug(user_id, native_slug)
         soul = (

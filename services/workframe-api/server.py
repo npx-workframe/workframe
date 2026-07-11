@@ -1482,9 +1482,9 @@ def _enrich_room_messages(conn: sqlite3.Connection, messages: list[Any]) -> list
                 model_provider = str(agent["model_provider"] or "").strip()
                 slug = str(agent["slug"] or "").strip()
                 if not model_name and slug:
-                    model_name = str(_srv()._read_model_block(slug).get("default") or "").strip()
+                    model_name = str(_read_model_block(slug).get("default") or "").strip()
                 if not model_provider and slug:
-                    model_provider = _srv()._llm_billing_provider(slug)
+                    model_provider = _llm_billing_provider(slug)
                 if model_name:
                     item["model"] = model_name
                 if model_provider:

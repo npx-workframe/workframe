@@ -18,6 +18,7 @@ import {
   watchRoomLive,
   type RoomLiveFrame,
 } from '@/lib/roomLive'
+import { mergeRoomMessageHistory } from '@/lib/chatMerge'
 import type { ChatMessage } from '@/lib/chatTypes'
 import { systemNoticeChatMessage } from '@/lib/chatTypes'
 import { ProviderRequiredDialog } from '@/components/dialogs/ProviderRequiredDialog'
@@ -109,6 +110,11 @@ export function ChatSplit() {
   const [spaceTurnStatus, setSpaceTurnStatus] = useState<string | null>(null)
   const [spaceWaitTurnId, setSpaceWaitTurnId] = useState<string | null>(null)
   const roomRevisionRef = useRef('')
+  const reloadGenRef = useRef(0)
+  const activeHumanRoomIdRef = useRef<string | null>(null)
+  const roomStateByIdRef = useRef<Record<string, ChatMessage[]>>({})
+  const roomMessagesRef = useRef<ChatMessage[] | null>(null)
+  const liveTurnsRef = useRef<Record<string, ChatMessage>>({})
   const meUserIdRef = useRef('')
   const meAvatarRef = useRef<string | null>(null)
   const liveMetaRef = useRef<Record<string, { agentName: string; agentSlug: string; modelId?: string; llmProvider?: string }>>({})
@@ -120,6 +126,8 @@ export function ChatSplit() {
   const { crew } = useCrew(projectName)
   const crewRef = useRef(crew)
   crewRef.current = crew
+  roomMessagesRef.current = roomMessages
+  liveTurnsRef.current = liveTurns
 
   const {
     composerHeight,
@@ -143,6 +151,29 @@ export function ChatSplit() {
     const ids = new Set(base.map((message) => message.id))
     return [...base, ...live.filter((message) => !ids.has(message.id))]
   }, [roomMessages, liveTurns])
+
+  const persistRoomSnapshot = useCallback((roomId: string) => {
+    const msgs = roomMessagesRef.current
+    if (!msgs?.length) return
+    roomStateByIdRef.current[roomId] = msgs
+    writeCachedProjectRoomMessages(roomId, msgs)
+  }, [])
+
+  const hydrateRoomState = useCallback((roomId: string): ChatMessage[] => {
+    const mem = roomStateByIdRef.current[roomId]
+    if (mem?.length) return mem
+    return readCachedProjectRoomMessages(roomId)
+  }, [])
+
+  const roomLocalSnapshot = useCallback(
+    (roomId: string) => [
+      ...(activeHumanRoomIdRef.current === roomId
+        ? (roomMessagesRef.current ?? [])
+        : hydrateRoomState(roomId)),
+      ...Object.values(liveTurnsRef.current),
+    ],
+    [hydrateRoomState],
+  )
 
   const dmWaitMessageId = useMemo(() => {
     if (!turnActive) return null
@@ -168,6 +199,7 @@ export function ChatSplit() {
   }, [connectError, messages, nativeAgentName])
 
   const reloadRoomMessages = useCallback(async (roomId: string, opts?: { silent?: boolean }) => {
+    const gen = ++reloadGenRef.current
     if (!opts?.silent) setRoomLoading(true)
     setRoomError('')
     try {
@@ -176,6 +208,7 @@ export function ChatSplit() {
         workframeAuthApi.listRoomMembers(roomId),
         workframeAuthApi.getMe(),
       ])
+      if (gen !== reloadGenRef.current) return null
       meUserIdRef.current = meResponse.user.user_id
       meAvatarRef.current = meResponse.user.avatar_url ?? null
       const memberNames = (membersResponse.members ?? []).reduce<Record<string, string>>((acc, member) => {
@@ -230,17 +263,31 @@ export function ChatSplit() {
       const rows = (messagesResponse.messages ?? []).map((message) =>
         roomMessageToChatMessage(message, meResponse.user.user_id, memberNames, memberAvatars, agentNames, agentSlugs),
       )
-      setRoomMessages(rows)
-      writeCachedProjectRoomMessages(roomId, rows)
-      return rows
+      const localBase =
+        activeHumanRoomIdRef.current === roomId
+          ? (roomMessagesRef.current ?? [])
+          : hydrateRoomState(roomId)
+      const serverTotal = messagesResponse.total ?? rows.length
+      if (opts?.silent && rows.length === 0 && localBase.length > 0 && serverTotal === 0) {
+        return localBase
+      }
+      const merged = mergeRoomMessageHistory(rows, roomLocalSnapshot(roomId))
+      if (gen !== reloadGenRef.current) return null
+      if (activeHumanRoomIdRef.current === roomId) {
+        roomMessagesRef.current = merged
+        setRoomMessages(merged)
+      }
+      roomStateByIdRef.current[roomId] = merged
+      writeCachedProjectRoomMessages(roomId, merged)
+      return merged
     } catch (err) {
       if (!opts?.silent) setRoomMessages([])
       setRoomError(err instanceof Error ? err.message : 'Failed to load room messages')
       return null
     } finally {
-      if (!opts?.silent) setRoomLoading(false)
+      if (!opts?.silent && gen === reloadGenRef.current) setRoomLoading(false)
     }
-  }, [])
+  }, [hydrateRoomState, roomLocalSnapshot])
 
   const scheduleRoomReload = useDebouncedCallback((roomId: string) => {
     void reloadRoomMessages(roomId, { silent: true })
@@ -298,6 +345,16 @@ export function ChatSplit() {
 
       if (frame.type === 'turn.complete') {
         liveBatcherRef.current.flush()
+        const messageId = String(frame.message_id ?? '').trim()
+        const liveMsg = liveTurnsRef.current[frame.turn_id]
+        if (messageId && liveMsg && humanRoom) {
+          const promoted = { ...liveMsg, id: messageId, ephemeral: false }
+          const merged = mergeRoomMessageHistory(roomMessagesRef.current ?? [], [promoted])
+          roomMessagesRef.current = merged
+          setRoomMessages(merged)
+          roomStateByIdRef.current[humanRoom.id] = merged
+          writeCachedProjectRoomMessages(humanRoom.id, merged)
+        }
         delete liveMetaRef.current[frame.turn_id]
         setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
         setLiveTurns((prev) => {
@@ -342,10 +399,22 @@ export function ChatSplit() {
   )
 
   useEffect(() => {
-    if (!humanRoom) {
-      setRoomMessages(null)
+    const prevId = activeHumanRoomIdRef.current
+    const nextId = humanRoom?.id ?? null
+
+    if (prevId && prevId !== nextId) {
+      persistRoomSnapshot(prevId)
+      reloadGenRef.current += 1
       setLiveTurns({})
       liveMetaRef.current = {}
+      liveBatcherRef.current.cancel()
+    }
+
+    activeHumanRoomIdRef.current = nextId
+
+    if (!humanRoom) {
+      setRoomMessages(null)
+      roomMessagesRef.current = null
       setRoomLoading(false)
       setRoomError('')
       roomRevisionRef.current = ''
@@ -354,14 +423,25 @@ export function ChatSplit() {
       setSpaceWaitTurnId(null)
       return
     }
+
+    const roomId = humanRoom.id
     roomRevisionRef.current = ''
-    const cached = readCachedProjectRoomMessages(humanRoom.id)
-    if (cached.length) {
-      setRoomMessages(cached)
-      setRoomLoading(false)
-    }
-    void reloadRoomMessages(humanRoom.id, { silent: cached.length > 0 })
-  }, [humanRoom?.id, reloadRoomMessages])
+    const initial = hydrateRoomState(roomId)
+    roomMessagesRef.current = initial
+    setRoomMessages(initial)
+    setRoomLoading(initial.length === 0)
+    void reloadRoomMessages(roomId, { silent: initial.length > 0 })
+  }, [humanRoom?.id, hydrateRoomState, persistRoomSnapshot, reloadRoomMessages])
+
+  useEffect(() => {
+    const roomId = activeHumanRoomIdRef.current
+    if (!roomId || humanRoom?.id !== roomId || !roomMessages?.length) return
+    roomStateByIdRef.current[roomId] = roomMessages
+    const timer = window.setTimeout(() => {
+      writeCachedProjectRoomMessages(roomId, roomMessages)
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [humanRoom?.id, roomMessages])
 
   useEffect(() => {
     if (!humanRoom?.workspace_id) return
@@ -388,19 +468,24 @@ export function ChatSplit() {
       if (!trimmed) return
 
       const optimisticId = `local-${Date.now()}`
-      setRoomMessages((prev) => [
-        ...(prev ?? []),
-        {
-          id: optimisticId,
-          authorId: meUserIdRef.current || 'you',
-          authorName: 'You',
-          role: 'user',
-          segments: [{ kind: 'text', text: trimmed }],
-          timestamp: new Date().toISOString(),
-          tokens: 0,
-          avatarUrl: resolveUserAvatarUrl(meAvatarRef.current),
-        },
-      ])
+      setRoomMessages((prev) => {
+        const next = [
+          ...(prev ?? []),
+          {
+            id: optimisticId,
+            authorId: meUserIdRef.current || 'you',
+            authorName: 'You',
+            role: 'user' as const,
+            segments: [{ kind: 'text' as const, text: trimmed }],
+            timestamp: new Date().toISOString(),
+            tokens: 0,
+            avatarUrl: resolveUserAvatarUrl(meAvatarRef.current),
+          },
+        ]
+        roomMessagesRef.current = next
+        roomStateByIdRef.current[humanRoom.id] = next
+        return next
+      })
 
       void workframeAuthApi
         .sendRoomMessage(humanRoom.id, { content: trimmed })

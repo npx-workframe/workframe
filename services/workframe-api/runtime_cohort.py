@@ -730,7 +730,12 @@ def ensure_runtime_profile(
         if not _profile_toolsets_ready(runtime, _srv()._chat_toolsets_for_profile(runtime)):
             _srv()._ensure_profile_toolsets(runtime)
         _ensure_profile_terminal_cwd(runtime)
-        # ponytail: do not re-sync template model on every bind — destroys per-user reconcile
+        # Existing profiles still need invariant repair.  This deliberately does
+        # not copy template model preferences; reconciliation keeps the agent's
+        # model when the acting user can use it and falls back to that user's
+        # connected providers otherwise.
+        _prepare_runtime_profile_credentials(runtime, user_id, workspace_id)
+        _srv()._ensure_profile_proxy_headers(runtime)
         return
     _purge_runtime_profile(runtime)
     _register_runtime_profile(runtime, template)

@@ -1020,6 +1020,13 @@ class WorkspaceRoutesMixin:
                 conn.close()
                 self._json(404, {"ok": False, "error": "invite_not_found_or_expired"})
                 return
+            invite_email = str(inv["email"] or "").strip().lower()
+            user_row = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
+            user_email = str(user_row["email"] or "").strip().lower() if user_row else ""
+            if not user_email or user_email != invite_email:
+                conn.close()
+                self._json(403, {"ok": False, "error": "invite_email_mismatch"})
+                return
             if int(inv["expires_at"]) < int(time.time()):
                 conn.close()
                 self._json(410, {"ok": False, "error": "invite_expired"})
@@ -1044,6 +1051,15 @@ class WorkspaceRoutesMixin:
                              (user_id, now_ts, now_ts, inv["id"]))
                 conn.commit()
                 conn.close()
+                # Re-acceptance is also a repair path.  Do not leave an existing
+                # member without the per-user Hermes proxy runtimes.
+                try:
+                    if not srv._provision_invited_member_agent_runtimes(wid, user_id):
+                        self._json(500, {"ok": False, "error": "runtime_provision_failed"})
+                        return
+                except Exception as exc:  # noqa: BLE001
+                    self._json(500, {"ok": False, "error": f"runtime_provision_failed: {exc}"})
+                    return
                 srv._set_user_current_workspace(user_id, wid)
                 self._json(200, {"ok": True, "already_member": True, "workspace_id": wid, "room": room_join, "dm_room": dm_room})
                 return
@@ -1065,7 +1081,9 @@ class WorkspaceRoutesMixin:
         except sqlite3.Error as exc:
             self._json(500, {"error": f"db_error: {exc}"})
             return
-        srv._provision_invited_member_agent_runtimes(wid, user_id)
+        if not srv._provision_invited_member_agent_runtimes(wid, user_id):
+            self._json(500, {"ok": False, "error": "runtime_provision_failed"})
+            return
         srv._set_user_current_workspace(user_id, wid)
         self._log_audit("invite_accepted", "workspace_invite", inv["id"], f"workspace={wid} user={user_id}")
         self._json(

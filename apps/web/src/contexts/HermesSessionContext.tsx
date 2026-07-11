@@ -116,10 +116,13 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     setTurnStatus,
     setConnectError,
     setMessages,
+    reloadHistory: history.reloadHistory,
   })
 
   const useSessionForRoomRef = useRef(bind.useSessionForRoom)
   useSessionForRoomRef.current = bind.useSessionForRoom
+  const roomDisplayNameRef = useRef(roomDisplayName)
+  roomDisplayNameRef.current = roomDisplayName
 
   if (!refs.initRef.current) {
     refs.initRef.current = true
@@ -131,31 +134,18 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
     refs.clientIdRef.current = getOrCreateClientId()
   }
 
+  const agentRoomId = agentRoom?.id ?? null
+
   useEffect(() => {
-    if (!agentRoom) {
-      refs.roomIdRef.current = ''
-      refs.profileRef.current = ''
-      refs.prevRoomKeyRef.current = ''
-      refs.gatewaySidRef.current = null
-      refs.stateDbSidRef.current = null
-      setProfile('')
-      setAgentDisplayName('Workframe Agent')
-      setNativeAgentName('Workframe Agent')
-      setStateDbSessionId(null)
-      setGatewaySessionId(null)
-      setSessionReady(false)
-      setConnectError(null)
-      setTurnActive(false)
-      setTurnStatus(null)
-      setMessages([])
+    if (!agentRoomId) return
+
+    if (refs.prevRoomKeyRef.current === agentRoomId) {
+      if (refs.stateDbSidRef.current) setSessionReady(true)
       return
     }
+    refs.prevRoomKeyRef.current = agentRoomId
 
-    const roomId = agentRoom.id
-    if (refs.prevRoomKeyRef.current === roomId) return
-    refs.prevRoomKeyRef.current = roomId
-
-    console.log('[workframe] bind:room', roomId)
+    console.log('[workframe] bind:room', agentRoomId)
     refs.nativeProfileRef.current = nativeProfileSlug()
     const hintProf = resolveHermesProfileSlug(agentRoom, activeProfile)
     if (hintProf && hintProf === refs.nativeProfileRef.current) {
@@ -166,8 +156,8 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
       refs.nativeProfileRef.current = runtime.nativeProfile
       setNativeAgentName(runtime.projectName ? `${runtime.projectName} Agent` : 'Workframe Agent')
     })
-    void useSessionForRoomRef.current(roomId, roomDisplayName)
-  }, [agentRoom, activeProfile, roomDisplayName, refs.clientIdRef, refs.gatewaySidRef, refs.nativeProfileRef, refs.prevRoomKeyRef, refs.profileRef, refs.roomIdRef, refs.sourceIdRef, refs.stateDbSidRef])
+    void useSessionForRoomRef.current(agentRoomId, roomDisplayNameRef.current)
+  }, [agentRoom, agentRoomId, activeProfile, refs.clientIdRef, refs.nativeProfileRef, refs.prevRoomKeyRef, refs.sourceIdRef, refs.stateDbSidRef])
 
   const value = useMemo<HermesSessionState>(
     () => ({

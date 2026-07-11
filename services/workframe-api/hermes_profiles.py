@@ -473,9 +473,13 @@ def _profile_identity_overlay(profile: str) -> str:
     prof = _srv().safe_profile_slug(profile)
     if _srv()._is_runtime_profile_slug(prof):
         template = _runtime_template_slug(prof)
-        reg = {**_srv()._agent_registry_row(template), **_srv()._agent_registry_row(prof)}
+        # Keep runtime-local instructions separate from shared display
+        # identity.  Name/role/tagline/avatar must come from the template.
+        reg = _srv()._agent_registry_row(template)
+        runtime_reg = _srv()._agent_registry_row(prof)
     else:
         reg = _srv()._agent_registry_row(prof)
+        runtime_reg = {}
     blocks: list[str] = []
     identity_lines: list[str] = []
     display = str(reg.get("display_name") or "").strip()
@@ -489,7 +493,7 @@ def _profile_identity_overlay(profile: str) -> str:
         identity_lines.append(f"- **Tagline:** {tagline}")
     if identity_lines:
         blocks.append("## User identity\n" + "\n".join(identity_lines))
-    user_soul = str(reg.get("user_soul") or "").strip()
+    user_soul = str(runtime_reg.get("user_soul") or reg.get("user_soul") or "").strip()
     if user_soul:
         blocks.append("## Additional instructions\n" + user_soul)
     return "\n\n".join(blocks).strip()

@@ -52,6 +52,7 @@ type UseHermesSessionStreamOptions = {
   setTurnStatus: (status: string | null) => void
   setConnectError: (error: WorkframeNoticeInfo | null) => void
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>
+  reloadHistory: () => Promise<void>
 }
 
 export function useHermesSessionStream({
@@ -70,6 +71,7 @@ export function useHermesSessionStream({
   setTurnStatus,
   setConnectError,
   setMessages,
+  reloadHistory,
 }: UseHermesSessionStreamOptions) {
   const {
     profileRef,
@@ -260,6 +262,7 @@ export function useHermesSessionStream({
       const userId = `u-${Date.now()}`
       const assistantId = `a-${Date.now()}`
       finalizedTurnIdsRef.current.delete(assistantId)
+      setConnectError(null)
 
       const crewAgent = findAgentByProfile(crew, crewProf)
       const streamAvatar = crewAgent?.avatarUrl ?? null
@@ -335,6 +338,7 @@ export function useHermesSessionStream({
             }),
           )
         }
+        void reloadHistory()
       } catch (err) {
         turnActiveRef.current = false
         setTurnActive(false)
@@ -358,6 +362,7 @@ export function useHermesSessionStream({
       profileRef,
       refs.clientIdRef,
       refs.sourceIdRef,
+      reloadHistory,
       requireBoundSessionId,
       roomIdRef,
       routes,
@@ -431,6 +436,7 @@ export function useHermesSessionStream({
           }
         })
         finalizeTurn(assistantId, finalText)
+        void reloadHistory()
       } catch (err) {
         turnActiveRef.current = false
         setTurnActive(false)
@@ -454,6 +460,7 @@ export function useHermesSessionStream({
       profileRef,
       refs.clientIdRef,
       refs.sourceIdRef,
+      reloadHistory,
       requireBoundSessionId,
       roomIdRef,
       sessionReady,

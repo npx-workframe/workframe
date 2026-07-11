@@ -16,12 +16,12 @@ def _srv():
     return srv
 
 
-def _provision_invited_member_agent_runtimes(workspace_id: str, user_id: str) -> None:
+def _provision_invited_member_agent_runtimes(workspace_id: str, user_id: str) -> bool:
     """Provision u-* runtimes for workspace agents when a member joins."""
     workspace_id = str(workspace_id or "").strip()
     user_id = str(user_id or "").strip()
     if not workspace_id or not user_id:
-        return
+        return False
     try:
         conn = _srv()._workframe_db()
         rows = conn.execute(
@@ -33,32 +33,35 @@ def _provision_invited_member_agent_runtimes(workspace_id: str, user_id: str) ->
         ).fetchall()
         conn.close()
     except Exception:  # noqa: BLE001
-        return
+        return False
+    ok = True
     for row in rows:
-        _provision_agent_dm_runtimes(workspace_id, str(row["id"]), [user_id])
+        if not _provision_agent_dm_runtimes(workspace_id, str(row["id"]), [user_id]):
+            ok = False
+    return ok
 
 
 def _provision_agent_dm_runtimes(
     workspace_id: str,
     agent_profile_id: str,
     user_ids: list[str],
-) -> None:
+) -> bool:
     """Create u-* runtime profiles when an agent DM room is created — install/onboarding only, not bind."""
     workspace_id = str(workspace_id or "").strip()
     agent_profile_id = str(agent_profile_id or "").strip()
     if not workspace_id or not agent_profile_id:
-        return
+        return False
     try:
         conn = _srv()._workframe_db()
         agent_row = _srv()._lookup_agent_profile(conn, workspace_id, agent_profile_id)
         conn.close()
     except Exception:  # noqa: BLE001
-        return
+        return False
     if not agent_row:
-        return
+        return False
     template = str(agent_row["slug"] or "").strip()
     if not template:
-        return
+        return False
     try:
         template = _srv().resolve_validated_profile(template)
     except ValueError as exc:
@@ -66,7 +69,8 @@ def _provision_agent_dm_runtimes(
             f"[provision_agent_dm_runtimes] skip {agent_profile_id}: invalid template {template!r}: {exc}",
             flush=True,
         )
-        return
+        return False
+    ok = True
     for uid in user_ids:
         user = str(uid or "").strip()
         if not user:
@@ -77,10 +81,12 @@ def _provision_agent_dm_runtimes(
         try:
             _srv().ensure_runtime_profile(runtime, template, user, workspace_id)
         except Exception as exc:  # noqa: BLE001
+            ok = False
             print(
                 f"[provision_agent_dm_runtimes] failed {runtime} for {user}: {exc}",
                 flush=True,
             )
+    return ok
 
 
 def bootstrap_agent_dm_lane(

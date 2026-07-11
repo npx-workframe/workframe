@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react'
 
-import { ensureRoomBind } from '@/lib/chatApi'
+import { ensureRoomBind, fetchChatMessages } from '@/lib/chatApi'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { showWorkframeError } from '@/lib/workframeErrorToast'
 import { WORKFRAME_UI_BINDING_VERSION } from '@/lib/chatSession'
@@ -99,6 +99,7 @@ export function useHermesSessionBind({
       const runtimeProf = bound.profile || templateProf
       const crewProf = bound.templateProfile || templateProf
       const gatewaySid = `api:${runtimeProf}:${bound.sessionId}`
+      const priorSessionId = stateDbSidRef.current
       stateDbSidRef.current = bound.sessionId
       gatewaySidRef.current = gatewaySid
       profileRef.current = runtimeProf
@@ -108,9 +109,17 @@ export function useHermesSessionBind({
       setProfile(runtimeProf)
       setStateDbSessionId(bound.sessionId)
       setGatewaySessionId(gatewaySid)
-      setMessages(bound.messages)
+      setMessages((prev) => {
+        let next = bound.messages
+        if (!next.length) {
+          const cached = readCachedMessages(roomId, bound.sessionId)
+          if (cached.length) next = cached
+          else if (priorSessionId === bound.sessionId && prev.length) next = prev
+        }
+        writeCachedMessages(roomId, bound.sessionId, next)
+        return next
+      })
       writeActiveLane({ roomId })
-      writeCachedMessages(roomId, bound.sessionId, bound.messages)
       writeCachedRoomBind(roomId, {
         sessionId: bound.sessionId,
         profile: runtimeProf,
@@ -144,8 +153,12 @@ export function useHermesSessionBind({
       const gen = ++bindGenRef.current
       console.log('[workframe] useSessionForRoom:', roomId)
       setConnectError(null)
+      const priorRoomId = roomIdRef.current
       roomIdRef.current = roomId
       setAgentDisplayName(displayName)
+      if (priorRoomId && priorRoomId !== roomId) {
+        setMessages([])
+      }
 
       const cachedBind = readCachedRoomBind(roomId)
       if (cachedBind) {
@@ -168,7 +181,6 @@ export function useHermesSessionBind({
         setGatewaySessionId(null)
         stateDbSidRef.current = null
         gatewaySidRef.current = null
-        setMessages([])
       }
 
       try {
@@ -187,6 +199,27 @@ export function useHermesSessionBind({
           agentDisplayName: bound.agentDisplayName || displayName,
           messages: bound.messages,
         })
+        if (!bound.messages.length) {
+          try {
+            const { messages: rows } = await fetchChatMessages(
+              bound.profile || templateProf,
+              bound.sessionId,
+              refs.sourceIdRef.current,
+            )
+            if (gen !== bindGenRef.current) return
+            if (rows.length) {
+              applyBoundSession(roomId, templateProf, {
+                sessionId: bound.sessionId,
+                profile: bound.profile || templateProf,
+                templateProfile: templateProf,
+                agentDisplayName: bound.agentDisplayName || displayName,
+                messages: rows,
+              })
+            }
+          } catch (err) {
+            console.warn('[workframe] bind history fetch failed; keeping local session', err)
+          }
+        }
       } catch (err) {
         if (gen !== bindGenRef.current) return
         if (cachedBind) {

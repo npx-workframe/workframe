@@ -15,10 +15,6 @@ function userText(message: ChatMessage): string {
     .trim()
 }
 
-function hasImageSegment(message: ChatMessage): boolean {
-  return message.segments.some((s) => s.kind === 'image')
-}
-
 function serverHasUserTurn(server: ChatMessage[], localUser: ChatMessage): boolean {
   const text = normalizeUserText(userText(localUser))
   const localImages = localUser.segments.filter((s) => s.kind === 'image').length
@@ -33,6 +29,17 @@ function serverHasUserTurn(server: ChatMessage[], localUser: ChatMessage): boole
     }
     return false
   })
+}
+
+function hasImageSegment(message: ChatMessage): boolean {
+  return message.segments.some((s) => s.kind === 'image')
+}
+
+function isPendingUserMessage(m: ChatMessage): boolean {
+  return (
+    m.role === 'user' &&
+    (m.id.startsWith('u-') || m.id.startsWith('local-'))
+  )
 }
 
 function hasSubstantiveContent(segments: ChatSegment[]): boolean {
@@ -126,7 +133,7 @@ export function mergeLiveTurn(
   activeStreamId: string | null,
 ): ChatMessage[] {
   const pendingUsers = local.filter(
-    (m) => m.id.startsWith('u-') && !serverHasUserTurn(server, m),
+    (m) => isPendingUserMessage(m) && !serverHasUserTurn(server, m),
   )
 
   const activeEphemeral =
@@ -153,7 +160,7 @@ function localAgentHandoff(local: ChatMessage[]): ChatMessage | null {
  */
 export function finalizeChatHandoff(server: ChatMessage[], local: ChatMessage[]): ChatMessage[] {
   const pendingUsers = local.filter(
-    (m) => m.id.startsWith('u-') && m.role === 'user' && !serverHasUserTurn(server, m),
+    (m) => isPendingUserMessage(m) && m.role === 'user' && !serverHasUserTurn(server, m),
   )
 
   const localAgent = localAgentHandoff(local)
@@ -175,4 +182,31 @@ export function finalizeChatHandoff(server: ChatMessage[], local: ChatMessage[])
   const agentIdx = result.findLastIndex((m) => m.id === serverAgentForTurn.id)
   result[agentIdx] = mergeAgentFromEphemeral(result[agentIdx], localAgent)
   return [...result, ...pendingUsers]
+}
+
+function messageTimestamp(message: ChatMessage): number {
+  const ts = Date.parse(message.timestamp)
+  return Number.isFinite(ts) ? ts : 0
+}
+
+/**
+ * Project room reload merge: server is canonical order, but never drop persisted local
+ * rows missing from a stale fetch (racing reloads / lane switch).
+ */
+export function mergeRoomMessageHistory(server: ChatMessage[], local: ChatMessage[]): ChatMessage[] {
+  const merged = finalizeChatHandoff(server, local)
+  const mergedIds = new Set(merged.map((message) => message.id))
+  const serverIds = new Set(server.map((message) => message.id))
+
+  for (const message of local) {
+    if (message.ephemeral) continue
+    if (mergedIds.has(message.id)) continue
+    if (isPendingUserMessage(message)) continue
+    if (serverIds.has(message.id)) continue
+    merged.push(message)
+    mergedIds.add(message.id)
+  }
+
+  merged.sort((a, b) => messageTimestamp(a) - messageTimestamp(b))
+  return merged
 }

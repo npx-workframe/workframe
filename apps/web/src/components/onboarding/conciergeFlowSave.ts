@@ -169,7 +169,7 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
         return
       }
 
-      if (!primary || !fb0 || !fb1) {
+      if (!primary || (!deps.isInvitee && (!fb0 || !fb1))) {
         deps.setError({
           tone: 'caution',
           message: 'Configure primary and both fallback models.',
@@ -187,13 +187,15 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
       if (!primaryResult.ok) {
         throw new Error(primaryResult.error || 'Could not save primary model')
       }
-      const chainResult = await setHermesFallbackChain(
-        fallbacks.map((entry: FallbackEntry) => ({ provider: entry.provider, model: entry.model })),
-        undefined,
-        { selectionOnly: true },
-      )
-      if (!chainResult.ok) {
-        throw new Error(chainResult.error || 'Could not save fallback models')
+      if (fallbacks.length) {
+        const chainResult = await setHermesFallbackChain(
+          fallbacks.map((entry: FallbackEntry) => ({ provider: entry.provider, model: entry.model })),
+          undefined,
+          { selectionOnly: true },
+        )
+        if (!chainResult.ok) {
+          throw new Error(chainResult.error || 'Could not save fallback models')
+        }
       }
 
       deps.setAgentPrimaryModel(primary)

@@ -223,6 +223,17 @@ class ChatRoutesMixin:
             self._json(400, {"error": "model required"})
             return
         billing_provider = str(body.get("billing_provider", "")).strip()
+        # A member may tune the model used by their proxy, but cannot mutate
+        # the shared agent template.  The template remains the default model
+        # owned by the agent; this maps ordinary member writes to u-* runtime.
+        if profile and not selection_only and not srv._is_runtime_profile_slug(profile):
+            if not srv._role_allows(self, srv.OWNER_ADMIN_ROLES):
+                if not workspace_id:
+                    workspaces = srv._get_user_workspaces(user_id)
+                    current = srv._resolve_current_workspace(user_id, workspaces)
+                    workspace_id = str((current or {}).get("id") or (workspaces[0] or {}).get("id") or "")
+                profile = srv._runtime_profile_slug(user_id, profile)
+                srv.ensure_runtime_profile(profile, srv._runtime_template_slug(profile), user_id, workspace_id)
         self._json(
             200,
             hermes_model_set(
@@ -256,6 +267,14 @@ class ChatRoutesMixin:
         chain = body.get("chain", [])
         selection_only = bool(body.get("selection_only"))
         user_id = str(getattr(self, "auth_user", "") or "")
+        if profile and not selection_only and not srv._is_runtime_profile_slug(profile):
+            if not srv._role_allows(self, srv.OWNER_ADMIN_ROLES):
+                if not workspace_id:
+                    workspaces = srv._get_user_workspaces(user_id)
+                    current = srv._resolve_current_workspace(user_id, workspaces)
+                    workspace_id = str((current or {}).get("id") or (workspaces[0] or {}).get("id") or "")
+                profile = srv._runtime_profile_slug(user_id, profile)
+                srv.ensure_runtime_profile(profile, srv._runtime_template_slug(profile), user_id, workspace_id)
         if not isinstance(chain, list):
             self._json(400, {"error": "chain must be a list"})
             return
@@ -527,6 +546,9 @@ class ChatRoutesMixin:
             return
         template = resolve_validated_profile(profile_bootstrap_post.group(1))
         user_id = str(getattr(self, "auth_user", "") or "").strip()
+        if srv._is_native_profile(template) and not srv._role_allows(self, srv.OWNER_ADMIN_ROLES):
+            self._json(403, {"ok": False, "error": "native_agent_identity_owner_only"})
+            return
         workspace_id = str(body.get("workspace_id") or "").strip()
         if not workspace_id and user_id:
             workspaces = srv._get_user_workspaces(user_id)

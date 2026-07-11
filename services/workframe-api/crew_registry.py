@@ -96,12 +96,9 @@ def _workspace_agent_identities(workspace_id: str | None = None) -> dict[str, di
 def _agent_identity_fields(profile: str, workspace_id: str | None = None, user_id: str = "") -> dict[str, Any]:
     slug = _srv().safe_profile_slug(str(profile or "").strip())
     template = _srv()._runtime_template_slug(slug) if _srv()._is_runtime_profile_slug(slug) else slug
-    reg = _agent_registry_row(slug)
-    if user_id and template:
-        runtime = _srv()._runtime_profile_slug(user_id, template)
-        reg_user = _agent_registry_row(runtime)
-        if reg_user.get("display_name") or reg_user.get("tagline") or reg_user.get("avatar_url"):
-            reg = {**reg, **{k: v for k, v in reg_user.items() if v}}
+    # Runtime profiles are credential/session proxies, not alternate agent
+    # identities.  Shared template metadata is authoritative for all users.
+    reg = _agent_registry_row(template)
     ident = _workspace_agent_identities(workspace_id).get(template, {})
     reg_template = _agent_registry_row(template)
     avatar_url: Any = None

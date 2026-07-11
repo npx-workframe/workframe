@@ -1,5 +1,5 @@
 import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
-import { buildFinishInstallSteps, defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
+import { buildFinishInstallSteps } from '@/components/onboarding/conciergeFlowUtils'
 import type { OperationStep } from '@/components/ui/OperationProgress'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -42,17 +42,12 @@ export function createConciergeLaunchHandlers(deps: ConciergeLaunchDeps) {
     )
     deps.setBusy(true)
     try {
-      const result = await workframeAuthApi.bootstrapAgentFromTemplate('workframe-agent', {
-        workspace_id: deps.workspaceId,
-        display_name: deps.displayName.trim() || deps.agentName,
-        tagline: deps.agentTagline,
-        soul: deps.agentSoul.trim() || defaultAgentSoul(deps.displayName || deps.agentName, deps.resolveWorkframeName()),
-        bind_session: true,
-      })
-      if (!result.ok || !result.room_id) {
-        throw new Error(result.error || 'Agent bootstrap failed')
-      }
-      deps.setLaunchSteps(buildFinishInstallSteps(result.steps as Array<{ step?: string; ok?: boolean; error?: string }>, 'done'))
+      // Invite acceptance already provisions the user's native-agent runtime.
+      // Invitees configure only their own profile/provider/model preferences;
+      // never bootstrap or rename the shared native agent here.
+      const result = await workframeAuthApi.getMyCohort(deps.workspaceId)
+      if (!result.ok) throw new Error('Agent runtime provisioning failed')
+      deps.setLaunchSteps(buildFinishInstallSteps(undefined, 'done'))
       deps.setStep('done')
       await new Promise((resolve) => window.setTimeout(resolve, 350))
       deps.onComplete()
