@@ -88,7 +88,8 @@ def test_schema_and_round_trip() -> None:
             conn.close()
 
         events = run_ledger.list_run_events_for_room("room-1")
-        assert len(events) >= 2
+        assert len(events) == 1
+        assert events[0]["event_type"] == "run.completed"
         assert events[0]["source"] == "run_ledger"
 
 

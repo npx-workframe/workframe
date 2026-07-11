@@ -1,10 +1,10 @@
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
-import { noticeMessage, parseApiErrorResponse } from '@/lib/workframeErrors'
+import { parseApiErrorResponse, WorkframeApiError } from '@/lib/workframeErrors'
 
 async function parseJson<T>(response: Response, method: string, path: string): Promise<T> {
   if (!response.ok) {
     const info = await parseApiErrorResponse(response)
-    throw new Error(noticeMessage({ ...info, message: `${method} ${path}: ${info.message}` }))
+    throw new WorkframeApiError(info, method, path)
   }
   return response.json() as Promise<T>
 }

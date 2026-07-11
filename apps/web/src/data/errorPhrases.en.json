@@ -58,6 +58,14 @@
     }
   },
   "codes": {
+    "request_timeout": {
+      "message": "Workframe did not finish this action in time.",
+      "hint": "The stack may still be starting. Check its status, then retry without reloading the install."
+    },
+    "model_required": {
+      "message": "Choose a model for this agent.",
+      "hint": "Open LLM models, select a connected provider and model, then create the agent."
+    },
     "no_session": {
       "message": "You are not signed in.",
       "hint": "Sign in and try again."
@@ -287,6 +295,11 @@
     {
       "id": "invalid_api_key",
       "match": "invalid.*(api[_ ]?key|token)|authentication failed|incorrect api key",
+      "code": "provider_invalid_key"
+    },
+    {
+      "id": "provider_auth_rejected",
+      "match": "401.*user not found|user not found.*401|HTTP 401",
       "code": "provider_invalid_key"
     },
     {
