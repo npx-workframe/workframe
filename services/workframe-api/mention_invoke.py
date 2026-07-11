@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -311,28 +312,52 @@ def _invoke_room_agent_mention(
             "Content-Type": "application/json",
         }
         req = urllib.request.Request(url, data=upstream_body, headers=headers, method="POST")
-        upstream = urllib.request.urlopen(req, timeout=3600)
-
         final_text = ""
+        upstream = None
         try:
-            publish_update(force=True, status="thinking")
-            for event_name, data in chat_stream._iter_profile_stream_frames(upstream):
-                segments[:] = chat_stream._live_reduce_stream_event(segments, event_name, data)
-                if event_name in ("message.delta", "assistant.delta"):
-                    final_text += chat_stream._live_stream_text(data)
-                    publish_update(status="writing")
-                elif event_name in ("thinking.delta", "reasoning.delta"):
-                    publish_update(status="thinking")
-                elif event_name == "tool.started":
-                    publish_update(force=True, status=f"tool:{data.get('tool_name') or 'tool'}")
-                elif event_name in ("tool.completed", "tool.failed", "tool.progress"):
-                    publish_update(force=True)
-                elif event_name in ("message.complete", "assistant.completed"):
-                    final_text = str(data.get("content") or data.get("text") or final_text)
-                    publish_update(force=True, status="writing")
-            publish_update(force=True)
-        finally:
-            upstream.close()
+            upstream = urllib.request.urlopen(req, timeout=3600)
+        except urllib.error.HTTPError as exc:
+            # Older Hermes runtimes expose the session chat endpoint but not
+            # the streaming variant. Room mentions should still work there;
+            # use the same non-stream request as the DM path.
+            if exc.code != 404:
+                raise
+            status, data = _srv()._profile_api_request(
+                hermes_slug,
+                "POST",
+                f"/api/sessions/{urllib.parse.quote(session_id, safe='')}/chat",
+                turn_body,
+            )
+            if status >= 300:
+                raise ValueError(f"session chat failed: {data}")
+            if isinstance(data, dict):
+                message = data.get("message")
+                if isinstance(message, dict):
+                    final_text = str(message.get("content") or message.get("text") or "")
+                if not final_text:
+                    final_text = str(data.get("content") or data.get("text") or "")
+            publish_update(force=True, status="writing")
+
+        if upstream is not None:
+            try:
+                publish_update(force=True, status="thinking")
+                for event_name, data in chat_stream._iter_profile_stream_frames(upstream):
+                    segments[:] = chat_stream._live_reduce_stream_event(segments, event_name, data)
+                    if event_name in ("message.delta", "assistant.delta"):
+                        final_text += chat_stream._live_stream_text(data)
+                        publish_update(status="writing")
+                    elif event_name in ("thinking.delta", "reasoning.delta"):
+                        publish_update(status="thinking")
+                    elif event_name == "tool.started":
+                        publish_update(force=True, status=f"tool:{data.get('tool_name') or 'tool'}")
+                    elif event_name in ("tool.completed", "tool.failed", "tool.progress"):
+                        publish_update(force=True)
+                    elif event_name in ("message.complete", "assistant.completed"):
+                        final_text = str(data.get("content") or data.get("text") or final_text)
+                        publish_update(force=True, status="writing")
+                publish_update(force=True)
+            finally:
+                upstream.close()
 
         assistant = final_text.strip() or chat_stream._segments_to_reply_text(segments)
         if not assistant:
