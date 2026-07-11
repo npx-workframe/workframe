@@ -22,9 +22,8 @@ export function wizardRailStep(step: ConciergeStep): string {
 }
 
 const INVITEE_STEPS: WizardStepItem[] = [
-  { id: 'profile', label: 'Your Identity', group: 'User Profile' },
-  { id: 'agent', label: 'Your Agent', group: 'User Profile' },
-  { id: 'agent_model', label: "Agent's Model", group: 'User Profile' },
+  { id: 'profile', label: 'Your Identity', group: 'Join' },
+  { id: 'agent_model', label: 'Provider & model', group: 'Join' },
 ]
 
 export function buildWizardSteps(
@@ -75,7 +74,7 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'intro':
       return {
         title: `Set up ${projectName}`,
-        description: 'Enter the admin email for this install, then continue through deployment and profile setup.',
+        description: 'Enter the admin email to register the owner account, then continue through deployment, SMTP, and email verification.',
       }
     case 'welcome':
       return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
@@ -97,10 +96,15 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'agent':
       return { title: 'Your Agent', description: 'Your concierge agent — name, avatar, and operating instructions.' }
     case 'agent_model':
-      return {
-        title: "Agent's Model",
-        description: 'Choose the primary model for your native agent. Connect integration keys first when using BYOK.',
-      }
+      return isInvitee
+        ? {
+            title: 'Provider & model',
+            description: 'Connect your LLM key (BYOK) or pick a model when your workspace shares billing.',
+          }
+        : {
+            title: "Agent's Model",
+            description: 'Choose the primary model for your native agent. Connect integration keys first when using BYOK.',
+          }
     case 'invites':
       return { title: 'Your Team', description: 'Send email invites now, or skip and invite later in Workframe Settings.' }
     case 'publish':

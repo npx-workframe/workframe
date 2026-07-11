@@ -64,8 +64,10 @@ export function resolveProviderDisplayLabel(providerId?: string, modelId?: strin
 export function formatComposerModelLabel(providerId?: string, modelId?: string): string {
   const modelLabel = modelLabelFromId(modelId ?? '')
   const provider = resolveProviderDisplayLabel(providerId, modelId)
-  if (provider && modelLabel) return `${provider} · ${modelLabel}`
-  return modelLabel || provider
+  const hasModel = Boolean(modelId?.trim()) && modelLabel !== 'No model'
+  if (provider && hasModel) return `${provider} · ${modelLabel}`
+  if (hasModel) return modelLabel
+  return provider
 }
 
 /** Compact provider · model label for message attribution. */
@@ -73,6 +75,22 @@ export function formatModelAttribution(modelId?: string, llmProvider?: string): 
   const model = modelId?.trim() ?? ''
   if (model && /^u-[a-z0-9][a-z0-9-]*$/i.test(model)) return ''
   return formatComposerModelLabel(llmProvider, model)
+}
+
+export function systemNoticeChatMessage(
+  notice: WorkframeNoticeInfo,
+  options?: { id?: string; authorName?: string; avatarUrl?: string | null },
+): ChatMessage {
+  return {
+    id: options?.id ?? `sys-notice-${notice.code ?? Date.now()}`,
+    authorId: 'system',
+    authorName: options?.authorName ?? 'Workframe',
+    role: 'agent',
+    segments: [{ kind: 'concierge', notice }],
+    timestamp: new Date().toISOString(),
+    tokens: 0,
+    avatarUrl: options?.avatarUrl,
+  }
 }
 
 export function emptyAgentStreamMessage(

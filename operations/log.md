@@ -4,6 +4,7 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-11T00:20-03:00 | architect (claude) | Working-set review: pytest 3F+1 collection error (sys.modules["server"] pollution from test_model_surface_consistency; test_user_llm_prefs has no test funcs; stale run_ledger assertion), apiClient throw-plain-object regression risk at ~42 instanceof-Error catch sites, harness passes:false vs local green; handoff docs/ledger/handoffs/2026-07-11-working-set-review.md
 2026-07-09T22:52-03:00 | pm-workframe | Device OAuth dialog — opaque overlay + OTP-panel layout (code cells, copy, wizard buttons); dogfood UI restart.
 2026-07-09T22:45-03:00 | pm-workframe | LLM provider icons — reuse sign-in-app inset well (div + brand img); relief backdrop cleared; dogfood UI restart.
 2026-07-09T22:38-03:00 | pm-workframe | Fix step 9 company-pays — always show Providers tab (workspace-scoped keys) before Models; dogfood UI restart.

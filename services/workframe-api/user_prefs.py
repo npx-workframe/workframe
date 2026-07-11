@@ -125,6 +125,15 @@ def read_user_llm_prefs(user_id: str) -> tuple[str, list[dict[str, str]]]:
                             chain.append({"provider": prov, "model": model})
         except json.JSONDecodeError:
             pass
+    if not primary and chain:
+        first = chain[0]
+        prov = str(first.get("provider") or "").strip()
+        model = str(first.get("model") or "").strip()
+        if model:
+            if prov and not model.lower().startswith(f"{prov}/"):
+                primary = f"{prov}/{model}"
+            else:
+                primary = model
     return primary, chain
 
 
@@ -137,13 +146,25 @@ def write_user_llm_prefs(
     user_id = str(user_id or "").strip()
     if not user_id:
         return
-    patch: dict[str, str] = {}
+    if not primary and fallback_chain is None:
+        return
+    user = get_workframe_user(user_id)
+    pids: dict[str, Any] = {}
+    if user and isinstance(user.get("platform_ids"), dict):
+        pids = dict(user["platform_ids"])
     if primary:
-        patch["llm_primary"] = primary.strip()
+        pids["llm_primary"] = primary.strip()
     if fallback_chain is not None:
-        patch["llm_fallback_chain"] = json.dumps(fallback_chain, separators=(",", ":"))
-    if patch:
-        merge_user_platform_ids(user_id, patch)
+        pids["llm_fallback_chain"] = json.dumps(fallback_chain, separators=(",", ":"))
+    conn = _srv()._workframe_db()
+    try:
+        conn.execute(
+            "UPDATE users SET platform_ids = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(pids, sort_keys=True), str(int(time.time())), user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def validate_me_profile_updates(updates: dict[str, Any]) -> None:

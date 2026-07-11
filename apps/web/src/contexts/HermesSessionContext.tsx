@@ -17,6 +17,7 @@ import { getOrCreateClientId, markBindingSchema } from '@/lib/chatSession'
 import type { ChatMessage } from '@/lib/chatTypes'
 import { findAgentByProfile } from '@/lib/hermesProfile'
 import { loadWorkframeRuntimeConfig, nativeProfileSlug } from '@/lib/workframeProfile'
+import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
 
 import { useHermesSessionRefs } from './hermes-session/hermesSessionRefs'
 import type { HermesSessionState } from './hermes-session/types'
@@ -42,7 +43,7 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
   const [stateDbSessionId, setStateDbSessionId] = useState<string | null>(null)
   const [gatewaySessionId, setGatewaySessionId] = useState<string | null>(null)
   const [sessionReady, setSessionReady] = useState(false)
-  const [connectError, setConnectError] = useState<string | null>(null)
+  const [connectError, setConnectError] = useState<WorkframeNoticeInfo | null>(null)
   const [turnActive, setTurnActive] = useState(false)
   const [turnStatus, setTurnStatus] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])

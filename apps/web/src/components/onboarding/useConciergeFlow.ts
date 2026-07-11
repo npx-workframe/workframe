@@ -50,7 +50,7 @@ export function useConciergeFlow({
   inviteToken = '',
   inviteEmail = '',
 }: UseConciergeFlowOptions) {
-  const isInvitee = Boolean(inviteToken && inviteEmail)
+  const isInvitee = Boolean(inviteToken.trim())
   const [inviteeAuthed, setInviteeAuthed] = useState(false)
   const [step, setStep] = useState<ConciergeStep>(isInvitee ? 'profile' : 'intro')
   const [busy, setBusy] = useState(false)
@@ -291,21 +291,36 @@ export function useConciergeFlow({
         const installAdminVerified = Boolean(
           wizard?.admin_verified || cfg?.smtp?.admin_verified,
         )
+        const ownerClaimed = Boolean(wizard?.owner_claimed)
+        if (session || ownerClaimed) {
+          setHasAdminSession(Boolean(session))
+        }
         if (installAdminVerified) {
           setAdminVerified(true)
-          setHasAdminSession(Boolean(session))
         }
         if (cfg?.deployment_mode) {
           setModeChosen(true)
         }
         const resumeRaw = String(wizard?.resume_step || '').trim()
-        const resumeStep = (
+        let resumeStep = (
           resumeRaw === 'admin_auth' && installAdminVerified
             ? 'workframe'
             : resumeRaw === 'smtp' && installAdminVerified && cfg?.smtp?.setup_complete
               ? 'workframe'
               : resumeRaw
         ) as ConciergeStep
+        const deploymentChosen = Boolean(cfg?.deployment_mode)
+        if (
+          !deploymentChosen
+          && ['publish', 'smtp', 'admin_auth', 'workframe', 'billing', 'integrations', 'profile', 'agent', 'agent_model', 'invites'].includes(
+            resumeStep,
+          )
+        ) {
+          resumeStep = ownerClaimed || smtpAdmin ? 'welcome' : 'intro'
+        }
+        if (!ownerClaimed && !smtpAdmin && resumeStep !== 'intro') {
+          resumeStep = 'intro'
+        }
         const allowedSteps: ConciergeStep[] = [
           'intro', 'welcome', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing',
           'integrations', 'profile', 'agent', 'agent_model', 'invites', 'done',
@@ -322,7 +337,7 @@ export function useConciergeFlow({
               preferAdminEmailOverSmtpLogin(prev, me.user.email || '', cfg?.smtp?.user),
             )
           }
-          if (me.ok) {
+          if (me.ok && installAdminVerified) {
             setAdminVerified(true)
             setHasAdminSession(true)
           }
@@ -361,8 +376,8 @@ export function useConciergeFlow({
   )
 
   const canKeepAdminSetup = useMemo(
-    () => smtpSetupComplete && (adminVerified || hasAdminSession) && !smtpFieldsDirty,
-    [adminVerified, hasAdminSession, smtpFieldsDirty, smtpSetupComplete],
+    () => smtpSetupComplete && adminVerified && !smtpFieldsDirty,
+    [adminVerified, smtpFieldsDirty, smtpSetupComplete],
   )
 
   const canContinueFromSmtp = useMemo(() => {
@@ -373,15 +388,21 @@ export function useConciergeFlow({
   }, [adminVerified, adminEmail, canKeepAdminSetup, smtpSetupComplete])
 
   useEffect(() => {
+    if (isInvitee || modeChosen) return
+    if (step === 'smtp' || step === 'admin_auth' || step === 'publish') {
+      setStep(adminEmail.trim() ? 'welcome' : 'intro')
+    }
+  }, [adminEmail, isInvitee, modeChosen, step])
+
+  useEffect(() => {
     if (step !== 'smtp') return
     void workframeAuthApi.peekSession().then((session) => {
       setHasAdminSession(Boolean(session))
       if (session?.user?.email) {
         setAdminEmail((prev) => preferAdminEmailOverSmtpLogin(prev, session.user.email || '', smtpUser))
-        if (smtpSetupComplete) setAdminVerified(true)
       }
     })
-  }, [smtpSetupComplete, smtpUser, step])
+  }, [smtpUser, step])
 
   const unlockedMaxIndex = useMemo(() => {
     const steps = buildWizardSteps(deploymentMode, modeChosen, isInvitee)
@@ -453,7 +474,9 @@ export function useConciergeFlow({
           agent_name: agentName,
         })
         await patchInstallStackWhenAllowed({ smtp: { admin_email: email } })
-        await workframeAuthApi.localBootstrap(displayName || email.split('@')[0] || 'Owner', email)
+        if (!hasAdminSession) {
+          await workframeAuthApi.localBootstrap(displayName || email.split('@')[0] || 'Owner', email)
+        }
         const me = await workframeAuthApi.getMe()
         setWorkspaceId(me.current_workspace?.id || me.default_workspace?.id || '')
         setAdminVerified(true)
@@ -495,6 +518,7 @@ export function useConciergeFlow({
     deploymentMode,
     adminVerified,
     adminEmail,
+    agentPrimaryModel,
     displayName,
     bio,
     agentName,
@@ -585,8 +609,12 @@ export function useConciergeFlow({
     setBusy(true)
     setError(null)
     try {
-      const patched = await patchInstallStackWhenAllowed({ smtp: { admin_email: email } })
-      if (!patched) return
+      const profile = await workframeAuthApi.registerInstallAdmin(
+        displayName || email.split('@')[0] || 'Owner',
+        email,
+      )
+      setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
+      setHasAdminSession(true)
       setStep('welcome')
     } catch (err) {
       setError(formatWorkframeError(err, 'Admin email'))
@@ -635,11 +663,20 @@ export function useConciergeFlow({
     }
   }
 
-  function handleInviteeVerified(profile: SessionProfile) {
-    setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
+  async function handleInviteeVerified(profile: SessionProfile) {
+    const wsId = profile.current_workspace?.id || profile.default_workspace?.id || ''
+    setWorkspaceId(wsId)
     setInviteeAuthed(true)
     setStep('profile')
+    if (wsId) {
+      await reloadWorkspaceStatus(wsId)
+    }
   }
+
+  useEffect(() => {
+    if (!isInvitee || !inviteeAuthed || credentialMode !== 'workspace') return
+    setAgentModelTab('model')
+  }, [credentialMode, inviteeAuthed, isInvitee])
 
   async function testPublicUrl() {
     setBusy(true)
@@ -739,6 +776,7 @@ export function useConciergeFlow({
 
   function goToRailStep(railId: string) {
     if (isInvitee && railId === 'smtp') return
+    if (!modeChosen && (railId === 'smtp' || railId === 'publish')) return
     if (busy) return
     const targetIdx = wizardSteps.findIndex((s) => s.id === railId)
     if (targetIdx < 0 || targetIdx > maxReachableIndex) return

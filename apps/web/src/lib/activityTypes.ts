@@ -15,6 +15,7 @@ export type ActivitySource =
   | 'kanban_event'
   | 'kanban_run'
   | 'gateway_log'
+  | 'run_ledger'
 
 export type ActivityKind =
   | 'session_start'

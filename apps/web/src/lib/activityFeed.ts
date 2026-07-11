@@ -14,7 +14,7 @@ import type {
 export async function fetchActivityFeed(): Promise<ActivityNode[]> {
   const data = await apiGet<{ activity?: Array<Record<string, unknown>> }>('/api/snapshot')
   const rows = data.activity ?? []
-  return buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)))
+  return buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)).filter((n): n is ActivityNode => n !== null))
 }
 
 /** Room-scoped activity from `room_sessions` + Hermes tool runs for that room. */
@@ -25,7 +25,7 @@ export async function fetchRoomActivityFeed(roomId: string): Promise<ActivityNod
     `/api/rooms/${encodeURIComponent(rid)}/activity`,
   )
   const rows = data.activity ?? []
-  return buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)))
+  return buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)).filter((n): n is ActivityNode => n !== null))
 }
 
 /** Workspace-wide activity (all rooms + kanban on the workspace board). */
@@ -36,7 +36,7 @@ export async function fetchWorkspaceActivityFeed(workspaceId: string): Promise<A
     `/api/workspace/${encodeURIComponent(wid)}/activity`,
   )
   const rows = data.activity ?? []
-  return buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)))
+  return buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)).filter((n): n is ActivityNode => n !== null))
 }
 
 export function watchActivityFeed(onUpdate: (nodes: ActivityNode[]) => void): () => void {
@@ -46,7 +46,7 @@ export function watchActivityFeed(onUpdate: (nodes: ActivityNode[]) => void): ()
   const apply = (payload: { activity?: Array<Record<string, unknown>> }) => {
     if (cancelled) return
     const rows = payload.activity ?? []
-    onUpdate(buildActivityTree(rows.map((row, index) => mapActivityRow(row, index))))
+    onUpdate(buildActivityTree(rows.map((row, index) => mapActivityRow(row, index)).filter((n): n is ActivityNode => n !== null)))
   }
 
   source.onmessage = (event) => {
@@ -67,13 +67,15 @@ export function watchActivityFeed(onUpdate: (nodes: ActivityNode[]) => void): ()
   }
 }
 
-function mapActivityRow(row: Record<string, unknown>, index: number): ActivityNode {
+function mapActivityRow(row: Record<string, unknown>, index: number): ActivityNode | null {
   const source = normalizeSource(String(row.source ?? 'session'))
   const kind = normalizeKind(String(row.kind ?? ''), source)
   const sessionId = String(row.session_id ?? '').trim()
   const toolCallId = String(row.tool_call_id ?? '').trim()
   const profile = String(row.profile ?? 'unknown')
   const toolName = String(row.tool_name ?? '').trim()
+  const label = String(row.task_description ?? row.label ?? '').trim()
+  if (source === 'run_ledger' && !label) return null
 
   return {
     id: String(row.id ?? `${source}:${profile}:${index}`),
@@ -83,7 +85,7 @@ function mapActivityRow(row: Record<string, unknown>, index: number): ActivityNo
     profile,
     agentName: String(row.agent_name ?? row.profile ?? 'Agent'),
     agentColor: 'var(--wf-violet-glow)',
-    label: String(row.task_description ?? ''),
+    label,
     status: normalizeStatus(String(row.status ?? 'completed')),
     refs: {
       model: String(row.model_used ?? ''),
@@ -265,6 +267,7 @@ function normalizeSource(raw: string): ActivitySource {
   if (source === 'kanban_event') return 'kanban_event'
   if (source === 'kanban_run') return 'kanban_run'
   if (source === 'gateway_log') return 'gateway_log'
+  if (source === 'run_ledger') return 'run_ledger'
   return 'session'
 }
 
@@ -276,6 +279,7 @@ function normalizeKind(raw: string, source: ActivitySource): ActivityKind {
   if (source === 'session') return 'session_start'
   if (source === 'kanban_run') return 'kanban_run'
   if (source === 'kanban_event') return 'kanban_task'
+  if (source === 'run_ledger') return 'message'
   return 'message'
 }
 

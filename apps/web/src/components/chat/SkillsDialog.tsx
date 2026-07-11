@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { PanelStatus } from '@/components/ui/PanelPrimitives'
 import { fetchHermesSkills, type HermesSkillRow } from '@/lib/hermesCatalogApi'
 import { cn } from '@/lib/utils'
 
@@ -64,40 +65,36 @@ export function SkillsDialog({ open, onOpenChange }: SkillsDialogProps) {
       sheetClassName="wf-dialog-content--settings-compact"
       loading={loading}
     >
-      <div className="space-y-4" role="tabpanel">
-        {error ? <WorkframeNotice message={error} /> : null}
+      <SettingsPanelBody error={error}>
+        <input
+          type="search"
+          className="wf-dialog__search"
+          placeholder="Filter skills…"
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+          aria-label="Filter skills"
+        />
 
-        <div className="wf-wizard-panel wf-onboarding-form">
-          <input
-            type="search"
-            className="wf-dialog__search"
-            placeholder="Filter skills…"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            aria-label="Filter skills"
-          />
-
-          <div className="wf-model-picker__list wf-model-picker__list--embedded wf-scroll wf-scroll--vertical">
-            {groups.map((group) => (
-              <div key={group.category} className="wf-dialog__group">
-                <p className="wf-dialog__group-label">{group.category}</p>
-                {group.rows.map((skill) => (
-                  <div
-                    key={skill.name}
-                    className={cn('wf-dialog__option wf-dialog__option--single-line', !skill.enabled && 'opacity-60')}
-                  >
-                    <span className="wf-dialog__option-label">{skill.name}</span>
-                    {!skill.enabled ? <span className="wf-dialog__option-tag">off</span> : null}
-                  </div>
-                ))}
-              </div>
-            ))}
-            {!error && filtered.length === 0 ? (
-              <p className="wf-dialog__hint">No skills match this filter.</p>
-            ) : null}
-          </div>
+        <div className="wf-model-picker__list wf-model-picker__list--embedded wf-scroll wf-scroll--vertical">
+          {groups.map((group) => (
+            <div key={group.category} className="wf-dialog__group">
+              <p className="wf-dialog__group-label">{group.category}</p>
+              {group.rows.map((skill) => (
+                <div
+                  key={skill.name}
+                  className={cn('wf-dialog__option wf-dialog__option--single-line', !skill.enabled && 'opacity-60')}
+                >
+                  <span className="wf-dialog__option-label">{skill.name}</span>
+                  {!skill.enabled ? <span className="wf-dialog__option-tag">off</span> : null}
+                </div>
+              ))}
+            </div>
+          ))}
+          {!error && filtered.length === 0 ? (
+            <PanelStatus>{loading ? 'Loading skills…' : 'No skills match this filter.'}</PanelStatus>
+          ) : null}
         </div>
-      </div>
+      </SettingsPanelBody>
     </SettingsSheetFrame>
   )
 }

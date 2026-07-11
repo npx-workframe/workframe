@@ -417,6 +417,9 @@ class ChatRoutesMixin:
             self._json(400, {"error": "name required"})
             return
         model = str(body.get("model") or "").strip()
+        if not model:
+            self._json(400, {"error": "model_required"})
+            return
         description = str(body.get("description") or "").strip()
         clone_from = str(body.get("clone_from") or "").strip()
         soul = str(body.get("soul") or "").strip()

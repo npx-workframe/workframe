@@ -32,7 +32,7 @@ PLAYBOOK: dict[str, dict[str, Any]] = {
     },
     "provider_invalid_key": {
         "message": "Your API key was rejected by the provider.",
-        "hint": "Reset the key at your provider, then paste it again under Connected accounts.",
+        "hint": "The key may be expired or revoked. Paste a new one under Settings → Integrations.",
         "action": _ACTIONS["open_providers"],
         "action_label": "Update API key",
         "secondary_action": _ACTIONS["openrouter_keys"],
@@ -93,6 +93,38 @@ PLAYBOOK: dict[str, dict[str, Any]] = {
         "secondary_action_label": "Choose model",
     },
 }
+
+
+_PROVIDER_LABELS: dict[str, str] = {
+    "openrouter": "OpenRouter",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google": "Google",
+    "deepseek": "DeepSeek",
+}
+
+
+def _provider_label(provider: str) -> str:
+    key = str(provider or "openrouter").strip().lower()
+    return _PROVIDER_LABELS.get(key, key.title() or "Provider")
+
+
+def tailor_provider_entry(entry: dict[str, Any], provider: str) -> dict[str, Any]:
+    """Agent-facing copy when a provider rejects credentials."""
+    if str(entry.get("code") or "") != "provider_invalid_key":
+        return entry
+    label = _provider_label(provider)
+    out = dict(entry)
+    out["message"] = (
+        f"I couldn't authenticate with {label} — your API key may be expired or revoked."
+    )
+    out["hint"] = (
+        f"Open Settings → Integrations to paste a new {label} key, then send your message again."
+    )
+    if str(provider or "").strip().lower() == "openrouter":
+        out["secondary_action"] = _ACTIONS["openrouter_keys"]
+        out["secondary_action_label"] = "Manage OpenRouter keys"
+    return out
 
 
 def playbook_entry(code: str, **overrides: Any) -> dict[str, Any]:
@@ -156,8 +188,17 @@ def classify_upstream(
     low = msg.lower()
     model_id = model or _model_from_text(msg)
 
-    if status == 401 or "invalid api key" in low or "incorrect api key" in low or "unauthorized" in low:
-        return playbook_entry("provider_invalid_key", provider=provider)
+    if (
+        status == 401
+        or "invalid api key" in low
+        or "incorrect api key" in low
+        or "unauthorized" in low
+        or "user not found" in low
+    ):
+        return tailor_provider_entry(
+            playbook_entry("provider_invalid_key", provider=provider),
+            provider,
+        )
     if status == 402 or "insufficient" in low and "credit" in low or "payment required" in low:
         return playbook_entry("provider_no_credits", provider=provider)
     if status == 429 or "rate limit" in low:
@@ -197,9 +238,16 @@ def classify_exception_text(text: str) -> dict[str, Any]:
         return classify_upstream(429, raw)
     if "credit" in low:
         return classify_upstream(402, raw)
-    if "api key" in low or "unauthorized" in low:
+    if "api key" in low or "unauthorized" in low or "user not found" in low:
         return classify_upstream(401, raw)
     return playbook_entry("unknown_provider_error", detail=raw[:200])
+
+
+def classify_stream_error(text: str, *, provider: str = "openrouter") -> dict[str, Any]:
+    """Classify upstream/Hermes failure text into UI notice payload."""
+    entry = classify_exception_text(str(text or "").strip())
+    entry = tailor_provider_entry(entry, provider)
+    return notice_payload(entry)
 
 
 def notice_payload(entry: dict[str, Any]) -> dict[str, Any]:
@@ -233,4 +281,10 @@ if __name__ == "__main__":
     assert e2["code"] == "no_llm_provider"
     e3 = classify_upstream(401, b'{"error":"Invalid API key"}')
     assert e3["code"] == "provider_invalid_key"
+    e4 = classify_exception_text("HTTP 401: User not found.")
+    assert e4["code"] == "provider_invalid_key"
+    assert "OpenRouter" in e4["message"] or "authenticate" in e4["message"]
+    p = classify_stream_error("HTTP 401: User not found.", provider="openrouter")
+    assert p["code"] == "provider_invalid_key"
+    assert p.get("action", {}).get("type") == "open_settings"
     print("llm_error_glossary ok")

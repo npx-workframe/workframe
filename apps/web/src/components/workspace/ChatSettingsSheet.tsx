@@ -2,15 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Save } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
+import { AgentInstructionsFields } from '@/components/settings/AgentInstructionsFields'
 import { AgentListItem } from '@/components/settings/AgentListItem'
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { SettingsSection } from '@/components/settings/SettingsSection'
 import { DialogSelect } from '@/components/dialogs/DialogSelect'
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { PanelStatus } from '@/components/ui/PanelPrimitives'
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
+import { ProfileEntityCardGrid, ProfileEntityCardGridOrEmpty, ProfileEntityCardRow } from '@/components/ui/ProfileEntityCardGrid'
 import { ReducedProfileCard } from '@/components/ui/ReducedProfileCard'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
@@ -475,70 +476,48 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
 
           {mode === 'agent' ? (
             agentTab === 'identity' ? (
-              <div className="space-y-4" role="tabpanel">
-                {error ? <WorkframeNotice message={error} /> : null}
-                {status ? <WorkframeStatusNotice message={status} /> : null}
-
-                <div className="wf-wizard-panel wf-onboarding-form">
-                  <OnboardingIdentityFields
-                    avatarKind="agent"
-                    avatarUrl={agentAvatarDisplayUrl}
-                    onAvatarChange={(url) => {
-                      setAvatarUrl(url)
-                      setAvatarFileName('')
-                    }}
-                    disabled={agentFieldsDisabled}
-                    primary={{
-                      id: 'wf-agent-display-name',
-                      label: 'Display name',
-                      value: displayName,
-                      onChange: setDisplayName,
-                    }}
-                    secondary={{
-                      id: 'wf-agent-tagline',
-                      label: 'Tagline',
-                      value: tagline,
-                      onChange: setTagline,
-                    }}
-                    body={{
-                      id: 'wf-agent-role',
-                      label: 'Role',
-                      value: role,
-                      onChange: setRole,
-                      rows: 2,
-                      placeholder: 'What this agent specializes in',
-                    }}
-                  />
-                </div>
-              </div>
+              <SettingsPanelBody error={error} status={status}>
+                <OnboardingIdentityFields
+                  avatarKind="agent"
+                  avatarUrl={agentAvatarDisplayUrl}
+                  onAvatarChange={(url) => {
+                    setAvatarUrl(url)
+                    setAvatarFileName('')
+                  }}
+                  disabled={agentFieldsDisabled}
+                  primary={{
+                    id: 'wf-agent-display-name',
+                    label: 'Display name',
+                    value: displayName,
+                    onChange: setDisplayName,
+                  }}
+                  secondary={{
+                    id: 'wf-agent-tagline',
+                    label: 'Tagline',
+                    value: tagline,
+                    onChange: setTagline,
+                  }}
+                  body={{
+                    id: 'wf-agent-role',
+                    label: 'Role',
+                    value: role,
+                    onChange: setRole,
+                    rows: 2,
+                    placeholder: 'What this agent specializes in',
+                  }}
+                />
+              </SettingsPanelBody>
             ) : agentTab === 'instructions' ? (
-              <div className="space-y-4" role="tabpanel">
-                {error ? <WorkframeNotice message={error} /> : null}
-                {status ? <WorkframeStatusNotice message={status} /> : null}
-
-                <div className="wf-wizard-panel wf-onboarding-form">
-                  <div className="wf-dialog-field">
-                    <Label htmlFor="wf-agent-soul">Operating instructions</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Layered on the system prompt — does not replace Workframe rules.
-                    </p>
-                    <Textarea
-                      id="wf-agent-soul"
-                      className="font-mono text-sm"
-                      value={soul}
-                      onChange={(event) => setSoul(event.target.value)}
-                      disabled={agentFieldsDisabled}
-                      rows={12}
-                      placeholder="Personality and operating instructions"
-                    />
-                  </div>
-                </div>
-              </div>
+              <SettingsPanelBody error={error} status={status}>
+                <AgentInstructionsFields
+                  id="wf-agent-soul"
+                  value={soul}
+                  onChange={setSoul}
+                  disabled={agentFieldsDisabled}
+                />
+              </SettingsPanelBody>
             ) : (
-              <div className="space-y-4" role="tabpanel">
-                {error ? <WorkframeNotice message={error} /> : null}
-                {status ? <WorkframeStatusNotice message={status} /> : null}
-
+              <SettingsPanelBody error={error} status={status} bare>
                 {canEditAgentModels ? (
                   <ModelPickerPanel
                     profile={modelsProfile}
@@ -554,11 +533,9 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                     }}
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {loading ? 'Loading…' : 'Sign in to change models.'}
-                  </p>
+                  <PanelStatus>{loading ? 'Loading models…' : 'Sign in to change models.'}</PanelStatus>
                 )}
-              </div>
+              </SettingsPanelBody>
             )
           ) : null}
 
@@ -592,12 +569,10 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                 ) : null}
               </SettingsPanelBody>
             ) : projectTab === 'members' ? (
-              <div className="space-y-4" role="tabpanel">
-                {error ? <WorkframeNotice message={error} /> : null}
-                {status ? <WorkframeStatusNotice message={status} /> : null}
-
-                {canManageWorkspace && addableMembers.length > 0 ? (
-                  <div className="wf-wizard-panel wf-onboarding-form">
+              <SettingsPanelBody error={error} status={status} bare>
+                <div className="space-y-4">
+                  {canManageWorkspace && addableMembers.length > 0 ? (
+                    <div className="wf-wizard-panel wf-onboarding-form">
                     <div className="flex flex-col sm:flex-row gap-2 max-w-md">
                       <DialogSelect
                         id="wf-project-add-member"
@@ -623,50 +598,50 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                   </div>
                 ) : null}
 
-                {humanRoomMembers.length ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {humanRoomMembers.map((member) => {
-                      const label = member.display_name || member.email || member.user_id || 'Member'
-                      const isSelf = member.user_id === me?.user_id
-                      return (
-                        <div key={member.id} className="relative group">
-                          <ReducedProfileCard
-                            type={member.role || 'Member'}
-                            name={label}
-                            tagline={member.status || ''}
-                            avatarUrl={resolveUserAvatarUrl(member.avatar_url) || null}
-                          />
-                          {!isSelf && member.user_id && canManageWorkspace ? (
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                disabled={busy}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setRemoveTarget(member)
-                                  setConfirmRemoveOpen(true)
-                                }}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ) : null}
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center p-8 border border-dashed border-border rounded-xl">No human members in this project yet.</p>
-                )}
-              </div>
+                <ProfileEntityCardGridOrEmpty
+                  isEmpty={!humanRoomMembers.length}
+                  emptyMessage="No human members in this project yet."
+                >
+                  {humanRoomMembers.map((member) => {
+                    const label = member.display_name || member.email || member.user_id || 'Member'
+                    const isSelf = member.user_id === me?.user_id
+                    return (
+                      <ProfileEntityCardRow
+                        key={member.id}
+                        action={
+                          !isSelf && member.user_id && canManageWorkspace ? (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              disabled={busy}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setRemoveTarget(member)
+                                setConfirmRemoveOpen(true)
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          ) : undefined
+                        }
+                      >
+                        <ReducedProfileCard
+                          type={member.role || 'Member'}
+                          name={label}
+                          tagline={member.status || ''}
+                          avatarUrl={resolveUserAvatarUrl(member.avatar_url) || null}
+                        />
+                      </ProfileEntityCardRow>
+                    )
+                  })}
+                </ProfileEntityCardGridOrEmpty>
+                </div>
+              </SettingsPanelBody>
             ) : (
-              <div className="space-y-4" role="tabpanel">
-                {error ? <WorkframeNotice message={error} /> : null}
-
+              <SettingsPanelBody error={error} bare>
                 {crew.length ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <ProfileEntityCardGrid>
                     {crew.map((agent) => (
                       <AgentListItem
                         key={agent.profile}
@@ -675,9 +650,11 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                         avatarUrl={agent.avatarUrl}
                       />
                     ))}
-                  </div>
-                ) : null}
-              </div>
+                  </ProfileEntityCardGrid>
+                ) : (
+                  <PanelStatus>No workframe agents yet.</PanelStatus>
+                )}
+              </SettingsPanelBody>
             )
           ) : null}
 

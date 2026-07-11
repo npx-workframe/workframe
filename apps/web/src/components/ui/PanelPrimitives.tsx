@@ -48,3 +48,12 @@ export function PanelInlineNotice({
 export function PanelFooter({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('wf-panel-footer', className)}>{children}</div>
 }
+
+/** Empty list placeholder inside settings / member grids — existing dashed-border chrome. */
+export function PanelEmptyState({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={cn('wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl', className)}>
+      {children}
+    </p>
+  )
+}

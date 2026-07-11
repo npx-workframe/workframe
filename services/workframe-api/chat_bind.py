@@ -27,6 +27,7 @@ def profile_chat_bind(profile: str, payload: dict[str, Any], user_id: str = "") 
     session = lane_bindings.profile_chat_session(profile, payload, user_id)
     sid = str(session.get("session_id") or "").strip()
     hermes_prof = str(session.get("profile") or _srv().resolve_validated_profile(profile))
+    workspace_id = str(session.get("workspace_id") or payload.get("workspace_id") or "").strip()
     template_prof = str(session.get("template_profile") or "").strip()
     if not template_prof:
         template_prof = (
@@ -34,7 +35,13 @@ def profile_chat_bind(profile: str, payload: dict[str, Any], user_id: str = "") 
             if _srv()._is_runtime_profile_slug(hermes_prof)
             else _srv().resolve_validated_profile(profile)
         )
-    workspace_id = str(session.get("workspace_id") or payload.get("workspace_id") or "").strip()
+    if user_id and workspace_id and session.get("llm_ready"):
+        llm_provider = _srv()._llm_billing_provider(
+            hermes_prof, user_id=user_id, workspace_id=workspace_id,
+        )
+        _srv()._schedule_profile_lease_yaml_reconcile(
+            hermes_prof, user_id, workspace_id, llm_provider,
+        )
     history = _srv().chat_messages(hermes_prof, sid)
     # ponytail: cohort manifest is lazy — GET /api/me/cohort; bind must stay fast
     cohort: list[dict[str, Any]] = []

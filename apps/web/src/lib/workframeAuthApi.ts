@@ -404,6 +404,8 @@ export type WorkspaceRoomMessage = {
   sender_agent_id?: string | null
   sender_agent_slug?: string | null
   sender_agent_name?: string | null
+  model?: string | null
+  llm_provider?: string | null
   parent_message_id?: string | null
   content: string
   content_type: string
@@ -510,21 +512,37 @@ export type WorkspaceInvitesList = {
   invites: WorkspaceInvite[]
 }
 
-async function request<T>(path: string, options: RequestInit = {}, retryOn401 = true): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  retryOn401 = true,
+  timeoutMs = 0,
+): Promise<T> {
   const headers = workframeAuthHeaders(options.headers)
+  const controller = timeoutMs > 0 && !options.signal ? new AbortController() : null
+  const timeout = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null
 
   if (!(options.body instanceof FormData) && !headers.has('content-type')) {
     headers.set('content-type', 'application/json')
   }
 
-  const response = await authenticatedFetch(
-    `/api${path}`,
-    {
-      ...options,
-      headers,
-    },
-    retryOn401,
-  )
+  let response: Response
+  try {
+    response = await authenticatedFetch(
+      `/api${path}`,
+      {
+        ...options,
+        headers,
+        signal: controller?.signal ?? options.signal,
+      },
+      retryOn401,
+    )
+  } catch (err) {
+    if (controller?.signal.aborted) throw new Error('request_timeout')
+    throw err
+  } finally {
+    if (timeout !== null) window.clearTimeout(timeout)
+  }
 
   if (!response.ok) {
     const info = await parseApiErrorResponse(response)
@@ -839,7 +857,7 @@ export const workframeAuthApi = {
   createHermesProfile(data: {
     name: string
     description?: string
-    model?: string
+    model: string
     clone_from?: string
     soul?: string
     display_name?: string
@@ -860,7 +878,7 @@ export const workframeAuthApi = {
     }>('/hermes/profiles/create', {
       method: 'POST',
       body: JSON.stringify(data),
-    })
+    }, true, 120_000)
   },
 
   bootstrapAgentFromTemplate(
@@ -888,7 +906,7 @@ export const workframeAuthApi = {
     }>(`/hermes/profiles/${encodeURIComponent(template)}/bootstrap-dm`, {
       method: 'POST',
       body: JSON.stringify(data),
-    })
+    }, true, 120_000)
   },
 
   patchRoom(roomId: string, data: { name?: string; topic?: string; avatar_url?: string }) {
@@ -1037,7 +1055,7 @@ export const workframeAuthApi = {
     }>('/install/complete', {
       method: 'POST',
       body: JSON.stringify(data),
-    })
+    }, true, 120_000)
   },
 
   startGoogleAuth(email = '', inviteToken = '') {
@@ -1054,6 +1072,29 @@ export const workframeAuthApi = {
     }
     return request<SessionProfile & { user_id?: string; session_id?: string; refresh_token?: string }>(
       '/auth/local-bootstrap',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          display_name: displayName.trim() || normalizedEmail.split('@')[0] || 'Owner',
+          email: normalizedEmail,
+        }),
+      },
+      false,
+    ).then((data) => {
+      if (data.session_id) {
+        setStoredSessionTokens(data.session_id, data.refresh_token)
+      }
+      return data
+    })
+  },
+
+  registerInstallAdmin(displayName: string, email: string) {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      return Promise.reject(new Error('email_required'))
+    }
+    return request<SessionProfile & { user_id?: string; session_id?: string; refresh_token?: string }>(
+      '/install/register-admin',
       {
         method: 'POST',
         body: JSON.stringify({
@@ -1097,7 +1138,7 @@ export const workframeAuthApi = {
     return request<{ ok: boolean; target?: string; log?: string; error?: string }>('/admin/updates/apply', {
       method: 'POST',
       headers: { 'X-Workframe-Local': '1' },
-      body: JSON.stringify({ target }),
+      body: JSON.stringify({ target, user_ack: true }),
     })
   },
 

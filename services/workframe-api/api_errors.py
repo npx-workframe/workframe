@@ -44,6 +44,10 @@ PUBLIC: dict[str, dict[str, str]] = {
         "message": "You are not signed in.",
         "hint": "Refresh the page and sign in again.",
     },
+    "model_required": {
+        "message": "Choose a model for this agent.",
+        "hint": "Open LLM models, select a connected provider and model, then create the agent.",
+    },
 }
 
 

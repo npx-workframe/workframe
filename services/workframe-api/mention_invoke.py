@@ -78,6 +78,16 @@ def _invoke_room_agent_mention(
         return
     hermes_slug = _srv()._runtime_profile_slug(triggered_by_user_id, template_slug)
     _srv().ensure_runtime_profile(hermes_slug, template_slug, triggered_by_user_id, workspace_id)
+    display_model = str(agent_row.get("model_name") or "").strip()
+    display_provider = str(agent_row.get("model_provider") or "").strip()
+    if not display_model:
+        display_model = str(_srv()._read_model_block(hermes_slug).get("default") or "").strip()
+    if not display_provider:
+        display_provider = _srv()._llm_billing_provider(
+            hermes_slug,
+            user_id=triggered_by_user_id,
+            workspace_id=workspace_id,
+        )
 
     turn_id = str(uuid.uuid4())
     segments: list[dict[str, Any]] = []
@@ -200,6 +210,8 @@ def _invoke_room_agent_mention(
                 "agent_slug": hermes_slug,
                 "agent_name": agent_name,
                 "agent_profile_id": agent_db_id,
+                "model": display_model,
+                "llm_provider": display_provider,
                 "triggered_by_user_id": triggered_by_user_id,
             },
         )

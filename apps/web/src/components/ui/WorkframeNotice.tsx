@@ -14,7 +14,11 @@ type WorkframeNoticeProps = {
 }
 
 function resolveInfo(props: WorkframeNoticeProps): WorkframeNoticeInfo | null {
-  if (props.info) return props.info
+  if (props.info) {
+    const text = props.info.message?.trim()
+    if (!text) return null
+    return props.info
+  }
   const message = props.message?.trim()
   if (!message) return null
   return formatWorkframeError(message)

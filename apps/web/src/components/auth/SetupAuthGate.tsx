@@ -7,6 +7,7 @@ import {
   type EmailOtpStep,
 } from '@/components/auth/EmailOtpVerification'
 import { DialogFrame } from '@/components/dialogs/DialogFrame'
+import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { isElectronRuntime } from '@/lib/runtime'
@@ -123,25 +124,9 @@ export function SetupAuthGate({ projectName, onAuthenticated }: SetupAuthGatePro
   const description =
     step === 'checking' ? 'Checking your session…' : emailOtpCopy(step, email, '', 'signin')
   const modal = !isElectronRuntime()
+  const prefilledEmail = Boolean(email.trim() || inviteEmail.trim())
 
-  if (step === 'checking') {
-    return (
-      <DialogFrame
-        open
-        modal={modal}
-        onOpenChange={() => {}}
-        title={title}
-        description={description}
-        showClose={false}
-        contentClassName="wf-auth-dialog"
-      >
-        {error ? <WorkframeNotice message={error} className="wf-auth__alert wf-auth__alert--error" /> : null}
-        <div className="wf-auth__status">Checking session…</div>
-      </DialogFrame>
-    )
-  }
-
-  return (
+  const authDialog = (
     <DialogFrame
       open
       modal={modal}
@@ -151,16 +136,33 @@ export function SetupAuthGate({ projectName, onAuthenticated }: SetupAuthGatePro
       showClose={false}
       contentClassName="wf-auth-dialog"
     >
-      <EmailOtpVerification
-        initialEmail={email}
-        startStep={step}
-        inviteToken={inviteToken}
-        purpose="signin"
-        onVerified={() => {
-          window.history.replaceState({}, '', window.location.pathname)
-          onAuthenticated()
-        }}
-      />
+      {step === 'checking' ? (
+        error ? <WorkframeNotice message={error} className="wf-auth__alert wf-auth__alert--error" /> : null
+      ) : (
+        <EmailOtpVerification
+          initialEmail={email || inviteEmail}
+          startStep={step}
+          inviteToken={inviteToken}
+          purpose="signin"
+          skipEmailStep={prefilledEmail}
+          autoSendCode={prefilledEmail}
+          variant="wizard"
+          onVerified={() => {
+            window.history.replaceState({}, '', window.location.pathname)
+            onAuthenticated()
+          }}
+        />
+      )}
+      {step === 'checking' ? <div className="wf-auth__status">Checking session…</div> : null}
     </DialogFrame>
+  )
+
+  return (
+    <div className="wf-onboarding-page wf-onboarding-page--gate">
+      <div className="wf-onboarding-page__theme">
+        <ThemeSwitcher />
+      </div>
+      {authDialog}
+    </div>
   )
 }

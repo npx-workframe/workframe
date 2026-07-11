@@ -17,6 +17,7 @@ import { peekCachedHermesModels } from '@/lib/workspacePersist'
 import { providerIconForId } from '@/lib/workframeAssets'
 import { resolveProviderDisplayLabel } from '@/lib/chatTypes'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
+import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { cn } from '@/lib/utils'
 
 type ModelPickerPanelProps = {
@@ -34,6 +35,11 @@ type ModelPickerPanelProps = {
   onError?: (message: string) => void
   onStatus?: (message: string) => void
   onLoaded?: (data: HermesModelsResponse) => void
+}
+
+function pickerErrorMessage(err: unknown, fallback: string): string {
+  const text = formatWorkframeErrorMessage(err).trim()
+  return text || fallback
 }
 
 type ModelSlot = 'primary' | 'fallback-0' | 'fallback-1'
@@ -122,6 +128,8 @@ export function ModelPickerPanel({
       if (selectionOnly) {
         const chain = cached.fallback_chain ?? []
         setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
+        const seed = (cached.primary || cached.default_primary || '').trim()
+        if (seed) onChanged?.(seed)
       }
     } else {
       setLoading(true)
@@ -142,11 +150,13 @@ export function ModelPickerPanel({
         if (selectionOnly) {
           const chain = res.fallback_chain ?? []
           setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
+          const seed = (res.primary || res.default_primary || '').trim()
+          if (seed) onChanged?.(seed)
         }
       })
       .catch((err) => {
         if (cancelled) return
-        const message = err instanceof Error ? err.message : 'load failed'
+        const message = pickerErrorMessage(err, 'Could not load models')
         setLoadError(message)
         onErrorRef.current?.(message)
       })
@@ -201,7 +211,7 @@ export function ModelPickerPanel({
         updateDraftFallbacks([next[0] ?? null, next[1] ?? null])
         await refreshModels()
       } catch (err) {
-        onError?.(err instanceof Error ? err.message : 'set failed')
+        onError?.(pickerErrorMessage(err, 'Failed to set fallbacks'))
       } finally {
         setBusy(false)
         setPending(null)
@@ -223,7 +233,7 @@ export function ModelPickerPanel({
       invalidateWorkframeMetaCache()
       await refreshModels()
     } catch (err) {
-      onError?.(err instanceof Error ? err.message : 'set failed')
+      onError?.(pickerErrorMessage(err, 'Failed to set fallbacks'))
     } finally {
       setBusy(false)
       setPending(null)
@@ -271,7 +281,7 @@ export function ModelPickerPanel({
           onStatusRef.current?.(slotStatusMessage('primary', res.model ?? trimmed, data))
           await refreshModels()
         } catch (err) {
-          onError?.(err instanceof Error ? err.message : 'set failed')
+          onError?.(pickerErrorMessage(err, 'Failed to set fallbacks'))
         } finally {
           setBusy(false)
         }
@@ -325,7 +335,7 @@ export function ModelPickerPanel({
         invalidateWorkframeMetaCache()
         await refreshModels()
       } catch (err) {
-        onError?.(err instanceof Error ? err.message : 'set failed')
+        onError?.(pickerErrorMessage(err, 'Failed to set fallbacks'))
       } finally {
         setBusy(false)
         setPending(null)

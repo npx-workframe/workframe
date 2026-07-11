@@ -29,6 +29,8 @@ export type EmailOtpVerificationProps = {
   layout?: 'inline' | 'footer'
   variant?: 'default' | 'wizard'
   skipEmailStep?: boolean
+  /** When email is pre-filled (invite links), send the OTP on mount. */
+  autoSendCode?: boolean
 }
 
 export function authStartNotice(result: AuthStartResponse, targetEmail: string) {
@@ -87,6 +89,7 @@ export function EmailOtpVerification({
   layout = 'inline',
   variant = 'default',
   skipEmailStep = false,
+  autoSendCode = false,
 }: EmailOtpVerificationProps) {
   const resolvedStartStep = skipEmailStep && initialEmail.trim() && startStep === 'email' ? 'otp' : startStep
   const [step, setStep] = useState<EmailOtpStep>(resolvedStartStep)
@@ -98,6 +101,7 @@ export function EmailOtpVerification({
   const [devOtpHint, setDevOtpHint] = useState(initialDevOtp)
   const [authNotice, setAuthNotice] = useState<string | null>(initialAuthNotice)
   const otpRefs = useRef<Array<HTMLInputElement | null>>([])
+  const autoSentRef = useRef(false)
   const onGoogleSignInRef = useRef(onGoogleSignIn)
   onGoogleSignInRef.current = onGoogleSignIn
 
@@ -181,16 +185,13 @@ export function EmailOtpVerification({
     onVerified(verified)
   }
 
-  async function handleEmailSubmit(event?: React.FormEvent<HTMLFormElement>) {
-    event?.preventDefault()
-    if (!email.trim()) return
-
+  async function sendVerificationCode(targetEmail: string) {
+    const trimmed = targetEmail.trim()
+    if (!trimmed) return
     setError(null)
     setAuthNotice(null)
     setBusy(true)
-
     try {
-      const trimmed = email.trim()
       const result = await workframeAuthApi.startEmailVerification(trimmed)
       setEmail(trimmed)
       setOtp('')
@@ -202,6 +203,20 @@ export function EmailOtpVerification({
     } finally {
       setBusy(false)
     }
+  }
+
+  useEffect(() => {
+    if (!autoSendCode || autoSentRef.current) return
+    const trimmed = initialEmail.trim()
+    if (!trimmed) return
+    autoSentRef.current = true
+    void sendVerificationCode(trimmed)
+  }, [autoSendCode, initialEmail])
+
+  async function handleEmailSubmit(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault()
+    if (!email.trim()) return
+    await sendVerificationCode(email)
   }
 
   async function handleOtpSubmit(event?: React.FormEvent<HTMLFormElement>, code: string = otp) {
@@ -225,19 +240,7 @@ export function EmailOtpVerification({
 
   async function handleResend() {
     if (busy || resendCooldown > 0) return
-
-    setError(null)
-    setBusy(true)
-
-    try {
-      const result = await workframeAuthApi.startEmailVerification(email.trim())
-      applyAuthStartResult(result, email.trim())
-      setResendCooldown(RESEND_COOLDOWN_SECONDS)
-    } catch (err) {
-      setError(formatWorkframeErrorMessage(err, 'Resend verification code'))
-    } finally {
-      setBusy(false)
-    }
+    await sendVerificationCode(email)
   }
 
   function applyOtpDigits(index: number, rawValue: string) {

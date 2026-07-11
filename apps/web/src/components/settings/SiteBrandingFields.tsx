@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { SignInAppField } from '@/components/settings/SignInAppField'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { PanelInlineNotice } from '@/components/ui/PanelPrimitives'
 import { applySiteMeta, fetchPublicSiteMeta } from '@/lib/siteMeta'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -84,14 +84,13 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
 
   return (
     <div className="wf-onboarding-form space-y-4">
-      {error ? <WorkframeNotice message={error} tone="caution" /> : null}
+      {error ? <PanelInlineNotice>{error}</PanelInlineNotice> : null}
       <p className="wf-wizard-section__hint m-0">
         Link previews, mobile home-screen install, and browser tab branding. Leave title and description blank to use your
         workframe name and mission from above.
       </p>
       <div className="wf-sign-in-app__grid">
-        <div className="wf-sign-in-app__field">
-          <Label htmlFor="wf-site-title">Public title override</Label>
+        <SignInAppField label="Public title override" htmlFor="wf-site-title">
           <Input
             id="wf-site-title"
             value={title}
@@ -99,9 +98,8 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
             placeholder="Defaults to workframe name"
             disabled={disabled}
           />
-        </div>
-        <div className="wf-sign-in-app__field">
-          <Label htmlFor="wf-site-theme">Theme color</Label>
+        </SignInAppField>
+        <SignInAppField label="Theme color" htmlFor="wf-site-theme">
           <Input
             id="wf-site-theme"
             value={themeColor}
@@ -109,10 +107,9 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
             placeholder="#0A0A0F"
             disabled={disabled}
           />
-        </div>
+        </SignInAppField>
       </div>
-      <div className="wf-sign-in-app__field wf-sign-in-app__field--full">
-        <Label htmlFor="wf-site-description">Public description override</Label>
+      <SignInAppField label="Public description override" htmlFor="wf-site-description" fullWidth>
         <Input
           id="wf-site-description"
           value={description}
@@ -120,10 +117,13 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
           placeholder="Defaults to mission statement"
           disabled={disabled}
         />
-      </div>
+      </SignInAppField>
       <div className="wf-sign-in-app__grid">
-        <div className="wf-sign-in-app__field">
-          <Label htmlFor="wf-site-og">OG / share image</Label>
+        <SignInAppField
+          label="OG / share image"
+          htmlFor="wf-site-og"
+          hint={hasOg ? 'Custom image uploaded.' : 'Uses workframe logo or default until you upload (1200×630 recommended).'}
+        >
           <Input
             id="wf-site-og"
             type="file"
@@ -131,12 +131,12 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
             disabled={disabled}
             onChange={(e) => void uploadAsset('og', e.target.files?.[0] ?? null)}
           />
-          <p className="wf-sign-in-app__hint">
-            {hasOg ? 'Custom image uploaded.' : 'Uses workframe logo or default until you upload (1200×630 recommended).'}
-          </p>
-        </div>
-        <div className="wf-sign-in-app__field">
-          <Label htmlFor="wf-site-favicon">Favicon</Label>
+        </SignInAppField>
+        <SignInAppField
+          label="Favicon"
+          htmlFor="wf-site-favicon"
+          hint={hasFavicon ? 'Custom favicon uploaded.' : 'Defaults to Workframe favicon.'}
+        >
           <Input
             id="wf-site-favicon"
             type="file"
@@ -144,10 +144,7 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
             disabled={disabled}
             onChange={(e) => void uploadAsset('favicon', e.target.files?.[0] ?? null)}
           />
-          <p className="wf-sign-in-app__hint">
-            {hasFavicon ? 'Custom favicon uploaded.' : 'Defaults to Workframe favicon.'}
-          </p>
-        </div>
+        </SignInAppField>
       </div>
       <div className="flex justify-end">
         <Button type="button" variant="default" disabled={disabled} onClick={() => void saveText()}>

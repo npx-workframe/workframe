@@ -9,7 +9,10 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent
-os.environ.setdefault("WORKFRAME_AGENTS_DIR", tempfile.mkdtemp(prefix="wf-yaml-test-"))
+_test_root = tempfile.mkdtemp(prefix="wf-yaml-test-")
+os.environ["WORKFRAME_AGENTS_DIR"] = _test_root
+os.environ["HERMES_DATA"] = _test_root
+os.environ["WORKFRAME_API_DATA_DIR"] = str(Path(_test_root) / "api")
 os.environ.setdefault("WORKFRAME_PROJECT", "YamlTest")
 os.environ.setdefault("NATIVE_PROFILE", "yaml-test-agent")
 

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import base64
+import sqlite3
 from typing import Any
 
 import install_api
 import site_meta
 import stack_config
+import zk_auth as _zk
 from supervisor_client import _maybe_sync_compose_public_url, _supervisor_ready, _supervisor_request
 
 
@@ -57,6 +59,49 @@ class InstallRoutesMixin:
             return
         url = (qs.get("url") or [""])[0] or stack_config.get_stack_config().get("app_base_url") or ""
         self._json(200, install_api.publish_hints_payload(str(url)))
+
+    def _route_post_install_register_admin(self, body: dict) -> None:
+        srv = _srv()
+        if not srv._install_window_open():
+            self._json(403, {"ok": False, "error": "install_closed"})
+            return
+        if stack_config.install_admin_verified():
+            self._json(409, {"ok": False, "error": "already_verified"})
+            return
+        email = str(body.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            self._json(400, {"ok": False, "error": "email_required"})
+            return
+        display = str(body.get("display_name") or "").strip() or email.split("@", 1)[0]
+        stack_config.patch_stack_config({"smtp": {"admin_email": email}, "wizard_step": "welcome"})
+        allowed, deny_meta = install_api.install_auth_email_allowed(email)
+        if not allowed:
+            self._json(403, {"ok": False, **deny_meta})
+            return
+        try:
+            result = _zk.create_session_for_email(email)
+        except (RuntimeError, OSError, sqlite3.Error) as exc:
+            srv._log_handler_error("POST /api/install/register-admin", exc)
+            self._json(500, {"ok": False, "error": str(exc)})
+            return
+        user_id = str(result["user_id"])
+        self.auth_user = user_id
+        self._ensure_user(user_id, display, email)
+        self._first_owner_bootstrap(user_id, display, email)
+        use_secure = srv._session_cookie_secure()
+        cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
+        me_payload = srv._session_profile_payload(user_id)
+        self._json(
+            200,
+            {
+                "ok": True,
+                "user_id": user_id,
+                "session_id": result["session_id"],
+                "refresh_token": result["refresh_token"],
+                **(me_payload or {}),
+            },
+            extra_headers=[("Set-Cookie", cookie_val)],
+        )
 
     def _route_post_install_email_test(self, body: dict) -> None:
         srv = _srv()

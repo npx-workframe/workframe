@@ -176,18 +176,3 @@ export function finalizeChatHandoff(server: ChatMessage[], local: ChatMessage[])
   result[agentIdx] = mergeAgentFromEphemeral(result[agentIdx], localAgent)
   return [...result, ...pendingUsers]
 }
-
-/** @deprecated use mergeLiveTurn or finalizeChatHandoff */
-export function mergeChatMessages(
-  server: ChatMessage[],
-  local: ChatMessage[],
-  activeStreamId: string | null = null,
-): ChatMessage[] {
-  if (activeStreamId) {
-    return mergeLiveTurn(server, local, activeStreamId)
-  }
-  if (serverTurnSettled(server)) {
-    return finalizeChatHandoff(server, local)
-  }
-  return mergeLiveTurn(server, local, activeStreamId)
-}

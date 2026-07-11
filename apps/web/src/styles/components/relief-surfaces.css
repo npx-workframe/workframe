@@ -21,7 +21,7 @@
 }
 
 [data-chrome-mode='relief'] .wf-theme-switcher__trigger.wf-action-btn {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   border: none;
   border-radius: 4px;
   box-shadow: var(--wf-relief-flat);
@@ -37,14 +37,14 @@
 
 [data-chrome-mode='relief'] .wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn,
 [data-chrome-mode='relief'] .wf-theme-switcher--open .wf-theme-switcher__trigger.wf-action-btn:hover:not(:disabled) {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   border: none;
   box-shadow: var(--wf-relief-flat);
   color: var(--wf-text);
 }
 
 [data-chrome-mode='relief'] .wf-theme-switcher__item {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   border: none;
   border-radius: 4px;
   box-shadow: var(--wf-relief-flat);
@@ -374,7 +374,7 @@
   .wf-auth,
   .wf-auth-otp-panel
 ) .wf-copy-input__value {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   border: none;
   box-shadow: none;
 }
@@ -552,6 +552,24 @@
   transform: translateY(-1px);
 }
 
+/* Step number badges — keep contrast on solid chrome-fill rail (neo-solid sweep must not flatten these). */
+[data-chrome-mode='relief'] .wf-onboarding-wizard__step-mark {
+  background: color-mix(in srgb, var(--wf-muted) 24%, var(--wf-bg));
+  box-shadow: var(--wf-relief-inset-s);
+}
+
+[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-mark {
+  background: var(--wf-text);
+  color: var(--wf-bg);
+  box-shadow: var(--wf-relief-outset-s);
+}
+
+[data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-done .wf-onboarding-wizard__step-mark {
+  background: color-mix(in srgb, var(--wf-cyan) 30%, var(--wf-bg));
+  color: var(--wf-cyan);
+  box-shadow: var(--wf-relief-inset-s);
+}
+
 [data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-clickable:not(.is-current):hover .wf-onboarding-wizard__step-btn {
   background: var(--wf-control-bg-raised);
   box-shadow: var(--wf-control-shadow-raised);
@@ -667,7 +685,7 @@
 
 [data-chrome-mode='relief'] .wf-boot-screen,
 [data-chrome-mode='relief'] .wf-onboarding-launch {
-  background: transparent;
+  background: var(--wf-bg);
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-launch__card {
@@ -713,7 +731,7 @@
 }
 
 [data-chrome-mode='relief'] .wf-dialog-content.wf-dialog-content--device-oauth {
-  background: color-mix(in srgb, var(--wf-bg) 94%, var(--wf-surface));
+  background: var(--wf-bg);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -723,17 +741,17 @@
 }
 
 [data-chrome-mode='relief'] .wf-device-oauth-panel--inline {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   border: none;
   box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-device-oauth-panel--inline.wf-auth-otp-panel {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   box-shadow: none;
 }
 
-/* ponytail: wizard/dialog inner cards — transparent; selected/hover = shadow delta */
+/* ponytail: wizard/dialog inner cards — solid --wf-bg; selected/hover = shadow delta */
 [data-chrome-mode='relief'] .wf-onboarding-wizard :is(
   .wf-onboarding-wizard__footer,
   .wf-wizard-checklist,

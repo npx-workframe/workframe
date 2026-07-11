@@ -189,6 +189,13 @@ class AuthRoutesMixin:
             self._log_audit("login_denied_private", "user", email, str(deny_meta.get("error") or ""))
             self._json(403, {"ok": False, **deny_meta})
             return
+        import install_api
+
+        install_allowed, install_deny = install_api.install_auth_email_allowed(email)
+        if not install_allowed:
+            self._log_audit("login_denied_install", "user", email, str(install_deny.get("error") or ""))
+            self._json(403, {"ok": False, **install_deny})
+            return
         try:
             base = APP_BASE_URL.strip().lower()
             loopback = base.startswith("http://127.0.0.1") or base.startswith("http://localhost")
@@ -231,6 +238,13 @@ class AuthRoutesMixin:
             self._log_audit("login_denied_private", "user", email, str(deny_meta.get("error") or ""))
             self._json(403, {"ok": False, **deny_meta})
             return
+        import install_api
+
+        install_allowed, install_deny = install_api.install_auth_email_allowed(email)
+        if not install_allowed:
+            self._log_audit("login_denied_install", "user", email, str(install_deny.get("error") or ""))
+            self._json(403, {"ok": False, **install_deny})
+            return
         try:
             result = _zk.verify_email_code(email, code)
         except ValueError as exc:
@@ -247,6 +261,28 @@ class AuthRoutesMixin:
         self._ensure_user(result["user_id"], email, email)
         if srv._install_window_open():
             stack_config.mark_install_admin_verified(email)
+            try:
+                conn = srv._workframe_db()
+                ws = conn.execute(
+                    """
+                    SELECT id FROM workspaces
+                    WHERE slug = 'default' AND deleted_at IS NULL
+                    LIMIT 1
+                    """,
+                ).fetchone()
+                if ws:
+                    ws_id = str(ws["id"])
+                    srv._promote_workspace_owner_if_unclaimed(conn, ws_id, result["user_id"])
+                    conn.execute(
+                        "UPDATE users SET role = 'owner', updated_at = ? WHERE id = ?",
+                        (str(int(time.time())), result["user_id"]),
+                    )
+                    conn.commit()
+                conn.close()
+                if not ws:
+                    self._first_owner_bootstrap(result["user_id"], email, email)
+            except Exception:
+                pass
         self._log_audit("login", "session", result["session_id"],
                         f"user={result['user_id']} new={result['is_new_user']}")
         me_payload = srv._session_profile_payload(result["user_id"])

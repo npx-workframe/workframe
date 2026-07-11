@@ -11,6 +11,8 @@ import {
   writeCachedRoomBind,
 } from '@/lib/workspacePersist'
 
+import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
+
 import type { HermesSessionBindApi } from './useHermesSessionBind'
 import type { HermesSessionRefs } from './hermesSessionRefs'
 
@@ -24,7 +26,7 @@ type UseHermesSessionHistoryOptions = {
   setStateDbSessionId: (id: string | null) => void
   setGatewaySessionId: (id: string | null) => void
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>
-  setConnectError: (error: string | null) => void
+  setConnectError: (error: WorkframeNoticeInfo | null) => void
   setSessionReady: (ready: boolean) => void
   messages: ChatMessage[]
   completeTurn: () => void

@@ -1304,6 +1304,9 @@ def _workspace_credential_mode(conn: sqlite3.Connection | None, workspace_id: st
         settings = _srv()._parse_workspace_settings(row) if row else {}
         mode = str(settings.get("credential_mode") or "byok").strip().lower()
         return mode if mode in ("byok", "workspace") else "byok"
+    except sqlite3.Error:
+        # Before bootstrap creates the workspace schema, BYOK is the safe default.
+        return "byok"
     finally:
         if own_conn:
             conn.close()

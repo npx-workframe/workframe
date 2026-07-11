@@ -1,5 +1,6 @@
 import { EmailOtpVerification } from '@/components/auth/EmailOtpVerification'
 import { ConciergeSmtpStep } from '@/components/onboarding/ConciergeSmtpStep'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { continueFromPublishStep } from '@/components/onboarding/conciergeFlowPublish'
 import { ConciergeWizardFooter } from '@/components/onboarding/ConciergeWizardFooter'
 import { ConciergeWizardPanels } from '@/components/onboarding/ConciergeWizardPanels'
@@ -33,6 +34,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           initialEmail={flow.adminEmail}
           startStep="email"
           purpose="signin"
+          variant="wizard"
           onVerified={flow.handleOwnerSignedIn}
         />
       </OnboardingAuthGate>
@@ -45,8 +47,11 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         <EmailOtpVerification
           initialEmail={inviteEmail}
           startStep="email"
+          skipEmailStep={Boolean(inviteEmail.trim())}
+          autoSendCode={Boolean(inviteEmail.trim())}
           inviteToken={inviteToken}
           purpose="signin"
+          variant="wizard"
           onVerified={flow.handleInviteeVerified}
         />
       </OnboardingAuthGate>
@@ -59,6 +64,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         projectName={projectName}
         steps={flow.launchSteps}
         error={flow.launchError}
+        onRetry={() => void flow.finishInstall()}
       />
     )
   }
@@ -119,10 +125,13 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
       description={flow.description || undefined}
       footer={footer}
     >
-      {flow.error ? <WorkframeNotice info={flow.error} className="wf-notice--wizard" /> : null}
+      {flow.error?.message?.trim() ? (
+        <WorkframeNotice info={flow.error} className="wf-notice--wizard" />
+      ) : null}
 
       {flow.step === 'smtp' || flow.step === 'admin_auth' ? (
-        <ConciergeSmtpStep
+        <SettingsPanelBody compact authOtp={flow.step === 'admin_auth'}>
+          <ConciergeSmtpStep
           mode={flow.step}
           busy={flow.busy}
           smtpPhase={flow.smtpPhase}
@@ -150,10 +159,12 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           onAdminOtpStepChange={flow.setAdminOtpStep}
           onAdminVerified={flow.handleAdminRegistered}
         />
+        </SettingsPanelBody>
       ) : (
         <ConciergeWizardPanels
           step={flow.step}
           busy={flow.busy}
+          isInvitee={flow.isInvitee}
           adminEmail={flow.adminEmail}
           credentialMode={flow.credentialMode}
           workspaceId={flow.workspaceId}

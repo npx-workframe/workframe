@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+import time
 import uuid
 from typing import Any
 
@@ -345,18 +347,56 @@ def _read_config_model_api_key(profile: str) -> str:
 
 
 
-def _sync_profile_model_api_key(profile: str, api_key: str) -> None:
+def _sync_profile_model_api_key(profile: str, api_key: str, *, wait_healthy: bool = False) -> None:
     value = str(api_key or "").strip()
     if not value:
         _clear_profile_model_api_key(profile)
-        _srv()._restart_runtime_profile_gateway(profile)
+        if wait_healthy:
+            _srv()._restart_runtime_profile_gateway(profile)
+        else:
+            _srv()._schedule_gateway_reload(profile)
         return
     if _read_config_model_api_key(profile) == value:
         return
     ok, err = _set_profile_model_api_key(profile, value)
     if not ok:
         raise ValueError(err or "profile model api_key write failed")
-    _srv()._restart_runtime_profile_gateway(profile)
+    if wait_healthy:
+        _srv()._restart_runtime_profile_gateway(profile)
+    else:
+        _srv()._schedule_gateway_reload(profile)
+
+
+def _schedule_profile_lease_yaml_reconcile(
+    profile: str,
+    user_id: str,
+    workspace_id: str,
+    provider: str,
+) -> None:
+    """Bind path — align config.yaml lease token without blocking the client."""
+    user = str(user_id or "").strip()
+    prov = str(provider or "openrouter").strip().lower()
+    if not user:
+        return
+
+    def _run() -> None:
+        try:
+            prof = _srv().resolve_hermes_profile(profile)
+            if not _srv()._is_runtime_profile_slug(prof):
+                return
+            env_var = _profile_lease_env_var(prof, prov)
+            token = _read_profile_lease_token(prof, env_var)
+            if not token or _read_config_model_api_key(prof) == token:
+                return
+            _sync_profile_model_api_key(prof, token)
+        except Exception:  # noqa: BLE001
+            return
+
+    threading.Thread(
+        target=_run,
+        name=f"lease-yaml-{profile}",
+        daemon=True,
+    ).start()
 
 
 def _apply_turn_credential_lease(
@@ -369,6 +409,30 @@ def _apply_turn_credential_lease(
     """Issue per-run lease token into profile env; real secret stays in API vault."""
     provider = str(provider or "openrouter").strip().lower()
     prof = _srv().resolve_hermes_profile(profile)
+    env_var = _profile_lease_env_var(prof, provider)
+    config_lease = _read_config_model_api_key(prof)
+    if config_lease and not turn_credentials.validate_lease(config_lease):
+        _clear_profile_model_api_key(prof)
+    existing_token = _read_profile_lease_token(prof, env_var)
+    if existing_token and not turn_credentials.validate_lease(existing_token):
+        _strip_profile_llm_env(prof, include_leases=True)
+        _clear_profile_model_api_key(prof)
+        existing_token = ""
+    if existing_token:
+        lease_meta = turn_credentials.validate_lease(existing_token)
+        if lease_meta and _lease_reusable_for_turn(
+            existing_token,
+            user_id=user_id,
+            workspace_id=workspace_id,
+            provider=provider,
+            binding_id=str(lease_meta.get("credential_binding_id") or ""),
+        ):
+            # ponytail: hot path — skip credential resolve + env rewrite when lease still valid
+            if _srv()._is_runtime_profile_slug(prof) and existing_token:
+                if _read_config_model_api_key(prof) != existing_token:
+                    _sync_profile_model_api_key(prof, existing_token)
+            return existing_token
+
     if _srv()._is_runtime_profile_slug(prof):
         resolved = _require_runtime_owner_provider(user_id, workspace_id, provider)
     else:
@@ -401,15 +465,6 @@ def _apply_turn_credential_lease(
             user_id=user_id,
             workspace_id=workspace_id,
         )
-    env_var = _profile_lease_env_var(prof, provider)
-    config_lease = _read_config_model_api_key(prof)
-    if config_lease and not turn_credentials.validate_lease(config_lease):
-        _clear_profile_model_api_key(prof)
-    existing_token = _read_profile_lease_token(prof, env_var)
-    if existing_token and not turn_credentials.validate_lease(existing_token):
-        _strip_profile_llm_env(prof, include_leases=True)
-        _clear_profile_model_api_key(prof)
-        existing_token = ""
     if _lease_reusable_for_turn(
         existing_token,
         user_id=user_id,
@@ -417,7 +472,6 @@ def _apply_turn_credential_lease(
         provider=provider,
         binding_id=binding_id,
     ):
-        # ponytail: hot path â€” skip yaml/env rewrite when lease still valid
         if _srv()._is_runtime_profile_slug(prof) and existing_token:
             if _read_config_model_api_key(prof) != existing_token:
                 _sync_profile_model_api_key(prof, existing_token)
@@ -462,10 +516,37 @@ def _user_action_env_specs() -> list[tuple[str, str]]:
     return specs
 
 
+_USER_ACTION_CRED_CACHE: dict[tuple[str, str], tuple[bool, float]] = {}
+_USER_ACTION_CRED_TTL_SEC = 30.0
+
+
+def _user_has_action_credentials(user_id: str, workspace_id: str) -> bool:
+    """Cached negative scan — skip per-turn tool overlay when user has no PAT/OAuth tools."""
+    user = str(user_id or "").strip()
+    if not user:
+        return False
+    ws = str(workspace_id or "").strip()
+    key = (user, ws)
+    now = time.monotonic()
+    cached = _USER_ACTION_CRED_CACHE.get(key)
+    if cached and now - cached[1] < _USER_ACTION_CRED_TTL_SEC:
+        return cached[0]
+    has_any = False
+    for provider_id, _env_var in _user_action_env_specs():
+        resolved = _srv()._resolve_credential(user, ws, provider_id, user_only=True)
+        if resolved and _srv()._credential_secret(resolved, user):
+            has_any = True
+            break
+    _USER_ACTION_CRED_CACHE[key] = (has_any, now)
+    return has_any
+
+
 def _overlay_turn_user_env(profile: str, user_id: str, workspace_id: str, run_id: str = "") -> None:
     """Issue per-run lease tokens for user-only tool credentials (never raw PATs on Agents mount)."""
     user = str(user_id or "").strip()
     if not user:
+        return
+    if not _user_has_action_credentials(user, workspace_id):
         return
     base_run = str(run_id or "").strip() or str(uuid.uuid4())
     for provider_id, _env_var in _user_action_env_specs():
@@ -658,16 +739,8 @@ def _overlay_turn_provider_env(
 ) -> str:
     """Per-run lease into profile env; upstream key resolved only inside workframe-api."""
     run_id = str(run_id or "").strip() or str(uuid.uuid4())
-    prof = _srv().resolve_hermes_profile(profile)
-    is_runtime = _srv()._is_runtime_profile_slug(prof)
-    config_before = _read_config_model_api_key(prof) if is_runtime else ""
-    token = _apply_turn_credential_lease(profile, user_id, workspace_id, provider, run_id)
-    if is_runtime and _read_config_model_api_key(prof) != config_before:
-        _srv()._invalidate_profile_health_cache(prof)
-        # ponytail: gateway restart after lease yaml sync can take ~40s on cold runtime profiles.
-        if not _srv()._wait_profile_api_healthy(prof, attempts=160, delay=0.25):
-            _srv().ensure_profile_api(prof, user_id, workspace_id, bootstrap_providers=False)
-    return token
+    # ponytail: yaml sync + gateway reload are async on the send path — never block TTFT (~40s).
+    return _apply_turn_credential_lease(profile, user_id, workspace_id, provider, run_id)
 
 
 def _try_overlay_turn_provider_env(

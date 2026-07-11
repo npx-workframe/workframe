@@ -11,6 +11,7 @@ export type ConciergeLaunchDeps = {
   deploymentMode: string
   adminVerified: boolean
   adminEmail: string
+  agentPrimaryModel: string
   displayName: string
   bio: string
   agentName: string
@@ -43,9 +44,9 @@ export function createConciergeLaunchHandlers(deps: ConciergeLaunchDeps) {
     try {
       const result = await workframeAuthApi.bootstrapAgentFromTemplate('workframe-agent', {
         workspace_id: deps.workspaceId,
-        display_name: deps.agentName,
+        display_name: deps.displayName.trim() || deps.agentName,
         tagline: deps.agentTagline,
-        soul: deps.agentSoul.trim() || defaultAgentSoul(deps.agentName, deps.resolveWorkframeName()),
+        soul: deps.agentSoul.trim() || defaultAgentSoul(deps.displayName || deps.agentName, deps.resolveWorkframeName()),
         bind_session: true,
       })
       if (!result.ok || !result.room_id) {
@@ -113,6 +114,7 @@ export function createConciergeLaunchHandlers(deps: ConciergeLaunchDeps) {
           agent_name: deps.agentName,
           agent_tagline: deps.agentTagline,
           agent_soul: deps.agentSoul.trim() || deps.bio,
+          model: deps.agentPrimaryModel.trim(),
         }
         const result = await workframeAuthApi.completeInstall(payload)
         if (!result.ok) {
@@ -132,6 +134,7 @@ export function createConciergeLaunchHandlers(deps: ConciergeLaunchDeps) {
         agent_name: deps.agentName,
         agent_tagline: deps.agentTagline,
         agent_soul: deps.agentSoul.trim() || deps.bio,
+        model: deps.agentPrimaryModel.trim(),
       }
       const result = await workframeAuthApi.completeInstall(payload)
       if (!result.ok) {

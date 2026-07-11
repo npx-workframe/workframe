@@ -21,7 +21,7 @@ When a bounded patch should be visible in dogfood: skill `ab-patch-finish` → `
 
 ## Coding discipline
 
-Ponytail (lazy senior dev): `d:/ab/projects/abkb/knowledge/llm/engineering-discipline.md` + `d:/ab/.cursor/rules/ponytail.mdc`. Edit canonical source only (`services/workframe-api/`, `apps/web/src/`); see developer loop above.
+Use the Ponytail ladder: challenge unnecessary work, prefer platform-native behavior, and build the minimum coherent fix. Edit canonical source only (`services/workframe-api/`, `apps/web/src/`); see developer loop above.
 
 ## Source Hierarchy
 

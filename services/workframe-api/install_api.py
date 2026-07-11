@@ -66,6 +66,31 @@ def install_window_open(db_path: str) -> bool:
     return not bool(stack_config.get_stack_config().get("install_complete"))
 
 
+def install_auth_email_allowed(email: str) -> tuple[bool, dict[str, Any]]:
+    """During install, only the configured admin email may register until verified."""
+    normalized = str(email or "").strip().lower()
+    if not normalized or "@" not in normalized:
+        return False, {"error": "email required"}
+    if not install_window_open(""):
+        return True, {}
+    smtp = stack_config.get_stack_config().get("smtp") or {}
+    configured = str(smtp.get("admin_email") or "").strip().lower()
+    verified_admin = str(smtp.get("admin_email") or "").strip().lower() if stack_config.install_admin_verified() else ""
+    if verified_admin:
+        if normalized == verified_admin:
+            return True, {}
+        return False, {
+            "error": "install_admin_email_required",
+            "message": "Sign in with the admin email for this install.",
+        }
+    if configured and normalized != configured:
+        return False, {
+            "error": "install_admin_email_required",
+            "message": "Use the admin email entered at the start of setup.",
+        }
+    return True, {}
+
+
 def install_owner_claimed(db_path: str) -> bool:
     """True once the first install admin has verified and owns the default workspace."""
     try:
@@ -119,12 +144,19 @@ def _wizard_step_index(step: str) -> int:
 
 def _derive_install_wizard_step(db_path: str) -> str:
     cfg = stack_config.get_stack_config()
+    smtp = cfg.get("smtp") if isinstance(cfg.get("smtp"), dict) else {}
+    if not str(smtp.get("admin_email") or "").strip():
+        return "intro"
+    if not install_owner_claimed(db_path):
+        return "intro"
     mode = str(cfg.get("deployment_mode") or "").strip()
     if not mode:
         return "welcome"
     if mode == "public_multi_user" and not str(cfg.get("app_base_url") or "").strip():
         return "publish"
-    if mode != "single_user_local" and not stack_config.install_admin_verified() and not install_owner_claimed(db_path):
+    if mode != "single_user_local" and not stack_config.install_admin_verified():
+        if stack_config.smtp_setup_complete():
+            return "admin_auth"
         return "smtp"
 
     settings = _default_workspace_settings(db_path)
@@ -142,16 +174,18 @@ def resolve_install_wizard_step(db_path: str) -> str:
     raw = stack_config.read_stack_raw()
     saved = str(raw.get("wizard_step") or "").strip()
     if saved in INSTALL_WIZARD_STEPS:
-        if _wizard_step_index(derived) > _wizard_step_index(saved):
+        derived_idx = _wizard_step_index(derived)
+        saved_idx = _wizard_step_index(saved)
+        # Never resume ahead of incomplete gates (e.g. saved smtp before deployment).
+        if derived_idx >= 0 and saved_idx >= 0 and saved_idx != derived_idx:
             return derived
         return saved
     return derived
 
 
 def install_wizard_public_payload(db_path: str) -> dict[str, Any]:
-    admin_verified = stack_config.install_admin_verified() or install_owner_claimed(db_path)
     return {
-        "admin_verified": admin_verified,
+        "admin_verified": stack_config.install_admin_verified(),
         "resume_step": resolve_install_wizard_step(db_path),
         "owner_claimed": install_owner_claimed(db_path),
     }

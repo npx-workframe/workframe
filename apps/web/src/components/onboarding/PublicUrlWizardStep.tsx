@@ -64,7 +64,7 @@ export function PublicUrlWizardStep({
   const registrarLinks = hints?.registrar_links ?? []
 
   return (
-    <div className="wf-wizard-panel wf-onboarding-form wf-publish-step">
+    <>
       <div className="wf-dialog-field">
         <Label htmlFor="wf-publish-url">Public domain</Label>
         <Input
@@ -174,7 +174,7 @@ export function PublicUrlWizardStep({
           </section>
         </div>
       ) : null}
-    </div>
+    </>
   )
 }
 

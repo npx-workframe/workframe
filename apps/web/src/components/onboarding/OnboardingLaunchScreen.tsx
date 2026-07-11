@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
+import { DialogCancelButton, DialogConfirmButton } from '@/components/dialogs/DialogActions'
 
 const TAGLINES = [
   'Connecting your agent to Hermes…',
@@ -14,6 +15,8 @@ type OnboardingLaunchScreenProps = {
   steps: OperationStep[]
   title?: string
   error?: string | null
+  onRetry?: () => void
+  onBack?: () => void
 }
 
 export function OnboardingLaunchScreen({
@@ -21,6 +24,8 @@ export function OnboardingLaunchScreen({
   steps,
   title = `Launching ${projectName}`,
   error = null,
+  onRetry,
+  onBack,
 }: OnboardingLaunchScreenProps) {
   const [tagline, setTagline] = useState(TAGLINES[0])
 
@@ -40,6 +45,12 @@ export function OnboardingLaunchScreen({
         <h1 className="wf-onboarding-launch__title">{title}</h1>
         <p className="wf-onboarding-launch__tagline">{error || tagline}</p>
         <OperationProgress steps={steps} />
+        {error ? (
+          <div className="wf-onboarding-launch__actions">
+            {onBack ? <DialogCancelButton onClick={onBack}>Back</DialogCancelButton> : null}
+            {onRetry ? <DialogConfirmButton onClick={onRetry}>Try again</DialogConfirmButton> : null}
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -116,6 +116,7 @@ function ActivityBranch({ node, depth, expandedIds, onToggle, crew, activeSessio
   const showAgent = depth === 0
   const activeChild = grouped ? node.children?.find((child) => child.status === 'active') : undefined
   const agent = findAgentByProfile(crew, node.profile)
+  const displayAgentName = agent?.display_name?.trim() || node.agentName
   const headline = activityHeadline(node, activeChild)
 
   return (
@@ -131,6 +132,7 @@ function ActivityBranch({ node, depth, expandedIds, onToggle, crew, activeSessio
         avatarUrl={agent?.avatarUrl ?? null}
         agentInitials={agent?.code}
         agentColor={agent?.color ?? node.agentColor}
+        displayAgentName={displayAgentName}
         isCurrentSession={Boolean(activeSessionId && node.sessionId && node.sessionId === activeSessionId)}
         onToggle={grouped ? () => onToggle(node.id) : undefined}
         onItemClick={onItemClick}
@@ -174,6 +176,10 @@ function activityHeadline(node: ActivityNode, activeChild?: ActivityNode): strin
     return 'chatting with @user'
   }
 
+  if (node.source === 'run_ledger' && node.label.trim()) {
+    return node.label
+  }
+
   return node.label
 }
 
@@ -206,6 +212,7 @@ type ActivityRowProps = {
   avatarUrl: string | null
   agentInitials?: string
   agentColor: string
+  displayAgentName: string
   isCurrentSession?: boolean
   onToggle?: () => void
   onItemClick?: (node: ActivityNode) => void
@@ -223,6 +230,7 @@ function ActivityRow({
   avatarUrl,
   agentInitials,
   agentColor,
+  displayAgentName,
   isCurrentSession = false,
   onToggle,
   onItemClick,
@@ -240,7 +248,7 @@ function ActivityRow({
     isCurrentSession && 'wf-activity-tree__row--current',
   )
 
-  const titleLine = showAgent ? node.agentName : headline
+  const titleLine = showAgent ? displayAgentName : headline
   const titleTitle = rowToolLabel?.text ?? titleLine
 
   const copy = (
@@ -248,7 +256,7 @@ function ActivityRow({
       {showAgent ? (
         <AgentAvatar
           src={avatarUrl}
-          name={node.agentName}
+          name={displayAgentName}
           initials={agentInitials}
           color={agentColor}
           size="xs"
@@ -296,7 +304,7 @@ function ActivityRow({
           type="button"
           className="wf-activity-tree__main"
           onClick={() => onSessionActivate?.(node)}
-          aria-label={`${node.agentName}: ${headline}`}
+          aria-label={`${displayAgentName}: ${headline}`}
         >
           {copy}
         </button>

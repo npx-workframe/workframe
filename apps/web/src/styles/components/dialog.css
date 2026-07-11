@@ -18,6 +18,10 @@ html:has(.wf-desktop-frame) .wf-dialog-overlay {
   inset: var(--wf-desktop-titlebar-height) 0 0 0;
 }
 
+html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
+  top: calc(var(--wf-desktop-titlebar-height) + (100dvh - var(--wf-desktop-titlebar-height)) / 2);
+}
+
 .wf-dialog-overlay[data-state='open'] {
   animation: wf-dialog-fade-in 0.18s ease-out;
 }
@@ -1437,9 +1441,9 @@ textarea.wf-dialog-input {
   word-break: break-all;
 }
 
-/* ponytail: wizard + modal shell footprint — global desktop parity (modals stay overlay + blur) */
+/* ponytail: full shell footprint for wizard only — not compact auth/device-oauth dialogs */
 @media (min-width: 721px) {
-  :is(.wf-onboarding-wizard, .wf-dialog-content) {
+  .wf-onboarding-wizard {
     width: min(var(--wf-shell-width), calc(100vw - var(--wf-shell-margin) * 2));
     height: min(var(--wf-shell-height), calc(100dvh - var(--wf-shell-margin) * 2));
     min-height: min(var(--wf-shell-height), calc(100dvh - var(--wf-shell-margin) * 2));

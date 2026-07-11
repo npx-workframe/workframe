@@ -1,4 +1,4 @@
-/* ── Panel chrome (transparent — canvas shows through) ───────────────────── */
+/* ── Panel chrome (structural — canvas/atmosphere is --wf-bg behind) ───────── */
 
 .wf-panel {
   position: relative;
@@ -1804,39 +1804,4 @@ border-radius: var(--wf-radius-pill);
   object-fit: cover;
   background: transparent;
   border: none;
-}
-
-/* Relief chrome: --wf-chrome-fill (transparent) — see relief-primitives.css */
-[data-theme='neo-blue'] :is(.wf-panel--chat, .wf-panel--browser, .wf-panel--activity, .wf-panel--files) :is(
-  button.wf-tool-btn,
-  .wf-activity-tree__row,
-  .wf-activity-tree__row--clickable,
-  .wf-activity-tree__row--group,
-  .wf-activity-tree__row--active,
-  .wf-file-tree__row,
-  .wf-file-tree__row--selected,
-  .wf-composer__input,
-  .wf-composer__input:focus-visible,
-  .wf-browser-chrome,
-  .wf-browser-chrome__toolbar,
-  .wf-browser-chrome__address,
-  .wf-browser-chrome__address:focus-visible,
-  .wf-browser-tabs__tab,
-  .wf-browser-tabs__tab:hover,
-  .wf-browser-tabs__tab--active,
-  .wf-browser-tabs__label,
-  .wf-browser-tabs__label:hover,
-  .wf-browser-tabs__label:active,
-  .wf-browser-tabs__add,
-  .wf-browser-tabs__add:hover:not(:disabled),
-  .wf-browser-tabs__add:active:not(:disabled),
-  .wf-browser-tabs__close,
-  .wf-browser-tabs__close:hover:not(:disabled),
-  .wf-browser-tabs__close.wf-neo-pressed,
-  .wf-tool-run,
-  .wf-tool-run__header--button,
-  .wf-thinking,
-  .wf-thinking__summary
-) {
-  background: transparent;
 }

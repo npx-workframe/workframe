@@ -205,6 +205,34 @@ def _iter_profile_stream_frames(upstream: Any) -> Iterator[tuple[str, dict[str, 
         if parsed:
             yield parsed
 
+def _stream_data_text(data_lines: list[str]) -> str:
+    raw = "\n".join(line.strip() for line in data_lines if line.strip())
+    if not raw:
+        return ""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return raw
+    if not isinstance(data, dict):
+        return raw
+    err = data.get("error")
+    if isinstance(err, dict):
+        nested = str(err.get("message") or err.get("detail") or "").strip()
+        if nested:
+            return nested
+    for key in ("message", "error", "text", "detail", "summary"):
+        val = data.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return raw
+
+
+def _concierge_notice_from_error(text: str, *, provider: str) -> dict[str, Any]:
+    entry = llm_error_glossary.classify_exception_text(str(text or "").strip())
+    entry = llm_error_glossary.tailor_provider_entry(entry, provider)
+    return concierge.respond("", last_error=entry)
+
+
 def _emit_stream_chat_error(
     handler: BaseHTTPRequestHandler,
     message: str = "",
@@ -276,18 +304,13 @@ def _emit_stream_error_body(
 
 
 def _emit_stream_concierge(handler: BaseHTTPRequestHandler, entry: dict[str, Any]) -> None:
-    """Deterministic assistant reply when LLM path is unavailable."""
+    """Deterministic assistant reply when LLM path is unavailable (SSE headers already open)."""
     payload = llm_error_glossary.notice_payload(entry)
     text = str(payload.get("message") or "")
     hint = str(payload.get("hint") or "").strip()
     if hint:
         text = f"{text}\n\n{hint}"
     try:
-        handler.send_response(200)
-        handler.send_header("Content-Type", "text/event-stream; charset=utf-8")
-        handler.send_header("Cache-Control", "no-cache")
-        handler.send_header("Connection", "keep-alive")
-        handler.end_headers()
         handler.wfile.write(
             f"event: concierge\ndata: {json.dumps(payload)}\n\n".encode("utf-8"),
         )
@@ -373,6 +396,14 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         prof, user_id=_triggering_user, workspace_id=_workspace_id, block=model_block,
     )
     model_used = str(model_block.get("default") or "").strip()
+    api_port = _srv()._profile_api_port(prof)
+    _open_profile_stream(
+        handler,
+        prof,
+        model_used=model_used,
+        llm_provider=llm_provider,
+        api_port=api_port,
+    )
     _auth_decision: run_authority.RunAuthorityDecision | None = None
     if _triggering_user:
         run_ledger.ensure_schema()
@@ -427,14 +458,6 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         _log_llm_failure(handler, str(entry.get("code") or "no_llm_provider"), provider=llm_provider, profile=prof)
         _emit_stream_concierge(handler, entry)
         return
-    api_port = _srv()._profile_api_port(prof)
-    _open_profile_stream(
-        handler,
-        prof,
-        model_used=model_used,
-        llm_provider=llm_provider,
-        api_port=api_port,
-    )
     try:
         _srv().ensure_profile_api(
             prof,
@@ -455,6 +478,7 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
             _emit_stream_error_body(handler, entry=entry)
             return
         entry = llm_error_glossary.classify_exception_text(err_text)
+        entry = llm_error_glossary.tailor_provider_entry(entry, llm_provider)
         _log_llm_failure(handler, str(entry.get("code") or ""), provider=llm_provider, profile=prof)
         _emit_stream_error_body(handler, entry=entry)
         return
@@ -484,6 +508,7 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
     req = urllib.request.Request(url, data=upstream_body, headers=headers, method="POST")
     saw_complete = False
     complete_text = ""
+    last_classified_error: dict[str, Any] | None = None
     try:
         upstream = urllib.request.urlopen(req, timeout=3600)
     except urllib.error.HTTPError as exc:
@@ -492,11 +517,16 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
             data = json.loads(raw)
         except Exception:  # noqa: BLE001
             data = {"error": raw or f"upstream stream failed: {exc.code}"}
-        entry = llm_error_glossary.classify_exception_text(str(data))
+        if not isinstance(data, dict):
+            data = {"error": raw or f"upstream stream failed: {exc.code}"}
+        err_text = llm_error_glossary._extract_error_message(data, raw)
+        if not err_text:
+            err_text = raw or f"HTTP {exc.code}"
+        entry = _concierge_notice_from_error(err_text, provider=llm_provider)
         _emit_stream_error_body(handler, entry=entry)
         return
     except OSError as exc:
-        entry = llm_error_glossary.classify_exception_text(str(exc))
+        entry = _concierge_notice_from_error(str(exc), provider=llm_provider)
         _emit_stream_error_body(handler, entry=entry)
         return
 
@@ -504,7 +534,7 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         buffer = b""
 
         def _rewrite_event_frame(frame: bytes) -> bytes:
-            nonlocal saw_complete, complete_text
+            nonlocal saw_complete, complete_text, last_classified_error
             text = frame.decode("utf-8", errors="replace")
             lines = text.splitlines()
             event_name = ""
@@ -538,6 +568,13 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
                 normalized = "error"
             elif event_name == "error":
                 normalized = "error"
+
+            if normalized == "error" and data_lines:
+                err_text = _stream_data_text(data_lines)
+                if err_text:
+                    notice = _concierge_notice_from_error(err_text, provider=llm_provider)
+                    last_classified_error = notice
+                    data_lines = [json.dumps(notice, separators=(",", ":"))]
 
             output_lines: list[str] = []
             if normalized:
@@ -575,22 +612,29 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
                 handler.wfile.write(rewritten)
                 handler.wfile.flush()
         if not saw_complete or not complete_text:
-            config_key = _srv()._read_config_model_api_key(prof)
-            _, model_name = _srv()._read_model_from_config(prof)
-            if config_key.startswith(turn_credentials.LEASE_PREFIX) and not turn_credentials.validate_lease(
-                config_key,
-            ):
-                entry = llm_error_glossary.playbook_entry("invalid_lease")
+            if last_classified_error:
+                entry = last_classified_error
             else:
-                entry = llm_error_glossary.playbook_entry("provider_empty_reply")
+                config_key = _srv()._read_config_model_api_key(prof)
+                _, model_name = _srv()._read_model_from_config(prof)
+                if config_key.startswith(turn_credentials.LEASE_PREFIX) and not turn_credentials.validate_lease(
+                    config_key,
+                ):
+                    entry = llm_error_glossary.notice_payload(
+                        llm_error_glossary.playbook_entry("invalid_lease"),
+                    )
+                else:
+                    entry = llm_error_glossary.notice_payload(
+                        llm_error_glossary.playbook_entry("provider_empty_reply"),
+                    )
             _log_llm_failure(
                 handler,
                 str(entry.get("code") or "provider_empty_reply"),
                 provider=llm_provider,
-                model=str(model_name or ""),
+                model=str(model_name if not last_classified_error else ""),
                 profile=prof,
             )
-            err_payload = json.dumps(llm_error_glossary.notice_payload(entry))
+            err_payload = json.dumps(entry)
             handler.wfile.write(f"event: error\ndata: {err_payload}\n\n".encode("utf-8"))
             handler.wfile.flush()
         handler.wfile.write(b"event: done\ndata: {}\n\n")

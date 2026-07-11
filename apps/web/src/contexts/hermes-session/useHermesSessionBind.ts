@@ -1,7 +1,8 @@
 import { useCallback, type Dispatch, type SetStateAction } from 'react'
 
 import { ensureRoomBind } from '@/lib/chatApi'
-import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
+import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
+import { showWorkframeError } from '@/lib/workframeErrorToast'
 import { WORKFRAME_UI_BINDING_VERSION } from '@/lib/chatSession'
 import type { ChatMessage } from '@/lib/chatTypes'
 import { notifyHermesModelsChanged } from '@/lib/hermesCatalogApi'
@@ -27,7 +28,7 @@ type UseHermesSessionBindOptions = {
   setStateDbSessionId: (id: string | null) => void
   setGatewaySessionId: (id: string | null) => void
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>
-  setConnectError: (error: string | null) => void
+  setConnectError: (error: WorkframeNoticeInfo | null) => void
   setSessionReady: (ready: boolean) => void
   completeTurn: () => void
 }
@@ -197,7 +198,9 @@ export function useHermesSessionBind({
         gatewaySidRef.current = null
         setStateDbSessionId(null)
         setGatewaySessionId(null)
-        setConnectError(formatWorkframeErrorMessage(err, 'Session bootstrap'))
+        const info = formatWorkframeError(err, 'Session bootstrap')
+        setConnectError(info)
+        showWorkframeError(info, { id: 'session-bootstrap' })
         setSessionReady(false)
       }
     },
@@ -245,7 +248,9 @@ export function useHermesSessionBind({
       refs.prevRoomKeyRef.current = roomId
     } catch (err) {
       if (gen !== bindGenRef.current) return
-      setConnectError(formatWorkframeErrorMessage(err, 'New session'))
+      const info = formatWorkframeError(err, 'New session')
+      setConnectError(info)
+      showWorkframeError(info, { id: 'new-session' })
       throw err
     }
   }, [

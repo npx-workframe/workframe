@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/lib/chatTypes'
+import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
 
 export type HermesSessionState = {
   profile: string
@@ -7,7 +8,7 @@ export type HermesSessionState = {
   stateDbSessionId: string | null
   gatewaySessionId: string | null
   sessionReady: boolean
-  connectError: string | null
+  connectError: WorkframeNoticeInfo | null
   turnActive: boolean
   turnStatus: string | null
   messages: ChatMessage[]

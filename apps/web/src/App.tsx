@@ -20,6 +20,7 @@ import { ButtonShowcasePage } from '@/pages/dev/ButtonShowcasePage'
 import { ThemeShowcasePage } from '@/pages/dev/ThemeShowcasePage'
 import { WORKFRAME_SESSION_EXPIRED } from '@/lib/authenticatedFetch'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { Toaster } from '@/components/ui/sonner'
 import {
   clearProviderConnectReturn,
   peekProviderConnectReturn,
@@ -113,29 +114,49 @@ function App() {
     setInstallWindowActive(active)
   }, [])
 
+  const fetchInstallStatus = useCallback(async () => {
+    try {
+      return await workframeAuthApi.getInstallStatus()
+    } catch {
+      try {
+        return await workframeAuthApi.getInstallStatus()
+      } catch {
+        return null
+      }
+    }
+  }, [])
+
+  const routeInstallWizard = useCallback(
+    (
+      path: string,
+      status: Awaited<ReturnType<typeof workframeAuthApi.getInstallStatus>>,
+    ) => {
+      if (!status.hermes_present || !status.setup_complete) {
+        if (!path.endsWith('/install')) navigate('/install')
+        setPhase('install')
+        return true
+      }
+      if (!path.endsWith('/onboarding')) navigate('/onboarding')
+      setPhase('onboarding')
+      return true
+    },
+    [navigate],
+  )
+
   const resolvePhase = useCallback(async () => {
     if (resolvingPhaseRef.current) return
     resolvingPhaseRef.current = true
     try {
     const path = window.location.pathname
-    let installStatus: Awaited<ReturnType<typeof workframeAuthApi.getInstallStatus>> | null = null
+    let installStatus = await fetchInstallStatus()
 
-    try {
-      installStatus = await workframeAuthApi.getInstallStatus()
-      const inInstallWindow = installStatus.install_window_open && !installStatus.install_complete
-      markInstallWindow(inInstallWindow)
-    } catch {
-      markInstallWindow(false)
-    }
+    const inInstallWindow = Boolean(
+      installStatus?.install_window_open && !installStatus?.install_complete,
+    )
+    markInstallWindow(inInstallWindow)
 
-    if (installWindowRef.current && installStatus) {
-      if (!installStatus.hermes_present || !installStatus.setup_complete) {
-        if (!path.endsWith('/install')) navigate('/install')
-        setPhase('install')
-        return
-      }
-      if (!path.endsWith('/onboarding')) navigate('/onboarding')
-      setPhase('onboarding')
+    if (inInstallWindow && installStatus && !inviteToken) {
+      routeInstallWizard(path, installStatus)
       return
     }
 
@@ -148,7 +169,7 @@ function App() {
       try {
         await workframeAuthApi.restoreSession()
         const onboarding = await workframeAuthApi.getOnboarding()
-        if (onboarding.complete) {
+        if (onboarding.complete && !installWindowRef.current) {
           setIsAuthenticated(true)
           setOnboardingComplete(true)
           if (path === '/onboarding' || path.endsWith('/onboarding')) {
@@ -177,6 +198,17 @@ function App() {
       const onboarding = await workframeAuthApi.getOnboarding()
       const complete = Boolean(onboarding.complete)
       setOnboardingComplete(complete)
+      if (!installStatus) {
+        installStatus = await fetchInstallStatus()
+      }
+      const stillInInstallWindow = Boolean(
+        installStatus?.install_window_open && !installStatus?.install_complete,
+      )
+      if (stillInInstallWindow && installStatus && !inviteToken) {
+        markInstallWindow(true)
+        routeInstallWizard(path, installStatus)
+        return
+      }
       markInstallWindow(false)
       setPhase(complete ? 'shell' : 'onboarding')
     } catch {
@@ -188,7 +220,7 @@ function App() {
     } finally {
       resolvingPhaseRef.current = false
     }
-  }, [inviteToken, markInstallWindow, navigate])
+  }, [fetchInstallStatus, inviteToken, markInstallWindow, navigate, routeInstallWizard])
 
   useEffect(() => {
     void resolvePhase()
@@ -228,18 +260,20 @@ function App() {
       setOnboardingComplete(Boolean(onboarding.complete))
       setPhase(onboarding.complete ? 'shell' : 'onboarding')
     } catch {
-      setOnboardingComplete(true)
-      setPhase('shell')
+      setOnboardingComplete(false)
+      setPhase('onboarding')
     }
     setIsAuthenticated(true)
   }, [])
 
   const handleOnboardingComplete = useCallback(() => {
+    markInstallWindow(false)
     setOnboardingComplete(true)
     setIsAuthenticated(true)
     navigate('/')
     setPhase('shell')
-  }, [navigate])
+    void resolvePhase()
+  }, [markInstallWindow, navigate, resolvePhase])
 
   const handleInstallReady = useCallback(() => {
     navigate('/onboarding')
@@ -264,7 +298,7 @@ function App() {
     content = <BootScreen label={`Loading ${projectName}`} />
   } else if (phase === 'install') {
     content = <InstallShell projectName={projectName} onReady={handleInstallReady} />
-  } else if (phase === 'onboarding' && (!isAuthenticated || !onboardingComplete)) {
+  } else if (installWindowActive) {
     content = (
       <ConciergeFlow
         projectName={projectName}
@@ -273,7 +307,7 @@ function App() {
         inviteEmail={inviteEmail}
       />
     )
-  } else if (!isAuthenticated && installWindowActive) {
+  } else if (phase === 'onboarding' && (!isAuthenticated || !onboardingComplete)) {
     content = (
       <ConciergeFlow
         projectName={projectName}
@@ -314,6 +348,7 @@ function App() {
     return (
       <>
         <CanvasBackground />
+        <Toaster position="bottom-right" closeButton />
         {providerConnectBanner}
         {content}
       </>
@@ -323,6 +358,7 @@ function App() {
   return (
     <>
       <CanvasBackground />
+      <Toaster position="bottom-right" closeButton />
       <div className="wf-desktop-frame">
         <DesktopTitleBar title={projectName} />
         <div className="wf-desktop-frame__body">

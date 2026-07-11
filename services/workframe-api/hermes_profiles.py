@@ -53,7 +53,7 @@ def _hermes_data_uid_gid() -> tuple[int, int]:
     try:
         st = _srv().HERMES_DATA.stat()
         return int(st.st_uid), int(st.st_gid)
-    except OSError:
+    except (AttributeError, OSError):
         return 10000, 10000
 
 
@@ -64,7 +64,7 @@ def _ensure_profiles_dir_ready() -> None:
     uid, gid = _hermes_data_uid_gid()
     try:
         os.chown(profiles, uid, gid)
-    except OSError:
+    except (AttributeError, OSError):
         pass
 
 
@@ -77,7 +77,7 @@ def _chown_profile_tree(prof_dir: Path) -> None:
     for path in [prof_dir, *prof_dir.rglob("*")]:
         try:
             os.chown(path, uid, gid)
-        except OSError:
+        except (AttributeError, OSError):
             pass
 
 
@@ -747,6 +747,9 @@ def _agent_db_display_name(template_slug: str, workspace_id: str = "") -> str:
             ).fetchone()
         if row and str(row["display_name"] or "").strip():
             return str(row["display_name"]).strip()
+    except sqlite3.Error:
+        # Native profile seeding can precede schema creation on a clean install.
+        return ""
     finally:
         conn.close()
     return ""
@@ -1117,6 +1120,7 @@ def profile_create(
                 results["steps"].extend(lane.get("steps") or [])
             except Exception as exc:
                 results["steps"].append({"step": "bootstrap_dm_lane", "ok": False, "error": str(exc)})
+                results["ok"] = False
         return results
     
     prof = _srv().safe_profile_slug(name)
@@ -1254,7 +1258,7 @@ def profile_create(
         except Exception as exc:
             results["steps"].append({"step": "bootstrap_dm_lane", "ok": False, "error": str(exc)})
 
-    results["ok"] = True
+    results["ok"] = not any(step.get("ok") is False for step in results["steps"])
     return results
 
 

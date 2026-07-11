@@ -1373,6 +1373,7 @@ _read_profile_lease_token = turn_overlay._read_profile_lease_token
 _lease_reusable_for_turn = turn_overlay._lease_reusable_for_turn
 _read_config_model_api_key = turn_overlay._read_config_model_api_key
 _sync_profile_model_api_key = turn_overlay._sync_profile_model_api_key
+_schedule_profile_lease_yaml_reconcile = turn_overlay._schedule_profile_lease_yaml_reconcile
 _apply_turn_credential_lease = turn_overlay._apply_turn_credential_lease
 _action_proxy_base_url = turn_overlay._action_proxy_base_url
 _action_proxy_env_var = turn_overlay._action_proxy_env_var
@@ -1468,12 +1469,26 @@ def _enrich_room_messages(conn: sqlite3.Connection, messages: list[Any]) -> list
         agent_id = str(item.get("sender_agent_id") or "").strip()
         if agent_id:
             agent = conn.execute(
-                "SELECT slug, display_name FROM agent_profiles WHERE id = ? AND deleted_at IS NULL",
+                """
+                SELECT slug, display_name, model_name, model_provider
+                FROM agent_profiles WHERE id = ? AND deleted_at IS NULL
+                """,
                 (agent_id,),
             ).fetchone()
             if agent:
                 item["sender_agent_slug"] = str(agent["slug"])
                 item["sender_agent_name"] = str(agent["display_name"] or agent["slug"])
+                model_name = str(agent["model_name"] or "").strip()
+                model_provider = str(agent["model_provider"] or "").strip()
+                slug = str(agent["slug"] or "").strip()
+                if not model_name and slug:
+                    model_name = str(_srv()._read_model_block(slug).get("default") or "").strip()
+                if not model_provider and slug:
+                    model_provider = _srv()._llm_billing_provider(slug)
+                if model_name:
+                    item["model"] = model_name
+                if model_provider:
+                    item["llm_provider"] = model_provider
         enriched.append(item)
     return enriched
 

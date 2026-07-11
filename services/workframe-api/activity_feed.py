@@ -338,7 +338,7 @@ def _kanban_activity(
             assignee = str(r["assignee"] or "kanban")
             member = crew_lookup.get(assignee.lower()) or crew_lookup.get(_srv()._profile_slug(assignee).lower())
             agent = _resolve_agent(member, _srv()._profile_display_name(assignee) if assignee != "kanban" else "Kanban")
-            desc = f"{r['title'] or 'task'} Â· {r['kind']}"
+            desc = f"{r['title'] or 'task'} · {r['kind']}"
             if len(desc) > 140:
                 desc = desc[:137] + "..."
             st = str(r["status"] or r["kind"] or "event").lower()
@@ -638,9 +638,9 @@ def _room_session_activity_label(
 ) -> str:
     base = str(title or room_name or "Session").strip()
     if msg_count > 0:
-        return f"{base} Â· {msg_count} message{'s' if msg_count != 1 else ''}"
+        return f"{base} · {msg_count} message{'s' if msg_count != 1 else ''}"
     if status == "active":
-        return f"{base} Â· active"
+        return f"{base} · active"
     return base
 
 
@@ -689,7 +689,7 @@ def room_activity_data(
         ended = info.get("ended_at")
         row_status = str(row["status"] or "active")
         if row_status == "active" and not ended:
-            status = "active"
+            status = "idle"
         elif ended:
             status = "completed"
         else:
@@ -721,12 +721,60 @@ def room_activity_data(
         merged.extend(_message_activity_for_sessions(prof, crew_lookup, sids, ACTIVITY_ROOM_LIMIT))
 
     try:
-        merged.extend(run_ledger.list_run_events_for_room(room_id, limit=ACTIVITY_ROOM_LIMIT))
+        merged.extend(_run_ledger_activity(room_id, crew_lookup, ACTIVITY_ROOM_LIMIT))
     except Exception:  # noqa: BLE001
         pass
 
     merged.sort(key=lambda e: e.get("created_at") or "", reverse=True)
     return merged[:ACTIVITY_ROOM_LIMIT]
+
+
+def _run_event_activity_status(event_type: str, run_status: str) -> str:
+    et = str(event_type or "").strip().lower()
+    if et == "run.completed":
+        return "completed"
+    if et in ("run.failed", "run.denied"):
+        return "failed"
+    rs = str(run_status or "").strip().lower()
+    if rs == "running":
+        return "active"
+    if rs == "completed":
+        return "completed"
+    if rs in ("failed", "denied", "cancelled"):
+        return "failed"
+    return "idle"
+
+
+def _run_ledger_activity(
+    room_id: str,
+    crew_lookup: dict[str, dict[str, Any]],
+    limit: int,
+) -> list[dict[str, Any]]:
+    """User-facing run ledger rows — skip internal authorize noise, resolve agent names."""
+    rows = run_ledger.list_run_events_for_room(room_id, limit=limit)
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        event_type = str(row.get("event_type") or "")
+        if event_type == "run.authorized":
+            continue
+        prof = str(row.get("profile") or "").strip()
+        member = crew_lookup.get(prof.lower()) or crew_lookup.get(_srv()._profile_slug(prof).lower())
+        agent = _resolve_agent(member, _srv()._profile_display_name(prof))
+        desc = str(row.get("task_description") or "").strip()
+        if not desc:
+            continue
+        out.append(
+            {
+                **row,
+                "agent_name": agent["agent_name"],
+                "key": agent["key"],
+                "profile": prof or agent["profile"],
+                "task_description": desc,
+                "status": _run_event_activity_status(event_type, str(row.get("run_status") or row.get("status") or "")),
+                "source": "run_ledger",
+            }
+        )
+    return out
 
 
 def _room_agent_dm_owner_user_id(conn: sqlite3.Connection, room_id: str) -> str | None:

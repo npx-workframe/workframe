@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import llm_error_glossary
 from domain.entities import (
     ActorType,
     FundingSource,
@@ -423,18 +424,21 @@ def list_run_events_for_room(room_id: str, *, limit: int = 40) -> list[dict[str,
             payload = json.loads(str(row["payload_json"] or "{}"))
         except json.JSONDecodeError:
             payload = {}
+        event_type = str(row["event_type"])
+        if event_type == "run.authorized":
+            continue
         out.append(
             {
                 "id": f"run_event:{row['event_id']}",
                 "kind": "run_event",
-                "event_type": str(row["event_type"]),
+                "event_type": event_type,
                 "run_id": str(row["run_id"]),
                 "run_status": str(row["run_status"]),
                 "profile": str(row["profile_slug"] or ""),
                 "payer_user_id": str(row["payer_user_id"] or ""),
                 "funding_source": str(row["funding_source"] or ""),
-                "task_description": _event_description(str(row["event_type"]), payload),
-                "status": str(row["run_status"]),
+                "task_description": _event_description(event_type, payload),
+                "status": _activity_status_for_event(event_type, str(row["run_status"])),
                 "created_at": str(row["created_at"]),
                 "source": "run_ledger",
                 "payload": payload,
@@ -443,16 +447,56 @@ def list_run_events_for_room(room_id: str, *, limit: int = 40) -> list[dict[str,
     return out
 
 
+def _activity_status_for_event(event_type: str, run_status: str) -> str:
+    et = str(event_type or "").strip().lower()
+    if et == "run.completed":
+        return "completed"
+    if et in ("run.failed", "run.denied"):
+        return "failed"
+    rs = str(run_status or "").strip().lower()
+    if rs == "running":
+        return "active"
+    if rs == "completed":
+        return "completed"
+    if rs in ("failed", "denied", "cancelled"):
+        return "failed"
+    return "idle"
+
+
+def _humanize_run_failure(reason: str) -> str:
+    raw = str(reason or "").strip()
+    if not raw:
+        return "Turn failed"
+    entry = llm_error_glossary.classify_exception_text(raw)
+    msg = str(entry.get("message") or "").strip()
+    if msg:
+        return msg
+    return raw[:160]
+
+
+def _humanize_deny_reason(reason: str) -> str:
+    key = str(reason or "").strip().lower()
+    labels = {
+        "no_credential_byok": "connect an LLM provider in Settings",
+        "no_credential": "connect an LLM provider in Settings",
+        "policy": "policy blocked this turn",
+    }
+    return labels.get(key, key.replace("_", " ") or "policy")
+
+
 def _event_description(event_type: str, payload: Mapping[str, Any]) -> str:
     if event_type == "run.authorized":
-        fs = str(payload.get("funding_source") or "")
-        return f"Run authorized ({fs})" if fs else "Run authorized"
+        return ""
     if event_type == "run.denied":
-        return f"Run denied: {payload.get('deny_reason') or 'policy'}"
+        return f"Turn blocked — {_humanize_deny_reason(str(payload.get('deny_reason') or 'policy'))}"
     if event_type == "run.completed":
-        return "Chat turn completed"
+        model = str(payload.get("model") or "").strip()
+        if model:
+            short = model.rsplit("/", 1)[-1]
+            return f"Reply delivered · {short}"
+        return "Reply delivered"
     if event_type == "run.failed":
-        return f"Run failed: {payload.get('reason') or 'error'}"
+        return _humanize_run_failure(str(payload.get("reason") or payload.get("code") or ""))
     if event_type == "slash.command":
         cmd = str(payload.get("command") or "")
         return f"Slash /{cmd}" if cmd else "Slash command"

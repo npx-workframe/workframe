@@ -19,6 +19,7 @@
 @import './styles/scroll-area.css';
 @import './styles/components/toolbar.css';
 @import './styles/components/notices.css';
+@import './styles/components/workframe-toast.css';
 @import './styles/components/base.css';
 @import './styles/components/controls.css';
 @import './styles/components/action-btn.css';

@@ -3,13 +3,15 @@ import { emptyAgentStreamMessage } from '@/lib/chatTypes'
 
 export type RoomLiveFrame =
   | { type: 'heartbeat'; room_id: string; ts: number }
-  | {
+      | {
       type: 'turn.started'
       turn_id: string
       room_id: string
       agent_slug: string
       agent_name: string
       agent_profile_id: string
+      model?: string
+      llm_provider?: string
       triggered_by_user_id?: string
     }
   | {
@@ -63,6 +65,7 @@ export function liveTurnToChatMessage(
   agentSlug: string,
   agentName: string,
   segments: ChatSegment[],
+  model?: { modelId?: string; llmProvider?: string },
 ): ChatMessage {
   const base = emptyAgentStreamMessage(
     turnId,
@@ -70,7 +73,12 @@ export function liveTurnToChatMessage(
     agentName,
     new Date().toISOString(),
   )
-  return { ...base, segments: segments.length ? segments : base.segments }
+  return {
+    ...base,
+    segments: segments.length ? segments : base.segments,
+    ...(model?.modelId ? { modelId: model.modelId } : {}),
+    ...(model?.llmProvider ? { llmProvider: model.llmProvider } : {}),
+  }
 }
 
 export function liveTurnStatusText(agentName: string, status?: string): string | null {

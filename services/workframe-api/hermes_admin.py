@@ -232,7 +232,7 @@ def _resolve_command(token: str) -> dict[str, Any] | None:
         return None
     needle = token if token.startswith("/") else f"/{token}"
     for entry in HERMES_COMMANDS:
-        if entry.get("wip", False):
+        if entry.get("wip", False) or entry.get("dispatch") in {"gateway", "client:noOp"}:
             continue
         if entry["name"] == needle or needle in entry.get("aliases", []):
             return entry
@@ -653,7 +653,14 @@ def hermes_commands_catalog() -> dict[str, Any]:
     they aren't returned here. The UI never sees a half-implemented
     command; either it's wired end-to-end or it's invisible.
     """
-    visible = [e for e in HERMES_COMMANDS if not e.get("wip", False)]
+    # One-shot gateway execution is not equivalent to Hermes' interactive TUI
+    # command loop. Only expose commands with a native Workframe handler; add a
+    # gateway command after an end-to-end test proves its behavior here.
+    visible = [
+        entry for entry in HERMES_COMMANDS
+        if not entry.get("wip", False)
+        and entry.get("dispatch") not in {"gateway", "client:noOp"}
+    ]
     grouped: dict[str, list[dict[str, Any]]] = {}
     for entry in visible:
         grouped.setdefault(entry["category"], []).append(

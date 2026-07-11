@@ -2,7 +2,7 @@
 [data-theme='neo-light'] {
   color-scheme: light;
   --wf-chrome-mode: relief;
-  --wf-chrome-fill: transparent;
+  --wf-chrome-fill: var(--wf-bg);
   --wf-relief-shadow-rgb: 163 163 176;
   --wf-relief-shadow-alpha: 0.24;
   --wf-relief-highlight-rgb: 255 255 255;
@@ -19,29 +19,29 @@
   --wf-border: transparent;
   --wf-border-strong: rgba(0, 0, 0, 0.08);
   --wf-surface: #e0e0e6;
-  --wf-surface-soft: rgba(224, 224, 230, 0.82);
+  --wf-surface-soft: var(--wf-bg);
   --wf-primary: #3a3a44;
   --wf-primary-foreground: #e0e0e6;
 
-  --wf-bg-gradient: linear-gradient(145deg, #d8d8de, #e8e8ee);
+  --wf-bg-gradient: none;
 
-  --wf-orb-primary: rgba(124, 106, 158, 0.06);
-  --wf-orb-primary-opacity: 0.4;
-  --wf-orb-secondary: rgba(106, 142, 158, 0.05);
-  --wf-orb-secondary-opacity: 0.34;
+  --wf-orb-primary: transparent;
+  --wf-orb-primary-opacity: 0;
+  --wf-orb-secondary: transparent;
+  --wf-orb-secondary-opacity: 0;
 
   --wf-grid-tile: 10px;
   --wf-dot-grid-tile: 10px;
   --wf-dot-grid-rgb: 42 42 50;
   --wf-dot-grid-opacity: 0.16;
 
-  --wf-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 22%, rgba(0, 0, 0, 0.04));
+  --wf-overlay: none;
 
   --wf-notice-fg: var(--wf-text);
   --wf-notice-muted: var(--wf-muted);
   --wf-notice-border: var(--wf-border-strong);
-  --wf-notice-bg: var(--wf-surface-soft);
-  --wf-notice-info-bg: var(--wf-surface-soft);
+  --wf-notice-bg: var(--wf-bg);
+  --wf-notice-info-bg: var(--wf-bg);
   --wf-notice-info-border: var(--wf-border-strong);
   --wf-status-fg: var(--wf-muted);
 

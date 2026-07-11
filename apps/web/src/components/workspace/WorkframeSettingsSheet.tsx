@@ -2,15 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Save } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
-import { AdminOAuthSetup } from '@/components/onboarding/AdminOAuthSetup'
-import { AdminStripeSetup } from '@/components/onboarding/AdminStripeSetup'
-import { WorkspaceMessagingPanel } from '@/components/onboarding/WorkspaceMessagingPanel'
+import { IntegrationsStack } from '@/components/settings/IntegrationsStack'
 import { SiteBrandingFields } from '@/components/settings/SiteBrandingFields'
 import { SettingsSection } from '@/components/settings/SettingsSection'
-import { SmtpSettingsFields } from '@/components/settings/SmtpSettingsFields'
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { Button } from '@/components/ui/button'
 import { ReducedProfileCard } from '@/components/ui/ReducedProfileCard'
+import { ProfileEntityCardGridOrEmpty, ProfileEntityCardRow } from '@/components/ui/ProfileEntityCardGrid'
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { AgentDelegationPanel } from '@/components/workspace/AgentDelegationPanel'
@@ -310,44 +308,40 @@ export function WorkframeSettingsSheet({
             ) : null}
 
             <SettingsPanelBody error={error} status={status} bare>
-              {members.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {members.map((member) => {
-                    const label = member.display_name || member.email || member.user_id
-                    const isSelf = member.user_id === currentUserId
-                    return (
-                      <div key={member.membership_id} className="relative group">
-                        <ReducedProfileCard
-                          type={member.role || 'Member'}
-                          name={label}
-                          tagline={member.tagline || member.email || member.user_id}
-                          avatarUrl={resolveUserAvatarUrl(member.avatar_url) || null}
-                        />
-                        {canManage && !isSelf ? (
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              disabled={busyUserId === member.user_id}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                void removeMember(member)
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
-                  No members yet.
-                </p>
-              )}
+              <ProfileEntityCardGridOrEmpty isEmpty={!members.length} emptyMessage="No members yet.">
+                {members.map((member) => {
+                  const label = member.display_name || member.email || member.user_id
+                  const isSelf = member.user_id === currentUserId
+                  return (
+                    <ProfileEntityCardRow
+                      key={member.membership_id}
+                      action={
+                        canManage && !isSelf ? (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={busyUserId === member.user_id}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              void removeMember(member)
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        ) : undefined
+                      }
+                    >
+                      <ReducedProfileCard
+                        type={member.role || 'Member'}
+                        name={label}
+                        tagline={member.tagline || member.email || member.user_id}
+                        avatarUrl={resolveUserAvatarUrl(member.avatar_url) || null}
+                      />
+                    </ProfileEntityCardRow>
+                  )
+                })}
+              </ProfileEntityCardGridOrEmpty>
             </SettingsPanelBody>
           </div>
         ) : null}
@@ -371,22 +365,16 @@ export function WorkframeSettingsSheet({
             </div>
 
             <SettingsPanelBody error={error} status={status} bare>
-              {pendingInvites.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {pendingInvites.map((invite) => (
-                    <ReducedProfileCard
-                      key={invite.id}
-                      type="Pending"
-                      name={invite.email}
-                      tagline={invite.role || 'Member'}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="wf-user-settings__hint text-center p-8 border border-dashed border-border rounded-xl">
-                  No pending invites.
-                </p>
-              )}
+              <ProfileEntityCardGridOrEmpty isEmpty={!pendingInvites.length} emptyMessage="No pending invites.">
+                {pendingInvites.map((invite) => (
+                  <ReducedProfileCard
+                    key={invite.id}
+                    type="Pending"
+                    name={invite.email}
+                    tagline={invite.role || 'Member'}
+                  />
+                ))}
+              </ProfileEntityCardGridOrEmpty>
             </SettingsPanelBody>
           </div>
         ) : null}
@@ -408,56 +396,24 @@ export function WorkframeSettingsSheet({
             </div>
 
             <SettingsPanelBody error={error} status={status} className="space-y-8">
-              <SettingsSection
-                title="Email delivery"
-                hint="SMTP for invites, sign-in codes, and notifications. Password is vault-encrypted on the stack."
-              >
-                <SmtpSettingsFields
-                  disabled={fieldsDisabled}
-                  onBindSave={(save) => {
-                    smtpSaveRef.current = save
-                  }}
-                  onError={setError}
-                />
-              </SettingsSection>
-
-              <SettingsSection
-                title="Payments partner"
-                hint="Stripe Connect OAuth — members connect their own Stripe accounts for billing and commerce tools."
-              >
-                <AdminStripeSetup
-                  disabled={fieldsDisabled}
-                  onBindSave={(save) => {
-                    stripeSaveRef.current = save
-                  }}
-                />
-              </SettingsSection>
-
-              <SettingsSection
-                title="Sign-in apps"
-                hint="OAuth apps for member sign-in — Google, GitHub, Discord, and Telegram Login."
-              >
-                <AdminOAuthSetup
-                  disabled={fieldsDisabled}
-                  onBindSave={(save) => {
-                    oauthSaveRef.current = save
-                  }}
-                />
-              </SettingsSection>
-
-              <SettingsSection
-                title="Agent messaging"
-                hint="Shared bot tokens and home channels for Discord and Telegram — separate from member sign-in OAuth."
-              >
-                <WorkspaceMessagingPanel
-                  workspaceId={workspaceId}
-                  disabled={fieldsDisabled}
-                  onBindSave={(save) => {
-                    messagingSaveRef.current = save
-                  }}
-                  onError={setError}
-                />
-              </SettingsSection>
+              <IntegrationsStack
+                variant="settings"
+                workspaceId={workspaceId}
+                disabled={fieldsDisabled}
+                onBindSmtpSave={(save) => {
+                  smtpSaveRef.current = save
+                }}
+                onBindStripeSave={(save) => {
+                  stripeSaveRef.current = save
+                }}
+                onBindOAuthSave={(save) => {
+                  oauthSaveRef.current = save
+                }}
+                onBindMessagingSave={(save) => {
+                  messagingSaveRef.current = save
+                }}
+                onError={setError}
+              />
             </SettingsPanelBody>
           </div>
         ) : null}

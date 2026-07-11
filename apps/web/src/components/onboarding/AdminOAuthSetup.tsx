@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { OAuthProviderRow } from '@/components/onboarding/OAuthProviderRow'
+import { SignInAppField } from '@/components/settings/SignInAppField'
 import { SignInBrandIcon } from '@/components/settings/SignInBrandIcon'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { PanelInlineNotice } from '@/components/ui/PanelPrimitives'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
@@ -13,26 +13,6 @@ type AdminOAuthSetupProps = {
   disabled?: boolean
   onBindSave?: (save: () => Promise<boolean>) => void
   afterGithub?: ReactNode
-}
-
-function OAuthField({
-  label,
-  hint,
-  children,
-  fullWidth,
-}: {
-  label: string
-  hint?: string
-  children: ReactNode
-  fullWidth?: boolean
-}) {
-  return (
-    <div className={`wf-sign-in-app__field${fullWidth ? ' wf-sign-in-app__field--full' : ''}`}>
-      <Label>{label}</Label>
-      {children}
-      {hint ? <p className="wf-sign-in-app__hint">{hint}</p> : null}
-    </div>
-  )
 }
 
 export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAuthSetupProps) {
@@ -175,11 +155,11 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
           disabled={disabled}
           onToggle={setGoogleOn}
         >
-          <OAuthField label="Redirect URI" hint="Add this exact URL in Google Cloud Console → OAuth client." fullWidth>
+          <SignInAppField label="Redirect URI" hint="Add this exact URL in Google Cloud Console → OAuth client." fullWidth>
             <Input readOnly value={googleCallback} />
-          </OAuthField>
+          </SignInAppField>
           <div className="wf-sign-in-app__grid">
-            <OAuthField label="Client ID">
+            <SignInAppField label="Client ID">
               <Input
                 value={googleClientId}
                 onChange={(e) => setGoogleClientId(e.target.value)}
@@ -187,8 +167,8 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 disabled={disabled}
                 autoComplete="off"
               />
-            </OAuthField>
-            <OAuthField label="Client secret" hint="Leave blank to keep the saved secret.">
+            </SignInAppField>
+            <SignInAppField label="Client secret" hint="Leave blank to keep the saved secret.">
               <SecretInput
                 value={googleClientSecret}
                 onChange={(e) => setGoogleClientSecret(e.target.value)}
@@ -196,7 +176,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 emptyPlaceholder="Paste client secret"
                 disabled={disabled}
               />
-            </OAuthField>
+            </SignInAppField>
           </div>
         </OAuthProviderRow>
 
@@ -215,15 +195,15 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
             {' — register an OAuth app with the URLs below.'}
           </p>
           <div className="wf-sign-in-app__grid">
-            <OAuthField label="Homepage URL">
+            <SignInAppField label="Homepage URL">
               <Input readOnly value={appBase} />
-            </OAuthField>
-            <OAuthField label="Callback URL">
+            </SignInAppField>
+            <SignInAppField label="Callback URL">
               <Input readOnly value={githubCallback} />
-            </OAuthField>
+            </SignInAppField>
           </div>
           <div className="wf-sign-in-app__grid">
-            <OAuthField label="Client ID">
+            <SignInAppField label="Client ID">
               <Input
                 value={githubClientId}
                 onChange={(e) => setGithubClientId(e.target.value)}
@@ -231,8 +211,8 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 disabled={disabled}
                 autoComplete="off"
               />
-            </OAuthField>
-            <OAuthField label="Client secret" hint="Leave blank to keep the saved secret.">
+            </SignInAppField>
+            <SignInAppField label="Client secret" hint="Leave blank to keep the saved secret.">
               <SecretInput
                 value={githubClientSecret}
                 onChange={(e) => setGithubClientSecret(e.target.value)}
@@ -240,7 +220,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 emptyPlaceholder="Paste client secret"
                 disabled={disabled}
               />
-            </OAuthField>
+            </SignInAppField>
           </div>
         </OAuthProviderRow>
 
@@ -260,11 +240,11 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
             </a>
             {' — OAuth2 app with redirect below.'}
           </p>
-          <OAuthField label="Redirect URI" fullWidth>
+          <SignInAppField label="Redirect URI" fullWidth>
             <Input readOnly value={discordCallback} />
-          </OAuthField>
+          </SignInAppField>
           <div className="wf-sign-in-app__grid">
-            <OAuthField label="Client ID">
+            <SignInAppField label="Client ID">
               <Input
                 value={discordClientId}
                 onChange={(e) => setDiscordClientId(e.target.value)}
@@ -272,8 +252,8 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 disabled={disabled}
                 autoComplete="off"
               />
-            </OAuthField>
-            <OAuthField label="Client secret" hint="Leave blank to keep the saved secret.">
+            </SignInAppField>
+            <SignInAppField label="Client secret" hint="Leave blank to keep the saved secret.">
               <SecretInput
                 value={discordClientSecret}
                 onChange={(e) => setDiscordClientSecret(e.target.value)}
@@ -281,7 +261,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 emptyPlaceholder="Paste client secret"
                 disabled={disabled}
               />
-            </OAuthField>
+            </SignInAppField>
           </div>
         </OAuthProviderRow>
 
@@ -301,11 +281,11 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
             <strong>{telegramDomain || 'your-domain'}</strong>
             {` for this install.`}
           </p>
-          <OAuthField label="Domain (set in BotFather)" fullWidth>
+          <SignInAppField label="Domain (set in BotFather)" fullWidth>
             <Input readOnly value={telegramDomain || appBase} />
-          </OAuthField>
+          </SignInAppField>
           <div className="wf-sign-in-app__grid">
-            <OAuthField label="Bot username">
+            <SignInAppField label="Bot username">
               <Input
                 value={telegramBotUsername}
                 onChange={(e) => setTelegramBotUsername(e.target.value)}
@@ -313,8 +293,8 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 disabled={disabled}
                 autoComplete="off"
               />
-            </OAuthField>
-            <OAuthField label="Bot token" hint="Leave blank to keep the saved token.">
+            </SignInAppField>
+            <SignInAppField label="Bot token" hint="Leave blank to keep the saved token.">
               <SecretInput
                 value={telegramBotToken}
                 onChange={(e) => setTelegramBotToken(e.target.value)}
@@ -322,7 +302,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
                 emptyPlaceholder="Paste bot token"
                 disabled={disabled}
               />
-            </OAuthField>
+            </SignInAppField>
           </div>
         </OAuthProviderRow>
       </ul>

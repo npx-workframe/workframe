@@ -1,0 +1,85 @@
+/* Chat-styled system error toasts (sonner) */
+.wf-toaster {
+  --width: min(28rem, calc(100vw - 2rem));
+}
+
+.wf-toast-host {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.wf-toast-message {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--wf-radius-md, 0.75rem);
+  background: var(--wf-chrome-fill, var(--wf-bg));
+  border: 1px solid color-mix(in srgb, var(--wf-fg) 12%, transparent);
+  box-shadow: var(--wf-shadow-l, 0 8px 24px rgb(0 0 0 / 0.12));
+  color: var(--wf-fg);
+  max-width: min(28rem, calc(100vw - 2rem));
+}
+
+.wf-toast-message__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wf-toast-message__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.wf-toast-message__author {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.wf-toast-message__badge {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.65;
+}
+
+.wf-toast-message__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.wf-toast-message__close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--wf-fg) 8%, transparent);
+}
+
+.wf-toast-message__notice {
+  margin: 0;
+}
+
+.wf-toast-message__notice.wf-notice {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+[data-chrome-mode='relief'] .wf-toast-message {
+  background: var(--wf-bg);
+  border-color: color-mix(in srgb, var(--wf-fg) 10%, transparent);
+}

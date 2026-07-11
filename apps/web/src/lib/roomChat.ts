@@ -7,9 +7,6 @@ export function isProjectRoom(room: WorkspaceRoom | null | undefined): boolean {
   return room.room_type === 'channel' || room.room_type === 'group' || room.room_type === 'lane'
 }
 
-/** @deprecated Use isProjectRoom */
-export const isSpaceRoom = isProjectRoom
-
 /** Two humans only — SQLite messages, no standing agent lane. */
 export function isHumanDmRoom(room: WorkspaceRoom | null | undefined): boolean {
   if (!room) return false

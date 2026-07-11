@@ -270,7 +270,9 @@ export function UserProfileSheet({
             />
           </SettingsPanelBody>
         ) : (
-          <ThemeSettingsPanel />
+          <SettingsPanelBody>
+            <ThemeSettingsPanel />
+          </SettingsPanelBody>
         )}
       </div>
     </SettingsSheetFrame>

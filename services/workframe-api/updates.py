@@ -557,9 +557,8 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
     )
     if update_decision.decision == "deny":
         raise ValueError(update_decision.reason or "cell_update_denied")
-    if user_ack and update_decision.decision != "allow":
+    if update_decision.decision != "allow":
         raise ValueError(update_decision.reason or "cell_update_denied")
-    # ponytail: without user_ack, needs_user_action does not block apply until UI sends ack
     target = str(target or "all").strip().lower()
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")

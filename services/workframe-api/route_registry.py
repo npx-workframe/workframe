@@ -146,6 +146,7 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/admin/vault/wipe", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_admin_vault_wipe"),
     Route("POST", "/api/install/stack/branding-asset", AuthLevel.ROLE_OWNER_ADMIN, "_route_post_install_stack_branding_asset"),
     # --- install-window POST ---
+    Route("POST", "/api/install/register-admin", AuthLevel.PUBLIC, "_route_post_install_register_admin", install_window=True),
     Route("POST", "/api/install/email/test", AuthLevel.PUBLIC, "_route_post_install_email_test", install_window=True),
     Route("POST", "/api/install/url/test", AuthLevel.PUBLIC, "_route_post_install_url_test", install_window=True),
     Route("POST", "/api/install/setup-https", AuthLevel.PUBLIC, "_route_post_install_setup_https", install_window=True),

@@ -4,7 +4,7 @@ import { DialogCancelButton, DialogConfirmButton } from '@/components/dialogs/Di
 import { DialogField } from '@/components/dialogs/DialogField'
 import { DialogSelect } from '@/components/dialogs/DialogSelect'
 import { Input } from '@/components/ui/input'
-import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
+import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WizardFormActions } from '@/components/workspace/WizardFormActions'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -84,12 +84,8 @@ export function InviteMemberDialog({
         </WizardFormActions>
       }
     >
-      <div className="space-y-4" role="tabpanel">
-        {error ? <WorkframeNotice message={error} /> : null}
-        {status ? <WorkframeStatusNotice message={status} /> : null}
-
-        <div className="wf-wizard-panel wf-onboarding-form">
-          <DialogField label="Email" htmlFor="wf-invite-email" hint="They sign in with a verification code and accept the invite.">
+      <SettingsPanelBody error={error} status={status}>
+        <DialogField label="Email" htmlFor="wf-invite-email" hint="They sign in with a verification code and accept the invite.">
             <Input
               id="wf-invite-email"
               className="wf-dialog-input"
@@ -116,8 +112,7 @@ export function InviteMemberDialog({
               ]}
             />
           </DialogField>
-        </div>
-      </div>
+      </SettingsPanelBody>
     </SettingsSheetFrame>
   )
 }

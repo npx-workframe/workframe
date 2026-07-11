@@ -18,10 +18,16 @@ import {
   watchRoomLive,
   type RoomLiveFrame,
 } from '@/lib/roomLive'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import type { ChatMessage } from '@/lib/chatTypes'
+import { systemNoticeChatMessage } from '@/lib/chatTypes'
 import { ProviderRequiredDialog } from '@/components/dialogs/ProviderRequiredDialog'
-import { formatWorkframeErrorMessage, isProviderSetupError } from '@/lib/workframeErrors'
-import { cn } from '@/lib/utils'
+import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import {
+  formatWorkframeError,
+  formatWorkframeErrorMessage,
+  noticeMessage,
+} from '@/lib/workframeErrors'
+import { showWorkframeError } from '@/lib/workframeErrorToast'
 import { resolveUserAvatarUrl } from '@/lib/avatarResolve'
 import { mentionHandleFromLabel } from '@/lib/mentionHandle'
 import { resolveAgentAvatarUrl } from '@/lib/avatarResolve'
@@ -31,7 +37,7 @@ import {
   readCachedProjectRoomMessages,
   writeCachedProjectRoomMessages,
 } from '@/lib/workspacePersist'
-import type { ChatMessage } from '@/lib/chatTypes'
+import { cn } from '@/lib/utils'
 
 function roomMessageToChatMessage(
   message: {
@@ -40,6 +46,8 @@ function roomMessageToChatMessage(
     sender_agent_id?: string | null
     sender_agent_slug?: string | null
     sender_agent_name?: string | null
+    model?: string | null
+    llm_provider?: string | null
     content: string
     created_at?: string
   },
@@ -71,6 +79,8 @@ function roomMessageToChatMessage(
     segments: [{ kind: 'text', text: message.content }],
     timestamp: message.created_at ? new Date(Number(message.created_at) * 1000).toISOString() : new Date().toISOString(),
     tokens: 0,
+    ...(message.model ? { modelId: message.model } : {}),
+    ...(message.llm_provider ? { llmProvider: message.llm_provider } : {}),
     avatarUrl: message.sender_user_id ? resolveUserAvatarUrl(memberAvatars[message.sender_user_id]) : undefined,
   }
 }
@@ -80,6 +90,7 @@ export function ChatSplit() {
   const [providerDialogOpen, setProviderDialogOpen] = useState(false)
   const {
     agentDisplayName,
+    nativeAgentName,
     sessionReady,
     connectError,
     turnActive,
@@ -100,7 +111,7 @@ export function ChatSplit() {
   const roomRevisionRef = useRef('')
   const meUserIdRef = useRef('')
   const meAvatarRef = useRef<string | null>(null)
-  const liveMetaRef = useRef<Record<string, { agentName: string; agentSlug: string }>>({})
+  const liveMetaRef = useRef<Record<string, { agentName: string; agentSlug: string; modelId?: string; llmProvider?: string }>>({})
   const liveBatcherRef = useRef(createLiveTurnBatcher((updates) => {
     setLiveTurns((prev) => ({ ...prev, ...updates }))
   }))
@@ -141,6 +152,20 @@ export function ChatSplit() {
     }
     return null
   }, [turnActive, messages])
+
+  const displayAgentMessages = useMemo(() => {
+    if (!connectError) return messages
+    const noticeId = connectError.code ?? 'connect-error'
+    const stableId = `sys-notice-${noticeId}`
+    if (messages.some((row) => row.id === stableId)) return messages
+    return [
+      ...messages,
+      systemNoticeChatMessage(connectError, {
+        id: stableId,
+        authorName: nativeAgentName,
+      }),
+    ]
+  }, [connectError, messages, nativeAgentName])
 
   const reloadRoomMessages = useCallback(async (roomId: string, opts?: { silent?: boolean }) => {
     if (!opts?.silent) setRoomLoading(true)
@@ -225,14 +250,23 @@ export function ChatSplit() {
     (frame: RoomLiveFrame) => {
       if (frame.type === 'turn.started' || frame.type === 'turn.snapshot') {
         const agentName = frame.agent_name || frame.agent_slug
-        liveMetaRef.current[frame.turn_id] = { agentName, agentSlug: frame.agent_slug }
+        const modelId = frame.type === 'turn.started' ? String(frame.model ?? '').trim() : ''
+        const llmProvider = frame.type === 'turn.started' ? String(frame.llm_provider ?? '').trim() : ''
+        liveMetaRef.current[frame.turn_id] = {
+          agentName,
+          agentSlug: frame.agent_slug,
+          ...(modelId ? { modelId } : {}),
+          ...(llmProvider ? { llmProvider } : {}),
+        }
         // ponytail: SSE connect replays empty in-memory snapshots — skip UI, keep meta.
         if (frame.type === 'turn.snapshot' && !frame.segments?.length) return
+        const meta = liveMetaRef.current[frame.turn_id]
         const message = liveTurnToChatMessage(
           frame.turn_id,
           frame.agent_slug,
           agentName,
           frame.type === 'turn.snapshot' ? frame.segments : [],
+          { modelId: meta?.modelId, llmProvider: meta?.llmProvider },
         )
         liveBatcherRef.current.push(frame.turn_id, message)
         if (frame.type === 'turn.started') setSpaceWaitTurnId(frame.turn_id)
@@ -253,6 +287,7 @@ export function ChatSplit() {
           meta.agentSlug,
           meta.agentName,
           frame.segments,
+          { modelId: meta.modelId, llmProvider: meta.llmProvider },
         )
         liveBatcherRef.current.push(frame.turn_id, message)
         setSpaceTurnActive(true)
@@ -371,7 +406,9 @@ export function ChatSplit() {
         .sendRoomMessage(humanRoom.id, { content: trimmed })
         .then(() => reloadRoomMessages(humanRoom.id, { silent: true }))
         .catch((err) => {
+          const info = formatWorkframeError(err, 'Send message')
           setRoomError(formatWorkframeErrorMessage(err, 'Send message'))
+          showWorkframeError(info, { id: info.code ?? 'room-send' })
           void reloadRoomMessages(humanRoom.id, { silent: true })
         })
     },
@@ -444,29 +481,16 @@ export function ChatSplit() {
   return (
     <CommandDialogsProvider>
     <div className="wf-chat-split">
-      {connectError ? (
-        <div className="wf-chat-split__error-banner">
-          <WorkframeNotice
-            message={connectError}
-            actionLabel={isProviderSetupError(connectError) ? 'Connect provider' : undefined}
-            onAction={
-              isProviderSetupError(connectError)
-                ? () => setProviderDialogOpen(true)
-                : undefined
-            }
-          />
-        </div>
-      ) : null}
       <ProviderRequiredDialog
         open={providerDialogOpen}
         onOpenChange={setProviderDialogOpen}
-        errorMessage={connectError}
+        errorMessage={connectError ? noticeMessage(connectError) : undefined}
         onConnected={() => setProviderDialogOpen(false)}
       />
       <div className="wf-chat-split__messages">
         <MessageList
           nativeAgentName={agentDisplayName}
-          messagesOverride={messages}
+          messagesOverride={displayAgentMessages}
           waitMessageId={dmWaitMessageId}
         />
       </div>

@@ -41,6 +41,12 @@ def test_commands_catalog_shape() -> None:
     assert isinstance(catalog["entries"], list)
     assert all(entry.get("wired") is True for entry in catalog["entries"])
     assert not any(entry.get("wip") for entry in catalog["entries"])
+    assert not any(entry.get("dispatch") in {"gateway", "client:noOp"} for entry in catalog["entries"])
+
+
+def test_unproven_gateway_commands_stay_hidden() -> None:
+    assert hermes_admin._resolve_command("/retry") is None
+    assert hermes_admin._resolve_command("/quit") is None
 
 
 def test_commands_exec_client_dispatch() -> None:
@@ -66,6 +72,7 @@ if __name__ == "__main__":
     test_resolve_command_alias()
     test_resolve_command_unknown()
     test_commands_catalog_shape()
+    test_unproven_gateway_commands_stay_hidden()
     test_commands_exec_client_dispatch()
     test_commands_exec_not_slash()
     test_gquota_stub()

@@ -493,7 +493,7 @@ def _apply_model_for_billing_provider(
     ok_provider, _ = _set_profile_model_provider(profile, "custom")
     if not ok_provider:
         return False
-    _set_profile_model_base_url(profile, _srv()._llm_proxy_base_url(billing))
+    _srv()._set_profile_model_base_url(profile, _srv()._llm_proxy_base_url(billing))
     return True
 
 

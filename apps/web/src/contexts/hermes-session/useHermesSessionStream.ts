@@ -30,6 +30,7 @@ import {
   streamErrorText,
   type WorkframeNoticeInfo,
 } from '@/lib/workframeErrors'
+import { showWorkframeError } from '@/lib/workframeErrorToast'
 import type { WorkframeRoute } from '@/lib/workframeRoutes'
 
 import type { HermesSessionRefs } from './hermesSessionRefs'
@@ -49,7 +50,7 @@ type UseHermesSessionStreamOptions = {
   setActiveRoute: (profile: string) => void
   setTurnActive: (active: boolean) => void
   setTurnStatus: (status: string | null) => void
-  setConnectError: (error: string | null) => void
+  setConnectError: (error: WorkframeNoticeInfo | null) => void
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>
 }
 
@@ -340,7 +341,8 @@ export function useHermesSessionStream({
         streamMessageIdRef.current = null
         setTurnStatus(null)
         const info = formatWorkframeError(err, 'Send message')
-        setConnectError(noticeMessage(info))
+        setConnectError(info)
+        showWorkframeError(info, { id: info.code ?? 'send-message' })
         setMessages((prev) => prev.filter((m) => m.id !== assistantId))
       }
     },
@@ -435,7 +437,8 @@ export function useHermesSessionStream({
         streamMessageIdRef.current = null
         setTurnStatus(null)
         const info = formatWorkframeError(err, 'Image upload')
-        setConnectError(noticeMessage(info))
+        setConnectError(info)
+        showWorkframeError(info, { id: info.code ?? 'image-upload' })
         setMessages((prev) => prev.filter((m) => m.id !== assistantId))
       }
     },

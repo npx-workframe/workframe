@@ -8,8 +8,7 @@ export function ThemeSettingsPanel() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="wf-wizard-panel wf-onboarding-form" role="tabpanel">
-      <ul className="wf-theme-settings" role="listbox" aria-label="Theme">
+    <ul className="wf-theme-settings" role="listbox" aria-label="Theme">
         {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
           const selected = theme === value
           return (
@@ -27,6 +26,5 @@ export function ThemeSettingsPanel() {
           )
         })}
       </ul>
-    </div>
   )
 }

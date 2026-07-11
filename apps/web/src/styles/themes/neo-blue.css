@@ -2,6 +2,7 @@
 [data-theme='neo-blue'] {
   color-scheme: light;
   --wf-chrome-mode: relief;
+  --wf-chrome-fill: var(--wf-bg);
   --wf-relief-shadow-rgb: 15 36 66;
   --wf-relief-shadow-alpha: 0.82;
   --wf-relief-highlight-rgb: 255 255 255;
@@ -24,24 +25,24 @@
   --wf-primary: var(--wf-blue);
   --wf-primary-foreground: #ffffff;
 
-  --wf-bg-gradient: linear-gradient(145deg, var(--wf-blue), var(--wf-blue));
+  --wf-bg-gradient: none;
 
-  --wf-orb-primary: rgba(255, 255, 255, 0.06);
-  --wf-orb-primary-opacity: 0.4;
-  --wf-orb-secondary: rgba(255, 255, 255, 0.05);
-  --wf-orb-secondary-opacity: 0.34;
+  --wf-orb-primary: transparent;
+  --wf-orb-primary-opacity: 0;
+  --wf-orb-secondary: transparent;
+  --wf-orb-secondary-opacity: 0;
 
   --wf-grid-tile: 24px;
   --wf-moleskine-grid-tile: 24px;
   --wf-moleskine-grid-line: rgba(255, 255, 255, 0.06);
 
-  --wf-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%, rgba(15, 36, 66, 0.18));
+  --wf-overlay: none;
 
   --wf-notice-fg: var(--wf-text);
   --wf-notice-muted: var(--wf-muted);
   --wf-notice-border: var(--wf-border-strong);
-  --wf-notice-bg: var(--wf-surface-soft);
-  --wf-notice-info-bg: var(--wf-surface-soft);
+  --wf-notice-bg: var(--wf-bg);
+  --wf-notice-info-bg: var(--wf-bg);
   --wf-notice-info-border: var(--wf-border-strong);
   --wf-status-fg: var(--wf-muted);
 
@@ -144,7 +145,7 @@
 }
 
 [data-theme='neo-blue'] .wf-composer__stop:hover {
-  background: transparent;
+  background: var(--wf-chrome-fill);
   border-color: color-mix(in srgb, #ffffff 40%, transparent);
   color: var(--wf-text);
 }

@@ -77,7 +77,6 @@ It is **not** the local dogfood runtime. Do not `docker compose up` there for pr
 | `reset-vps-runtime.sh` (old bootstrap path) | new `reset-vps-runtime.sh` in this folder |
 | `vps-pack-install-remote.sh` (manual bootstrap) | `reset-vps-runtime.sh` with pack arg |
 | `wipe-vps-docker.sh` | `reset-vps-runtime.sh` |
-| `doctor-repair.mjs` (compose dogfood) | `reset-dogfood-docker.ps1 -Confirm` |
 | `repair-dogfood-memberships.ps1` | reset + wizard |
 | `restore-docker-runtime-from-meta.ps1` | reset |
 | `run-dogfood-install-e2e.ps1` (no Playwright spec) | reset + manual wizard |

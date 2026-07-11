@@ -4,7 +4,7 @@ import { AGENT_SAVE_STEP_LABELS } from '@/components/onboarding/OnboardingLaunch
 import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
 import { defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
 import type { OperationStep } from '@/components/ui/OperationProgress'
-import { fetchHermesModels, type FallbackEntry } from '@/lib/hermesCatalogApi'
+import { fetchHermesModels, setHermesFallbackChain, setHermesModel, type FallbackEntry } from '@/lib/hermesCatalogApi'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { agentAvatarPersistPayload, logoAvatarPersistPayload, userAvatarPersistPayload } from '@/lib/presetAssets'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -126,7 +126,7 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
         bio: deps.bio || undefined,
         ...(avatar ?? {}),
       })
-      deps.setStep('agent')
+      deps.setStep(deps.isInvitee ? 'agent_model' : 'agent')
     } catch (err) {
       deps.setError(formatWorkframeError(err, 'Save profile'))
     } finally {
@@ -146,15 +146,24 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
         : (models.fallback_chain ?? [])
       const fb0 = fallbacks[0]?.model?.trim() ?? ''
       const fb1 = fallbacks[1]?.model?.trim() ?? ''
+      const needsUserKey = deps.credentialMode === 'byok'
+      const stackReady = Boolean(models.stack_llm_available || models.has_llm_provider)
 
-      if (!deps.connectedProviders.length) {
+      if (needsUserKey && !deps.connectedProviders.length) {
         deps.setError({
           tone: 'caution',
           message: 'Connect at least one LLM integration first.',
-          hint:
-            deps.credentialMode === 'workspace'
-              ? 'Add a shared workspace provider key, then use Select Model to pick primary and fallbacks.'
-              : 'Add a provider key, then use Select Model to pick primary and fallbacks.',
+          hint: 'Add a provider key under Providers, then pick primary and fallback models.',
+        })
+        deps.setAgentModelTab('keys')
+        return
+      }
+
+      if (!needsUserKey && !stackReady && !deps.connectedProviders.length) {
+        deps.setError({
+          tone: 'caution',
+          message: 'No workspace LLM provider is configured yet.',
+          hint: 'Ask your admin to connect a shared provider, or switch this workspace to BYOK.',
         })
         deps.setAgentModelTab('keys')
         return
@@ -168,6 +177,23 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
         })
         deps.setAgentModelTab('model')
         return
+      }
+
+      const billingProvider = String(models.billing_provider || models.provider || '').trim()
+      const primaryResult = await setHermesModel(primary, undefined, deps.workspaceId, {
+        selectionOnly: true,
+        billingProvider: billingProvider || undefined,
+      })
+      if (!primaryResult.ok) {
+        throw new Error(primaryResult.error || 'Could not save primary model')
+      }
+      const chainResult = await setHermesFallbackChain(
+        fallbacks.map((entry: FallbackEntry) => ({ provider: entry.provider, model: entry.model })),
+        undefined,
+        { selectionOnly: true },
+      )
+      if (!chainResult.ok) {
+        throw new Error(chainResult.error || 'Could not save fallback models')
       }
 
       deps.setAgentPrimaryModel(primary)

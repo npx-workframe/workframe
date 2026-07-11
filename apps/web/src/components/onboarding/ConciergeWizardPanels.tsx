@@ -15,6 +15,7 @@ import type { ConciergeStep } from '@/components/onboarding/onboardingWizardStep
 type ConciergeWizardPanelsProps = {
   step: ConciergeStep
   busy: boolean
+  isInvitee?: boolean
   adminEmail: string
   credentialMode: 'byok' | 'workspace'
   workspaceId: string
@@ -60,12 +61,13 @@ type ConciergeWizardPanelsProps = {
   onInviteEmailsChange: (value: string) => void
   onPublicUrlChange: (value: string) => void
   onBindOAuthSave: (save: (() => Promise<boolean>) | null) => void
-  onError: (info: WorkframeNoticeInfo) => void
+  onError: (info: WorkframeNoticeInfo | null) => void
 }
 
 export function ConciergeWizardPanels({
   step,
   busy,
+  isInvitee = false,
   adminEmail,
   credentialMode,
   workspaceId,
@@ -115,7 +117,7 @@ export function ConciergeWizardPanels({
 }: ConciergeWizardPanelsProps) {
   if (step === 'intro') {
     return (
-      <div className="wf-wizard-panel wf-onboarding-form">
+      <SettingsPanelBody>
         <div className="wf-dialog-field">
           <Label htmlFor="wf-intro-admin-email">Admin email</Label>
           <Input
@@ -132,7 +134,7 @@ export function ConciergeWizardPanels({
             Primary admin account for this install — used for sign-in codes and setup notifications.
           </p>
         </div>
-      </div>
+      </SettingsPanelBody>
     )
   }
 
@@ -163,12 +165,14 @@ export function ConciergeWizardPanels({
 
   if (step === 'integrations') {
     return (
-      <WorkframeIntegrationsStep
-        disabled={busy}
-        onBindOAuthSave={(save) => {
-          onBindOAuthSave(save)
-        }}
-      />
+      <SettingsPanelBody>
+        <WorkframeIntegrationsStep
+          disabled={busy}
+          onBindOAuthSave={(save) => {
+            onBindOAuthSave(save)
+          }}
+        />
+      </SettingsPanelBody>
     )
   }
 
@@ -209,7 +213,7 @@ export function ConciergeWizardPanels({
 
   if (step === 'workframe') {
     return (
-      <div className="wf-wizard-panel wf-onboarding-form">
+      <SettingsPanelBody>
         <OnboardingIdentityFields
           avatarKind="logo"
           avatarUrl={logoUrl}
@@ -236,13 +240,13 @@ export function ConciergeWizardPanels({
             rows: 3,
           }}
         />
-      </div>
+      </SettingsPanelBody>
     )
   }
 
   if (step === 'profile') {
     return (
-      <div className="wf-wizard-panel wf-onboarding-form">
+      <SettingsPanelBody>
         <OnboardingIdentityFields
           avatarKind="user"
           avatarUrl={avatarUrl}
@@ -268,22 +272,26 @@ export function ConciergeWizardPanels({
             rows: 3,
           }}
         />
-      </div>
+      </SettingsPanelBody>
     )
   }
 
   if (step === 'agent_model' && workspaceId) {
+    const workspaceBilling = isInvitee && credentialMode === 'workspace'
+    const modelTabs = workspaceBilling
+      ? [{ id: 'model' as const, label: 'Models' }]
+      : [
+          { id: 'keys' as const, label: isInvitee ? 'Your keys' : 'Providers' },
+          { id: 'model' as const, label: 'Models' },
+        ]
     return (
       <SettingsPanelBody
-        tabs={[
-          { id: 'keys', label: 'Providers' },
-          { id: 'model', label: 'Models' },
-        ]}
-        activeTab={agentModelTab}
+        tabs={modelTabs}
+        activeTab={workspaceBilling ? 'model' : agentModelTab}
         onTabChange={(id) => onAgentModelTabChange(id as 'keys' | 'model')}
-        tablistLabel="Agent model sections"
+        tablistLabel="Model setup"
       >
-        {agentModelTab === 'keys' ? (
+        {!workspaceBilling && agentModelTab === 'keys' ? (
           <ProviderConnectPanel
             workspaceId={workspaceId}
             credentialScope={credentialMode === 'workspace' ? 'workspace' : 'user'}
@@ -293,10 +301,13 @@ export function ConciergeWizardPanels({
             scrollInner={false}
             disabled={busy}
             onConnected={onAgentProvidersConnected}
-            onError={(message) => onError({ tone: 'caution', message })}
+            onError={(message) => {
+              const trimmed = message.trim()
+              onError(trimmed ? { tone: 'caution', message: trimmed } : null)
+            }}
           />
         ) : null}
-        {agentModelTab === 'model' ? (
+        {(workspaceBilling || agentModelTab === 'model') ? (
           <ModelPickerPanel
             workspaceId={workspaceId}
             embedded
@@ -311,7 +322,10 @@ export function ConciergeWizardPanels({
               )
               if (chain.length) onAgentFallbackChainChange(chain)
             }}
-            onError={(message) => onError({ tone: 'caution', message })}
+            onError={(message) => {
+              const trimmed = message.trim()
+              onError(trimmed ? { tone: 'caution', message: trimmed } : null)
+            }}
           />
         ) : null}
       </SettingsPanelBody>
@@ -320,7 +334,7 @@ export function ConciergeWizardPanels({
 
   if (step === 'agent') {
     return (
-      <div className="wf-wizard-panel wf-onboarding-form">
+      <SettingsPanelBody>
         {agentSteps.length ? (
           <OperationProgress steps={agentSteps} title="Setting up your agent" className="wf-mb-4" />
         ) : null}
@@ -350,13 +364,13 @@ export function ConciergeWizardPanels({
             placeholder: defaultAgentSoul(agentName, resolveWorkframeName()),
           }}
         />
-      </div>
+      </SettingsPanelBody>
     )
   }
 
   if (step === 'invites') {
     return (
-      <div className="wf-wizard-panel wf-onboarding-form">
+      <SettingsPanelBody>
         <div className="wf-dialog-field">
           <Label htmlFor="wf-invite-emails">Email addresses</Label>
           <Input
@@ -367,18 +381,20 @@ export function ConciergeWizardPanels({
           />
           <p className="wf-dialog-field__hint">Comma-separated. Skip to invite teammates later in Workframe Settings.</p>
         </div>
-      </div>
+      </SettingsPanelBody>
     )
   }
 
   if (step === 'publish') {
     return (
-      <PublicUrlWizardStep
-        publicUrl={publicUrl}
-        onPublicUrlChange={onPublicUrlChange}
-        disabled={busy}
-        httpsStatus={httpsStatus}
-      />
+      <SettingsPanelBody className="wf-publish-step">
+        <PublicUrlWizardStep
+          publicUrl={publicUrl}
+          onPublicUrlChange={onPublicUrlChange}
+          disabled={busy}
+          httpsStatus={httpsStatus}
+        />
+      </SettingsPanelBody>
     )
   }
 

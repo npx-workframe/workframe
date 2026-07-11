@@ -375,7 +375,10 @@ def mark_install_admin_verified(email: str) -> None:
     smtp["admin_email"] = normalized
     smtp["admin_verified_at"] = int(time.time())
     raw["smtp"] = smtp
-    raw["wizard_step"] = "workframe"
+    if not str(raw.get("deployment_mode") or "").strip():
+        raw["wizard_step"] = "welcome"
+    else:
+        raw["wizard_step"] = "workframe"
     _write_raw(raw)
 
 

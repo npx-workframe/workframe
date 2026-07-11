@@ -1,9 +1,17 @@
 /* Relief primitives — L + S only (+ flat). Line mode uses legacy --wf-shadow-*. */
 
 [data-chrome-mode='relief'] {
-  /* Relief chrome never re-paints the canvas; texture shows through everywhere. */
-  --wf-chrome-fill: transparent;
+  /* Neo relief: one flat --wf-bg everywhere; depth = L/S shadows only (no texture bleed). */
+  --wf-overlay-bg: color-mix(in srgb, var(--wf-bg) 72%, transparent);
+  --wf-chrome-fill: var(--wf-bg);
   --wf-workspace-chrome-fill: var(--wf-chrome-fill);
+  --wf-surface: var(--wf-bg);
+  --wf-surface-soft: var(--wf-bg);
+  --wf-surface-elevated: var(--wf-bg);
+  --wf-surface-sunken: var(--wf-bg);
+  --wf-input-bg: var(--wf-bg);
+  --wf-notice-bg: var(--wf-bg);
+  --wf-notice-info-bg: var(--wf-bg);
 
   /* L — 4px offset, 8px blur (surfaces: wizard, dialog, auth) */
   --wf-relief-off-l: 4px;
@@ -68,7 +76,7 @@
   --wf-relief-low: var(--wf-relief-inset-s);
   --wf-relief-raised: var(--wf-relief-outset-s);
 
-  /* ponytail: relief depth = shadow only; all chrome fills transparent */
+  /* ponytail: relief depth = shadow only; all chrome fills = flat --wf-bg */
   --wf-control-bg: var(--wf-chrome-fill);
   --wf-control-bg-flush: var(--wf-chrome-fill);
   --wf-control-bg-raised: var(--wf-chrome-fill);
@@ -78,9 +86,12 @@
   --wf-btn-bg-hover: var(--wf-chrome-fill);
   --wf-btn-bg-primary: var(--wf-chrome-fill);
 
-  /* shadcn surfaces — transparent in relief; depth from shadows on wf-* chrome */
+  /* shadcn surfaces — solid bg in relief; depth from shadows on wf-* chrome */
   --card: var(--wf-chrome-fill);
   --popover: var(--wf-chrome-fill);
+  --secondary: var(--wf-chrome-fill);
+  --muted: var(--wf-chrome-fill);
+  --background: var(--wf-bg);
 
   /* Control wiring */
   --wf-control-shadow-flush: var(--wf-relief-flat);

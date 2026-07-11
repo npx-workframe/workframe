@@ -3,9 +3,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
 import { DialogCancelButton, DialogConfirmButton } from '@/components/dialogs/DialogActions'
 import { DialogField } from '@/components/dialogs/DialogField'
+import { AgentInstructionsFields } from '@/components/settings/AgentInstructionsFields'
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
@@ -13,6 +13,7 @@ import { WizardFormActions } from '@/components/workspace/WizardFormActions'
 import { setHermesFallbackChain, type FallbackEntry } from '@/lib/hermesCatalogApi'
 import { agentAvatarPersistPayload, pickRandomPreset } from '@/lib/presetAssets'
 import { workframeAuthApi, type WorkspaceRoom } from '@/lib/workframeAuthApi'
+import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { cn } from '@/lib/utils'
 
 const STEP_LABELS: Record<string, string> = {
@@ -142,8 +143,8 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
           ...(tagline.trim() ? { topic: tagline.trim() } : {}),
         })
         room = patched.room
-      } catch {
-        // ponytail: room identity patch is best-effort after bootstrap
+      } catch (err) {
+        throw new Error(formatWorkframeErrorMessage(err, 'Save agent room'))
       }
     }
     await new Promise((resolve) => window.setTimeout(resolve, 400))
@@ -162,6 +163,11 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
       setError('Workframe not loaded — close this dialog and try again.')
       return
     }
+    if (!model.trim()) {
+      setError('Choose a provider and model before creating this agent.')
+      setTab('model')
+      return
+    }
     setBusy(true)
     setError('')
     setSteps(PROGRESS_STEPS.map((step, index) => ({ ...step, status: index === 0 ? 'active' : 'pending' })))
@@ -174,11 +180,17 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
         role: role.trim() || undefined,
         tagline: tagline.trim() || undefined,
         soul: soul.trim() || undefined,
-        model: model.trim() || undefined,
+        model: model.trim(),
         workspace_id: workspaceId,
         ...(avatar ?? {}),
       })
       applyApiSteps(result.steps as Array<{ step?: string; ok?: boolean; error?: string }> | undefined)
+      if (!result.ok) {
+        const failed = (result.steps as Array<{ ok?: boolean; error?: string }> | undefined)?.find(
+          (step) => step.ok === false,
+        )
+        throw new Error(failed?.error || 'Workframe could not finish creating this agent.')
+      }
       const profileSlug = result.runtime_profile || result.profile
       if (fallbackDraft.length && profileSlug) {
         try {
@@ -186,8 +198,8 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
             fallbackDraft.map((entry) => ({ provider: entry.provider, model: entry.model })),
             profileSlug,
           )
-        } catch {
-          // ponytail: fallback chain is best-effort right after create
+        } catch (err) {
+          throw new Error(formatWorkframeErrorMessage(err, 'Save agent fallbacks'))
         }
       }
       await finishCreated({
@@ -196,7 +208,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
         room: result.room,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create agent')
+      setError(formatWorkframeErrorMessage(err, 'Create agent'))
     } finally {
       setBusy(false)
     }
@@ -226,7 +238,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
           <DialogCancelButton onClick={() => onOpenChange(false)} disabled={busy}>
             Cancel
           </DialogCancelButton>
-          <DialogConfirmButton onClick={() => void createAgent()} disabled={busy || !resolvedSlug}>
+          <DialogConfirmButton onClick={() => void createAgent()} disabled={busy || !resolvedSlug || !model.trim()}>
             {busy ? 'Creating…' : 'Create agent'}
           </DialogConfirmButton>
         </WizardFormActions>
@@ -292,21 +304,12 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
           </SettingsPanelBody>
         ) : tab === 'instructions' ? (
           <SettingsPanelBody error={error}>
-            <DialogField
-              label="Operating instructions"
-              htmlFor="wf-create-agent-soul"
-              hint="Layered on the system prompt — does not replace Workframe rules."
-            >
-              <Textarea
-                id="wf-create-agent-soul"
-                className="wf-dialog-input font-mono text-sm"
-                value={soul}
-                onChange={(event) => setSoul(event.target.value)}
-                rows={12}
-                placeholder="Personality and operating instructions"
-                disabled={busy}
-              />
-            </DialogField>
+            <AgentInstructionsFields
+              id="wf-create-agent-soul"
+              value={soul}
+              onChange={setSoul}
+              disabled={busy}
+            />
           </SettingsPanelBody>
         ) : (
           <SettingsPanelBody error={error} bare>

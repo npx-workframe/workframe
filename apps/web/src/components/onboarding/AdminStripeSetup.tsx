@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { OAuthProviderRow } from '@/components/onboarding/OAuthProviderRow'
+import { SignInAppField } from '@/components/settings/SignInAppField'
 import { SignInBrandIcon } from '@/components/settings/SignInBrandIcon'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { SecretInput } from '@/components/ui/SecretInput'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { PanelInlineNotice } from '@/components/ui/PanelPrimitives'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
 
@@ -14,26 +14,6 @@ type AdminStripeSetupProps = {
   onBindSave?: (save: () => Promise<boolean>) => void
   /** Render only the list row (for embedding in AdminOAuthSetup). */
   inline?: boolean
-}
-
-function StripeField({
-  label,
-  hint,
-  children,
-  fullWidth,
-}: {
-  label: string
-  hint?: string
-  children: ReactNode
-  fullWidth?: boolean
-}) {
-  return (
-    <div className={`wf-sign-in-app__field${fullWidth ? ' wf-sign-in-app__field--full' : ''}`}>
-      <Label>{label}</Label>
-      {children}
-      {hint ? <p className="wf-sign-in-app__hint">{hint}</p> : null}
-    </div>
-  )
 }
 
 export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSetupProps) {
@@ -106,11 +86,11 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
         </a>
         {' — enable OAuth, add the redirect URI below, then copy your Connect client ID (ca_…) and platform secret key (sk_…).'}
       </p>
-      <StripeField label="Redirect URI" hint="Add this exact URL under Connect → OAuth settings." fullWidth>
+      <SignInAppField label="Redirect URI" hint="Add this exact URL under Connect → OAuth settings." fullWidth>
         <Input readOnly value={stripeCallback} />
-      </StripeField>
+      </SignInAppField>
       <div className="wf-sign-in-app__grid">
-        <StripeField label="Connect client ID" hint="Starts with ca_">
+        <SignInAppField label="Connect client ID" hint="Starts with ca_">
           <Input
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
@@ -118,8 +98,8 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
             disabled={disabled}
             autoComplete="off"
           />
-        </StripeField>
-        <StripeField
+        </SignInAppField>
+        <SignInAppField
           label="Platform secret key"
           hint="Your platform sk_test_… or sk_live_… key — leave blank to keep the saved key."
         >
@@ -130,7 +110,7 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
             emptyPlaceholder="sk_test_… or sk_live_…"
             disabled={disabled}
           />
-        </StripeField>
+        </SignInAppField>
       </div>
     </OAuthProviderRow>
   )
@@ -141,7 +121,7 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
 
   return (
     <div className="wf-sign-in-apps">
-      {error ? <WorkframeNotice message={error} tone="caution" /> : null}
+      {error ? <PanelInlineNotice>{error}</PanelInlineNotice> : null}
       <ul className="wf-sign-in-apps__list">{stripeRow}</ul>
     </div>
   )

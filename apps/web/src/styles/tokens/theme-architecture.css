@@ -1,8 +1,8 @@
 /* Theme architecture contract
    LAYER STACK (bottom to top)
-   1. COLOR     - body + AtmosphereBg gradient: --wf-bg (solid base)
-   2. TEXTURE   - DotGrid | MoleskineGrid (canvas-layers.ts + shell/canvas/*)
-   3. SHELL     - chrome depth only; no opaque re-paint over texture
+   1. COLOR     - body + AtmosphereBg: --wf-bg (solid; neo relief = flat, no gradient)
+   2. TEXTURE   - DotGrid | MoleskineGrid (canvas-layers.ts; neo themes = none)
+   3. SHELL     - chrome depth via shadows; neo relief re-paints solid --wf-bg
    4. THEME     - per [data-theme]: palette, texture recipe, typography, shell family
 
    SHELL FAMILIES - --wf-chrome-mode on [data-theme] (mirrored as data-chrome-mode on html)
@@ -12,8 +12,8 @@
    Custom themes (e.g. brutalist) may override shell tokens per-component without
    changing the base layer contract.
 
-   CHROME FILL - --wf-chrome-fill (interactive + shell surfaces above texture)
-   relief default: transparent (texture shows through; depth = shadows only)
+   CHROME FILL - --wf-chrome-fill (interactive + shell surfaces above canvas)
+   relief default: var(--wf-bg) (single flat color; depth = shadows only)
    line default: var(--wf-surface) (glass/surface panels over canvas)
    Legacy alias: --wf-workspace-chrome-fill = --wf-chrome-fill
 
