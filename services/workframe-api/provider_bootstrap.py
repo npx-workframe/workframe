@@ -130,6 +130,15 @@ def _user_llm_providers_for_picker(user_id: str) -> set[str]:
     return set(connected)
 
 
+def invalidate_user_llm_picker_cache(user_id: str = "") -> None:
+    """Forget cached provider availability after a credential mutation."""
+    user = str(user_id or "").strip()
+    if user:
+        _srv()._user_llm_picker_cache.pop(user, None)
+    else:
+        _srv()._user_llm_picker_cache.clear()
+
+
 def _user_has_llm_provider(user_id: str) -> bool:
     return bool(_srv()._user_llm_providers_for_picker(user_id))
 

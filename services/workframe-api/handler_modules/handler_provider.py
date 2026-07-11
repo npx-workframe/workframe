@@ -190,6 +190,7 @@ class ProviderRoutesMixin:
         except sqlite3.Error as exc:
             self._json(500, {"ok": False, "error": f"db_error: {exc}"})
             return
+        srv._invalidate_user_llm_picker_cache(user_id)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
         health: dict[str, Any] = {}
         if provider == "openrouter":

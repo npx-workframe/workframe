@@ -146,10 +146,16 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
         : (models.fallback_chain ?? [])
       const fb0 = fallbacks[0]?.model?.trim() ?? ''
       const fb1 = fallbacks[1]?.model?.trim() ?? ''
+      // Use the freshly fetched server response. The local provider rail is
+      // intentionally asynchronous after a key save and can still be stale.
+      const freshConnectedProviders = models.connected_providers ?? []
+      const hasFreshLlmProvider = Boolean(
+        models.has_llm_provider || freshConnectedProviders.length || deps.connectedProviders.length,
+      )
       const needsUserKey = deps.credentialMode === 'byok'
-      const stackReady = Boolean(models.stack_llm_available || models.has_llm_provider)
+      const stackReady = Boolean(models.stack_llm_available || hasFreshLlmProvider)
 
-      if (needsUserKey && !deps.connectedProviders.length) {
+      if (needsUserKey && !hasFreshLlmProvider) {
         deps.setError({
           tone: 'caution',
           message: 'Connect at least one LLM integration first.',
