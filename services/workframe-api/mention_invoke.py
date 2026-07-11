@@ -71,14 +71,12 @@ def _invoke_room_agent_mention(
     template_slug = str(agent_row.get("slug") or "").strip()
     agent_db_id = str(agent_row.get("id") or "").strip()
     agent_name = str(agent_row.get("display_name") or template_slug).strip() or template_slug
-    if triggered_by_user_id:
-        personal = _srv()._runtime_display_label(triggered_by_user_id, template_slug, workspace_id)
-        if personal:
-            agent_name = personal
     if not template_slug or not agent_db_id:
         return
-    hermes_slug = _srv()._runtime_profile_slug(triggered_by_user_id, template_slug)
-    _srv().ensure_runtime_profile(hermes_slug, template_slug, triggered_by_user_id, workspace_id)
+    # Shared rooms use the native/template Hermes profile and one shared
+    # session. The triggering user's vault credential is overlaid per turn
+    # below; do not switch the room onto that user's private runtime profile.
+    hermes_slug = template_slug
     display_model = str(agent_row.get("model_name") or "").strip()
     display_provider = str(agent_row.get("model_provider") or "").strip()
     if not display_model:

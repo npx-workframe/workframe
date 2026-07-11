@@ -182,6 +182,13 @@ def profile_chat_session(profile: str, payload: dict[str, Any], user_id: str = "
                 sid = str(existing_row["session_id"]).strip()
                 if not sid:
                     existing_row = None
+            if existing_row and _srv()._is_space_room(str(room["room_type"]), room["agent_profile_id"]):
+                # Legacy room mentions could have created one session per
+                # user's private runtime. Shared rooms must converge on the
+                # template/native Hermes profile before reusing a row.
+                gateway_sid = str(existing_row["gateway_session_id"] or "").strip()
+                if not gateway_sid.startswith(f"api:{hermes_prof}:"):
+                    existing_row = None
             if existing_row:
                 sid = str(existing_row["session_id"]).strip()
                 gateway_sid = str(existing_row["gateway_session_id"] or f"api:{hermes_prof}:{sid}").strip()

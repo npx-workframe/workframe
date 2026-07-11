@@ -489,7 +489,20 @@ export function ChatSplit() {
 
       void workframeAuthApi
         .sendRoomMessage(humanRoom.id, { content: trimmed })
-        .then(() => reloadRoomMessages(humanRoom.id, { silent: true }))
+        .then((result) => {
+          const serverId = String(result.message_id ?? '').trim()
+          if (serverId) {
+            setRoomMessages((prev) => {
+              const next = (prev ?? []).map((message) =>
+                message.id === optimisticId ? { ...message, id: serverId } : message,
+              )
+              roomMessagesRef.current = next
+              roomStateByIdRef.current[humanRoom.id] = next
+              return next
+            })
+          }
+          return reloadRoomMessages(humanRoom.id, { silent: true })
+        })
         .catch((err) => {
           const info = formatWorkframeError(err, 'Send message')
           setRoomError(formatWorkframeErrorMessage(err, 'Send message'))
