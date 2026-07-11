@@ -288,7 +288,7 @@ def _invoke_room_agent_mention(
             if not auth_decision.allowed:
                 fail_turn(
                     "I can't reply yet — connect an LLM provider in Profile → Connect accounts.",
-                    persist=False,
+                    persist=True,
                 )
                 return
 
