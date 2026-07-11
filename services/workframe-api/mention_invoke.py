@@ -328,6 +328,33 @@ def _invoke_room_agent_mention(
                 f"/api/sessions/{urllib.parse.quote(session_id, safe='')}/chat",
                 turn_body,
             )
+            error_obj = data.get("error") if isinstance(data, dict) else None
+            error_code = error_obj.get("code") if isinstance(error_obj, dict) else ""
+            if status == 404 and error_code == "session_not_found":
+                # Hermes session state can be reset independently of the
+                # Workframe DB. Rebind this room once, then retry the turn.
+                session = lane_bindings.profile_chat_session(
+                    hermes_slug,
+                    {
+                        "room_id": room_id,
+                        "source_id": "room",
+                        "client_id": room_id,
+                        "workspace_id": workspace_id,
+                        "new_session": True,
+                    },
+                    triggered_by_user_id,
+                )
+                session_id = str(session.get("session_id") or "").strip()
+                if not session_id:
+                    raise ValueError("session_bootstrap_failed: could not recreate agent session for this room")
+                turn_body = profile_gateway._profile_turn_payload(hermes_slug, user_text, room_id)
+                _inject_turn_credentials(turn_body, triggered_by_user_id, workspace_id, provider)
+                status, data = _srv()._profile_api_request(
+                    hermes_slug,
+                    "POST",
+                    f"/api/sessions/{urllib.parse.quote(session_id, safe='')}/chat",
+                    turn_body,
+                )
             if status >= 300:
                 raise ValueError(f"session chat failed: {data}")
             if isinstance(data, dict):
