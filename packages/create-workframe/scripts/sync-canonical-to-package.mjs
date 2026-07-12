@@ -22,6 +22,9 @@ const SKIP_DIRS = new Set([
   '.pytest_cache',
   '.venv',
   'node_modules',
+  '.tmp',
+  '.tmp-test-data',
+  '.tmp-test-hermes',
 ]);
 
 const SKIP_FILES = new Set([

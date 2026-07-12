@@ -1,17 +1,22 @@
-# Workframe v0.1.14
+# Workframe v0.1.15
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.14 |
+| create-workframe | 0.1.15 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.14 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.15 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.14 MyProject
+npx create-workframe@0.1.15 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.15
+
+- Shared project-room sessions across users with per-turn invitee credential overlays; DMs remain private per-user proxy sessions.
+- Canonical room message IDs replace optimistic client IDs to prevent duplicated room messages.
 
 ## 0.1.14
 

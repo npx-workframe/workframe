@@ -3,7 +3,7 @@
 End-user path: scaffold a project, run Docker, complete the setup wizard.
 
 ```bash
-npx create-workframe@0.1.14 MyProject
+npx create-workframe@0.1.15 MyProject
 cd MyProject
 node scripts/workframe.mjs doctor   # optional preflight
 docker compose up -d --build
@@ -18,7 +18,7 @@ Open the URL printed by the wizard or shown in `docker compose` output (typicall
 Release evidence (`NegativeInstallEvidence`) proves deny paths do **not** mutate foreign directories. Until `CellAuthorityGate` exists, treat **empty-target create** as the only supported install claim — not update-in-place or adopt-existing-cell flows.
 
 ```bash
-npx create-workframe@0.1.14 MyProject    # MyProject/ must not exist yet
+npx create-workframe@0.1.15 MyProject    # MyProject/ must not exist yet
 ```
 
 ## Generated project layout
