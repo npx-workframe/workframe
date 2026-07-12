@@ -1,17 +1,21 @@
-# Workframe v0.1.15
+# Workframe v0.1.16
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.15 |
+| create-workframe | 0.1.16 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.15 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.16 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.15 MyProject
+npx create-workframe@0.1.16 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.16
+
+- Mount the installed project root into the API container so in-app updates can resolve `workframe-manifest.json`.
 
 ## 0.1.15
 

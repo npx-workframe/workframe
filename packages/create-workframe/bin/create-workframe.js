@@ -396,6 +396,8 @@ ${hermesServiceVolumesBlock(hermesHome)}
       - ./Agents:/opt/data
       - ./Files:${WORKSPACE_DATA_MOUNT}
       - ./scripts:/opt/install/scripts:ro
+      - .:/project:ro
+      - .:/compose:ro
       - workframe-proxy-token:/run/workframe-proxy
     env_file:
       - ./.env
@@ -528,6 +530,8 @@ services:
       - \${WORKFRAME_HOST_PROJECT_ROOT}/Agents:/opt/data
       - \${WORKFRAME_HOST_PROJECT_ROOT}/Files:${WORKSPACE_DATA_MOUNT}
       - \${WORKFRAME_HOST_PROJECT_ROOT}/scripts:/opt/install/scripts:ro
+      - \${WORKFRAME_HOST_PROJECT_ROOT}:/project:ro
+      - \${WORKFRAME_HOST_COMPOSE_DIR}:/compose:ro
       - workframe-proxy-token:/run/workframe-proxy
 
   workframe-supervisor:

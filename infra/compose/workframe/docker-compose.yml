@@ -72,6 +72,8 @@ services:
       - ../../../runtime/Agents:/opt/data
       - ../../../runtime/Files:/opt/data/workspace
       - ../../../scripts/workframe:/opt/install/scripts:ro
+      - ../../../:/project:ro
+      - ../../../:/compose:ro
       - workframe-proxy-token:/run/workframe-proxy
     env_file:
       - ./.env

@@ -262,6 +262,9 @@ for (const pack of PACKS) {
   if (!hostBindings.includes('WORKFRAME_HOST_PROJECT_ROOT')) {
     fail(`pack ${pack}: host-bindings overlay must use WORKFRAME_HOST_PROJECT_ROOT`);
   }
+  if (!compose.includes('.:/project:ro') || !compose.includes('.:/compose:ro')) {
+    fail(`pack ${pack}: API compose must mount the project root for manifest-backed updates`);
+  }
   const publicApiBlock = publicCompose.split(/^  (?=[a-z])/m).find((block) => block.startsWith('workframe-api:'));
   if (publicApiBlock?.includes('/var/run/docker.sock')) {
     fail(`pack ${pack}: docker-compose.public.yml must not mount docker.sock on workframe-api`);
