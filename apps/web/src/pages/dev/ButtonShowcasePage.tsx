@@ -192,6 +192,15 @@ export function ButtonShowcasePage() {
             </ul>
           </div>
           <div>
+            <h3>Neo Blue</h3>
+            <ul>
+              <li>Default: flush blueprint control with no border or fill</li>
+              <li>Default hover: raised through the Neo relief shadow</li>
+              <li>Inactive: muted text with no hover pop-up</li>
+              <li>Primary / active: raised by default; hover unchanged</li>
+            </ul>
+          </div>
+          <div>
             <h3>Strato Dark</h3>
             <ul>
               <li>Default: 10% white border, no fill</li>

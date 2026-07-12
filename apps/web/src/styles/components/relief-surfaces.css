@@ -484,6 +484,16 @@
   box-shadow: var(--wf-relief-outset-s);
 }
 
+/* Inactive Neo actions remain flush and quiet; only an available primary action carries relief. */
+[data-chrome-mode='relief'] .wf-action-btn[data-tone='inactive'],
+[data-chrome-mode='relief'] .wf-action-btn[data-tone='inactive']:hover:not(:disabled),
+[data-chrome-mode='relief'] .wf-action-btn[data-tone='primary']:disabled {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-relief-flat);
+  color: var(--wf-btn-fg-inactive);
+}
+
 [data-chrome-mode='relief'] .wf-dialog-close {
   background: var(--wf-control-bg-flush);
   border: none;
@@ -675,12 +685,17 @@
 }
 
 [data-chrome-mode='relief'] .wf-auth__card,
-[data-chrome-mode='relief'] .wf-auth-otp-panel {
+[data-chrome-mode='relief'] .wf-auth-otp-panel:not(.wf-auth-otp-panel--embedded) {
   background: var(--wf-chrome-fill);
   border: none;
   box-shadow: var(--wf-relief-outset-l);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+[data-chrome-mode='relief'] .wf-auth-otp-panel--embedded {
+  background: transparent;
+  box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-boot-screen,

@@ -96,11 +96,13 @@ def prefetch_workframe_npm_tarball(version: str) -> str:
             body = resp.read()
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise ValueError(f"npm_download_failed:{exc}") from exc
-    if integrity.startswith("sha512-"):
-        actual = "sha512-" + base64.b64encode(hashlib.sha512(body).digest()).decode()
-        if actual != integrity:
-            raise ValueError("npm_integrity_mismatch")
+    if not integrity.startswith("sha512-"):
+        raise ValueError("npm_integrity_missing")
+    actual = "sha512-" + base64.b64encode(hashlib.sha512(body).digest()).decode()
+    if actual != integrity:
+        raise ValueError("npm_integrity_mismatch")
     dest.write_bytes(body)
+    dest.with_suffix(dest.suffix + ".sha512").write_text(actual + "\n", encoding="utf-8")
     return _supervisor_tarball_path(pkg, ver)
 
 
@@ -540,7 +542,9 @@ def _run_apply_scripts(target: str, env: dict[str, str]) -> dict[str, Any]:
         )
         logs.append(f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}")
         if proc.returncode != 0:
-            raise ValueError(f"update_failed:{Path(script).name}")
+            detail = (proc.stderr or proc.stdout).strip().splitlines()
+            tail = detail[-1].strip() if detail else f"exit_{proc.returncode}"
+            raise ValueError(f"update_failed:{Path(script).name}:{tail[-600:]}")
     return {"ok": True, "target": target, "log": "\n".join(logs)[-12000:]}
 
 
@@ -573,6 +577,11 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
 
     if channel == "supervisor":
         body: dict[str, Any] = {"target": target}
+        host_compose_dir = str(os.environ.get("WORKFRAME_HOST_COMPOSE_DIR") or "").strip()
+        host_project_root = str(os.environ.get("WORKFRAME_HOST_PROJECT_ROOT") or "").strip()
+        if host_compose_dir and host_project_root:
+            body["host_compose_dir"] = host_compose_dir
+            body["host_project_root"] = host_project_root
         if workframe_version:
             body["workframe_version"] = workframe_version
         if workframe_tarball:

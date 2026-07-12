@@ -60,7 +60,14 @@ def _exec_targets_runtime_profile_secrets(cmd: list[str], acting_profile: str = 
     return exec_blocked_for_profile(cmd, acting_profile)
 
 
-def _stack_apply(target: str, *, workframe_version: str = "", workframe_tarball: str = "") -> dict[str, Any]:
+def _stack_apply(
+    target: str,
+    *,
+    workframe_version: str = "",
+    workframe_tarball: str = "",
+    host_compose_dir: str = "",
+    host_project_root: str = "",
+) -> dict[str, Any]:
     target = str(target or "all").strip().lower()
     if target == "gateway-restart":
         script = SCRIPTS_DIR / "restart-gateway-hermes.sh"
@@ -94,6 +101,9 @@ def _stack_apply(target: str, *, workframe_version: str = "", workframe_tarball:
     version = str(workframe_version or "").strip()
     tarball = str(workframe_tarball or "").strip()
     env["WORKFRAME_UPDATE_FROM_SUPERVISOR"] = "1"
+    if host_compose_dir and host_project_root:
+        env["WORKFRAME_HOST_COMPOSE_DIR"] = str(host_compose_dir).strip()
+        env["WORKFRAME_HOST_PROJECT_ROOT"] = str(host_project_root).strip()
     if tarball and target in {"workframe", "all"}:
         env["WORKFRAME_UPDATE_TARBALL"] = tarball
         if version:
@@ -113,7 +123,9 @@ def _stack_apply(target: str, *, workframe_version: str = "", workframe_tarball:
         )
         logs.append(f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}")
         if proc.returncode != 0:
-            raise ValueError(f"update_failed:{script.name}")
+            detail = (proc.stderr or proc.stdout).strip().splitlines()
+            tail = detail[-1].strip() if detail else f"exit_{proc.returncode}"
+            raise ValueError(f"update_failed:{script.name}:{tail[-600:]}")
     return {"ok": True, "target": target, "log": "\n".join(logs)[-12000:]}
 
 
@@ -796,6 +808,8 @@ class Handler(BaseHTTPRequestHandler):
                 target = str(body.get("target") or "all").strip().lower()
                 workframe_version = str(body.get("workframe_version") or "").strip()
                 workframe_tarball = str(body.get("workframe_tarball") or "").strip()
+                host_compose_dir = str(body.get("host_compose_dir") or "").strip()
+                host_project_root = str(body.get("host_project_root") or "").strip()
                 try:
                     return self._json(
                         200,
@@ -803,6 +817,8 @@ class Handler(BaseHTTPRequestHandler):
                             target,
                             workframe_version=workframe_version,
                             workframe_tarball=workframe_tarball,
+                            host_compose_dir=host_compose_dir,
+                            host_project_root=host_project_root,
                         ),
                     )
                 except ValueError as exc:

@@ -1,17 +1,21 @@
-# Workframe v0.1.17
+# Workframe v0.1.18
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.17 |
+| create-workframe | 0.1.18 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.17 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.18 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.17 MyProject
+npx create-workframe@0.1.18 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.18
+
+Release candidate: updater-path repair and Neo auth action/OTP refinements.
 
 ## 0.1.17
 

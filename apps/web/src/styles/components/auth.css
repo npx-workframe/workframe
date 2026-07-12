@@ -143,6 +143,16 @@
   background: var(--wf-chrome-fill, color-mix(in srgb, var(--wf-surface) 94%, var(--wf-bg)));
 }
 
+/* The sign-in card already supplies the surface; keep its OTP step structurally flat. */
+.wf-auth-otp-panel--embedded {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .wf-auth-otp-panel__notice {
   margin: 0;
   padding: 12px 14px;
@@ -152,6 +162,14 @@
   text-align: center;
   border: var(--wf-border-width, 1px) solid color-mix(in srgb, var(--wf-violet-glow) 28%, transparent);
   background: color-mix(in srgb, var(--wf-violet) 14%, transparent);
+}
+
+.wf-auth-otp-panel__notice--delivery {
+  padding: 12px 16px;
+  border-color: var(--wf-chrome-border-heavy);
+  background: var(--wf-chrome-fill, var(--wf-surface));
+  box-shadow: var(--wf-relief-low);
+  color: color-mix(in srgb, var(--wf-text) 72%, var(--wf-muted));
 }
 
 .wf-auth-otp-panel__form {
@@ -189,9 +207,9 @@
 }
 
 .wf-auth-otp-panel__resend {
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   text-align: center;
 }
@@ -231,7 +249,7 @@
     font-size: 20px;
   }
 
-  .wf-auth-otp-panel {
+  .wf-auth-otp-panel:not(.wf-auth-otp-panel--embedded) {
     padding: 20px 18px 16px;
   }
 

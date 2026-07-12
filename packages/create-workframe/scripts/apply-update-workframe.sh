@@ -6,15 +6,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/compose-docker-host.sh"
 
 # ponytail: npm integrity via python3 — Alpine supervisor has no xxd
-_wf_npm_integrity_ok() {
-  local tarball="$1" pkg="$2" ver="${3:-latest}"
+_wf_prefetched_integrity_ok() {
+  local tarball="$1" manifest="${1}.sha512"
   local expected actual
-  expected="$(npm view "${pkg}@${ver}" dist.integrity --silent 2>/dev/null || true)"
-  [[ -n "$expected" ]] || return 0
-  if ! command -v python3 >/dev/null 2>&1; then
-    echo "warn: python3 missing — skipping npm integrity check" >&2
-    return 0
+  if [[ ! -s "$manifest" ]]; then
+    echo "prefetched tarball integrity manifest is missing: $manifest" >&2
+    return 1
   fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required to verify the prefetched update tarball" >&2
+    return 1
+  fi
+  expected="$(tr -d '\r\n' < "$manifest")"
   actual="$(python3 -c 'import base64, hashlib, sys
 p = sys.argv[1]
 d = hashlib.sha512(open(p, "rb").read()).digest()
@@ -69,11 +72,12 @@ _wf_sync_from_pack_dir() {
 _wf_apply_npm_tarball() {
   local tarball="$1"
   local ver="${2:-latest}"
-  if ! _wf_npm_integrity_ok "$tarball" "$NPM_PACKAGE" "$ver"; then
-    echo "integrity mismatch for ${NPM_PACKAGE}@${ver}" >&2
+  local source="${3:-npm}"
+  if [[ "$source" == "prefetched" ]] && ! _wf_prefetched_integrity_ok "$tarball"; then
+    echo "integrity mismatch for API-prefetched ${NPM_PACKAGE}@${ver}" >&2
     exit 1
   fi
-  echo "integrity ok: ${NPM_PACKAGE}@${ver}"
+  echo "integrity verified: ${NPM_PACKAGE}@${ver} ($source)"
   local extract_dir
   extract_dir="$(mktemp -d)"
   tar -xf "$tarball" -C "$extract_dir"
@@ -125,10 +129,9 @@ if [[ "${WF_APPLY_UPDATE_SELF_CHECK:-}" == "1" ]]; then
   TMP="$(mktemp -d)"
   trap 'rm -rf "$TMP"' EXIT
   echo test > "$TMP/t"
-  if ! _wf_npm_integrity_ok "$TMP/t" create-workframe latest 2>/dev/null; then
-    : # empty file won't match registry integrity — exercise python path only
-  fi
   command -v python3 >/dev/null || { echo "self-check: python3 required" >&2; exit 1; }
+  python3 -c 'import base64, hashlib, sys; print("sha512-" + base64.b64encode(hashlib.sha512(open(sys.argv[1], "rb").read()).digest()).decode())' "$TMP/t" > "$TMP/t.sha512"
+  _wf_prefetched_integrity_ok "$TMP/t"
   echo "apply-update-workframe self-check ok"
   exit 0
 fi
@@ -147,7 +150,7 @@ PREFETCH_TARBALL="${WORKFRAME_UPDATE_TARBALL:-}"
 
 if [[ -n "$PREFETCH_TARBALL" && -f "$PREFETCH_TARBALL" ]]; then
   echo "Applying API-prefetched tarball: $PREFETCH_TARBALL"
-  _wf_apply_npm_tarball "$PREFETCH_TARBALL" "${TARGET_VERSION:-latest}"
+  _wf_apply_npm_tarball "$PREFETCH_TARBALL" "${TARGET_VERSION:-latest}" prefetched
 elif [[ "${WORKFRAME_UPDATE_SKIP_NPM:-1}" == "1" ]] && [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" != "1" ]]; then
   echo "Skipping npm template sync (WORKFRAME_UPDATE_SKIP_NPM=1; set WORKFRAME_UPDATE_ALLOW_NPM=1 to fetch)"
 elif command -v npm >/dev/null 2>&1; then
@@ -164,7 +167,7 @@ elif command -v npm >/dev/null 2>&1; then
   fi
   TARBALL="$(ls -1 "$TMP"/${NPM_PACKAGE}-*.tgz 2>/dev/null | head -n1 || true)"
   if [[ -n "$TARBALL" ]]; then
-    _wf_apply_npm_tarball "$TARBALL" "${TARGET_VERSION:-latest}"
+    _wf_apply_npm_tarball "$TARBALL" "${TARGET_VERSION:-latest}" npm
   else
     echo "npm pack produced no tarball — skipping template sync" >&2
     exit 1
@@ -177,19 +180,19 @@ echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
 if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
   # ponytail: supervisor cannot recreate itself inside the stack.apply request — defer after handler returns
-  workframe_compose up -d --build --no-deps workframe-api
+  workframe_compose_host_bindings up -d --no-build --no-deps workframe-api
   (
     sleep 3
-    workframe_compose up -d --no-deps workframe-supervisor
+    workframe_compose_host_bindings up -d --no-build --no-deps workframe-supervisor
   ) >/tmp/workframe-supervisor-restart.log 2>&1 &
 else
   workframe_compose up -d --build --no-deps workframe-api workframe-supervisor
 fi
 
 if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
-  workframe_compose up -d --no-deps workframe-ui || workframe_compose restart workframe-ui || true
+  workframe_compose_host_bindings up -d --no-build --no-deps workframe-ui || workframe_compose_host_bindings restart workframe-ui || true
 elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
-  workframe_compose up -d --no-deps workframe || workframe_compose restart workframe || true
+  workframe_compose_host_bindings up -d --no-build --no-deps workframe || workframe_compose_host_bindings restart workframe || true
 fi
 
 _wf_record_package_version "${TARGET_VERSION:-}"

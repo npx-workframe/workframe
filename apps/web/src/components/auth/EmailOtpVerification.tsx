@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { WfActionButton } from '@/components/ui/WfActionButton'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
@@ -396,23 +395,23 @@ export function EmailOtpVerification({
           {!useFooter ? (
             <div className="wf-auth__row">
               {googleOAuthEnabled && onGoogleSignIn ? (
-                <Button type="button" variant="outline" disabled={busy} onClick={onGoogleSignIn}>
+                <WfActionButton wizardSize type="button" disabled={busy} onClick={onGoogleSignIn}>
                   Continue with Google
-                </Button>
+                </WfActionButton>
               ) : null}
-              <Button type="submit" disabled={busy || !email.trim()}>
+              <WfActionButton wizardSize tone="primary" type="submit" disabled={busy || !email.trim()}>
                 {busy ? 'Sending…' : 'Send code'}
-              </Button>
+              </WfActionButton>
             </div>
           ) : null}
         </form>
       ) : null}
 
       {step === 'otp' || step === 'verifying' ? (
-        <div className={wizardOtp ? 'wf-auth-otp-panel' : undefined}>
+        <div className={wizardOtp ? 'wf-auth-otp-panel wf-auth-otp-panel--embedded' : undefined}>
           {wizardOtp && authNotice && !error ? (
             <div
-              className={`wf-auth-otp-panel__notice ${devOtpHint ? 'wf-auth__alert--info' : resultNoticeClass(authNotice)}`}
+              className={`wf-auth-otp-panel__notice ${authNotice.startsWith('We sent a verification code') ? 'wf-auth-otp-panel__notice--delivery' : devOtpHint ? 'wf-auth__alert--info' : resultNoticeClass(authNotice)}`}
             >
               {authNotice}
             </div>
@@ -457,32 +456,31 @@ export function EmailOtpVerification({
             {!useFooter ? (
               <div className={wizardOtp ? 'wf-auth-otp-panel__actions' : undefined}>
                 <div className="wf-auth__row">
-                  <WfActionButton
-                    wizardSize
-                    tone="primary"
-                    type="submit"
-                    disabled={busy || otp.length !== OTP_LENGTH}
-                  >
-                    {step === 'verifying' || busy ? 'Verifying…' : 'Verify code'}
-                  </WfActionButton>
                   {!skipEmailStep ? (
                     <WfActionButton wizardSize disabled={busy} onClick={() => setStep('email')}>
                       Use another email
                     </WfActionButton>
                   ) : null}
-                </div>
-                <div className={`wf-auth__row${wizardOtp ? ' wf-auth-otp-panel__resend' : ' wf-auth__row--between'}`}>
-                  <span className="wf-auth__muted">
-                    {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : 'Need a fresh code?'}
-                  </span>
                   <WfActionButton
                     wizardSize
-                    tone={resendCooldown > 0 ? 'inactive' : 'default'}
-                    onClick={() => void handleResend()}
-                    disabled={busy || resendCooldown > 0}
+                    tone={otp.length === OTP_LENGTH ? 'primary' : 'inactive'}
+                    type="submit"
+                    disabled={busy || otp.length !== OTP_LENGTH}
                   >
-                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                    {step === 'verifying' || busy ? 'Verifying…' : 'Verify code'}
                   </WfActionButton>
+                </div>
+                <div className={`wf-auth__row${wizardOtp ? ' wf-auth-otp-panel__resend' : ' wf-auth__row--between'}`}>
+                  {resendCooldown > 0 ? (
+                    <span className="wf-auth__muted">Resend available in {resendCooldown}s</span>
+                  ) : (
+                    <>
+                      <span className="wf-auth__muted">Need a new code?</span>
+                      <WfActionButton wizardSize onClick={() => void handleResend()} disabled={busy}>
+                        Resend code
+                      </WfActionButton>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
