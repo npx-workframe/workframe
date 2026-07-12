@@ -1,17 +1,21 @@
-# Workframe v0.1.16
+# Workframe v0.1.17
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.16 |
+| create-workframe | 0.1.17 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.16 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.17 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.16 MyProject
+npx create-workframe@0.1.17 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.17
+
+- Select the host-bindings compose overlay for Windows host paths during Hermes updates, even when the supervisor cannot see the host path inside its Linux container.
 
 ## 0.1.16
 

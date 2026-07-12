@@ -13,7 +13,9 @@ workframe_compose_prepare() {
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.yml" \
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]; then
     compose_cd="${WORKFRAME_COMPOSE_DIR}"
-    if [[ -d "${WORKFRAME_HOST_COMPOSE_DIR}" ]]; then
+    # Docker Desktop resolves Windows host paths via the daemon even when the
+    # supervisor cannot see them as Linux directories.
+    if [[ -d "${WORKFRAME_HOST_COMPOSE_DIR}" || "${WORKFRAME_HOST_COMPOSE_DIR}" =~ ^[A-Za-z]:[/\\] ]]; then
       compose_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
     else
       compose_files=(-f docker-compose.yml)
