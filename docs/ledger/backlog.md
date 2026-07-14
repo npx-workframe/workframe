@@ -8,14 +8,14 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 
 ## Standalone Workframe CLI campaign
 
-The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). Independent review returned the first slice to **todo** with exact syntax, consent, credential-wording, authority-boundary, EOF, and CI failures recorded in that spec. `WF-CLI-002` remains blocked. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
+The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). Independent review returned the first slice to **todo**. The repaired package, packed artifact, and terminal interruption behavior passed, but credential-bearing runtime errors can be printed, verification can false-positive on echoed prompts or refusal text, and questions about the best/default runtime can silently select the first candidate. `WF-CLI-002` remains blocked. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
 
 Planned sequence: truthful capability graph → bounded inference session → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
 
 ## Waves (execution order)
 
 | Wave | Focus | Active items |
-|------|--------|--------------|
+|------|-------|--------------|
 | **release-truth** | PackageTruthGate, version parity, evidence JSON, docs-claim gate | WF-001 … WF-006, WF-018 … WF-022 |
 | **authority** | CellAuthority, RunAuthority, surfaces, supervisor tests | WF-007 … WF-011 |
 | **broker** | Forced egress, broker extract, audit events, lease tests | WF-023 ✓, WF-024 ✓, WF-025 … WF-028 |
