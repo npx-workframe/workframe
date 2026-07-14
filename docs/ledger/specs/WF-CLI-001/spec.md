@@ -1,5 +1,9 @@
 # WF-CLI-001 — Conversational inference-path selection
 
+**Status:** review  
+**Implementer:** `workframe-cli-builder`  
+**Reviewer:** `workframe-cli-reviewer`
+
 ## Campaign boundary
 
 This campaign changes only the standalone `packages/workframe` CLI. It must not modify `create-workframe`, Workframe services, apps, infrastructure, or an existing user installation.
@@ -28,4 +32,17 @@ When more than one safe inference path is available, the CLI asks the user which
 - Deterministic ranking is used only when the user delegates the choice.
 - Selection itself performs no network call and mutates no files.
 - Existing provider-test behavior remains bounded, read-only, and consent-gated.
+- Polite but non-consenting responses remain ambiguous and cannot trigger a provider call.
 - Node tests and package smoke checks pass.
+
+## Evidence
+
+- `packages/workframe/lib/dialogue.js`
+- `packages/workframe/test/dialogue.test.js`
+- `packages/workframe/bin/workframe.js`
+- `packages/workframe/package.json`
+- Commits: `1f30820`, `17fd9bd`, `aa39814`, `ac62f1c`, `0011730`, `9b2926e`
+- `npm test`: 7/7 passing, including negative precedence, ambiguous consent, multiple candidate names, and exclusions.
+- `npm pack --dry-run --json`: packed artifact contains `bin/workframe.js`, `lib/dialogue.js`, and `package.json`.
+
+No package was published. No existing installation, runtime, credential, service, app, or infrastructure path was modified.
