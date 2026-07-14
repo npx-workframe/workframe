@@ -1,0 +1,98 @@
+{
+  "campaign": "WF-CLI",
+  "scope": "packages/workframe/**",
+  "source_of_truth_target": "docs/ledger/backlog.json",
+  "status": "review",
+  "items": [
+    {
+      "id": "WF-CLI-001",
+      "title": "Memory-only Socratic session seed",
+      "priority": "P0",
+      "status": "review",
+      "depends_on": [],
+      "patch_refs": [
+        "1f30820",
+        "17fd9bd",
+        "aa39814",
+        "ac62f1c",
+        "0011730",
+        "9b2926e",
+        "deca7cdd885dfc3111a44954f1da77b3488afe2b",
+        "b943cff17ab204a81346b4f2c9412e4180b526cc"
+      ],
+      "evidence": [
+        "packages/workframe/bin/workframe.js",
+        "packages/workframe/bin/entry.js",
+        "packages/workframe/checks/workframe-checks.js",
+        "packages/workframe/README.md",
+        "cd packages/workframe && npm test",
+        "cd packages/workframe && npm run check",
+        "npm pack --ignore-scripts + clean temporary install smoke test",
+        "POSIX npm-bin symlink invocation regression check"
+      ],
+      "acceptance": [
+        "begin preserves read-only discovery and requires explicit consent before a verification call",
+        "after a verified existing inference path, collect preferred name and first objective",
+        "print a bounded memory-only mirror without filesystem or installation mutation",
+        "negative language wins over positive language in mixed consent",
+        "package-local and packed-artifact tests pass without live credentials"
+      ]
+    },
+    {
+      "id": "WF-CLI-002",
+      "title": "Provider-neutral conversational inference adapter",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-001"]
+    },
+    {
+      "id": "WF-CLI-003",
+      "title": "Fluid Socratic dialogue state machine",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-002"]
+    },
+    {
+      "id": "WF-CLI-004",
+      "title": "Constitutional entity and goal draft",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-003"]
+    },
+    {
+      "id": "WF-CLI-005",
+      "title": "Non-destructive Architectonic composition plan",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-004"]
+    },
+    {
+      "id": "WF-CLI-006",
+      "title": "Dry-run Workframe deployment plan",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-005"]
+    },
+    {
+      "id": "WF-CLI-007",
+      "title": "Explicit apply and rollback authority gates",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-006"]
+    },
+    {
+      "id": "WF-CLI-008",
+      "title": "Packed cross-platform Socratic CLI evidence",
+      "priority": "P1",
+      "status": "todo",
+      "depends_on": ["WF-CLI-007"]
+    }
+  ],
+  "invariants": [
+    "Do not modify packages/create-workframe, apps, services, infra, or existing runtime behavior.",
+    "Do not read or print credential values.",
+    "Do not overwrite, adopt, or mutate an existing setup without an explicit immutable plan approval.",
+    "Do not use a Workframe-hosted or implicit cloud fallback.",
+    "Publication remains a separate reviewed release decision."
+  ]
+}
