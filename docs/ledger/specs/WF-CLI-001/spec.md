@@ -37,43 +37,40 @@ The first mirror is deterministic and exists in memory only. It distinguishes th
 - Credential values never appear in any CLI output.
 - Package checks and packed npm-bin smoke checks pass without live credentials.
 
-## Previous independent review — rejected 2026-07-14
+## Previous independent reviews — rejected 2026-07-14
 
-Reviewed head: `c15f250af9edf51650917a80fe928b880003150f`.
+The first review of `c15f250af9edf51650917a80fe928b880003150f` identified invalid OpenRouter request syntax, consent that could authorize on questioning language, inaccurate credential wording, incomplete authority-boundary tests, and non-deterministic EOF/Ctrl+C behavior.
 
-The first review identified invalid OpenRouter request syntax, consent that could authorize on questioning language, inaccurate credential wording, incomplete authority-boundary tests, and non-deterministic EOF/Ctrl+C behavior. The first four classes were repaired in implementation commit `e05bdb53f934d20a44b2fee4468f76805c337527`. Real PTY review then found that Ctrl+C could still end with an unsettled top-level await and Ctrl+D could be misclassified as timeout.
+The second review of `c87166e935f31133ee42374e5d415669728db6e3` verified the syntax, consent, wording, packed-package, and terminal-interruption repairs, then found separate blockers: credential-bearing runtime diagnostics, prompt-echo verification false positives, raw-response verification false positives, and best/default questions being interpreted as delegation. Repository CI also remained red at aggregate `Harness verify`.
 
-## Implementer remediation verified in the second review
+## Current verification-hardening candidate
 
-Patch references:
+Review candidate: `eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a`.
 
-- `e05bdb53f934d20a44b2fee4468f76805c337527` — syntax, consent, wording, injectable flow, and bounded-session repairs.
-- `048aa413cd89ccb9f4bb348597a7087a04ef0d55` — callback readline terminal adapter with deterministic process/readline SIGINT, EOF, close, and timeout settlement.
-- `57cfe7359c39584017552d906642e0c7bb3c1de5` — direct adapter tests for normal input, process SIGINT, readline SIGINT, timeout, EOF, and a real ended input stream.
+The candidate claims these bounded repairs:
 
-On Linux x64 with Node `v22.16.0`, 26 package tests passed. A packed `workframe-0.2.1.tgz` installed cleanly, returned version `0.2.1`, and produced valid status JSON. Real pseudo-terminal Ctrl+C and Ctrl+D checks exited cleanly with the safe-stop message and no provider invocation.
-
-## Second independent review — rejected 2026-07-14
-
-Reviewed head: `c87166e935f31133ee42374e5d415669728db6e3`. Package contents were unchanged from `57cfe7359c39584017552d906642e0c7bb3c1de5`.
-
-The reviewer found that runtime errors could expose credential values, CLI verification could false-positive on echoed prompt text, direct providers could false-positive on refusal text containing the verification token, and questions about the best/default runtime could silently select the first candidate. Repository CI also remained red at aggregate `Harness verify`.
-
-## Current remediation candidate
-
-Submitted head: `b4c7c6a278c56d5958f73a3fecd289f428cf11fb`.
-
-The candidate is returned to independent review with these bounded changes:
-
-- Runtime child environments now use an allowlist plus only the selected candidate's credential environment names.
-- Known credential values are redacted from subprocess stdout, stderr, and errors before any diagnostic is displayed.
-- Codex and Claude verification parses structured assistant result fields and requires the isolated response to equal `WORKFRAME_OK` exactly.
+- Runtime child environments use an allowlist plus only the selected candidate's credential environment names.
+- Known credential values are redacted from subprocess stdout, stderr, and errors before a diagnostic is displayed.
+- Codex and Claude verification consumes structured assistant output and requires the isolated response to equal `WORKFRAME_OK` exactly.
 - OpenAI and OpenRouter verification parses provider JSON and requires the assistant response field to equal `WORKFRAME_OK` exactly.
-- Questions containing `best`, `default`, `recommended`, or `first` remain unresolved unless the user uses an explicit imperative delegation phrase.
-- Adversarial regressions cover secret-bearing stderr, argv echo, refusal text, and best/default questions.
+- Questions about the best, default, recommended, or first option remain unresolved unless the user uses an explicit imperative delegation phrase.
+- Adversarial regressions cover secret-bearing stderr, argv echo, refusal or diagnostic text, and runtime-selection questions.
 
-CI run `29347827885` still fails at aggregate repository CI and is not acceptance evidence. The independent reviewer must rerun package-local, packed-artifact, pseudo-terminal, and available CI checks from the exact submitted head before moving this item to `done` or back to `todo`.
+Implementer evidence records 34 passing package tests on Linux x64 / Node `v22.16.0`, a packed `workframe-0.2.1.tgz` with SHA-1 `858b1efb672ee673ddc4e9d6a079aa6e7ee765c5`, a clean temporary install, and clean real-PTY Ctrl+C/Ctrl+D stops. CI run `29348238879` passed dependency installation, version agreement, docs-claim, and evidence steps, then failed at aggregate `Harness verify`; it is not acceptance evidence.
+
+## Independent review gate
+
+The reviewer must independently reconstruct the exact current package and:
+
+1. rerun all 34 package tests;
+2. prove configured credentials cannot escape through subprocess or provider diagnostics;
+3. prove argv echo and non-assistant output cannot verify Codex or Claude;
+4. prove refusal or diagnostic text cannot verify OpenAI or OpenRouter;
+5. prove best/default questions remain unresolved without imperative delegation;
+6. rerun packed-artifact, pseudo-terminal, and available CI checks.
+
+`WF-CLI-001` remains in `review`; it is not accepted. `WF-CLI-002` remains dependency-gated.
 
 ## Ledger reconciliation
 
-`WF-CLI-001` is in `review`. The canonical `docs/ledger/backlog.json` contains one `WF-CLI-001`–`WF-CLI-008` campaign; `WF-CLI-002` remains dependency-gated. No live provider call was made. No package was published. No installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
+The canonical `docs/ledger/backlog.json` contains exactly one `WF-CLI-001`–`WF-CLI-008` campaign. `WF-CLI-001` is in `review`, and later slices remain dependency-gated. No live provider call was made. No package was published. No installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
