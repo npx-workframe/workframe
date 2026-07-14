@@ -1,0 +1,137 @@
+{
+  "campaign": "WF-CLI",
+  "scope": "packages/workframe/**",
+  "source_of_truth_target": "docs/ledger/backlog.json",
+  "reconciliation_status": "pending-ledger-merge",
+  "items": [
+    {
+      "id": "WF-CLI-001",
+      "title": "Conversational link and memory-only Socratic seed",
+      "summary": "Select one existing inference path conversationally, obtain separate explicit consent for verification, then collect a preferred name and first objective into a memory-only mirror.",
+      "wave": "adapter",
+      "priority": "P0",
+      "status": "review",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/spec.md",
+        "packages/workframe/bin/workframe.js",
+        "packages/workframe/lib/dialogue.js",
+        "packages/workframe/lib/session.js"
+      ],
+      "acceptance": [
+        "Natural runtime/provider selection resolves one explicit choice, exclusions, or delegated recommendation without guessing ambiguous multi-choice answers",
+        "Provider verification is separately consent-gated, billing-disclosed, and performs no installation mutation",
+        "workframe begin collects preferred name and first objective only after a verified link",
+        "The first mirror remains memory-only and distinguishes unresolved purpose, constraints, and success criteria",
+        "Package checks and packed npm-bin smoke checks pass without live credentials"
+      ],
+      "depends_on": [],
+      "evidence": [
+        "1ce146fe1147af9c9f104626da2eee7043d559b1",
+        "packages/workframe/checks/workframe-checks.js",
+        "npm test: 12/12",
+        "npm pack + clean temporary install",
+        "installed npm-bin version/status smoke"
+      ],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": "workframe-cli-builder",
+        "reviewer": "workframe-cli-reviewer",
+        "claimed_at": "2026-07-14T08:01:39-03:00",
+        "completed_at": null,
+        "patch_refs": ["1ce146fe1147af9c9f104626da2eee7043d559b1"],
+        "notes": "Implementation is ready for independent review. No publication, live provider verification, or host mutation occurred."
+      }
+    },
+    {
+      "id": "WF-CLI-002",
+      "title": "Truthful runtime and provider capability graph",
+      "summary": "Represent installed, authenticated, inference-capable, tool-capable, scheduling-capable, and billing-owner properties without equating detection with authority.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-001"],
+      "owner_role": "implementer",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    },
+    {
+      "id": "WF-CLI-003",
+      "title": "Provider-neutral model-assisted dialogue",
+      "summary": "Use the selected verified inference path for bounded conversational interpretation while deterministic code retains consent, authority, and mutation decisions.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-002"],
+      "owner_role": "implementer",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    },
+    {
+      "id": "WF-CLI-004",
+      "title": "Constitutional entity and goal draft",
+      "summary": "Derive reviewable constitution, doctrine, identity, purpose, constraints, goals, and success criteria from the Socratic session without writing until approved.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-003"],
+      "owner_role": "implementer",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    },
+    {
+      "id": "WF-CLI-005",
+      "title": "Non-destructive Architectonic composition plan",
+      "summary": "Inspect existing Architectonic state, preserve unknown files, and produce an additive composition plan with conflicts and rollback steps.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-004"],
+      "owner_role": "implementer",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    },
+    {
+      "id": "WF-CLI-006",
+      "title": "Dry-run Workframe deployment plan",
+      "summary": "Map detected host and existing runtime state to a dry-run deployment plan that performs no installation or adoption by default.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-005"],
+      "owner_role": "implementer",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    },
+    {
+      "id": "WF-CLI-007",
+      "title": "Explicit apply and rollback authority gates",
+      "summary": "Require immutable plan review and explicit conversational approval before any filesystem, package, runtime, or deployment mutation, with rollback evidence.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-006"],
+      "owner_role": "implementer",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    },
+    {
+      "id": "WF-CLI-008",
+      "title": "Packed cross-platform Socratic CLI evidence",
+      "summary": "Prove the packed package on Windows, macOS, and Linux, including npm-bin invocation, interruptions, ambiguous consent, credential redaction, and non-destructive reruns.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": ["docs/ledger/specs/WF-CLI-001/spec.md"],
+      "depends_on": ["WF-CLI-007"],
+      "owner_role": "harness",
+      "workflow": {"assignee": null, "reviewer": null, "patch_refs": []}
+    }
+  ],
+  "invariants": [
+    "Do not modify packages/create-workframe, apps, services, infra, or existing runtime behavior.",
+    "Do not read, print, persist, or transmit credential values except directly to the explicitly selected provider after consent.",
+    "Do not overwrite, adopt, or mutate an existing setup without explicit approval of a concrete immutable plan.",
+    "Do not use a Workframe-hosted or implicit cloud fallback.",
+    "Publication remains a separate reviewed release decision."
+  ]
+}
