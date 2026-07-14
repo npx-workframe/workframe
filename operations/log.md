@@ -4,6 +4,8 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-14T08:40-03:00 | workframe-cli-integrator | Reconciled WF-CLI-001…008 from PR #6 into canonical backlog.json; preserved WF-CLI-001 review status, bounded WF-CLI-002 as the next post-review slice, and made no code, runtime, install, or publication changes.
+
 2026-07-12T19:52-03:00 | pm-workframe | Reconciled canonical program status to release candidate 0.1.19; non-destructive install-gate build/sync/bundle completed and `verify-release-gates.mjs` ALLOWed all four tracked local gates. No dogfood restart, npm publish, DNS, or VPS mutation; remaining gates are npm owner auth, three-domain DNS/Caddy/SMTP setup, and WF-017 public backup/restore evidence.
 
 2026-07-11T00:20-03:00 | architect (claude) | Working-set review: pytest 3F+1 collection error (sys.modules["server"] pollution from test_model_surface_consistency; test_user_llm_prefs has no test funcs; stale run_ledger assertion), apiClient throw-plain-object regression risk at ~42 instanceof-Error catch sites, harness passes:false vs local green; handoff docs/ledger/handoffs/2026-07-11-working-set-review.md
