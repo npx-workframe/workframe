@@ -9,6 +9,7 @@ import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 
 import { interpretCandidateChoice, interpretConsent } from '../lib/dialogue.js';
+import { cleanFreeText, createSessionSeed } from '../lib/session.js';
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VERSION = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8')).version;
@@ -140,7 +141,7 @@ function hermesStatus(base) {
   };
 }
 
-function collectStatus() {
+export function collectStatus() {
   const system = [
     { id: 'node', label: 'Node.js', status: 'verified', detail: process.version },
     commandCheck('npm', 'npm', 'npm'),
@@ -205,7 +206,7 @@ function printStatus(report) {
   printGroup('MODEL ACCESS', report.providers);
 }
 
-function listTestCandidates(report) {
+function listInferenceCandidates(report) {
   const runtime = Object.fromEntries(report.runtimes.map((item) => [item.id, item]));
   const provider = Object.fromEntries(report.providers.map((item) => [item.id, item]));
   const candidates = [];
@@ -261,10 +262,7 @@ async function testOpenAI() {
     signal: AbortSignal.timeout(30_000),
   });
   const body = await response.text();
-  return {
-    ok: response.ok && /WORKFRAME_OK/i.test(body),
-    detail: response.ok ? 'OpenAI responded.' : `OpenAI returned HTTP ${response.status}.`,
-  };
+  return { ok: response.ok && /WORKFRAME_OK/i.test(body), detail: response.ok ? 'OpenAI responded.' : `OpenAI returned HTTP ${response.status}.` };
 }
 
 async function testOpenRouter() {
@@ -275,7 +273,7 @@ async function testOpenRouter() {
       'content-type': 'application/json',
       'x-title': 'Workframe local link test',
     },
-    body: JSON.stringify({
+    body: JSON.stringify {
       model: 'openai/gpt-4o-mini',
       messages: [{ role: 'user', content: 'Reply with exactly WORKFRAME_OK and nothing else.' }],
       max_tokens: 8,
@@ -284,10 +282,7 @@ async function testOpenRouter() {
     signal: AbortSignal.timeout(30_000),
   });
   const body = await response.text();
-  return {
-    ok: response.ok && /WORKFRAME_OK/i.test(body),
-    detail: response.ok ? 'OpenRouter responded.' : `OpenRouter returned HTTP ${response.status}.`,
-  };
+  return { ok: response.ok && /WORKFRAME_OK/i.test(body), detail: response.ok ? 'OpenRouter responded.' : `OpenRouter returned HTTP ${response.status}.` };
 }
 
 async function runTest(candidate) {
@@ -299,10 +294,7 @@ async function runTest(candidate) {
       '--color', 'never',
       'Reply with exactly WORKFRAME_OK and nothing else. Do not inspect files or run tools.',
     ], { timeout: TEST_TIMEOUT_MS, cwd: os.tmpdir() });
-    return {
-      ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`),
-      detail: result.ok ? 'Codex responded.' : firstLine(result.stderr || result.error || 'Codex test failed.'),
-    };
+    return { ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`), detail: result.ok ? 'Codex responded.' : firstLine(result.stderr || result.error || 'Codex test failed.') };
   }
   if (candidate.id === 'claude') {
     const result = run('claude', [
@@ -313,10 +305,7 @@ async function runTest(candidate) {
       '--no-session-persistence',
       'Reply with exactly WORKFRAME_OK and nothing else.',
     ], { timeout: TEST_TIMEOUT_MS, cwd: os.tmpdir() });
-    return {
-      ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`),
-      detail: result.ok ? 'Claude responded.' : firstLine(result.stderr || result.error || 'Claude test failed.'),
-    };
+    return { ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`), detail: result.ok ? 'Claude responded.' : firstLine(result.stderr || result.error || 'Claude test failed.') };
   }
   if (candidate.id === 'openrouter') return testOpenRouter();
   if (candidate.id === 'openai') return testOpenAI();
@@ -343,98 +332,135 @@ async function selectCandidate(rl, candidates) {
   return selection.kind === 'selected' ? selection.candidate : null;
 }
 
-async function askForTest(report) {
-  const candidates = listTestCandidates(report);
+async function verifyInferenceLink(report, rl) {
+  const candidates = listInferenceCandidates(report);
   if (candidates.length === 0) {
     console.log(color.dim('\n  I could not find a configured inference path I can test safely.'));
     console.log(color.dim('  Nothing was sent and nothing was changed. We stop here.\n'));
-    return;
+    return null;
   }
 
+  const candidate = await selectCandidate(rl, candidates);
+  if (!candidate) {
+    console.log(color.dim('\n  I still could not resolve one path safely. Nothing was sent or changed.\n'));
+    return null;
+  }
+
+  console.log(`\n  I can make one tiny verification call through ${color.bold(candidate.label)}.`);
+  console.log(color.dim(`  It will use ${candidate.billing} and may incur a negligible charge.`));
+  console.log(color.dim('  Nothing else will be installed or changed.'));
+
+  let answer = await rl.question('\n  Shall I test the link?\n  > ');
+  let consent = interpretConsent(answer);
+  if (consent === 'unknown') {
+    answer = await rl.question('\n  I could not tell whether that was a yes or a no. Say it naturally, but make the intent explicit.\n  > ');
+    consent = interpretConsent(answer);
+  }
+
+  if (consent !== 'yes') {
+    console.log(color.dim('\n  Understood. Nothing was sent and nothing was changed.\n'));
+    return null;
+  }
+
+  console.log(color.dim(`\n  Opening a minimal link through ${candidate.label}...`));
+  try {
+    const result = await runTest(candidate);
+    if (!result.ok) {
+      console.log(color.red('  × LINK FAILED'));
+      console.log(color.dim(`  ${result.detail}\n`));
+      process.exitCode = 1;
+      return null;
+    }
+
+    console.log(color.brightGreen('  ▶ LINK VERIFIED'));
+    console.log(color.dim(`  ${result.detail}\n`));
+    return candidate;
+  } catch (error) {
+    console.log(color.red('  × LINK FAILED'));
+    console.log(color.dim(`  ${error instanceof Error ? error.message : String(error)}\n`));
+    process.exitCode = 1;
+    return null;
+  }
+}
+
+async function beginSocraticSession(rl, candidate) {
+  console.log(color.brightGreen('\n  Welcome home, human.'));
+  console.log(color.dim('  We will begin with what is true now. This is a draft, not a commitment.'));
+
+  const nameAnswer = await rl.question('\n  Before we define a system, who is speaking? What should I call you?\n  > ');
+  const objective = cleanFreeText(await rl.question('\n  What are you trying to bring into existence, change, or understand?\n  > '));
+
+  if (!objective) {
+    console.log(color.dim('\n  I do not yet have a stated objective to mirror.'));
+    console.log(color.dim('  No files were written and nothing was installed or changed.\n'));
+    return null;
+  }
+
+  const seed = createSessionSeed({ preferredName: nameAnswer, objective, candidate });
+  console.log(`\n  ${color.bold('MIRROR // FIRST DRAFT')}`);
+  console.log(`    Human: ${seed.human.preferredName}`);
+  console.log(`    Stated aim: ${seed.entity.statedObjective}`);
+  console.log(`    Inference path: ${seed.inference.label} (${seed.inference.status})`);
+  console.log('    Open questions: purpose, constraints, success criteria');
+  console.log(color.dim('\n  I have mirrored only what you said.'));
+  console.log(color.dim('  This draft exists in memory only. No files were written.'));
+  console.log(color.dim('  No package, runtime, agent, or Workframe installation was changed.\n'));
+  return seed;
+}
+
+async function runInteractive(report, { begin }) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   try {
-    const candidate = await selectCandidate(rl, candidates);
-    if (!candidate) {
-      console.log(color.dim('\n  I still could not resolve one path safely. Nothing was sent or changed.\n'));
-      return;
-    }
-
-    console.log(`\n  I can make one tiny verification call through ${color.bold(candidate.label)}.`);
-    console.log(color.dim(`  It will use ${candidate.billing} and may incur a negligible charge.`));
-    console.log(color.dim('  Nothing else will be installed or changed.'));
-
-    let answer = await rl.question('\n  Shall I test the link?\n  > ');
-    let consent = interpretConsent(answer);
-    if (consent === 'unknown') {
-      answer = await rl.question('\n  I could not tell whether that was a yes or a no. Say it naturally, but make the intent explicit.\n  > ');
-      consent = interpretConsent(answer);
-    }
-
-    if (consent !== 'yes') {
-      console.log(color.dim('\n  Understood. Nothing was sent and nothing was changed.\n'));
-      return;
-    }
-
-    console.log(color.dim(`\n  Opening a minimal link through ${candidate.label}...`));
-    try {
-      const result = await runTest(candidate);
-      if (result.ok) {
-        console.log(color.brightGreen('  ▶ LINK VERIFIED'));
-        console.log(color.dim(`  ${result.detail}\n`));
-      } else {
-        console.log(color.red('  × LINK FAILED'));
-        console.log(color.dim(`  ${result.detail}\n`));
-        process.exitCode = 1;
-      }
-    } catch (error) {
-      console.log(color.red('  × LINK FAILED'));
-      console.log(color.dim(`  ${error instanceof Error ? error.message : String(error)}\n`));
-      process.exitCode = 1;
-    }
-  } catch (error) {
-    if (error?.code !== 'ERR_USE_AFTER_CLOSE') {
-      console.log(color.dim('\n  Input ended before explicit approval. Nothing was sent or changed.\n'));
-    }
+    const candidate = await verifyInferenceLink(report, rl);
+    if (candidate && begin) await beginSocraticSession(rl, candidate);
   } finally {
     rl.close();
   }
 }
 
-function help() {
-  console.log(`workframe ${VERSION}\n\nUsage:\n  npx workframe\n  npx workframe status [--json] [--no-test]\n\nCommands:\n  status     Discover local runtimes and provider configuration.\n  help       Show this help.\n\nThe status flow is read-only until you select a path and explicitly approve one minimal provider test.\nCredential values are never printed or transmitted by Workframe.`);
+export function parseCliArgs(args) {
+  if (args.includes('--version') || args.includes('-v')) return { command: 'version', json: false, noTest: true };
+  if (args.includes('--help') || args.includes('-h')) return { command: 'help', json: false, noTest: true };
+
+  const command = args.find((arg) => !arg.startsWith('-')) || 'status';
+  return {
+    command,
+    json: args.includes('--json'),
+    noTest: args.includes('--no-test') || args.includes('--json'),
+  };
 }
 
-async function main() {
-  const args = process.argv.slice(2);
+function help() {
+  console.log(`workframe ${VERSION}\n\nUsage:\n  npx workframe\n  npx workframe begin\n  npx workframe status [--json] [--no-test]\n\nCommands:\n  begin      Verify an existing inference path, then begin a memory-only Socratic session.\n  status     Discover local runtimes and provider configuration.\n  help       Show this help.\n\nDiscovery is read-only. A provider call runs only after explicit approval.\nThe begin flow writes no files and changes no installation.\nCredential values are never printed or transmitted by Workframe.`);
+}
 
-  if (args.some((arg) => ['--help', '-h'].includes(arg)) || args[0] === 'help') {
+export async function main(args = process.argv.slice(2)) {
+  const parsed = parseCliArgs(args);
+
+  if (parsed.command === 'help') {
     help();
     return;
   }
-  if (args.some((arg) => ['--version', '-v'].includes(arg)) || args[0] === 'version') {
+  if (parsed.command === 'version') {
     console.log(VERSION);
     return;
   }
-
-  const command = args.find((arg) => !arg.startsWith('-')) || 'status';
-  const json = args.includes('--json');
-  const noTest = args.includes('--no-test') || json || !process.stdin.isTTY;
-
-  if (command !== 'status') {
-    console.error(`Unknown command: ${command}`);
+  if (!['status', 'begin'].includes(parsed.command)) {
+    console.error(`Unknown command: ${parsed.command}`);
     help();
     process.exitCode = 1;
     return;
   }
 
   const report = collectStatus();
-  if (json) {
+  if (parsed.json) {
     console.log(JSON.stringify(report, null, 2));
     return;
   }
 
   printStatus(report);
-  if (!noTest) await askForTest(report);
+  const noTest = parsed.noTest || !process.stdin.isTTY;
+  if (!noTest) await runInteractive(report, { begin: parsed.command === 'begin' });
 }
 
 await main();
