@@ -26,12 +26,10 @@ const POSITIVE_CONSENT_PATTERNS = [
   /\bgo ahead\b/,
   /\bdo it\b/,
   /\bproceed\b/,
-  /\bplease\b/,
   /\btest it\b/,
   /\bsounds good\b/,
   /\blet's do it\b/,
   /\blets do it\b/,
-  /\bwhy not\b/,
 ];
 
 const EXCLUSION_MARKERS = [
