@@ -28,7 +28,8 @@
         "1cf75c276822d8ec7f7b27754d36ae737567eb98",
         "0ea894cd439e76017286c4b65aceee996994d38a",
         "42e78710068d08f09587ba0aa357830ae3fb132e",
-        "6a820c3b970f59dc51d484cbb457de65819f3a7a"
+        "6a820c3b970f59dc51d484cbb457de65819f3a7a",
+        "b0861fd84f87aa63fe3658bd44dc878a299f4aca"
       ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
@@ -82,7 +83,7 @@
       "resubmission": {
         "submitted_at": "2026-07-14",
         "implementation_head_sha": "6a820c3b970f59dc51d484cbb457de65819f3a7a",
-        "ledger_head_sha": "0ea894cd439e76017286c4b65aceee996994d38a",
+        "ledger_head_sha": "b0861fd84f87aa63fe3658bd44dc878a299f4aca",
         "result": "pending_independent_review",
         "review_focus": [
           "rerun the complete package test suite from the exact pull-request head, including candidate-eligibility.test.js",
