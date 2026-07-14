@@ -2,7 +2,7 @@
 
 **Machine source of truth:** [`backlog.json`](backlog.json) (schema: [`backlog.schema.json`](backlog.schema.json))
 
-**Program status (verified 2026-07-06):** [`program-status.md`](program-status.md) — stage A→D checklist, backlog reconciliation, verify matrix. Read that before this file; `backlog.json` may lag artifacts.
+**Program status (verified 2026-07-12):** [`program-status.md`](program-status.md) — stage A→D checklist, backlog reconciliation, verify matrix. Read that before this file; `backlog.json` is the machine queue and source of item status.
 
 This file is a human wave map. Agents and CI should read/write `backlog.json`; humans skim here.
 
@@ -13,7 +13,7 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 | **release-truth** | PackageTruthGate, version parity, evidence JSON, docs-claim gate | WF-001 … WF-006, WF-018 … WF-022 |
 | **authority** | CellAuthority, RunAuthority, surfaces, supervisor tests | WF-007 … WF-011 |
 | **broker** | Forced egress, broker extract, audit events, lease tests | WF-023 ✓, WF-024 ✓, WF-025 … WF-028 |
-| **run-ledger** | runs / run_events / billing line items | WF-NS-P2, WF-009, WF-016 |
+| **run-ledger** | runs / run_events / receipt line items | WF-NS-P2, WF-009, WF-016 — **done**; billing amounts remain deferred |
 | **adapter** | Identity seam, runtime candidates, second harness | WF-013 … WF-015, WF-NS-P4 |
 | **cell** | Manifests, cell metadata, control plane | WF-NS-P5 … WF-NS-P7 |
 | **marketplace** | After ledger stable | WF-NS-P8 |
@@ -29,16 +29,16 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 | P0-4 | Empty-target-only claim | WF-004 | **done** |
 | P0-5 | Local gates not silent | WF-005 | **done** |
 | P0-6 | Docs-claim gate | WF-006 | **done** |
-| P1-7 | CellAuthorityGate | WF-007 | partial |
-| P1-8 | Mutation-free doctor | WF-008 | todo |
-| P1-9 | RunAuthorityGate | WF-009 | todo |
+| P1-7 | CellAuthorityGate | WF-007 | **done** |
+| P1-8 | Mutation-free doctor | WF-008 | **done** |
+| P1-9 | RunAuthorityGate | WF-009 | **done** |
 | P1-10 | SurfaceContractGate | WF-010 | **done** |
-| P1-11 | Supervisor negative tests | WF-011 | todo |
-| P1-12 | UI/package parity identity | WF-012 | todo |
+| P1-11 | Supervisor negative tests | WF-011 | **done** |
+| P1-12 | UI/package parity identity | WF-012 | **done** |
 | P2-13 | AgentIdentity seam | WF-013 | deferred |
 | P2-14 | RuntimeBinding candidates | WF-014 | deferred |
 | P2-15 | Second runtime adapter | WF-015 | deferred |
-| P2-16 | Funding beyond BYOK | WF-016 | partial |
+| P2-16 | Funding beyond BYOK | WF-016 | **done** (amounts null) |
 | P2-17 | Public/VPS hardening | WF-017 | partial |
 
 ## North-star phases (52-page brief)
@@ -46,8 +46,8 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 | Phase | Epic ID | Title | Status |
 |-------|---------|-------|--------|
 | 0 | WF-NS-P0 | Vocabulary lock | **done** |
-| 1 | WF-NS-P1 | Harden Hermes stack | partial |
-| 2 | WF-NS-P2 | Run ledger tables | deferred |
+| 1 | WF-NS-P1 | Harden Hermes stack | **done** |
+| 2 | WF-NS-P2 | Run ledger tables | **done** |
 | 3 | WF-NS-P3 | Tool brokers | deferred |
 | 4 | WF-NS-P4 | Adapter seam | deferred |
 | 5 | WF-NS-P5 | File manifests | deferred |

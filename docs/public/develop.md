@@ -24,7 +24,7 @@ apps/web/                      Product UI (Vite/React) — edit here
 services/workframe-api/        API server (Python)
 services/workframe-supervisor/ Secure-mode Docker exec broker
 packages/create-workframe/     npx installer (publish mirror of built artifacts)
-packages/workframe/            lifecycle CLI
+scripts/workframe.mjs          generated-project lifecycle helpers
 infra/compose/workframe/       Reference compose template (not local dogfood)
 scripts/workframe/             Ops scripts — see README.md
 ```

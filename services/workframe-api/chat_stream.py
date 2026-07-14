@@ -391,6 +391,9 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         raise ValueError("session_id required")
     if not text:
         raise ValueError("text required")
+    # Bootstrap before reading the model block. Existing generated profiles may
+    # need provider/model migrations; reading first dispatches one stale turn.
+    _srv()._bootstrap_profile_providers(prof, _triggering_user, _workspace_id)
     model_block = _srv()._read_model_block(prof)
     llm_provider = _srv()._llm_billing_provider(
         prof, user_id=_triggering_user, workspace_id=_workspace_id, block=model_block,

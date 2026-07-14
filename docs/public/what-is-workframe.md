@@ -21,7 +21,7 @@ If you only need a single Hermes profile on your laptop with no team UI, [Hermes
 - **Web UI** — chat, files, browser preview, activity feed, team rail
 - **Hermes runtime** — profiles, skills, Kanban, gateway (via Docker image `nousresearch/hermes-agent`)
 - **Workframe API** — sessions, rooms, vault, provider connect, Hermes proxy
-- **Installer** — `npx create-workframe@0.1.18 MyProject` scaffolds a runnable project
+- **Installer** — `npx create-workframe@0.1.19 MyProject` scaffolds a runnable project
 - **Optional surfaces** — Telegram and Discord (configured per install)
 
 ## How it relates to Hermes

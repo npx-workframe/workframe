@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * WF-020: FirstRunEvidence — Docker boot, wizard, first chat (redacted credential class only).
- * ponytail: manual dogfood sign-off via feature_list; optional WORKFRAME_DOGFOOD_ROOT health probes.
+ * ponytail: explicit user acknowledgement plus live current-version dogfood probes.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -13,6 +13,7 @@ const pkgRoot = path.join(root, 'packages/create-workframe');
 const featureListPath = path.join(root, '.harness/feature_list.json');
 
 const args = process.argv.slice(2);
+const userAck = args.includes('--user-ack');
 const outIdx = args.indexOf('--output');
 const outPath =
   outIdx >= 0
@@ -54,22 +55,30 @@ function curlOk(url) {
   return res.status === 0;
 }
 
+function curlJson(url) {
+  const res = run('curl', ['-fsS', '--max-time', '8', url], { shell: process.platform === 'win32' });
+  if (res.status !== 0) return null;
+  try {
+    return JSON.parse(res.stdout);
+  } catch {
+    return null;
+  }
+}
+
+function dockerHealth(container, url) {
+  if (!container) return false;
+  const code = `import urllib.request; urllib.request.urlopen(${JSON.stringify(url)}, timeout=5).read()`;
+  const res = run('docker', ['exec', container, 'python', '-c', code]);
+  return res.status === 0;
+}
+
 function assertStep(id, ok, note) {
   assertions.push({ id, status: ok ? 'asserted' : 'not_asserted', ...(note ? { note } : {}) });
 }
 
 const packageVersion = JSON.parse(fs.readFileSync(path.join(pkgRoot, 'package.json'), 'utf8')).version;
 
-let dogfoodPasses = false;
-let dogfoodNote = 'dogfood-install-gate not passing in feature_list';
-if (fs.existsSync(featureListPath)) {
-  const list = readJson(featureListPath);
-  const scenario = (list.scenarios || []).find((s) => s.id === 'dogfood-install-gate');
-  dogfoodPasses = scenario?.passes === true;
-  if (dogfoodPasses) dogfoodNote = 'Alan manual dogfood sign-off 2026-07-05 (feature_list passes:true)';
-}
-
-const dogfoodRoot = process.env.WORKFRAME_DOGFOOD_ROOT || '';
+const dogfoodRoot = process.env.WORKFRAME_DOGFOOD_ROOT || path.resolve(root, '..', 'MyBusiness');
 const observed = {
   credential_source_class: process.env.WORKFRAME_CREDENTIAL_CLASS || 'byok_user',
   ui_loaded: false,
@@ -78,47 +87,49 @@ const observed = {
   managed_hermes_health_ok: false,
   wizard_completed: false,
   first_chat_stream_ok: false,
+  runtime_package_version: null,
+  package_version_match: false,
 };
 
 if (dogfoodRoot && fs.existsSync(path.join(dogfoodRoot, 'workframe-manifest.json'))) {
+  const manifest = readJson(path.join(dogfoodRoot, 'workframe-manifest.json'));
   const apiPort = readEnvPort(dogfoodRoot, 'WORKFRAME_API_PORT') || '19120';
   const uiPort = readEnvPort(dogfoodRoot, 'WORKFRAME_UI_PORT') || '18644';
   const supPort = readEnvPort(dogfoodRoot, 'WORKFRAME_SUPERVISOR_PORT') || '18090';
+  const gatewayPort = readEnvPort(dogfoodRoot, 'WORKFRAME_GATEWAY_PORT') || '18642';
   const apiBase = `http://127.0.0.1:${apiPort}`;
   observed.api_health_ok = curlOk(`${apiBase}/api/health`);
-  observed.supervisor_health_ok = curlOk(`http://127.0.0.1:${supPort}/health`);
-  observed.managed_hermes_health_ok = curlOk(`${apiBase}/api/hermes/health`);
+  observed.supervisor_health_ok =
+    curlOk(`http://127.0.0.1:${supPort}/health`) ||
+    dockerHealth(
+      manifest?.docker?.containers?.supervisor || `${manifest?.project_slug || 'workframe'}-workframe-supervisor`,
+      'http://127.0.0.1:8090/health',
+    );
+  observed.managed_hermes_health_ok = curlOk(`http://127.0.0.1:${gatewayPort}/health`);
   observed.ui_loaded = curlOk(`http://127.0.0.1:${uiPort}/`);
-  const meta = curlOk(`${apiBase}/api/meta`);
-  observed.wizard_completed = meta;
+  const meta = curlJson(`${apiBase}/api/meta`);
+  observed.wizard_completed = Boolean(meta);
+  observed.runtime_package_version = meta?.package_version || null;
+  observed.package_version_match = observed.runtime_package_version === packageVersion;
   commands.push(`curl health probes @ ${dogfoodRoot} (ports ${apiPort}/${uiPort}/${supPort})`);
 }
 
-const manualGreen = dogfoodPasses;
 const probeGreen =
   observed.api_health_ok &&
   observed.supervisor_health_ok &&
   observed.managed_hermes_health_ok &&
-  observed.ui_loaded;
+  observed.ui_loaded &&
+  observed.package_version_match;
 
-assertStep('docker_compose_up', manualGreen || probeGreen, manualGreen ? dogfoodNote : 'set WORKFRAME_DOGFOOD_ROOT');
-assertStep('api_health', observed.api_health_ok || manualGreen);
-assertStep('supervisor_health', observed.supervisor_health_ok || manualGreen);
-assertStep('hermes_health', observed.managed_hermes_health_ok || manualGreen);
-assertStep('wizard_completed', observed.wizard_completed || manualGreen, 'single_user_local wizard');
-assertStep('first_chat_stream', manualGreen, dogfoodNote);
-assertStep('session_receipt_minimal', manualGreen, 'maintainer dogfood chat');
-
-if (manualGreen) {
-  observed.wizard_completed = true;
-  observed.first_chat_stream_ok = true;
-  if (!probeGreen) {
-    observed.api_health_ok = true;
-    observed.supervisor_health_ok = true;
-    observed.managed_hermes_health_ok = true;
-    observed.ui_loaded = true;
-  }
-}
+observed.first_chat_stream_ok = userAck && probeGreen;
+assertStep('docker_compose_up', probeGreen, `live probes at ${dogfoodRoot}`);
+assertStep('api_health', observed.api_health_ok);
+assertStep('supervisor_health', observed.supervisor_health_ok);
+assertStep('hermes_health', observed.managed_hermes_health_ok);
+assertStep('runtime_package_version', observed.package_version_match, `runtime=${observed.runtime_package_version || 'missing'} expected=${packageVersion}`);
+assertStep('wizard_completed', userAck && observed.wizard_completed, 'requires fresh --user-ack after browser wizard/smoke');
+assertStep('first_chat_stream', observed.first_chat_stream_ok, 'requires fresh --user-ack after successful chat');
+assertStep('session_receipt_minimal', observed.first_chat_stream_ok, 'maintainer dogfood chat');
 
 const allAsserted = assertions.every((a) => a.status === 'asserted');
 const evidence = {
@@ -132,10 +143,10 @@ const evidence = {
   target_mode: 'single_user_local',
   decision: allAsserted ? 'allow' : 'needs_user_action',
   decision_reason: allAsserted
-    ? dogfoodNote
-    : 'Complete dogfood wizard + chat; set dogfood-install-gate passes:true or WORKFRAME_DOGFOOD_ROOT with live stack.',
+    ? `Fresh current-version dogfood probes plus explicit user acknowledgement for v${packageVersion}.`
+    : `Run current-version dogfood, complete browser wizard/chat, then rerun with WORKFRAME_DOGFOOD_ROOT and --user-ack for v${packageVersion}.`,
   timestamp: new Date().toISOString(),
-  commands_redacted: commands.length ? commands : ['feature_list:dogfood-install-gate'],
+  commands_redacted: commands.length ? commands : ['live dogfood probes required'],
   observed_outputs_redacted: observed,
   step_assertions: assertions,
 };

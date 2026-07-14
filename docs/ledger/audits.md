@@ -6,7 +6,7 @@ Point-in-time reviews and planning audits. Update **status** when code or docs c
 
 | ID | Title | Status | Key finding |
 |----|-------|--------|-------------|
-| [0027](../audits/0027-agent-vault-comparison.md) | Agent Vault comparison | **partial** | Vault + leases + LLM proxy align with industry; **forced egress broker** still planned |
+| [0027](../audits/0027-agent-vault-comparison.md) | Agent Vault comparison | **partial** | Vault + leases + LLM proxy align with industry; forced egress enforcement is shipped, while broader non-LLM broker work remains deferred |
 
 ## Living audit (`archive/planning/living-audit/`)
 
@@ -66,10 +66,10 @@ Convergence planning toward the Workframe cell (v0.1.x → v0.2). Indexed below;
 |-------|--------|------------------------|
 | Credential vault + leases | 0027, RT-10 | **shipped** |
 | LLM proxy | 0027 | **shipped** |
-| Forced egress broker | 0027, security.md | **planned** (verify reports; no network enforcement) |
+| Forced egress broker | 0027, security.md | **shipped** (compose + iptables guard; WF-025/027) |
 | Package truth / install-gate | package-truth-gate, RT-05–07 | **partial** |
 | Runtime adapters | refactor-map, RT-03–04 | **planned** |
-| Run ledger / billing | north-star, RT-10 | **deferred** |
+| Run ledger / billing | north-star, RT-10 | **run/receipt ledger shipped; billing amounts/pricing deferred** |
 
 ## How to close a row
 

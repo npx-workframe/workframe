@@ -38,9 +38,11 @@ border_width: 1px
 
 # Strato Dark theme
 
+**last_verified:** 2026-07-12
+
 **Parent:** [design.md](design.md) · **CSS:** `themes/strato-dark.css` · **Selector:** `[data-theme='strato-dark']`
 
-Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, violet/cyan ambient orbs. Uses the same `DotGrid` texture component as Neo Light; panels paint `--wf-chrome-fill: var(--wf-surface)` (semi-transparent glass) over the grid.
+Dark glass workspace with **line chrome**: visible 1px borders, flat shadows, violet/cyan ambient orbs, and the only mounted texture layer (`DotGrid`). Panels paint `--wf-chrome-fill: var(--wf-surface)` (semi-transparent glass) over the grid.
 
 ## Chrome mode: line
 

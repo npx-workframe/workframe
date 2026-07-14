@@ -36,14 +36,16 @@ border_width: 2px
 
 # Neo Blue theme
 
+**last_verified:** 2026-07-12
+
 **Parent:** [design.md](design.md) · **CSS:** `themes/neo-blue.css` + `relief-surfaces.css` + `canvas.css` · **Selector:** `[data-theme='neo-blue']`
 
-Engineering blue on deep navy: white typography, relief shadows with **low highlight alpha** (0.10), and **transparent chrome** (`--wf-chrome-fill: transparent` via relief mode). Canvas is **atmosphere only** (no moleskine grid mounted — `MoleskineGrid` remains available for future use).
+Engineering blue on deep navy: white typography, solid `--wf-bg` relief surfaces, and relief shadows with **low highlight alpha** (0.10). Canvas is a flat solid background; atmosphere effects and the moleskine grid are not mounted in relief mode.
 
 ## Chrome mode: relief
 
 - `--wf-chrome-mode: relief`
-- `--wf-chrome-fill: transparent` (set in `relief-primitives.css` for all relief themes)
+- `--wf-chrome-fill: var(--wf-bg)` (set in `relief-primitives.css` for all relief themes)
 - Relief tuning: dark blue shadow (`15 36 66` @ 0.82), white highlight @ 0.10
 - `--wf-border: transparent`; all `--wf-chrome-border-*` transparent
 - Shared chrome rules: `relief-surfaces.css` (theme file is palette + canvas tokens only)
@@ -75,13 +77,13 @@ Engineering blue on deep navy: white typography, relief shadows with **low highl
 
 | Layer | Tokens |
 |-------|--------|
-| Color | Flat `linear-gradient(145deg, var(--wf-blue), var(--wf-blue))`; white orbs ~6% / 5% |
+| Color | `--wf-bg-gradient: none`; `--wf-bg: var(--wf-blue)` |
 | Texture | *(not mounted)* — moleskine tokens below reserved if re-enabled: `--wf-moleskine-grid-tile: 24px`; `--wf-moleskine-grid-line: rgba(255,255,255,0.06)` |
-| Vignette | `--wf-overlay` on atmosphere |
+| Atmosphere | `--wf-overlay: none`; orbs are transparent and hidden by relief-mode CSS |
 
 ## Relief stacks
 
-Same **L/S** geometry as Neo Light (`relief-primitives.css`); Neo Blue differs only in shadow/highlight RGB and alpha. Depth is shadow-only on transparent chrome — no opaque surface re-paint.
+Same **L/S** geometry as Neo Light (`relief-primitives.css`); Neo Blue differs only in shadow/highlight RGB and alpha. Depth is shadow-only over solid `--wf-bg` chrome surfaces.
 
 ## shadcn bridge
 
@@ -104,6 +106,6 @@ Follows shared relief patterns in `relief-surfaces.css`. Neo Blue-specific accen
 
 ## Do's and Don'ts
 
-**Do:** Preserve transparent chrome. Use white copy.
+**Do:** Preserve solid `--wf-bg` chrome and relief depth. Use white copy.
 
-**Don't:** Paint opaque fills over chrome surfaces. Don't use saturated status reds/greens — theme uses white status glyphs.
+**Don't:** Remove solid relief fills. Don't use saturated status reds/greens — theme uses white status glyphs.

@@ -2,7 +2,7 @@
 
 **Repository:** [github.com/npx-workframe/workframe](https://github.com/npx-workframe/workframe)
 
-**Install:** `npx create-workframe@0.1.18 MyProject`
+**Install:** `npx create-workframe@0.1.19 MyProject`
 
 Multi-user web shell around [Hermes Agent](https://github.com/NousResearch/hermes-agent) — UI, API, installer, and Docker Compose.
 
@@ -30,7 +30,7 @@ Reference compose template (not local dogfood): `infra/compose/workframe/`
 ## End users
 
 ```bash
-npx create-workframe@0.1.18 MyProject
+npx create-workframe@0.1.19 MyProject
 ```
 
 ## Layout
@@ -40,7 +40,7 @@ apps/web                  Product UI (Vite/React)
 services/workframe-api    API server
 services/workframe-supervisor  Secure-mode exec broker
 packages/create-workframe npm installer
-packages/workframe        lifecycle CLI
+scripts/workframe.mjs     generated-project lifecycle helpers
 infra/compose/workframe   Reference compose template (not local dogfood)
 ```
 

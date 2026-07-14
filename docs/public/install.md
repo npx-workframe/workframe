@@ -3,7 +3,7 @@
 End-user path: scaffold a project, run Docker, complete the setup wizard.
 
 ```bash
-npx create-workframe@0.1.18 MyProject
+npx create-workframe@0.1.19 MyProject
 cd MyProject
 node scripts/workframe.mjs doctor   # optional preflight
 docker compose up -d --build
@@ -18,7 +18,7 @@ Open the URL printed by the wizard or shown in `docker compose` output (typicall
 Release evidence (`NegativeInstallEvidence`) proves deny paths do **not** mutate foreign directories. Until `CellAuthorityGate` exists, treat **empty-target create** as the only supported install claim — not update-in-place or adopt-existing-cell flows.
 
 ```bash
-npx create-workframe@0.1.18 MyProject    # MyProject/ must not exist yet
+npx create-workframe@0.1.19 MyProject    # MyProject/ must not exist yet
 ```
 
 ## Generated project layout
@@ -37,7 +37,7 @@ MyProject/
 
 The npm package copies built API, UI, and supervisor into your project. To change Workframe product code, work in the [monorepo](./develop.md) and publish/sync a new package version.
 
-## Lifecycle CLI
+## Generated lifecycle helpers
 
 From the project root:
 
@@ -46,12 +46,7 @@ node scripts/workframe.mjs doctor    # health checks
 node scripts/workframe.mjs setup     # guided setup helpers
 ```
 
-If the `workframe` npm package is installed globally:
-
-```bash
-npx workframe doctor
-npx workframe setup
-```
+The current generated install exposes lifecycle helpers through `scripts/workframe.mjs`; the old standalone `workframe` package/CLI is not the current install path.
 
 ## Setup wizard (first boot)
 

@@ -216,9 +216,8 @@ PROVIDER_MVP_MODELS: dict[str, dict[str, Any]] = {
         "fallbacks": [{"provider": "deepseek", "model": "deepseek-chat"}],
     },
     "codex": {
-        "primary": "gpt-5.4-medium",
+        "primary": "gpt-5.4-mini",
         "fallbacks": [
-            {"provider": "openai-codex", "model": "gpt-5.4-medium"},
             {"provider": "openai-codex", "model": "gpt-5.4-mini"},
         ],
     },
@@ -231,7 +230,8 @@ PROVIDER_MVP_MODELS: dict[str, dict[str, Any]] = {
 
 # ponytail: billing id (connect catalog) ↔ Hermes config model.provider ↔ picker rows
 _PROVIDER_CATALOG_TAGS: dict[str, frozenset[str]] = {
-    "codex": frozenset({"codex", "openai"}),
+    # ChatGPT-account Codex has a narrower model surface than direct OpenAI API.
+    "codex": frozenset({"codex"}),
     "openai": frozenset({"openai"}),
     "openrouter": frozenset({"openrouter"}),
     "anthropic": frozenset({"anthropic"}),
@@ -241,7 +241,6 @@ _PROVIDER_CATALOG_TAGS: dict[str, frozenset[str]] = {
 }
 
 _CODEX_EXTRA_MODELS: tuple[tuple[str, str, str], ...] = (
-    ("gpt-5.4-medium", "GPT-5.4 Medium", "Codex default — agentic, tool-capable."),
     ("gpt-5.4-mini", "GPT-5.4 Mini", "Faster Codex model on ChatGPT account."),
 )
 
@@ -600,8 +599,6 @@ HERMES_MODEL_CATALOG: list[dict[str, str]] = [
      "label": "o1 mini", "description": "Cheaper reasoning."},
     {"provider": "OpenAI", "model": "gpt-5.4-mini",
      "label": "GPT-5.4 Mini", "description": "Faster Codex / OpenAI model."},
-    {"provider": "Codex", "model": "gpt-5.4-medium",
-     "label": "GPT-5.4 Medium (Codex)", "description": "Codex ChatGPT account default."},
     {"provider": "Codex", "model": "gpt-5.4-mini",
      "label": "GPT-5.4 Mini (Codex)", "description": "Faster Codex model."},
     {"provider": "Google", "model": "gemini-2.5-pro",

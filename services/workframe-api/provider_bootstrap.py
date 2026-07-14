@@ -340,6 +340,14 @@ def _bootstrap_profile_providers(profile: str, user_id: str = "", workspace_id: 
 
     provider, model_name = _srv()._read_model_from_config(prof)
     llm_provider = _srv()._llm_billing_provider(prof, provider or "")
+    # ChatGPT-account Codex rejects the historical gpt-5.4-medium default.
+    # Migrate generated profiles during ordinary bootstrap so existing installs
+    # converge without requiring users to delete their agent/session data.
+    if llm_provider == "codex" and str(model_name or "").strip() == "gpt-5.4-medium":
+        ok_model, _ = _srv()._set_profile_model(prof, "gpt-5.4-mini")
+        changed = ok_model or changed
+        model_name = "gpt-5.4-mini"
+
     if not str(model_name or "").strip():
         changed = _srv()._apply_mvp_model_for_provider(prof, llm_provider) or changed
         if _srv()._is_runtime_profile_slug(prof):

@@ -2,7 +2,7 @@
 
 **Owner:** pm-workframe (Cursor)  
 **Source of truth:** `git` + `docs/ledger/backlog.json`  
-**Updated:** 2026-07-06
+**Updated:** 2026-07-12
 
 ## Rules
 
@@ -51,19 +51,19 @@ Quick truth checks (examples):
 
 ## Mission (2026-07-08): gate run — close A→D, stop at E
 
-**Active plan: [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md)** — ordered waves 0–5 with per-item verified gaps. Complete **Stages A→D**; **do not** start Stage E items. **Parallel lanes** on `main`: backend (API/ledger) and cosmetic UI (WF-036 cosmetic slice) — surgical commits only; see `handoffs/cosmetic-ui-lane.md`.
+**Active plan: [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md)** — historical gate-run plan. Current backlog state is authoritative: Stages A–D are complete except `WF-017` (partial VPS/backup evidence); E/F remain deferred. **Parallel lanes** on `main`: backend (API/ledger) and cosmetic UI — surgical commits only; see `handoffs/cosmetic-ui-lane.md`.
 
 | Stage | Status (2026-07-08) | Remaining |
 |-------|---------------------|-----------|
 | **A** release-truth | **done** | — |
-| **B** decompose | in flight | WF-032 (12.1k → <3k), WF-035 verify/flip, WF-036 functional slice |
+| **B** decompose | **done** | WF-032, WF-035, WF-036, WF-037 complete |
 | **C** secure multi | done except one | WF-017 VPS + backup/restore evidence (operator-assisted) |
-| **D** authority | nearly done | WF-NS-P2 flip, WF-NS-P1 socket test, WF-007 connect/adopt check, WF-016 receipt slice; plus WF-012 (release identity) |
+| **D** authority | **done** | WF-039, WF-009, WF-NS-P2, WF-016, WF-007, WF-008, WF-010, WF-NS-P0 complete |
 | **E** platform | **STOP** | deferred IDs — do not start |
 
 **Stage gates:** [`program-status.md`](program-status.md) — verified checklist; `ledger-next` picks B→C→D via `backlog.json` `program_stages` (WF-040).
 
-## Current wave: A → B (stabilize + decompose)
+## Current wave: C closeout (operator-assisted)
 
 | Wave | Items | Parallel? | Status |
 |------|-------|-----------|--------|
@@ -71,7 +71,7 @@ Quick truth checks (examples):
 | A2 | WF-034 tests, WF-033 yaml writer, WF-038 prune | yes | **done** |
 | A3 | WF-006, WF-019, WF-020, WF-004 | yes | **done** |
 | B1 | WF-037 route registry | after A2 | **done** (2026-07-07: full registry dispatch; test_route_registry.py) |
-| B2 | WF-032 server split | after WF-037 | **partial** (doctor_runtime, api_meta extracted; server ~11k lines) |
+| C closeout | WF-017 public/VPS hardening evidence | after Stages A–D | **partial** — repo-side verifier and backup documentation exist; reference VPS green run and restore drill remain manual |
 
 ## Commit queue (this session)
 

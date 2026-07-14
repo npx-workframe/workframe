@@ -38,7 +38,7 @@ rounded:
 
 # Workframe UI — Global design system
 
-**last_verified:** 2026-07-08 · **CSS truth:** `apps/web/src/styles/tokens/` + `themes/*.css` + `components/shell/canvas/`
+**last_verified:** 2026-07-12 · **CSS truth:** `apps/web/src/styles/tokens/` + `themes/*.css` + `components/shell/canvas/`
 
 Agents doing cosmetic UI work: read this file first, then the active theme doc. Copy rules: [`docs/ledger/copy-style-notes.md`](../ledger/copy-style-notes.md). UI lane boundaries: [`docs/ledger/handoffs/cosmetic-ui-lane.md`](../ledger/handoffs/cosmetic-ui-lane.md).
 
@@ -50,12 +50,12 @@ Themes compose four layers (bottom → top):
 
 | Layer | What | Source |
 |-------|------|--------|
-| **1. Color** | Solid `--wf-bg` on `body` + `AtmosphereBg` (gradient, orbs, vignette) | `base.css`, `AtmosphereBg.tsx`, per-theme canvas tokens |
+| **1. Color** | Solid `--wf-bg` on `body` + `AtmosphereBg` (gradient/orbs/vignette only in line mode) | `base.css`, `AtmosphereBg.tsx`, per-theme canvas tokens |
 | **2. Texture** | Full-viewport repeating pattern (`DotGrid` or `MoleskineGrid`) | `canvas-layers.ts`, `DotGrid.tsx` / `MoleskineGrid.tsx`, `canvas.css` |
-| **3. Shell** | Depth only — borders (line) or L/S shadow stacks (relief) | `--wf-chrome-mode`, `relief-primitives.css`, `relief-surfaces.css` |
+| **3. Shell** | Borders + flat shadows (line) or solid `--wf-bg` surfaces with L/S shadow stacks (relief) | `--wf-chrome-mode`, `relief-primitives.css`, `relief-surfaces.css` |
 | **4. Theme** | Palette, texture ink, typography, shell family | `themes/*.css` |
 
-**Formula:** base color + optional texture + shell treatment = theme. Relief chrome does **not** re-paint the canvas; it uses `--wf-chrome-fill: transparent` so atmosphere shows through panels, wizard shells, and controls. Neo Light and Neo Blue currently omit the texture layer; Strato Dark uses `DotGrid`.
+**Formula:** base color + optional texture + shell treatment = theme. Relief chrome uses solid `--wf-bg` fills and shadow geometry; relief mode also disables atmosphere gradients, orbs, overlays, and texture bleed. Neo Light and Neo Blue currently omit the texture layer; Strato Dark uses `DotGrid`.
 
 ## Canvas stack
 
@@ -64,7 +64,7 @@ Themes compose four layers (bottom → top):
 | Theme | Texture component |
 |-------|-------------------|
 | `strato-dark` | `DotGrid` |
-| `neo-light`, `neo-blue` | *(none — atmosphere only)* |
+| `neo-light`, `neo-blue` | *(none — flat solid canvas in relief mode)* |
 
 `DotGrid` and `MoleskineGrid` remain available components; wire them per theme via `getThemeCanvasTexture()` in `canvas-layers.ts`.
 
@@ -85,7 +85,7 @@ Themes compose four layers (bottom → top):
 | Mode | Themes | `--wf-chrome-fill` | Behavior |
 |------|--------|-------------------|----------|
 | `line` | `strato-dark` | `var(--wf-surface)` | Visible `--wf-border` lines; flat `--wf-shadow-*` |
-| `relief` | `neo-light`, `neo-blue` | `transparent` | Borderless; depth via L/S relief stacks only |
+| `relief` | `neo-light`, `neo-blue` | `var(--wf-bg)` | Borderless; solid surfaces with depth via L/S relief stacks |
 
 Relief primitives (`relief-primitives.css`):
 
@@ -106,7 +106,7 @@ Themes must define every token in `palette-contract.css`. Global wiring in `sema
 |-------|------|
 | `--wf-bg`, `--wf-text`, `--wf-muted` | Page base and copy hierarchy |
 | `--wf-border`, `--wf-border-strong` | Structural edges (line mode) |
-| `--wf-surface`, `--wf-surface-soft` | Panel / card fills (line mode; relief uses transparent chrome) |
+| `--wf-surface`, `--wf-surface-soft` | Panel / card fills (line mode and solid relief chrome) |
 | `--wf-chrome-fill` | Interactive + shell surface fill above texture |
 | `--wf-primary`, `--wf-primary-foreground` | Primary actions and inverse |
 | `--wf-violet`, `--wf-violet-glow`, `--wf-cyan`, `--wf-mint`, `--wf-ring` | Accent family + focus ring |
@@ -160,7 +160,7 @@ Prefer `var(--wf-type-*)` in components; avoid raw `px` for workspace chrome.
 
 **Line mode (Strato Dark):** `--wf-shadow-sm` … `--wf-shadow-xl`, `--wf-shadow-inset`; controls use thin glass borders + hover fill on `--wf-chrome-fill` (surface).
 
-**Relief mode (Neo Light, Neo Blue):** dual shadow stacks from `--wf-relief-*` primitives; **no opaque fill tint** — depth is shadow-only on transparent chrome. Wizard shell uses inset **L**; modals/dialogs use outset **L**; controls use **S**.
+**Relief mode (Neo Light, Neo Blue):** dual shadow stacks from `--wf-relief-*` primitives over solid `--wf-bg` surfaces. Wizard shell uses inset **L**; modals/dialogs use outset **L**; controls use **S**.
 
 ## Shapes
 
@@ -194,8 +194,8 @@ Prefer `var(--wf-type-*)` in components; avoid raw `px` for workspace chrome.
 | Theme | Slug | Doc | CSS | Chrome | Texture | Character |
 |-------|------|-----|-----|--------|---------|-----------|
 | Strato Dark | `strato-dark` | [strato-dark-design.md](strato-dark-design.md) | `themes/strato-dark.css` | `line` | `DotGrid` | Dark glass, violet/cyan orbs, visible borders |
-| Neo Light | `neo-light` | [neo-light-design.md](neo-light-design.md) | `themes/neo-light.css` | `relief` | — | Light soft UI, transparent chrome, relief shadows |
-| Neo Blue | `neo-blue` | [neo-blue-design.md](neo-blue-design.md) | `themes/neo-blue.css` | `relief` | — | Engineering blue, transparent relief chrome |
+| Neo Light | `neo-light` | [neo-light-design.md](neo-light-design.md) | `themes/neo-light.css` | `relief` | — | Light soft UI, solid chrome, relief shadows |
+| Neo Blue | `neo-blue` | [neo-blue-design.md](neo-blue-design.md) | `themes/neo-blue.css` | `relief` | — | Engineering blue, solid relief chrome |
 
 Switch via `ThemeSwitcher`; options in `apps/web/src/lib/themeOptions.ts`.
 
@@ -213,7 +213,7 @@ Switch via `ThemeSwitcher`; options in `apps/web/src/lib/themeOptions.ts`.
 **Don't**
 
 - Hard-code hex in component CSS when a semantic token exists
-- Paint opaque `--wf-bg` on relief chrome (breaks texture-through model)
+- Assume atmosphere or texture shows through relief chrome (relief mode uses solid `--wf-bg` surfaces)
 - Put vignette masks on the dot grid layer (masks define dot shape only)
 - Mix behavioral/React wiring in cosmetic passes (see cosmetic-ui-lane off-limits)
 - Add themes without defining the full palette + chrome contract

@@ -1,58 +1,48 @@
 {
   "schema_version": "0.1",
-  "updated": "2026-07-07",
+  "updated": "2026-07-12",
   "pm_role": "pm-workframe",
-  "mission": "Complete Stages B→D; stop before Stage E deferred. Parallel lanes on main: backend (API/ledger) + cosmetic UI (WF-036 themes/CSS) — surgical commits per lane.",
-  "agent_discipline": "VERIFY FIRST — backlog may be stale. If acceptance met, backlog-only update. Smallest patch. One WF per commit.",
+  "mission": "Stabilize local and Docker operation, prove package truth, publish with approval, and deploy three verified VPS cells.",
+  "agent_discipline": "Backlog and harness are authoritative. One bounded WF item per run; verify before status changes; preserve active user work.",
   "lanes": [
     {
-      "id": "lane-b-api",
-      "agent": "push-wf037-wf032",
-      "items": ["WF-037", "WF-032", "WF-035"],
-      "status": "partial",
-      "notes": "WF-037 done (2026-07-07). WF-032 partial (avatar_registry, profile_api_lifecycle, docker_gateway). WF-035 partial."
+      "id": "local-personal",
+      "source_items": ["WF-020", "WF-017"],
+      "target": "Stable personal Hermes-backed Workframe on the local machine",
+      "status": "pass_0.1.19",
+      "evidence_required": ["health", "login", "Hermes chat", "session restore", "restart persistence"]
     },
     {
-      "id": "lane-c-broker",
-      "agent": "push-broker-secure",
-      "items": ["WF-026", "WF-028", "WF-027", "WF-011", "WF-025", "WF-017"],
-      "status": "partial",
-      "branch": "lane-d-authority",
-      "notes": "WF-026/028/027/011/025 done (f035158..a1c9e67). WF-017 partial — VPS reference run manual."
+      "id": "docker-dogfood",
+      "source_items": ["WF-002", "WF-020"],
+      "target": "MyBusiness Docker install remains a clean dogfood proof",
+      "status": "pass_non_destructive_preview_0.1.19",
+      "evidence_required": ["packed artifact identity", "wizard", "first chat", "restart persistence"]
     },
     {
-      "id": "lane-d-authority",
-      "agent": "push-authority-ledger",
-      "items": ["WF-NS-P2", "WF-009", "WF-016", "WF-007-impl", "WF-008"],
-      "status": "partial",
-      "branch": "lane-d-authority",
-      "notes": "5 commits: WF-009 done, WF-008 done; NS-P2/016/007 partial. Merged on branch with broker commits (WF-026/028/011)."
+      "id": "publish",
+      "source_items": ["WF-001", "WF-002", "WF-003", "WF-020", "WF-021", "WF-022"],
+      "target": "Publish only the package proven by install-gate evidence",
+      "status": "blocked_npm_authentication",
+      "next_action": "Authenticate npm for the package owner, rerun npm whoami, then publish the already gated create-workframe@0.1.19 artifact.",
+      "evidence_required": ["version agreement", "package install", "negative install", "first run", "operator sign-off"]
     },
     {
-      "id": "lane-meta",
-      "agent": "push-wf040",
-      "items": ["WF-040"],
-      "status": "complete",
-      "exclusive": ["docs/", "operations/pm/"]
-    },
-    {
-      "id": "lane-copy-ux",
-      "agent": "copy-ux-wizard-settings",
-      "items": ["copy-wizard", "copy-settings", "copy-errors", "copy-modals"],
-      "stage": "parallel",
-      "status": "complete",
-      "branch": "lane-d-authority",
-      "notes": "3 commits c9783b4/45ff822/8683c24 — 22 files; copy-style-notes.md. Follow-up: activity/browser/composer."
+      "id": "vps-deployments",
+      "source_items": ["WF-017"],
+      "targets": ["abx.alanborger.com", "dev.click.blue", "demo.workfra.me"],
+      "status": "blocked_until_publish_and_target_preflight",
+      "preflight": {
+        "checked_utc": "2026-07-12T21:04Z",
+        "dns": "all_three_targets_nxdomain",
+        "vps": "reachable_via_hetzner-hermes",
+        "dns_target_ipv4": "95.216.136.200",
+        "existing_cell": "slot_2_MyBusiness_0.1.7_healthy_public_multi_user_behind_dev.alanborger.com",
+        "capacity": "6.4GB_available_memory_134GB_disk_free_slots_3_4_5_unbound",
+        "reverse_proxy": "Caddy_only_routes_dev.alanborger.com_to_127.0.0.1:28644"
+      },
+      "evidence_required": ["DNS", "HTTPS", "secure mode", "SMTP or documented invite path", "backup/restore", "public deploy verifier"]
     }
   ],
-  "deferred_do_not_start": [
-    "WF-013", "WF-014", "WF-015", "WF-029", "WF-030",
-    "WF-NS-P3", "WF-NS-P4", "WF-NS-P5", "WF-NS-P6", "WF-NS-P7", "WF-NS-P8"
-  ],
-  "out_of_scope": ["WF-012"],
-  "parallel_lanes": {
-    "backend": ["WF-037", "WF-032", "WF-035", "WF-NS-P2", "WF-026", "WF-028", "WF-027", "WF-011", "WF-025", "WF-017"],
-    "ui_cosmetic": ["WF-036"],
-    "handoff": "docs/ledger/handoffs/cosmetic-ui-lane.md"
-  }
+  "deferred_do_not_start": ["non-Hermes runtime adapters", "marketplace", "billing", "hosted cell manager"]
 }

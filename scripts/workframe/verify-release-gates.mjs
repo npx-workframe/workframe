@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const currentVersion = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 const listPath = path.join(root, '.harness', 'feature_list.json');
 const packageEvidencePath = path.join(
   root,
@@ -30,6 +31,9 @@ function readPackageEvidence() {
 function uiBundleSatisfied() {
   const ev = readPackageEvidence();
   if (!ev || ev.decision !== 'allow') return { ok: false, reason: 'missing or denied PackageInstallEvidence' };
+  if (ev.package_version !== currentVersion) {
+    return { ok: false, reason: `stale PackageInstallEvidence v${ev.package_version || '?'}; current v${currentVersion}` };
+  }
   const step = (ev.step_assertions || []).find((a) => a.id === 'ui_bundle_identity');
   if (!step || step.status !== 'asserted') {
     return { ok: false, reason: 'PackageInstallEvidence lacks ui_bundle_identity' };
@@ -39,31 +43,39 @@ function uiBundleSatisfied() {
 
 const checks = {
   'installer-ui-bundle': () => {
-    const scenario = local.find((s) => s.id === 'installer-ui-bundle');
-    if (scenario?.passes) return { ok: true, reason: 'feature_list passes:true' };
     const ev = uiBundleSatisfied();
     if (ev.ok) return ev;
-    return {
-      ok: false,
-      reason: 'run install-gate.ps1 or run-package-install-evidence.mjs --build',
-    };
+    return ev.reason.startsWith('stale ')
+      ? ev
+      : { ok: false, reason: 'run install-gate.ps1 or run-package-install-evidence.mjs --build' };
   },
   'dogfood-install-gate': () => {
-    const scenario = local.find((s) => s.id === 'dogfood-install-gate');
-    if (scenario?.passes) return { ok: true, reason: 'feature_list passes:true (wizard + chat done)' };
-    return {
-      ok: false,
-      reason:
-        'sign-off-install.ps1 then complete wizard + chat; set dogfood-install-gate passes:true in .harness/feature_list.json',
-    };
+    const evPath = path.join(root, 'operations/release-evidence/runs/latest-first-run.json');
+    if (fs.existsSync(evPath)) {
+      try {
+        const ev = JSON.parse(fs.readFileSync(evPath, 'utf8'));
+        if (ev.decision === 'allow' && ev.package_version === currentVersion) {
+          return { ok: true, reason: `FirstRunEvidence @ ${ev.git_ref || 'unknown'} v${ev.package_version}` };
+        }
+        if (ev.decision === 'allow') {
+          return { ok: false, reason: `stale FirstRunEvidence v${ev.package_version || '?'}; current v${currentVersion}` };
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    return { ok: false, reason: `regenerate FirstRunEvidence for v${currentVersion}` };
   },
   'first-run-evidence': () => {
     const evPath = path.join(root, 'operations/release-evidence/runs/latest-first-run.json');
     if (fs.existsSync(evPath)) {
       try {
         const ev = JSON.parse(fs.readFileSync(evPath, 'utf8'));
+        if (ev.decision === 'allow' && ev.package_version === currentVersion) {
+          return { ok: true, reason: `FirstRunEvidence @ ${ev.git_ref || 'unknown'} v${ev.package_version}` };
+        }
         if (ev.decision === 'allow') {
-          return { ok: true, reason: `FirstRunEvidence @ ${ev.git_ref || 'unknown'}` };
+          return { ok: false, reason: `stale FirstRunEvidence v${ev.package_version || '?'}; current v${currentVersion}` };
         }
       } catch {
         /* fall through */
@@ -75,6 +87,20 @@ const checks = {
     });
     if (res.status === 0) return { ok: true, reason: 'FirstRunEvidence runner allow' };
     return { ok: false, reason: 'run-first-run-evidence.mjs or dogfood-install-gate passes:true' };
+  },
+  'negative-install-evidence': () => {
+    const evPath = path.join(root, 'operations/release-evidence/runs/latest-negative-install.json');
+    if (!fs.existsSync(evPath)) return { ok: false, reason: 'missing NegativeInstallEvidence' };
+    try {
+      const ev = JSON.parse(fs.readFileSync(evPath, 'utf8'));
+      if (ev.decision !== 'allow') return { ok: false, reason: 'NegativeInstallEvidence denied' };
+      if (ev.package_version !== currentVersion) {
+        return { ok: false, reason: `stale NegativeInstallEvidence v${ev.package_version || '?'}; current v${currentVersion}` };
+      }
+      return { ok: true, reason: `NegativeInstallEvidence @ ${ev.git_ref || 'unknown'} v${ev.package_version}` };
+    } catch {
+      return { ok: false, reason: 'invalid NegativeInstallEvidence JSON' };
+    }
   },
 };
 

@@ -53,6 +53,6 @@ finally:
     server._hermes_oauth_tokens_present = _orig
 
 mvp = server.PROVIDER_MVP_MODELS["codex"]["primary"]
-assert mvp == "gpt-5.4-medium"
+assert mvp == "gpt-5.4-mini"
 
 print("oauth llm self-check ok")

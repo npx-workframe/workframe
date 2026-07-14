@@ -1,17 +1,22 @@
-# Workframe v0.1.18
+# Workframe v0.1.19
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.18 |
+| create-workframe | 0.1.19 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.18 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.19 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.18 MyProject
+npx create-workframe@0.1.19 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.19
+
+- Use the ChatGPT-account-supported `gpt-5.4-mini` Codex default and remove unsupported direct-API models from the Codex picker.
+- Migrate existing generated Codex profiles before chat resolves its model, preventing one stale `gpt-5.4-medium` dispatch.
 
 ## 0.1.18
 

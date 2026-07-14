@@ -1,11 +1,11 @@
 {
   "schema_version": "0.1",
-  "updated": "2026-07-09",
+  "updated": "2026-07-12",
   "pm_role": "pm-workframe",
   "reports_to": ["alan", "orchestrator"],
-  "last_session": "2026-07-09T22:27-03:00",
-  "mode": "Execute (wizard step 9 model flow)",
-  "mission": "Push Stages B→D + parallel copy-ux lane (strings only).",
+  "last_session": "2026-07-12",
+  "mode": "Stabilize, publish, and deploy the proven v0.1.x wedge",
+  "mission": "Keep local Hermes personal use and Docker dogfood stable, close publish evidence, then verify abx.alanborger.com, dev.click.blue, and demo.workfra.me installations.",
   "dispatched_agents": [],
   "completed_agents": [
     "99ca9676 — Stage A",
@@ -17,5 +17,21 @@
     "21f9d4b3 — doc-audit",
     "a4aeeccd — verify-matrix"
   ],
-  "notes": "Step 9 BYOK: Providers → Select Model → Models (3 slots) → Continue. Dogfood @ http://127.0.0.1:18644."
+  "latest_evidence": {
+    "checked_utc": "2026-07-12T22:52Z",
+    "dogfood_package_version": "0.1.19",
+    "dogfood_git_ref": "4649e15",
+    "api_health": "pass_secure_trusted_team",
+    "hermes_gateway_health": "pass_0.18.2",
+    "version_agreement": "pass_0.1.19",
+    "release_gate_script": "allow_all_four_tracked_local_gates_0.1.19_reverified_2026-07-12T22:52Z",
+    "latest_package_install_evidence": "pass_0.1.19",
+    "latest_first_run_evidence": "pass_0.1.19",
+    "latest_negative_install_evidence": "pass_0.1.19",
+    "browser_smoke": "pass_workframe_ok_abx_gpt_5_4_mini",
+    "canonical_installer_parity": "pass",
+    "publish_readiness": "gates_green_blocked_npm_401_unauthorized",
+    "vps_preflight": "reachable; existing slot2 0.1.7 healthy public_multi_user; slots3-5 free with capacity; requested domains have no DNS and no Caddy routes"
+  },
+  "notes": "Source backlog and harness remain authoritative. Current source tree has active user changes; inspect before mutation. Dogfood @ http://127.0.0.1:18644. Publishing and VPS changes retain explicit operator gates."
 }

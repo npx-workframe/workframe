@@ -39,13 +39,15 @@ border_width: 2px
 
 # Neo Light theme
 
+**last_verified:** 2026-07-12
+
 **Parent:** [design.md](design.md) · **CSS:** `themes/neo-light.css` + `relief-surfaces.css` · **Selector:** `[data-theme='neo-light']`
 
-Light soft UI with **relief chrome**: borderless edges, depth from dual L/S shadow stacks. Chrome is **transparent** (`--wf-chrome-fill: transparent`). Canvas is **atmosphere only** (no dot grid mounted — `DotGrid` remains available for future use).
+Light soft UI with **relief chrome**: borderless edges, solid `--wf-bg` surfaces, and depth from dual L/S shadow stacks. Canvas is a flat solid background; atmosphere effects and the dot grid are not mounted in relief mode.
 
 ## Chrome mode: relief
 
-- `--wf-chrome-mode: relief` (also `--wf-chrome-fill: transparent` on theme block)
+- `--wf-chrome-mode: relief` (`relief-primitives.css` resolves `--wf-chrome-fill` to `var(--wf-bg)`)
 - `--wf-border: transparent` — edges implied by shadow, not stroke
 - All `--wf-chrome-border-*` → `transparent`
 - `--wf-border-width: 2px` (divider/tool chrome uses white `#fff` as relief edge color)
@@ -77,9 +79,10 @@ Semantic wiring:
 | `--wf-bg` | `#e0e0e6` |
 | `--wf-text` | `#2a2a32` |
 | `--wf-muted` | `#7a7a86` |
-| `--wf-surface` / soft | `#e0e0e6` / `rgba(224,224,230,0.82)` |
+| `--wf-surface` / soft | `#e0e0e6` / `var(--wf-bg)` |
 | `--wf-primary` | `#3a3a44` |
 | `--wf-violet` | `#7c6a9e` |
+| `--wf-violet-glow` | `#8b7aad` |
 | `--wf-cyan` | `#6a8e9e` |
 | `--wf-mint` | `#6a9e8a` |
 | `--wf-ring` | `rgba(124, 106, 158, 0.22)` |
@@ -92,14 +95,14 @@ Status colors: `#ef4444`, `#22c55e`, `#f59e0b`.
 
 | Layer | Tokens |
 |-------|--------|
-| Color | `--wf-bg-gradient`: `linear-gradient(145deg, #d8d8de, #e8e8ee)`; orbs violet/cyan at 6% / 5% |
+| Color | `--wf-bg-gradient: none`; `--wf-bg: #e0e0e6` |
 | Texture | *(not mounted)* — dot tokens below reserved if re-enabled: `--wf-dot-grid-tile: 10px`; `--wf-dot-grid-rgb: 42 42 50`; `--wf-dot-grid-opacity: 0.16` |
-| Vignette | `--wf-overlay`: subtle top highlight + 4% bottom shade (on atmosphere only) |
+| Atmosphere | `--wf-overlay: none`; orbs are transparent and hidden by relief-mode CSS |
 
 ## Controls
 
 - `--wf-control-border-width: 0` — no stroke on controls
-- Relief fills: `--wf-chrome-fill` (transparent) via `relief-primitives.css`
+- Relief fills: solid `--wf-chrome-fill: var(--wf-bg)` via `relief-primitives.css`
 - Hover/active: shadow delta only (`--wf-control-shadow-raised` = outset **S**)
 - `--wf-control-border-ring-closed: #fff` (composer ring)
 - DnD indicator: white 50% fill, `#fff` border
@@ -109,7 +112,7 @@ Status colors: `#ef4444`, `#22c55e`, `#f59e0b`.
 ## Onboarding & dialogs
 
 - `.wf-onboarding-page`: `background: transparent` — same `CanvasBackground` as workspace
-- `.wf-onboarding-wizard`: `--wf-shell-width` 840px × `--wf-shell-height` 540px; relief inset **L** well on transparent fill
+- `.wf-onboarding-wizard`: `--wf-shell-width` 840px × `--wf-shell-height` 540px; relief inset **L** well on solid `--wf-bg`
 - Step badge (current): `background: var(--wf-text)`; `color: var(--wf-bg)` for contrast
 
 ## Dialog hovers
@@ -121,6 +124,6 @@ Status colors: `#ef4444`, `#22c55e`, `#f59e0b`.
 
 ## Do's and Don'ts
 
-**Do:** Use relief **L/S** stacks for depth; keep chrome transparent.
+**Do:** Use relief **L/S** stacks for depth; keep chrome on solid `--wf-bg`.
 
-**Don't:** Re-introduce opaque `--wf-bg` fills on panels; don't add visible border strokes.
+**Don't:** Remove the solid `--wf-bg` relief fill or add visible border strokes.
