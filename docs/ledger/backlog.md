@@ -8,9 +8,20 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 
 ## Standalone Workframe CLI campaign
 
-The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). The first slice, conversational inference-path selection and explicit provider-test consent, is **in review** with commit and test evidence recorded in that spec. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
+The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). Conversational inference-path selection, separate provider-test consent, and the memory-only first Socratic mirror are **in review** with commit and packed-package evidence recorded in that spec. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
 
-Planned sequence: truthful capability graph → bounded inference session → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
+| ID | Slice | Status |
+|----|-------|--------|
+| WF-CLI-001 | Conversational link and memory-only Socratic seed | **review** |
+| WF-CLI-002 | Truthful runtime/provider capability graph | todo |
+| WF-CLI-003 | Provider-neutral model-assisted dialogue | todo |
+| WF-CLI-004 | Constitutional entity and goal draft | todo |
+| WF-CLI-005 | Non-destructive Architectonic composition plan | todo |
+| WF-CLI-006 | Dry-run Workframe deployment plan | todo |
+| WF-CLI-007 | Explicit apply and rollback authority gates | todo |
+| WF-CLI-008 | Packed cross-platform release evidence | todo |
+
+Planned sequence: truthful capability graph → bounded model-assisted dialogue → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
 
 ## Waves (execution order)
 
