@@ -8,7 +8,7 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 
 ## Standalone Workframe CLI campaign
 
-The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). Independent review returned the first slice to **todo**. The repaired package, packed artifact, and terminal interruption behavior passed, but credential-bearing runtime errors can be printed, verification can false-positive on echoed prompts or refusal text, and questions about the best/default runtime can silently select the first candidate. `WF-CLI-002` remains blocked. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
+The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). `WF-CLI-001` is back in **review** after a bounded verification-hardening patch: runtime diagnostics redact known credentials, child environments are minimized, CLI and HTTP verification parse exact structured assistant output, and best/default questions no longer imply delegation. Repository CI remains red at aggregate `Harness verify`, so this is not acceptance evidence. `WF-CLI-002` remains blocked pending independent review. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
 
 Planned sequence: truthful capability graph → bounded inference session → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
 
