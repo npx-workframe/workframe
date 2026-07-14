@@ -18,7 +18,7 @@
       ],
       "evidence": [
         "PR #7 is the sole active implementation candidate at 82a18716e6c758762916657f6577d78290f7b779",
-        "PR #7 implementation head 6a820c3b970f59f6d90e4154382a41bfe2 is not the current candidate; current implementation evidence is anchored at 6a820c3b970f59dc51d484cbb457de65819f3a7a",
+        "PR #7 implementation evidence is anchored at 6a820c3b970f59dc51d484cbb457de65819f3a7a",
         "packages/workframe/bin/workframe.js",
         "packages/workframe/lib/dialogue.js",
         "packages/workframe/lib/discovery.js",
