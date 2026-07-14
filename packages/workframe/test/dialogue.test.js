@@ -25,6 +25,8 @@ test('negative consent overrides positive language', () => {
 test('consent accepts natural affirmative and preserves ambiguity', () => {
   assert.equal(interpretConsent('Sounds good, proceed.'), 'yes');
   assert.equal(interpretConsent('Tell me more first.'), 'unknown');
+  assert.equal(interpretConsent('Please explain the cost first.'), 'unknown');
+  assert.equal(interpretConsent('Why not explain what will happen?'), 'unknown');
 });
 
 test('candidate choice resolves a single natural-language mention', () => {
