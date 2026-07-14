@@ -11,27 +11,28 @@
       "status": "todo",
       "depends_on": [],
       "patch_refs": [
-        "1f30820",
-        "17fd9bd",
-        "aa39814",
-        "ac62f1c",
-        "0011730",
-        "9b2926e",
-        "af2da80fadfdd25e5370776453baff87be9d1788",
-        "c15f250af9edf51650917a80fe928b880003150f"
+        "e05bdb53f934d20a44b2fee4468f76805c337527",
+        "048aa413cd89ccb9f4bb348597a7087a04ef0d55",
+        "57cfe7359c39584017552d906642e0c7bb3c1de5",
+        "c87166e935f31133ee42374e5d415669728db6e3"
       ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
         "packages/workframe/lib/dialogue.js",
+        "packages/workframe/lib/flow.js",
         "packages/workframe/lib/session.js",
         "packages/workframe/checks/workframe-checks.js",
         "packages/workframe/README.md",
-        "PR #7 implementation head c15f250af9edf51650917a80fe928b880003150f",
-        "CI run 29333673842: failure at Harness verify",
-        "static node --check reproduction: JSON.stringify { is a SyntaxError",
-        "consent reproduction: Sure, what will this cost? => yes",
-        "consent reproduction: Okay, explain what will be sent first. => yes",
-        "EOF reproduction: readline question exits non-cleanly without a catch"
+        "independent reconstruction matched all reviewed Git blob SHAs",
+        "cd packages/workframe && npm test: 26 passed on Linux x64 / Node v22.16.0",
+        "npm pack --json --ignore-scripts: workframe-0.2.1.tgz; clean packed install version and status JSON passed",
+        "real PTY Ctrl+C and Ctrl+D at consent: exit 0 and safe stop without provider invocation",
+        "failure-output reproduction: fake Codex printed OPENAI_API_KEY to stderr and the CLI echoed the credential value",
+        "CLI verification reproduction: fake Codex and Claude executables only echoed argv, exited 0, and were reported as verified because the prompt contains WORKFRAME_OK",
+        "HTTP verification reproduction: synthetic HTTP 200 bodies containing refusal text with WORKFRAME_OK were reported as verified",
+        "selection reproduction: Which one is best? and What is the default? selected the first candidate without explicit delegation",
+        "CI run 29345020181: failure at aggregate Harness verify",
+        "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
         "select one existing inference path conversationally without guessing ambiguity",
@@ -40,24 +41,55 @@
         "print a bounded memory-only mirror without filesystem or installation mutation",
         "package-local and packed-artifact checks pass without live credentials"
       ],
-      "review": {
+      "previous_review": {
         "reviewer": "workframe-cli-reviewer",
         "reviewed_at": "2026-07-14",
         "result": "rejected",
         "head_sha": "c15f250af9edf51650917a80fe928b880003150f",
         "failures": [
-          "packages/workframe/bin/workframe.js contains body: JSON.stringify { in testOpenRouter, so npm run check and npm test cannot pass on the current head",
-          "interpretConsent treats bare sure and okay tokens anywhere in a sentence as authorization, so questions such as Sure, what will this cost? and Okay, explain what will be sent first. authorize a provider call",
-          "help claims credential values are never transmitted by Workframe, while direct OpenAI and OpenRouter verification necessarily sends the selected environment credential to that provider after consent",
-          "the checks exercise helper functions and smoke entrypoints but do not prove the authority boundary: denial and ambiguous consent must prevent invocation, failed verification must prevent Socratic questions, and identity/objective prompts must require a verified link",
-          "EOF and interrupted input are not handled by runInteractive; the prior graceful input-ended path was removed, leaving non-clean termination before explicit consent"
+          "invalid OpenRouter JSON.stringify syntax",
+          "questioning or qualified language could authorize a provider call",
+          "credential transmission wording was inaccurate",
+          "authority-boundary tests did not exercise the complete flow",
+          "EOF and interruption were not handled deterministically"
+        ]
+      },
+      "remediation": {
+        "implemented_at": "2026-07-14",
+        "result": "reviewed_and_rejected",
+        "notes": [
+          "OpenRouter syntax, consent semantics, credential wording, injected authority tests, and terminal interruption behavior were repaired.",
+          "Package-local, packed-artifact, and real PTY checks passed independently.",
+          "Independent adversarial verification found separate credential-redaction, link-verification, and candidate-delegation defects.",
+          "WF-CLI-002 remains dependency-gated until an independent reviewer accepts WF-CLI-001."
+        ]
+      },
+      "review": {
+        "reviewer": "workframe-cli-reviewer",
+        "reviewed_at": "2026-07-14",
+        "result": "rejected",
+        "head_sha": "c87166e935f31133ee42374e5d415669728db6e3",
+        "verified_repairs": [
+          "26 package tests pass",
+          "packed package installs and runs",
+          "Ctrl+C and Ctrl+D settle cleanly",
+          "consent questions and qualifiers fail closed",
+          "help text states the direct credential transmission boundary truthfully"
+        ],
+        "failures": [
+          "Codex and Claude failure stderr is printed without secret redaction while child processes inherit the full environment, allowing configured credential values to leak through CLI output",
+          "Codex and Claude verification accepts any successful process output containing WORKFRAME_OK, including an executable that merely echoes the prompt arguments",
+          "OpenAI and OpenRouter verification searches the entire raw HTTP response for WORKFRAME_OK, so refusal or diagnostic text containing that token is accepted as a verified link",
+          "candidate selection treats questions containing best or default as explicit delegation and silently chooses the first candidate",
+          "repository CI remains red at aggregate Harness verify and does not provide green package evidence for this head"
         ],
         "required_remediation": [
-          "restore valid JSON.stringify({...}) syntax and rerun package-local plus packed-artifact checks from the exact reviewed head",
-          "make affirmative consent explicit and fail closed for questions, qualifiers, requests for explanation, and other ambiguous language",
-          "replace the absolute credential-transmission claim with truthful wording: credentials are never printed or persisted and are sent only to the explicitly approved selected provider",
-          "add injectable verification/dialogue seams and end-to-end tests proving no invocation before consent, no dialogue after failed verification, and graceful refusal, EOF, Ctrl+C, and timeout outcomes",
-          "reconcile WF-CLI-001 back to todo in docs/ledger/backlog.json without modifying existing non-CLI history"
+          "redact known credential values from every child-process and provider error before printing; avoid exposing unrelated provider credentials to selected runtime child processes",
+          "verify CLI runtimes from structured machine-readable assistant output or an exact isolated response field; never search combined prompt, stdout, and stderr",
+          "parse OpenAI and OpenRouter JSON and require an exact assistant response after bounded normalization rather than substring matching raw response text",
+          "require an imperative explicit delegation phrase for recommended/default selection and keep questions or information requests unresolved",
+          "add adversarial regression tests for secret-bearing stderr, argv echo false positives, refusal-text HTTP false positives, and selection questions",
+          "rerun package-local, packed-artifact, PTY, and available CI checks from the exact repaired head"
         ]
       }
     },
