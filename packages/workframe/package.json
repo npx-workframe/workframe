@@ -1,6 +1,6 @@
 {
   "name": "workframe",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Adaptive local entrypoint for Workframe runtimes and model providers.",
   "type": "module",
   "bin": {
@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "check": "node --check bin/workframe.js",
-    "test": "node --check bin/workframe.js && node bin/workframe.js status --json > /dev/null"
+    "test": "node --check bin/workframe.js && node bin/workframe.js --version && node bin/workframe.js status --json > /dev/null"
   },
   "engines": {
     "node": ">=20"
