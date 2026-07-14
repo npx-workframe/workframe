@@ -19,7 +19,8 @@
         "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
         "384876c6090432a2b19e51dfe1ec9985c0f92a12",
         "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
-        "2b85c70d3fb9302dc435c45459ac698ca46a05f6"
+        "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "80c98cbad32ff9f0e68f0eb9990add2d6ff07a85"
       ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
@@ -40,6 +41,7 @@
         "reviewer source inspection and targeted exact-parser reproduction against head 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
         "compare main...automation/wf-cli-001-socratic-seed-v3: branch diverged, 18 commits ahead and 9 behind; PR mergeable=false",
         "exact-head status: only Vercel success was reported; no pull-request workflow run was available for 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "80c98cb: canonical backlog reconciled narrowly to todo; non-CLI rows unchanged",
         "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
@@ -121,9 +123,9 @@
           "treat hedging and uncertainty markers as unresolved path selection, with regressions for maybe, perhaps, probably, and I guess",
           "represent account-backed and API-key-backed runtime paths as distinct candidates and disclose the exact billing source before consent; never inject a provider key opportunistically",
           "split discovery and inference environment allowlists and remove Docker and SSH authority handles from inference children",
-          "rebase onto current main, reconcile the canonical WF-CLI-001 backlog row to todo without replacing unrelated history, and rerun package, packed-artifact, PTY, and available CI checks from the exact repaired head"
+          "rebuild the implementation branch from current main and rerun package, packed-artifact, PTY, Windows-semantics, and available CI checks from the exact repaired head"
         ],
-        "canonical_backlog_reconciliation": "pending: current main still records WF-CLI-001 as review with stale PR #6 evidence; a narrow full-file-safe reconciliation is required"
+        "canonical_backlog_reconciliation": "resolved at 80c98cbad32ff9f0e68f0eb9990add2d6ff07a85: exactly one campaign remains, WF-CLI-001 is todo, WF-CLI-002 is dependency-gated, and the commit diff changes only WF-CLI rows"
       }
     },
     {
