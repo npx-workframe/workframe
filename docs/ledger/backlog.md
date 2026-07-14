@@ -6,6 +6,12 @@
 
 This file is a human wave map. Agents and CI should read/write `backlog.json`; humans skim here.
 
+## Standalone Workframe CLI campaign
+
+The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). The first slice, conversational inference-path selection and explicit provider-test consent, is **in review** with commit and test evidence recorded in that spec. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
+
+Planned sequence: truthful capability graph → bounded inference session → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
+
 ## Waves (execution order)
 
 | Wave | Focus | Active items |
@@ -14,7 +20,7 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 | **authority** | CellAuthority, RunAuthority, surfaces, supervisor tests | WF-007 … WF-011 |
 | **broker** | Forced egress, broker extract, audit events, lease tests | WF-023 ✓, WF-024 ✓, WF-025 … WF-028 |
 | **run-ledger** | runs / run_events / receipt line items | WF-NS-P2, WF-009, WF-016 — **done**; billing amounts remain deferred |
-| **adapter** | Identity seam, runtime candidates, second harness | WF-013 … WF-015, WF-NS-P4 |
+| **adapter** | Identity seam, runtime candidates, second harness, standalone Socratic CLI | WF-013 … WF-015, WF-NS-P4, WF-CLI-001 … WF-CLI-008 |
 | **cell** | Manifests, cell metadata, control plane | WF-NS-P5 … WF-NS-P7 |
 | **marketplace** | After ledger stable | WF-NS-P8 |
 | **meta** | Vocabulary, spec-kit adoption | WF-NS-P0, WF-SK-001 |
