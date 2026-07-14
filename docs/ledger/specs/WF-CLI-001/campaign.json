@@ -2,13 +2,13 @@
   "campaign": "WF-CLI",
   "scope": "packages/workframe/**",
   "source_of_truth_target": "docs/ledger/backlog.json",
-  "status": "review",
+  "status": "todo",
   "items": [
     {
       "id": "WF-CLI-001",
       "title": "Conversational link and memory-only Socratic seed",
       "priority": "P0",
-      "status": "review",
+      "status": "todo",
       "depends_on": [],
       "patch_refs": [
         "e05bdb53f934d20a44b2fee4468f76805c337527",
@@ -18,7 +18,8 @@
         "bf165bab2103f29b9ceb645c616345e1c4f258c9",
         "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
         "384876c6090432a2b19e51dfe1ec9985c0f92a12",
-        "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a"
+        "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
+        "2b85c70d3fb9302dc435c45459ac698ca46a05f6"
       ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
@@ -33,12 +34,12 @@
         "b4c7c6a: Codex and Claude verification consumes structured assistant output and requires exact WORKFRAME_OK",
         "b4c7c6a: OpenAI and OpenRouter verification parses provider JSON and requires an exact assistant response",
         "384876c: adversarial regressions cover secret-bearing stderr, argv echo, refusal or diagnostic text, and runtime-selection questions",
-        "reconstructed repaired package: cd packages/workframe && npm test — 34 passed on Linux x64 / Node v22.16.0",
-        "npm pack --json --ignore-scripts: workframe-0.2.1.tgz; shasum 858b1efb672ee673ddc4e9d6a079aa6e7ee765c5",
-        "clean temporary packed install: workframe --version returned 0.2.1 and status --json parsed successfully",
-        "real PTY Ctrl+C and Ctrl+D at consent: exit 0, safe stop, no provider invocation",
-        "eb8f81f: canonical docs/ledger/backlog.json WF-CLI campaign restored with WF-CLI-001 in review and later slices dependency-gated",
-        "CI run 29348238879: dependency, version, docs-claim, and evidence steps passed; aggregate Harness verify remains red and is not acceptance evidence",
+        "implementer evidence: reconstructed package reported 34 passing tests on Linux x64 / Node v22.16.0",
+        "implementer evidence: packed workframe-0.2.1.tgz clean-install smoke checks passed",
+        "implementer evidence: real PTY Ctrl+C and Ctrl+D at consent exited safely",
+        "reviewer source inspection and targeted exact-parser reproduction against head 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "compare main...automation/wf-cli-001-socratic-seed-v3: branch diverged, 18 commits ahead and 9 behind; PR mergeable=false",
+        "exact-head status: only Vercel success was reported; no pull-request workflow run was available for 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
         "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
@@ -83,8 +84,8 @@
       },
       "resubmission": {
         "submitted_at": "2026-07-14",
-        "head_sha": "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
-        "result": "awaiting_independent_review",
+        "head_sha": "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "result": "rejected",
         "review_focus": [
           "independently reconstruct the current package and rerun all 34 tests",
           "prove configured credential values cannot escape through subprocess or provider diagnostics",
@@ -93,6 +94,36 @@
           "prove best/default questions remain unresolved without explicit imperative delegation",
           "rerun packed-artifact, PTY, and available CI checks from the exact current head"
         ]
+      },
+      "current_review": {
+        "reviewer": "workframe-cli-reviewer",
+        "reviewed_at": "2026-07-14",
+        "result": "rejected",
+        "head_sha": "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "verified_repairs": [
+          "structured exact-response parsing replaced prompt-token substring matching",
+          "known secret-like environment values are redacted from displayed subprocess diagnostics",
+          "question-form best/default selection remains unresolved",
+          "consent questions and qualifiers remain fail closed",
+          "consent-prompt EOF and Ctrl+C settlement paths are present"
+        ],
+        "failures": [
+          "Ctrl+C after consent does not abort a pending provider verification: runInteractiveFlow awaits verify without an abort signal, HTTP requests use only timeout signals, and CLI verification uses synchronous spawnSync with up to a 90-second timeout",
+          "hedged path answers such as 'Maybe Claude.', 'Probably Codex.', and 'I guess OpenRouter.' are treated as selected rather than ambiguous",
+          "Codex and Claude candidates opportunistically receive configured API keys while billing text says account or provider, so the exact credential and payer are not deterministically disclosed",
+          "the inference-child allowlist includes DOCKER_HOST, DOCKER_CONTEXT, DOCKER_CONFIG, and SSH_AUTH_SOCK, exposing unrelated high-authority handles to the model runtime",
+          "the pull-request branch is nine commits behind current main, is diverged, and is not mergeable",
+          "no package or repository CI run is attached to the exact reviewed head"
+        ],
+        "required_remediation": [
+          "thread one cancellation signal from the terminal through runInteractiveFlow into verification; abort fetch requests and replace synchronous runtime execution with a cancellable child process that terminates on Ctrl+C",
+          "add verification-phase interruption tests proving the provider call or child process is cancelled promptly and no Socratic prompt follows",
+          "treat hedging and uncertainty markers as unresolved path selection, with regressions for maybe, perhaps, probably, and I guess",
+          "represent account-backed and API-key-backed runtime paths as distinct candidates and disclose the exact billing source before consent; never inject a provider key opportunistically",
+          "split discovery and inference environment allowlists and remove Docker and SSH authority handles from inference children",
+          "rebase onto current main, reconcile the canonical WF-CLI-001 backlog row to todo without replacing unrelated history, and rerun package, packed-artifact, PTY, and available CI checks from the exact repaired head"
+        ],
+        "canonical_backlog_reconciliation": "pending: current main still records WF-CLI-001 as review with stale PR #6 evidence; a narrow full-file-safe reconciliation is required"
       }
     },
     {
