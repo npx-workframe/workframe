@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "check": "node --check bin/workframe.js",
-    "test": "node --test"
+    "test": "node --test checks/workframe-checks.js"
   },
   "engines": {
     "node": ">=20"
