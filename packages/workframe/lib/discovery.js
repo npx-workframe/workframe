@@ -186,13 +186,13 @@ export function listInferenceCandidates(report) {
       envName: provider.openai.envName,
     }));
   }
-  if (runtimePresent(runtime.claude)) {
+  if (runtime.claude?.status === 'authenticated') {
     candidates.push(accountCandidate({
       id: 'claude-account',
       label: 'Claude Code (local account)',
       aliases: ['claude', 'claude account'],
       adapter: 'claude',
-      billing: 'the existing local Claude Code account or session',
+      billing: 'the authenticated local Claude Code account or session',
     }));
   }
   if (runtimePresent(runtime.claude) && provider.anthropic?.status === 'configured') {
