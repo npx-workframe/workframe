@@ -8,6 +8,8 @@ import process from 'node:process';
 import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 
+import { interpretCandidateChoice, interpretConsent } from '../lib/dialogue.js';
+
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VERSION = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8')).version;
 const TIMEOUT_MS = 12_000;
@@ -203,54 +205,45 @@ function printStatus(report) {
   printGroup('MODEL ACCESS', report.providers);
 }
 
-function normalizeAnswer(value) {
-  return String(value || '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9' ]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function interpretConsent(value) {
-  const answer = normalizeAnswer(value);
-  if (!answer) return 'unknown';
-
-  const noPatterns = [
-    /\bno\b/, /\bnope\b/, /\bnah\b/, /\bnegative\b/, /\bnot now\b/,
-    /\bdon't\b/, /\bdo not\b/, /\bstop\b/, /\bskip\b/, /\blater\b/,
-    /\bnot yet\b/, /\bi'd rather not\b/, /\bi would rather not\b/,
-  ];
-  const yesPatterns = [
-    /\byes\b/, /\byep\b/, /\byeah\b/, /\byup\b/, /\baffirmative\b/,
-    /\bsure\b/, /\bok\b/, /\bokay\b/, /\bgo ahead\b/, /\bdo it\b/,
-    /\bproceed\b/, /\bplease\b/, /\btest it\b/, /\bsounds good\b/,
-    /\blet's do it\b/, /\blets do it\b/, /\bwhy not\b/,
-  ];
-
-  if (noPatterns.some((pattern) => pattern.test(answer))) return 'no';
-  if (yesPatterns.some((pattern) => pattern.test(answer))) return 'yes';
-  return 'unknown';
-}
-
-function chooseTest(report) {
+function listTestCandidates(report) {
   const runtime = Object.fromEntries(report.runtimes.map((item) => [item.id, item]));
   const provider = Object.fromEntries(report.providers.map((item) => [item.id, item]));
+  const candidates = [];
 
   if (runtime.codex?.status === 'authenticated') {
-    return { id: 'codex', label: 'Codex CLI', billing: 'your existing Codex / ChatGPT account or configured provider' };
+    candidates.push({
+      id: 'codex',
+      label: 'Codex CLI',
+      aliases: ['codex'],
+      billing: 'your existing Codex / ChatGPT account or configured provider',
+    });
   }
   if (runtime.claude?.status === 'verified') {
-    return { id: 'claude', label: 'Claude Code', billing: 'your existing Claude account or Anthropic provider' };
+    candidates.push({
+      id: 'claude',
+      label: 'Claude Code',
+      aliases: ['claude'],
+      billing: 'your existing Claude account or Anthropic provider',
+    });
   }
   if (provider.openrouter?.status === 'configured') {
-    return { id: 'openrouter', label: 'OpenRouter', billing: 'the OpenRouter key already present in your environment' };
+    candidates.push({
+      id: 'openrouter',
+      label: 'OpenRouter',
+      aliases: ['open router'],
+      billing: 'the OpenRouter key already present in your environment',
+    });
   }
   if (provider.openai?.status === 'configured') {
-    return { id: 'openai', label: 'OpenAI', billing: 'the OpenAI key already present in your environment' };
+    candidates.push({
+      id: 'openai',
+      label: 'OpenAI',
+      aliases: ['open ai'],
+      billing: 'the OpenAI key already present in your environment',
+    });
   }
-  return null;
+
+  return candidates;
 }
 
 async function testOpenAI() {
@@ -268,7 +261,10 @@ async function testOpenAI() {
     signal: AbortSignal.timeout(30_000),
   });
   const body = await response.text();
-  return { ok: response.ok && /WORKFRAME_OK/i.test(body), detail: response.ok ? 'OpenAI responded.' : `OpenAI returned HTTP ${response.status}.` };
+  return {
+    ok: response.ok && /WORKFRAME_OK/i.test(body),
+    detail: response.ok ? 'OpenAI responded.' : `OpenAI returned HTTP ${response.status}.`,
+  };
 }
 
 async function testOpenRouter() {
@@ -288,7 +284,10 @@ async function testOpenRouter() {
     signal: AbortSignal.timeout(30_000),
   });
   const body = await response.text();
-  return { ok: response.ok && /WORKFRAME_OK/i.test(body), detail: response.ok ? 'OpenRouter responded.' : `OpenRouter returned HTTP ${response.status}.` };
+  return {
+    ok: response.ok && /WORKFRAME_OK/i.test(body),
+    detail: response.ok ? 'OpenRouter responded.' : `OpenRouter returned HTTP ${response.status}.`,
+  };
 }
 
 async function runTest(candidate) {
@@ -300,7 +299,10 @@ async function runTest(candidate) {
       '--color', 'never',
       'Reply with exactly WORKFRAME_OK and nothing else. Do not inspect files or run tools.',
     ], { timeout: TEST_TIMEOUT_MS, cwd: os.tmpdir() });
-    return { ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`), detail: result.ok ? 'Codex responded.' : firstLine(result.stderr || result.error || 'Codex test failed.') };
+    return {
+      ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`),
+      detail: result.ok ? 'Codex responded.' : firstLine(result.stderr || result.error || 'Codex test failed.'),
+    };
   }
   if (candidate.id === 'claude') {
     const result = run('claude', [
@@ -311,16 +313,39 @@ async function runTest(candidate) {
       '--no-session-persistence',
       'Reply with exactly WORKFRAME_OK and nothing else.',
     ], { timeout: TEST_TIMEOUT_MS, cwd: os.tmpdir() });
-    return { ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`), detail: result.ok ? 'Claude responded.' : firstLine(result.stderr || result.error || 'Claude test failed.') };
+    return {
+      ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`),
+      detail: result.ok ? 'Claude responded.' : firstLine(result.stderr || result.error || 'Claude test failed.'),
+    };
   }
   if (candidate.id === 'openrouter') return testOpenRouter();
   if (candidate.id === 'openai') return testOpenAI();
   return { ok: false, detail: 'No test adapter is available.' };
 }
 
+async function selectCandidate(rl, candidates) {
+  if (candidates.length === 1) return candidates[0];
+
+  console.log('\n  I found more than one inference path I can test:');
+  for (const candidate of candidates) {
+    console.log(`    ${marker('verified')} ${candidate.label}`);
+  }
+
+  let answer = await rl.question('\n  Which one should we speak through?\n  > ');
+  let selection = interpretCandidateChoice(answer, candidates);
+  if (selection.kind === 'selected') return selection.candidate;
+
+  const reason = selection.kind === 'ambiguous'
+    ? 'You named more than one path.'
+    : 'I could not tell which path you meant.';
+  answer = await rl.question(`\n  ${reason} Name one, or tell me to use the recommended one.\n  > `);
+  selection = interpretCandidateChoice(answer, candidates);
+  return selection.kind === 'selected' ? selection.candidate : null;
+}
+
 async function askForTest(report) {
-  const candidate = chooseTest(report);
-  if (!candidate) {
+  const candidates = listTestCandidates(report);
+  if (candidates.length === 0) {
     console.log(color.dim('\n  I could not find a configured inference path I can test safely.'));
     console.log(color.dim('  Nothing was sent and nothing was changed. We stop here.\n'));
     return;
@@ -328,6 +353,12 @@ async function askForTest(report) {
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   try {
+    const candidate = await selectCandidate(rl, candidates);
+    if (!candidate) {
+      console.log(color.dim('\n  I still could not resolve one path safely. Nothing was sent or changed.\n'));
+      return;
+    }
+
     console.log(`\n  I can make one tiny verification call through ${color.bold(candidate.label)}.`);
     console.log(color.dim(`  It will use ${candidate.billing} and may incur a negligible charge.`));
     console.log(color.dim('  Nothing else will be installed or changed.'));
@@ -360,29 +391,35 @@ async function askForTest(report) {
       console.log(color.dim(`  ${error instanceof Error ? error.message : String(error)}\n`));
       process.exitCode = 1;
     }
+  } catch (error) {
+    if (error?.code !== 'ERR_USE_AFTER_CLOSE') {
+      console.log(color.dim('\n  Input ended before explicit approval. Nothing was sent or changed.\n'));
+    }
   } finally {
     rl.close();
   }
 }
 
 function help() {
-  console.log(`workframe ${VERSION}\n\nUsage:\n  npx workframe\n  npx workframe status [--json] [--no-test]\n\nCommands:\n  status     Discover local runtimes and provider configuration.\n  help       Show this help.\n\nThe status flow is read-only until you explicitly approve one minimal provider test.\nCredential values are never printed or transmitted by Workframe.`);
+  console.log(`workframe ${VERSION}\n\nUsage:\n  npx workframe\n  npx workframe status [--json] [--no-test]\n\nCommands:\n  status     Discover local runtimes and provider configuration.\n  help       Show this help.\n\nThe status flow is read-only until you select a path and explicitly approve one minimal provider test.\nCredential values are never printed or transmitted by Workframe.`);
 }
 
 async function main() {
   const args = process.argv.slice(2);
+
+  if (args.some((arg) => ['--help', '-h'].includes(arg)) || args[0] === 'help') {
+    help();
+    return;
+  }
+  if (args.some((arg) => ['--version', '-v'].includes(arg)) || args[0] === 'version') {
+    console.log(VERSION);
+    return;
+  }
+
   const command = args.find((arg) => !arg.startsWith('-')) || 'status';
   const json = args.includes('--json');
   const noTest = args.includes('--no-test') || json || !process.stdin.isTTY;
 
-  if (['help', '--help', '-h'].includes(command)) {
-    help();
-    return;
-  }
-  if (['version', '--version', '-v'].includes(command)) {
-    console.log(VERSION);
-    return;
-  }
   if (command !== 'status') {
     console.error(`Unknown command: ${command}`);
     help();
