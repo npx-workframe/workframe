@@ -2,6 +2,8 @@
   "campaign": "WF-CLI",
   "scope": "packages/workframe/**",
   "source_of_truth_target": "docs/ledger/backlog.json",
+  "canonical": false,
+  "reconciled_at": "2026-07-14",
   "status": "review",
   "items": [
     {
@@ -10,7 +12,11 @@
       "priority": "P0",
       "status": "review",
       "depends_on": [],
-      "patch_refs": ["deca7cdd885dfc3111a44954f1da77b3488afe2b"],
+      "patch_refs": [
+        "deca7cdd885dfc3111a44954f1da77b3488afe2b",
+        "fc199c94c006b10bca9c4fef3a659c40f1235097",
+        "b36e51bc14b4925e13db1d9fb2935ef83c6f8d2f"
+      ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
         "packages/workframe/bin/entry.js",
@@ -26,7 +32,8 @@
         "after a verified existing inference path, collect preferred name and first objective",
         "print a bounded memory-only mirror without filesystem or installation mutation",
         "negative language wins over positive language in mixed consent",
-        "package-local and packed-artifact tests pass without live credentials"
+        "package-local and packed-artifact tests pass without live credentials",
+        "the installed npm bin entrypoint executes correctly through a POSIX symlink"
       ]
     },
     {
@@ -80,6 +87,7 @@
     }
   ],
   "invariants": [
+    "Canonical item status and dispatch live only in docs/ledger/backlog.json; this file preserves campaign design and acceptance detail.",
     "Do not modify packages/create-workframe, apps, services, infra, or existing runtime behavior.",
     "Do not read or print credential values.",
     "Do not overwrite, adopt, or mutate an existing setup without an explicit immutable plan approval.",
