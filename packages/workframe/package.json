@@ -3,15 +3,34 @@
   "version": "0.2.1",
   "description": "Adaptive local entrypoint for Workframe runtimes and model providers.",
   "type": "module",
-  "bin": { "workframe": "bin/workframe.js" },
-  "files": ["bin", "lib", "README.md"],
+  "bin": {
+    "workframe": "bin/workframe.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
   "scripts": {
-    "check": "node --check bin/workframe.js && for f in lib/*.js test/*.test.js; do node --check \"$f\"; done",
+    "check": "node --check bin/workframe.js && node --check lib/dialogue.js && node --check lib/discovery.js && node --check lib/flow.js && node --check lib/package-info.js && node --check lib/process.js && node --check lib/session.js && node --check lib/terminal.js && node --check lib/verification.js && node --check test/authority-verification.test.js && node --check test/dialogue-flow.test.js && node --check test/terminal-package.test.js",
     "test": "npm run check && node --test test/*.test.js && node bin/workframe.js --version && node bin/workframe.js status --json > /dev/null"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "Apache-2.0",
-  "repository": { "type": "git", "url": "https://github.com/npx-workframe/workframe.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/npx-workframe/workframe.git"
+  },
   "homepage": "https://workfra.me",
-  "keywords": ["workframe", "agents", "hermes", "codex", "claude", "runtime", "diagnostics"]
+  "keywords": [
+    "workframe",
+    "agents",
+    "hermes",
+    "codex",
+    "claude",
+    "runtime",
+    "diagnostics"
+  ]
 }
