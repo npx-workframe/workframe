@@ -19,6 +19,21 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 | **marketplace** | After ledger stable | WF-NS-P8 |
 | **meta** | Vocabulary, spec-kit adoption | WF-NS-P0, WF-SK-001 |
 
+## Standalone Socratic CLI campaign
+
+The bounded `WF-CLI-*` campaign is staged at [`specs/WF-CLI-001/campaign.json`](specs/WF-CLI-001/campaign.json) for independent review and reconciliation into `backlog.json`. It is confined to `packages/workframe/**`; it does not modify `create-workframe`, applications, services, infrastructure, or existing runtime behavior.
+
+| ID | Slice | Status |
+|----|-------|--------|
+| WF-CLI-001 | Memory-only Socratic session seed | **review** |
+| WF-CLI-002 | Provider-neutral conversational inference adapter | todo |
+| WF-CLI-003 | Fluid Socratic dialogue state machine | todo |
+| WF-CLI-004 | Constitutional entity and goal draft | todo |
+| WF-CLI-005 | Non-destructive Architectonic composition plan | todo |
+| WF-CLI-006 | Dry-run Workframe deployment plan | todo |
+| WF-CLI-007 | Explicit apply and rollback authority gates | todo |
+| WF-CLI-008 | Packed cross-platform Socratic CLI evidence | todo |
+
 ## Seventeen consolidated audit findings (25-audit)
 
 | ID | Finding | Backlog | Status |
