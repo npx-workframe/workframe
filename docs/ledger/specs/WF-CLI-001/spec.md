@@ -1,6 +1,6 @@
 # WF-CLI-001 — Conversational link and memory-only Socratic seed
 
-**Status:** todo  
+**Status:** review  
 **Implementer:** `workframe-cli-builder`  
 **Reviewer:** `workframe-cli-reviewer`
 
@@ -59,49 +59,46 @@ Result: **rejected; return to todo**
 
 Verified repairs:
 
-- the branch is rebuilt from current `main`, is zero commits behind, and is mergeable;
-- cancellation is threaded through the terminal, HTTP request, and asynchronous child-process interfaces;
-- account-backed and direct API-key candidates are separate;
-- inference child environments exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables;
-- structured provider parsers require the exact `WORKFRAME_OK` assistant response.
+- the branch was rebuilt from then-current `main` and was mergeable;
+- cancellation was threaded through the terminal, HTTP request, and asynchronous child-process interfaces;
+- account-backed and direct API-key candidates were separate;
+- inference child environments excluded Docker, SSH, unrelated credentials, and arbitrary ambient variables;
+- structured provider parsers required the exact `WORKFRAME_OK` assistant response.
 
 Blocking findings:
 
-1. **Candidate mentions still authorize a path without affirmative selection.** The parser selects a candidate whenever one unhedged term appears, regardless of whether the sentence is descriptive or distrustful. Exact reproductions against the reviewed parser:
+1. **Candidate mentions authorized a path without affirmative selection.** Exact reproductions included `I don't know anything about Claude.`, `I don't trust OpenRouter.`, `Claude is installed.`, and `Claude sounds risky.`.
+2. **Exclusions could select an unrelated provider.** `Don't use Claude; use Codex.` and `Not Claude, use Codex.` resolved to the sole unmentioned OpenRouter candidate.
+3. **Windows cancellation was not proven fail-closed.** Production started `taskkill` detached and unrefed without observing spawn error, exit code, or completion, while the test bypassed that path with an injected terminator.
+4. **Exact-head CI was red.** CI failed at `Harness verify`, skipped downstream package evidence, and did not independently run the package-local and packed-tarball matrix.
 
-   ```text
-   "I don't know anything about Claude." → claude-account
-   "I don't trust OpenRouter." → openrouter-api
-   "Claude is installed." → claude-account
-   "Claude sounds risky." → claude-account
-   ```
+Rejected PR #9 is closed unmerged and retained only as evidence. Its exact failure phrases remain mandatory regressions for every later implementation.
 
-   These are not selections. They violate the requirement that descriptive, negative-context, and non-imperative language remain unresolved.
+## Current resubmission pending independent review
 
-2. **Exclusions can select an unrelated provider.** `isExcluded` applies the first exclusion marker to every later candidate term within a global 48-character window. Exact reproductions:
+Sole active pull request: `#7`  
+Current pull-request head: `82a18716e6c758762916657f6577d78290f7b779`  
+Implementation head: `6a820c3b970f59dc51d484cbb457de65819f3a7a`  
+Result: **pending independent review**
 
-   ```text
-   "Don't use Claude; use Codex." → openrouter-api
-   "Not Claude, use Codex." → openrouter-api
-   ```
+The resubmission reports:
 
-   Both named paths are incorrectly excluded, and the sole unmentioned remaining candidate is silently chosen.
+- 43 package tests passed before the focused eligibility patch;
+- a packed `workframe-0.2.1.tgz` installed cleanly and its npm bin returned valid version and status output before the focused patch;
+- installed-only Claude discovery no longer creates an authenticated account-backed candidate;
+- explicitly authenticated Claude and `ANTHROPIC_API_KEY` paths remain separate;
+- cancellation, inference environment isolation, payer disclosure, hedged-selection denial, and structured response verification are covered by focused tests.
 
-3. **Windows cancellation is not proven fail-closed.** The production Windows terminator starts `taskkill` detached and unrefed but does not observe its spawn error, exit code, or completion. `runChildCommand` then settles as cancelled after 750 ms even if the runtime child tree remains alive. The current test injects a custom terminator that kills the fake child directly, so it bypasses the production `taskkill` path.
+These are implementer-submitted claims, not acceptance. The branch must first reconcile the CLI-specific current-main ledger commits without replacing unrelated queue history. Independent review must then use one exact reconciled head and verify:
 
-4. **The explicit exact-head CI gate is red.** CI run `29356707079` failed at `Harness verify`; downstream package-install and negative-install steps were skipped. The repository workflow also does not independently execute the package-local and packed-tarball matrix recorded by the implementer.
-
-## Required remediation
-
-- Require affirmative selection syntax for named candidates, or parse positive and negative clauses explicitly so mere mentions cannot select a path.
-- Scope each exclusion to the candidate clause it modifies; never choose an unrelated remaining candidate from ambiguous multi-clause text.
-- Add regression tests for every exact phrase listed in this review.
-- On Windows, await and verify `taskkill` completion, handle spawn and nonzero-exit failures, and do not return a cancelled result while the runtime process may still be alive.
-- Add a Windows test that exercises the production `.cmd` plus `taskkill` path instead of an injected direct kill.
-- Add package-local and packed-tarball checks to exact-head CI and obtain a green or explicitly isolated repository result before resubmission.
+1. the complete package suite, including `candidate-eligibility.test.js`;
+2. installed-only Claude cannot be selected or billed as an authenticated account path;
+3. authenticated-account and API-key-backed Claude paths remain distinct with exact payer disclosure;
+4. all fourth-review descriptive, negative-context, and mixed-exclusion phrases remain unresolved or select only the explicit affirmative clause;
+5. production Windows `.cmd` cancellation awaits and validates `taskkill` completion rather than using an injected terminator;
+6. Ctrl+C promptly terminates HTTP and child verification and prevents every Socratic prompt;
+7. packed-artifact, PTY, Windows-semantics, and available repository CI evidence all correspond to the same exact head.
 
 ## Evidence boundary
 
-The implementer reported 18/18 package tests, a clean packed install, valid status JSON, and a real-PTY Ctrl+C cancellation result on Linux. This review retained those as implementer evidence but did not treat them as independent acceptance because the exact-head CI gate is red and Windows production termination remains untested.
-
-`WF-CLI-002` remains dependency-gated. `now.md` is unchanged because this slice has not been accepted or shipped. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
+Current exact-head repository CI run `29356756330` is red at `Harness verify`; downstream package-install and negative-install steps were skipped. This is not acceptance evidence. `WF-CLI-002` remains dependency-gated. `now.md` is unchanged because this slice has not been accepted or shipped. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
