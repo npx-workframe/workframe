@@ -15,7 +15,10 @@
         "048aa413cd89ccb9f4bb348597a7087a04ef0d55",
         "57cfe7359c39584017552d906642e0c7bb3c1de5",
         "c87166e935f31133ee42374e5d415669728db6e3",
-        "b4c7c6a278c56d5958f73a3fecd289f428cf11fb"
+        "bf165bab2103f29b9ceb645c616345e1c4f258c9",
+        "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
+        "384876c6090432a2b19e51dfe1ec9985c0f92a12",
+        "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a"
       ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
@@ -24,17 +27,18 @@
         "packages/workframe/lib/session.js",
         "packages/workframe/checks/workframe-checks.js",
         "packages/workframe/README.md",
-        "independent reconstruction matched all previously reviewed Git blob SHAs",
-        "previous accepted checks: cd packages/workframe && npm test: 26 passed on Linux x64 / Node v22.16.0",
-        "previous accepted checks: npm pack --json --ignore-scripts; clean packed install version and status JSON passed",
-        "previous accepted checks: real PTY Ctrl+C and Ctrl+D at consent exited 0 without provider invocation",
-        "b4c7c6a: child runtime environment reduced to an allowlist plus the selected candidate credential names",
-        "b4c7c6a: known credential values are redacted from subprocess stdout, stderr, and errors before display",
-        "b4c7c6a: Codex and Claude verification now parses structured assistant result fields and requires exact WORKFRAME_OK",
-        "b4c7c6a: OpenAI and OpenRouter verification now parses provider JSON and requires an exact assistant response",
-        "b4c7c6a: best/default questions remain unresolved unless the user uses an explicit imperative delegation phrase",
-        "b4c7c6a: adversarial regressions cover secret-bearing stderr, argv echo, refusal text, and selection questions",
-        "CI run 29347827885: failure at aggregate repository CI; not acceptance evidence",
+        "bf165ba: runtime questions and non-imperative best/default language remain unresolved; deterministic selection requires an explicit imperative delegation",
+        "b4c7c6a: runtime children receive an allowlisted environment plus only the selected credential names",
+        "b4c7c6a: configured credential values are redacted from subprocess stdout, stderr, and errors before display",
+        "b4c7c6a: Codex and Claude verification consumes structured assistant output and requires exact WORKFRAME_OK",
+        "b4c7c6a: OpenAI and OpenRouter verification parses provider JSON and requires an exact assistant response",
+        "384876c: adversarial regressions cover secret-bearing stderr, argv echo, refusal or diagnostic text, and runtime-selection questions",
+        "reconstructed repaired package: cd packages/workframe && npm test — 34 passed on Linux x64 / Node v22.16.0",
+        "npm pack --json --ignore-scripts: workframe-0.2.1.tgz; shasum 858b1efb672ee673ddc4e9d6a079aa6e7ee765c5",
+        "clean temporary packed install: workframe --version returned 0.2.1 and status --json parsed successfully",
+        "real PTY Ctrl+C and Ctrl+D at consent: exit 0, safe stop, no provider invocation",
+        "eb8f81f: canonical docs/ledger/backlog.json WF-CLI campaign restored with WF-CLI-001 in review and later slices dependency-gated",
+        "CI run 29348238879: dependency, version, docs-claim, and evidence steps passed; aggregate Harness verify remains red and is not acceptance evidence",
         "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
@@ -63,30 +67,31 @@
         "result": "rejected",
         "head_sha": "c87166e935f31133ee42374e5d415669728db6e3",
         "verified_repairs": [
-          "26 package tests pass",
-          "packed package installs and runs",
-          "Ctrl+C and Ctrl+D settle cleanly",
-          "consent questions and qualifiers fail closed",
-          "help text states the direct credential transmission boundary truthfully"
+          "26 package tests passed",
+          "packed package installed and ran",
+          "Ctrl+C and Ctrl+D settled cleanly",
+          "consent questions and qualifiers failed closed",
+          "help text stated the direct credential transmission boundary truthfully"
         ],
         "failures": [
-          "Codex and Claude failure stderr is printed without secret redaction while child processes inherit the full environment",
-          "Codex and Claude verification accepts successful output that merely echoes WORKFRAME_OK from the prompt",
-          "OpenAI and OpenRouter verification substring-matches the raw HTTP response body",
-          "candidate selection treats best/default questions as delegation",
-          "repository CI remains red at aggregate Harness verify"
+          "Codex and Claude failure stderr was printed without secret redaction while child processes inherited the full environment",
+          "Codex and Claude verification accepted successful output that merely echoed WORKFRAME_OK from the prompt",
+          "OpenAI and OpenRouter verification substring-matched the raw HTTP response body",
+          "candidate selection treated best/default questions as delegation",
+          "repository CI remained red at aggregate Harness verify"
         ]
       },
       "resubmission": {
         "submitted_at": "2026-07-14",
-        "head_sha": "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
+        "head_sha": "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
         "result": "awaiting_independent_review",
         "review_focus": [
+          "independently reconstruct the current package and rerun all 34 tests",
           "prove configured credential values cannot escape through subprocess or provider diagnostics",
           "prove argv echo and non-assistant output cannot verify Codex or Claude",
           "prove refusal or diagnostic text cannot verify OpenAI or OpenRouter",
           "prove best/default questions remain unresolved without explicit imperative delegation",
-          "rerun package-local, packed-artifact, PTY, and available CI checks from the exact head"
+          "rerun packed-artifact, PTY, and available CI checks from the exact current head"
         ]
       }
     },
