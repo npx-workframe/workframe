@@ -8,7 +8,7 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 
 ## Standalone Workframe CLI campaign
 
-The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). The first slice, conversational inference-path selection and explicit provider-test consent, is **in review** with commit and test evidence recorded in that spec. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
+The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). Independent review returned the first slice to **todo** with exact syntax, consent, credential-wording, authority-boundary, EOF, and CI failures recorded in that spec. `WF-CLI-002` remains blocked. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
 
 Planned sequence: truthful capability graph → bounded inference session → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
 
