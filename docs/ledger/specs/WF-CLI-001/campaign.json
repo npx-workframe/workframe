@@ -2,13 +2,13 @@
   "campaign": "WF-CLI",
   "scope": "packages/workframe/**",
   "source_of_truth_target": "docs/ledger/backlog.json",
-  "status": "review",
+  "status": "todo",
   "items": [
     {
       "id": "WF-CLI-001",
-      "title": "Memory-only Socratic session seed",
+      "title": "Conversational link and memory-only Socratic seed",
       "priority": "P0",
-      "status": "review",
+      "status": "todo",
       "depends_on": [],
       "patch_refs": [
         "1f30820",
@@ -17,37 +17,60 @@
         "ac62f1c",
         "0011730",
         "9b2926e",
-        "deca7cdd885dfc3111a44954f1da77b3488afe2b",
-        "b943cff17ab204a81346b4f2c9412e4180b526cc"
+        "af2da80fadfdd25e5370776453baff87be9d1788",
+        "c15f250af9edf51650917a80fe928b880003150f"
       ],
       "evidence": [
         "packages/workframe/bin/workframe.js",
-        "packages/workframe/bin/entry.js",
+        "packages/workframe/lib/dialogue.js",
+        "packages/workframe/lib/session.js",
         "packages/workframe/checks/workframe-checks.js",
         "packages/workframe/README.md",
-        "cd packages/workframe && npm test",
-        "cd packages/workframe && npm run check",
-        "npm pack --ignore-scripts + clean temporary install smoke test",
-        "POSIX npm-bin symlink invocation regression check"
+        "PR #7 implementation head c15f250af9edf51650917a80fe928b880003150f",
+        "CI run 29333673842: failure at Harness verify",
+        "static node --check reproduction: JSON.stringify { is a SyntaxError",
+        "consent reproduction: Sure, what will this cost? => yes",
+        "consent reproduction: Okay, explain what will be sent first. => yes",
+        "EOF reproduction: readline question exits non-cleanly without a catch"
       ],
       "acceptance": [
-        "begin preserves read-only discovery and requires explicit consent before a verification call",
-        "after a verified existing inference path, collect preferred name and first objective",
+        "select one existing inference path conversationally without guessing ambiguity",
+        "require separate billing-disclosed consent before a minimal verification call",
+        "after a verified path, collect preferred name and first objective",
         "print a bounded memory-only mirror without filesystem or installation mutation",
-        "negative language wins over positive language in mixed consent",
-        "package-local and packed-artifact tests pass without live credentials"
-      ]
+        "package-local and packed-artifact checks pass without live credentials"
+      ],
+      "review": {
+        "reviewer": "workframe-cli-reviewer",
+        "reviewed_at": "2026-07-14",
+        "result": "rejected",
+        "head_sha": "c15f250af9edf51650917a80fe928b880003150f",
+        "failures": [
+          "packages/workframe/bin/workframe.js contains body: JSON.stringify { in testOpenRouter, so npm run check and npm test cannot pass on the current head",
+          "interpretConsent treats bare sure and okay tokens anywhere in a sentence as authorization, so questions such as Sure, what will this cost? and Okay, explain what will be sent first. authorize a provider call",
+          "help claims credential values are never transmitted by Workframe, while direct OpenAI and OpenRouter verification necessarily sends the selected environment credential to that provider after consent",
+          "the checks exercise helper functions and smoke entrypoints but do not prove the authority boundary: denial and ambiguous consent must prevent invocation, failed verification must prevent Socratic questions, and identity/objective prompts must require a verified link",
+          "EOF and interrupted input are not handled by runInteractive; the prior graceful input-ended path was removed, leaving non-clean termination before explicit consent"
+        ],
+        "required_remediation": [
+          "restore valid JSON.stringify({...}) syntax and rerun package-local plus packed-artifact checks from the exact reviewed head",
+          "make affirmative consent explicit and fail closed for questions, qualifiers, requests for explanation, and other ambiguous language",
+          "replace the absolute credential-transmission claim with truthful wording: credentials are never printed or persisted and are sent only to the explicitly approved selected provider",
+          "add injectable verification/dialogue seams and end-to-end tests proving no invocation before consent, no dialogue after failed verification, and graceful refusal, EOF, Ctrl+C, and timeout outcomes",
+          "reconcile WF-CLI-001 back to todo in docs/ledger/backlog.json without modifying existing non-CLI history"
+        ]
+      }
     },
     {
       "id": "WF-CLI-002",
-      "title": "Provider-neutral conversational inference adapter",
+      "title": "Truthful runtime and provider capability graph",
       "priority": "P1",
       "status": "todo",
       "depends_on": ["WF-CLI-001"]
     },
     {
       "id": "WF-CLI-003",
-      "title": "Fluid Socratic dialogue state machine",
+      "title": "Provider-neutral model-assisted dialogue",
       "priority": "P1",
       "status": "todo",
       "depends_on": ["WF-CLI-002"]
@@ -90,8 +113,8 @@
   ],
   "invariants": [
     "Do not modify packages/create-workframe, apps, services, infra, or existing runtime behavior.",
-    "Do not read or print credential values.",
-    "Do not overwrite, adopt, or mutate an existing setup without an explicit immutable plan approval.",
+    "Do not read, print, persist, or transmit credential values except directly to the explicitly selected provider after consent.",
+    "Do not overwrite, adopt, or mutate an existing setup without explicit approval of a concrete immutable plan.",
     "Do not use a Workframe-hosted or implicit cloud fallback.",
     "Publication remains a separate reviewed release decision."
   ]
