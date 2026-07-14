@@ -45,4 +45,10 @@ When more than one safe inference path is available, the CLI asks the user which
 - `npm test`: 7/7 passing, including negative precedence, ambiguous consent, multiple candidate names, and exclusions.
 - `npm pack --dry-run --json`: packed artifact contains `bin/workframe.js`, `lib/dialogue.js`, and `package.json`.
 
+## Integrator reconciliation
+
+The bounded campaign manifest is preserved at `campaign.json` on main. `WF-CLI-001` remains in review and `WF-CLI-002` remains blocked until independent review closes the first slice.
+
+The open PR's candidate `backlog.json` must not be merged as-is because it also rewrites unrelated existing wave assignments. Machine-queue reconciliation must append only `WF-CLI-001` through `WF-CLI-008` to a fresh current-main `backlog.json`, preserving all pre-existing ledger rows otherwise.
+
 No package was published. No existing installation, runtime, credential, service, app, or infrastructure path was modified.
