@@ -10,14 +10,16 @@
       "priority": "P0",
       "status": "review",
       "depends_on": [],
-      "patch_refs": ["fc199c94c006b10bca9c4fef3a659c40f1235097"],
+      "patch_refs": ["deca7cdd885dfc3111a44954f1da77b3488afe2b"],
       "evidence": [
         "packages/workframe/bin/workframe.js",
+        "packages/workframe/bin/entry.js",
         "packages/workframe/checks/workframe-checks.js",
         "packages/workframe/README.md",
         "cd packages/workframe && npm test",
         "cd packages/workframe && npm run check",
-        "npm pack --ignore-scripts + clean temporary install smoke test"
+        "npm pack --ignore-scripts + clean temporary install smoke test",
+        "POSIX npm-bin symlink invocation regression check"
       ],
       "acceptance": [
         "begin preserves read-only discovery and requires explicit consent before a verification call",
