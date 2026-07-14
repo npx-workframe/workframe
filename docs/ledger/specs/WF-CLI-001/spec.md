@@ -1,6 +1,6 @@
 # WF-CLI-001 — Conversational link and memory-only Socratic seed
 
-**Status:** todo  
+**Status:** review  
 **Implementer:** `workframe-cli-builder`  
 **Reviewer:** `workframe-cli-reviewer`
 
@@ -21,23 +21,26 @@ The bounded progression is:
 
 ## Current slice
 
-The CLI discovers existing inference paths, asks which path to use when several are available, discloses who pays, and requires separate explicit approval before a minimal verification call. After the selected path is verified, `workframe begin` asks who is speaking and what they are trying to bring into existence, then prints a bounded first mirror.
+The CLI discovers existing inference paths, represents account-backed and direct API-key paths separately, asks which path to use when several are available, and discloses the exact payer, credential source, and invocation before separate explicit approval of one minimal verification call.
 
-The first mirror is deterministic and exists in memory only. It distinguishes the human's stated objective from unresolved purpose, constraints, and success criteria. It does not yet send the Socratic answers to a model, write Architectonic layers, or deploy Workframe.
+The verification is cancellable through the terminal, HTTP request, and runtime-child boundaries. Runtime children receive a minimal inference environment without Docker, SSH, unrelated credentials, or other ambient authority handles. Only after the selected path is verified does `workframe begin` ask who is speaking and what they are trying to bring into existence, then print a bounded memory-only first mirror.
+
+The first mirror distinguishes the human's stated objective from unresolved purpose, constraints, and success criteria. It does not send the Socratic answers to a model, write Architectonic layers, install packages, adopt an existing runtime, or deploy Workframe.
 
 ## Acceptance
 
 - One runtime/provider can be selected by id, label, supported alias, exclusion, or explicit imperative delegation.
 - Multiple positive runtime mentions, questions, hedged answers, and non-imperative best/default language remain unresolved rather than being guessed.
 - Runtime selection itself performs no network call and mutates no files.
-- Provider verification remains bounded, read-only, billing-disclosed, cancellable, and separately consent-gated.
+- Account-backed and API-key-backed paths are distinct candidates with exact payer, credential source, and invocation disclosure.
+- Provider verification remains bounded, read-only, separately consent-gated, and cancellable.
 - Runtime children receive a minimal inference-only environment plus only the credential explicitly selected for that candidate.
 - Credential values are redacted from subprocess and provider diagnostics before display.
 - Codex, Claude, OpenAI, and OpenRouter verification requires an exact assistant response from a structured response field; prompt echoes, refusal text, and diagnostic text cannot verify a link.
-- Negative intent takes precedence over positive words; polite, conditional, questioning, or explanatory language remains non-authorizing.
+- Negative intent takes precedence over positive words; polite, conditional, questioning, explanatory, or uncertain language remains non-authorizing.
 - A verified `begin` flow collects preferred name and first objective, then prints a memory-only mirror.
 - EOF, Ctrl+C, timeout, refusal, missing objective, and provider failure stop promptly without persistence or installation mutation.
-- Package checks and packed npm-bin smoke checks pass without live credentials.
+- Package-local, real-PTY, Windows-semantics, exact-head CI, and packed npm-bin checks pass without live credentials.
 
 ## Review history
 
@@ -45,40 +48,42 @@ The first independent review rejected invalid OpenRouter request syntax, fail-op
 
 The second independent review rejected credential-bearing subprocess diagnostics, prompt-echo and refusal-text false positives, and implicit best/default selection.
 
-The submitted hardening repairs structured response parsing, known environment-secret redaction, consent fail-closed behavior, and question-form best/default handling. Those repairs are retained, but the slice remains rejected.
+The third independent review of `2b85c70d3fb9302dc435c45459ac698ca46a05f6` verified structured response parsing, known-secret redaction, consent fail-closed behavior, and consent-prompt interruption, but rejected the slice because verification itself was not cancellable, hedged selections were accepted, account and API-key billing paths were conflated, inference children inherited Docker and SSH handles, and the branch was diverged without exact-head CI evidence.
 
-## Third independent review — rejected 2026-07-14
+## Remediation submitted for independent review
 
-Reviewed implementation head: `2b85c70d3fb9302dc435c45459ac698ca46a05f6`.
+Implementation branch: `automation/wf-cli-001-cancellable-link-v5`  
+Base: `1d2c9a6cae56b347faf04f36e6083378a98eeae2`  
+Pull request: `#9`  
+Submitted head before ledger-only commits: `3c1b64a49eb25f09c0a8da448f5bfb355394d88a`
 
-Verified by source inspection and targeted exact-parser reproduction:
+Implemented repairs:
 
-- structured assistant/provider response fields require exact `WORKFRAME_OK`;
-- configured secret-like environment values are redacted from displayed subprocess diagnostics;
-- questioning best/default answers remain unresolved;
-- questioning and qualified consent remains non-authorizing;
-- consent-prompt EOF and Ctrl+C settlement paths are present.
+- terminal cancellation is threaded into `runInteractiveFlow`, HTTP verification, and asynchronous runtime child execution;
+- an interrupted or timed-out runtime child is terminated and cannot advance to Socratic prompts;
+- `maybe`, `perhaps`, `probably`, `I guess`, questions, and non-imperative recommendations remain unresolved;
+- Codex and Claude account sessions are separate from direct OpenAI and OpenRouter API-key candidates;
+- each candidate states one exact payer, credential source, and invocation before consent;
+- inference environments exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables;
+- exact structured assistant responses are required;
+- the stale monolithic dialogue test was replaced with focused dialogue, authority, verification, terminal, package, and cancellation suites.
 
-Blocking findings:
+Exact-head local evidence before ledger-only commits:
 
-1. **Ctrl+C does not cancel a verification already in flight.** `runInteractiveFlow` awaits `verify(candidate)` without a cancellation signal. HTTP verification uses only a 30-second timeout signal, while Codex and Claude use synchronous `spawnSync` with a 90-second timeout. The terminal SIGINT handler can close readline, but it cannot abort the provider request or child process. A user can therefore press Ctrl+C after consent and still wait for, and potentially be billed for, the request.
-2. **Hedged runtime answers are treated as selections.** The exact current parser selects `Maybe Claude.`, `Probably Codex.`, `Claude, perhaps.`, and `I guess OpenRouter.` because a single candidate mention is accepted before uncertainty is evaluated.
-3. **Runtime billing is not deterministic.** If Codex or Claude is available and a corresponding API key is also configured, the candidate receives that key automatically while the disclosure says the call may use either the existing account or the configured provider. The exact credential and payer are not selected or stated.
-4. **The inference environment contains unrelated authority handles.** `DOCKER_HOST`, `DOCKER_CONTEXT`, `DOCKER_CONFIG`, and `SSH_AUTH_SOCK` are included in the shared child allowlist even though they are not required for a model verification call.
-5. **The candidate is not merge-ready.** The PR branch is diverged, eighteen commits ahead and nine commits behind current `main`, and GitHub reports it as unmergeable. The exact reviewed head has no attached package or repository CI run.
+- `cd packages/workframe && npm test`: 18/18 passed on Linux x64 / Node v22.16.0;
+- `npm pack` produced `workframe-0.2.1.tgz`;
+- a clean temporary install returned version `0.2.1` and valid `status --json`;
+- a real PTY synthetic verification proved Ctrl+C after consent aborts the in-flight verification, returns `stopped:interrupt`, and emits no Socratic prompt;
+- no live provider call, package publication, installation mutation, or non-CLI code change occurred.
 
-## Required remediation
+## Independent review focus
 
-- Thread one cancellation signal from terminal handling through the interactive flow into verification.
-- Abort OpenAI/OpenRouter fetches and replace synchronous Codex/Claude execution with a cancellable child process that is terminated on Ctrl+C.
-- Add real verification-phase interruption tests, not only consent-prompt PTY tests.
-- Treat uncertainty markers such as `maybe`, `perhaps`, `probably`, and `I guess` as unresolved candidate selection.
-- Represent account-backed and API-key-backed paths separately, and disclose the exact payer and credential source before consent.
-- Split discovery and inference environment allowlists; remove Docker and SSH handles from inference children.
-- Rebuild the implementation branch from current `main` and rerun package-local, packed-artifact, PTY, Windows semantics, and available CI checks from the exact repaired head.
+- rerun package tests and packed install from the final PR #9 head;
+- inspect Windows npm-script, `.cmd`, quoting, and child termination semantics;
+- verify HTTP and runtime-child cancellation promptly prevents Socratic prompts;
+- verify exact payer and selected-credential disclosure for every candidate;
+- inspect pull-request CI and classify any repository-baseline harness failure separately from package evidence.
 
-## Ledger reconciliation
+## Ledger boundary
 
-Canonical reconciliation is complete at `80c98cbad32ff9f0e68f0eb9990add2d6ff07a85`. `docs/ledger/backlog.json` contains exactly one `WF-CLI-001`–`WF-CLI-008` campaign; `WF-CLI-001` is unclaimed `todo`, `WF-CLI-002` remains dependency-gated, and the commit diff changes only the CLI campaign rows. The implementation PR remains draft and must be rebuilt from current `main` after the bounded remediation is complete.
-
-`now.md` was not updated. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
+`WF-CLI-002` remains dependency-gated. `now.md` is unchanged because this slice has not been accepted or shipped. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
