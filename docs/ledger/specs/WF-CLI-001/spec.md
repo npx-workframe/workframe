@@ -75,10 +75,10 @@ Blocking findings:
 - Treat uncertainty markers such as `maybe`, `perhaps`, `probably`, and `I guess` as unresolved candidate selection.
 - Represent account-backed and API-key-backed paths separately, and disclose the exact payer and credential source before consent.
 - Split discovery and inference environment allowlists; remove Docker and SSH handles from inference children.
-- Rebase onto current `main`, reconcile the canonical `docs/ledger/backlog.json` WF-CLI-001 row to `todo`, and rerun package-local, packed-artifact, PTY, Windows semantics, and available CI checks from the exact repaired head.
+- Rebuild the implementation branch from current `main` and rerun package-local, packed-artifact, PTY, Windows semantics, and available CI checks from the exact repaired head.
 
 ## Ledger reconciliation
 
-The campaign staging record now returns `WF-CLI-001` to `todo`; `WF-CLI-002` and later items remain dependency-gated. Current `main` still contains a stale `review` row with PR #6 evidence, so a narrow canonical reconciliation remains required. The full queue was not replaced during review because doing so through the connector would risk overwriting unrelated ledger history.
+Canonical reconciliation is complete at `80c98cbad32ff9f0e68f0eb9990add2d6ff07a85`. `docs/ledger/backlog.json` contains exactly one `WF-CLI-001`–`WF-CLI-008` campaign; `WF-CLI-001` is unclaimed `todo`, `WF-CLI-002` remains dependency-gated, and the commit diff changes only the CLI campaign rows. The implementation PR remains draft and must be rebuilt from current `main` after the bounded remediation is complete.
 
 `now.md` was not updated. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
