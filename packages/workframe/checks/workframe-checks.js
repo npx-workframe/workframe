@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +15,7 @@ import {
 } from '../bin/workframe.js';
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const CLI = path.join(PACKAGE_ROOT, 'bin', 'workframe.js');
+const CLI = path.join(PACKAGE_ROOT, 'bin', 'entry.js');
 
 test('negative consent overrides positive words', () => {
   assert.equal(interpretConsent("Sure, but don't do it yet."), 'no');
@@ -71,10 +73,23 @@ test('flag-only version and help invocations are parsed correctly', () => {
   assert.equal(parseCliArgs(['begin']).command, 'begin');
 });
 
-test('CLI version emits only the semantic version', () => {
+test('package bin entry emits only the semantic version', () => {
   const result = spawnSync(process.execPath, [CLI, '--version'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout.trim(), /^\d+\.\d+\.\d+$/);
+});
+
+test('package bin entry runs through a POSIX symlink', { skip: process.platform === 'win32' }, () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'workframe-bin-'));
+  const linkedCli = path.join(directory, 'workframe');
+  try {
+    fs.symlinkSync(CLI, linkedCli);
+    const result = spawnSync(process.execPath, [linkedCli, '--version'], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout.trim(), /^\d+\.\d+\.\d+$/);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('status JSON is valid and contains no credential values', () => {
