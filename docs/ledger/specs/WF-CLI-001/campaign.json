@@ -11,29 +11,31 @@
       "status": "todo",
       "depends_on": [],
       "patch_refs": [
-        "b20886796fbbc1e90e786081e83cdb2a6aec9098",
-        "3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
-        "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41"
+        "42e78710068d08f09587ba0aa357830ae3fb132e",
+        "6a820c3b970f59dc51d484cbb457de65819f3a7a",
+        "b0861fd84f87aa63fe3658bd44dc878a299f4aca",
+        "82a18716e6c758762916657f6577d78290f7b779"
       ],
       "evidence": [
-        "branch automation/wf-cli-001-cancellable-link-v5 rebuilt from main 1d2c9a6cae56b347faf04f36e6083378a98eeae2",
-        "PR #9 final reviewed head a62ce6d30723ce7f6a0d4aeab7a46615cf41db41; package implementation head 3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
+        "PR #7 is the sole active implementation candidate at 82a18716e6c758762916657f6577d78290f7b779",
+        "PR #7 implementation head 6a820c3b970f59f6d90e4154382a41bfe2 is not the current candidate; current implementation evidence is anchored at 6a820c3b970f59dc51d484cbb457de65819f3a7a",
         "packages/workframe/bin/workframe.js",
         "packages/workframe/lib/dialogue.js",
         "packages/workframe/lib/discovery.js",
         "packages/workframe/lib/flow.js",
+        "packages/workframe/lib/inference.js",
         "packages/workframe/lib/process.js",
         "packages/workframe/lib/session.js",
         "packages/workframe/lib/terminal.js",
-        "packages/workframe/lib/verification.js",
-        "packages/workframe/test/dialogue-flow.test.js",
-        "packages/workframe/test/authority-verification.test.js",
-        "packages/workframe/test/terminal-package.test.js",
-        "implementer evidence: npm test passed 18 of 18 on Linux x64 / Node v22.16.0",
-        "implementer evidence: npm pack produced workframe-0.2.1.tgz and a clean temporary install returned version 0.2.1 with valid status JSON",
-        "implementer evidence: a real PTY synthetic verification returned stopped:interrupt after Ctrl+C and emitted no Socratic prompt",
-        "reviewer targeted reproduction against the exact dialogue parser: negative or descriptive candidate mentions can select an unintended path",
-        "PR #9 exact-head CI runs 29356707079 and 29358102705 failed at Harness verify; package-install and negative-install steps were skipped",
+        "packages/workframe/checks/candidate-eligibility.test.js",
+        "packages/workframe/checks/dialogue-flow.test.js",
+        "packages/workframe/checks/inference.test.js",
+        "packages/workframe/checks/terminal-cli.test.js",
+        "implementer evidence: 43 package tests passed before the focused Claude eligibility patch",
+        "implementer evidence: focused eligibility checks deny installed-only Claude account access and preserve authenticated-account versus API-key-backed paths",
+        "implementer evidence: workframe-0.2.1.tgz clean-install npm-bin smoke checks passed before the focused eligibility patch",
+        "PR #7 exact-head CI run 29356756330 failed at Harness verify; downstream package-install and negative-install steps were skipped",
+        "PR #9 was rejected and closed unmerged; its exact parser and Windows cancellation failures remain mandatory regressions",
         "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
@@ -89,6 +91,7 @@
           "sequence": 4,
           "reviewed_at": "2026-07-14",
           "result": "rejected",
+          "pull_request": 9,
           "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
           "failures": [
             "descriptive and negative-context candidate mentions can authorize a path",
@@ -98,39 +101,38 @@
           ]
         }
       ],
-      "current_review": {
+      "latest_completed_review": {
         "reviewer": "workframe-cli-reviewer",
         "reviewed_at": "2026-07-14",
         "result": "rejected",
         "pull_request": 9,
         "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
-        "verified_repairs": [
-          "the implementation branch was rebuilt from then-current main and was mergeable at review",
-          "verification cancellation reaches terminal, HTTP, and asynchronous child-process interfaces",
-          "account-backed and API-key-backed candidates are distinct",
-          "inference child environments exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables",
-          "structured provider parsers require the exact WORKFRAME_OK assistant response"
+        "required_regressions": [
+          "descriptive and negative-context candidate mentions remain unresolved",
+          "mixed positive and negative clauses select only an explicit affirmative candidate and never an unrelated remainder",
+          "Windows production taskkill completion and runtime-child-tree exit are observed before cancellation settles",
+          "package-local and packed-tarball checks run against the exact review head"
+        ]
+      },
+      "active_candidate": {
+        "pull_request": 7,
+        "head_sha": "82a18716e6c758762916657f6577d78290f7b779",
+        "implementation_head_sha": "6a820c3b970f59dc51d484cbb457de65819f3a7a",
+        "ledger_head_sha": "b0861fd84f87aa63fe3658bd44dc878a299f4aca",
+        "state": "awaiting_main_reconciliation_before_review",
+        "reported_repairs": [
+          "installed-only Claude does not become an authenticated account-backed candidate",
+          "authenticated-account and ANTHROPIC_API_KEY Claude paths remain separate",
+          "verification cancellation reaches HTTP and asynchronous child-process interfaces",
+          "inference children exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables",
+          "hedged selection and exact structured-response checks have focused regressions"
         ],
-        "failures": [
-          "candidate selection still treats any unhedged candidate mention as an affirmative choice, including descriptive and negative-context statements",
-          "exclusion parsing can exclude multiple named paths and silently choose an unrelated remaining candidate",
-          "Windows cancellation can report cancelled without observing taskkill completion or proving the runtime child tree exited",
-          "exact-head CI runs fail at Harness verify and skip downstream package evidence",
-          "repository CI does not independently execute the package-local and packed-tarball matrix"
-        ],
-        "required_remediation": [
-          "require affirmative candidate-selection syntax or parse explicit positive and negative clauses so mere mentions cannot select a path",
-          "scope exclusions to the candidate clause they modify and never infer an unrelated remaining candidate from ambiguous multi-clause text",
-          "add regressions for every exact failing phrase in the fourth review",
-          "await and verify Windows taskkill completion, handle spawn and nonzero-exit failures, and do not settle cancellation while the child tree may remain alive",
-          "add a Windows test exercising the production .cmd and taskkill path",
-          "attach package-local and packed-tarball checks to exact-head CI and obtain a green or explicitly isolated repository result before resubmission"
-        ],
-        "next_builder_slice": [
-          "fix affirmative candidate selection and clause-scoped exclusion parsing",
-          "make Windows production cancellation fail closed",
-          "add only the focused regressions and exact-head package evidence needed for those defects",
-          "do not start WF-CLI-002"
+        "review_entry_requirements": [
+          "rebase or rebuild from current main while preserving canonical non-CLI ledger history",
+          "carry all four completed review failure sets forward as regressions",
+          "run the full package suite including candidate-eligibility.test.js from one exact head",
+          "run packed-tarball, real-PTY, production Windows command semantics, and available repository CI from that same head",
+          "return WF-CLI-001 to review only with exact evidence; do not start WF-CLI-002"
         ]
       }
     },
