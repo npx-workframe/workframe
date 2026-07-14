@@ -4,14 +4,14 @@
   "description": "Adaptive local entrypoint for Workframe runtimes and model providers.",
   "type": "module",
   "bin": {
-    "workframe": "bin/workframe.js"
+    "workframe": "bin/entry.js"
   },
   "files": [
     "bin",
     "README.md"
   ],
   "scripts": {
-    "check": "node --check bin/workframe.js",
+    "check": "node --check bin/workframe.js && node --check bin/entry.js",
     "test": "node --test checks/workframe-checks.js"
   },
   "engines": {
