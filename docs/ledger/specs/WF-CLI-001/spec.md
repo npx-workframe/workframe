@@ -21,23 +21,26 @@ The bounded progression is:
 
 ## Current slice
 
-The CLI discovers existing inference paths, asks which path to use when several are available, discloses who pays, and requires separate explicit approval before a minimal verification call. After the selected path is verified, `workframe begin` asks who is speaking and what they are trying to bring into existence, then prints a bounded first mirror.
+The CLI discovers existing inference paths, represents account-backed and direct API-key paths separately, asks which path to use when several are available, and discloses the payer, credential source, and invocation before separate explicit approval of one minimal verification call.
 
-The first mirror is deterministic and exists in memory only. It distinguishes the human's stated objective from unresolved purpose, constraints, and success criteria. It does not yet send the Socratic answers to a model, write Architectonic layers, or deploy Workframe.
+The verification is intended to be cancellable through the terminal, HTTP request, and runtime-child boundaries. Runtime children receive a reduced inference environment without Docker, SSH, unrelated credentials, or arbitrary ambient variables. Only after the selected path is verified does `workframe begin` ask who is speaking and what they are trying to bring into existence, then print a bounded memory-only first mirror.
+
+The first mirror distinguishes the human's stated objective from unresolved purpose, constraints, and success criteria. It does not send the Socratic answers to a model, write Architectonic layers, install packages, adopt an existing runtime, or deploy Workframe.
 
 ## Acceptance
 
 - One runtime/provider can be selected by id, label, supported alias, exclusion, or explicit imperative delegation.
-- Multiple positive runtime mentions, questions, hedged answers, and non-imperative best/default language remain unresolved rather than being guessed.
+- Multiple positive runtime mentions, questions, hedged answers, descriptive mentions, negative-context mentions, and non-imperative best/default language remain unresolved rather than being guessed.
 - Runtime selection itself performs no network call and mutates no files.
-- Provider verification remains bounded, read-only, billing-disclosed, cancellable, and separately consent-gated.
+- Account-backed and API-key-backed paths are distinct candidates with exact payer, credential source, and invocation disclosure.
+- Provider verification remains bounded, read-only, separately consent-gated, and cancellable.
 - Runtime children receive a minimal inference-only environment plus only the credential explicitly selected for that candidate.
 - Credential values are redacted from subprocess and provider diagnostics before display.
 - Codex, Claude, OpenAI, and OpenRouter verification requires an exact assistant response from a structured response field; prompt echoes, refusal text, and diagnostic text cannot verify a link.
-- Negative intent takes precedence over positive words; polite, conditional, questioning, or explanatory language remains non-authorizing.
+- Negative intent takes precedence over positive words; polite, conditional, questioning, explanatory, or uncertain language remains non-authorizing.
 - A verified `begin` flow collects preferred name and first objective, then prints a memory-only mirror.
 - EOF, Ctrl+C, timeout, refusal, missing objective, and provider failure stop promptly without persistence or installation mutation.
-- Package checks and packed npm-bin smoke checks pass without live credentials.
+- Package-local, real-PTY, Windows-semantics, exact-head CI, and packed npm-bin checks pass without live credentials.
 
 ## Review history
 
@@ -45,40 +48,60 @@ The first independent review rejected invalid OpenRouter request syntax, fail-op
 
 The second independent review rejected credential-bearing subprocess diagnostics, prompt-echo and refusal-text false positives, and implicit best/default selection.
 
-The submitted hardening repairs structured response parsing, known environment-secret redaction, consent fail-closed behavior, and question-form best/default handling. Those repairs are retained, but the slice remains rejected.
+The third independent review of `2b85c70d3fb9302dc435c45459ac698ca46a05f6` verified structured response parsing, known-secret redaction, consent fail-closed behavior, and consent-prompt interruption, but rejected the slice because verification itself was not cancellable, hedged selections were accepted, account and API-key billing paths were conflated, inference children inherited Docker and SSH handles, and the branch was diverged without exact-head CI evidence.
 
-## Third independent review — rejected 2026-07-14
+## Fourth independent review
 
-Reviewed implementation head: `2b85c70d3fb9302dc435c45459ac698ca46a05f6`.
+Reviewed pull request: `#9`  
+Reviewed final head: `a62ce6d30723ce7f6a0d4aeab7a46615cf41db41`  
+Package implementation head: `3c1b64a49eb25f09c0a8da448f5bfb355394d88a`  
+Result: **rejected; return to todo**
 
-Verified by source inspection and targeted exact-parser reproduction:
+Verified repairs:
 
-- structured assistant/provider response fields require exact `WORKFRAME_OK`;
-- configured secret-like environment values are redacted from displayed subprocess diagnostics;
-- questioning best/default answers remain unresolved;
-- questioning and qualified consent remains non-authorizing;
-- consent-prompt EOF and Ctrl+C settlement paths are present.
+- the branch is rebuilt from current `main`, is zero commits behind, and is mergeable;
+- cancellation is threaded through the terminal, HTTP request, and asynchronous child-process interfaces;
+- account-backed and direct API-key candidates are separate;
+- inference child environments exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables;
+- structured provider parsers require the exact `WORKFRAME_OK` assistant response.
 
 Blocking findings:
 
-1. **Ctrl+C does not cancel a verification already in flight.** `runInteractiveFlow` awaits `verify(candidate)` without a cancellation signal. HTTP verification uses only a 30-second timeout signal, while Codex and Claude use synchronous `spawnSync` with a 90-second timeout. The terminal SIGINT handler can close readline, but it cannot abort the provider request or child process. A user can therefore press Ctrl+C after consent and still wait for, and potentially be billed for, the request.
-2. **Hedged runtime answers are treated as selections.** The exact current parser selects `Maybe Claude.`, `Probably Codex.`, `Claude, perhaps.`, and `I guess OpenRouter.` because a single candidate mention is accepted before uncertainty is evaluated.
-3. **Runtime billing is not deterministic.** If Codex or Claude is available and a corresponding API key is also configured, the candidate receives that key automatically while the disclosure says the call may use either the existing account or the configured provider. The exact credential and payer are not selected or stated.
-4. **The inference environment contains unrelated authority handles.** `DOCKER_HOST`, `DOCKER_CONTEXT`, `DOCKER_CONFIG`, and `SSH_AUTH_SOCK` are included in the shared child allowlist even though they are not required for a model verification call.
-5. **The candidate is not merge-ready.** The PR branch is diverged, eighteen commits ahead and nine commits behind current `main`, and GitHub reports it as unmergeable. The exact reviewed head has no attached package or repository CI run.
+1. **Candidate mentions still authorize a path without affirmative selection.** The parser selects a candidate whenever one unhedged term appears, regardless of whether the sentence is descriptive or distrustful. Exact reproductions against the reviewed parser:
+
+   ```text
+   "I don't know anything about Claude." → claude-account
+   "I don't trust OpenRouter." → openrouter-api
+   "Claude is installed." → claude-account
+   "Claude sounds risky." → claude-account
+   ```
+
+   These are not selections. They violate the requirement that descriptive, negative-context, and non-imperative language remain unresolved.
+
+2. **Exclusions can select an unrelated provider.** `isExcluded` applies the first exclusion marker to every later candidate term within a global 48-character window. Exact reproductions:
+
+   ```text
+   "Don't use Claude; use Codex." → openrouter-api
+   "Not Claude, use Codex." → openrouter-api
+   ```
+
+   Both named paths are incorrectly excluded, and the sole unmentioned remaining candidate is silently chosen.
+
+3. **Windows cancellation is not proven fail-closed.** The production Windows terminator starts `taskkill` detached and unrefed but does not observe its spawn error, exit code, or completion. `runChildCommand` then settles as cancelled after 750 ms even if the runtime child tree remains alive. The current test injects a custom terminator that kills the fake child directly, so it bypasses the production `taskkill` path.
+
+4. **The explicit exact-head CI gate is red.** CI run `29356707079` failed at `Harness verify`; downstream package-install and negative-install steps were skipped. The repository workflow also does not independently execute the package-local and packed-tarball matrix recorded by the implementer.
 
 ## Required remediation
 
-- Thread one cancellation signal from terminal handling through the interactive flow into verification.
-- Abort OpenAI/OpenRouter fetches and replace synchronous Codex/Claude execution with a cancellable child process that is terminated on Ctrl+C.
-- Add real verification-phase interruption tests, not only consent-prompt PTY tests.
-- Treat uncertainty markers such as `maybe`, `perhaps`, `probably`, and `I guess` as unresolved candidate selection.
-- Represent account-backed and API-key-backed paths separately, and disclose the exact payer and credential source before consent.
-- Split discovery and inference environment allowlists; remove Docker and SSH handles from inference children.
-- Rebuild the implementation branch from current `main` and rerun package-local, packed-artifact, PTY, Windows semantics, and available CI checks from the exact repaired head.
+- Require affirmative selection syntax for named candidates, or parse positive and negative clauses explicitly so mere mentions cannot select a path.
+- Scope each exclusion to the candidate clause it modifies; never choose an unrelated remaining candidate from ambiguous multi-clause text.
+- Add regression tests for every exact phrase listed in this review.
+- On Windows, await and verify `taskkill` completion, handle spawn and nonzero-exit failures, and do not return a cancelled result while the runtime process may still be alive.
+- Add a Windows test that exercises the production `.cmd` plus `taskkill` path instead of an injected direct kill.
+- Add package-local and packed-tarball checks to exact-head CI and obtain a green or explicitly isolated repository result before resubmission.
 
-## Ledger reconciliation
+## Evidence boundary
 
-Canonical reconciliation is complete at `80c98cbad32ff9f0e68f0eb9990add2d6ff07a85`. `docs/ledger/backlog.json` contains exactly one `WF-CLI-001`–`WF-CLI-008` campaign; `WF-CLI-001` is unclaimed `todo`, `WF-CLI-002` remains dependency-gated, and the commit diff changes only the CLI campaign rows. The implementation PR remains draft and must be rebuilt from current `main` after the bounded remediation is complete.
+The implementer reported 18/18 package tests, a clean packed install, valid status JSON, and a real-PTY Ctrl+C cancellation result on Linux. This review retained those as implementer evidence but did not treat them as independent acceptance because the exact-head CI gate is red and Windows production termination remains untested.
 
-`now.md` was not updated. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
+`WF-CLI-002` remains dependency-gated. `now.md` is unchanged because this slice has not been accepted or shipped. No live provider was called, no package was published, and no installation, runtime, service, app, infrastructure path, or non-CLI code was modified.
