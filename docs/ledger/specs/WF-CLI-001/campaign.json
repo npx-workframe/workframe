@@ -11,121 +11,127 @@
       "status": "todo",
       "depends_on": [],
       "patch_refs": [
-        "e05bdb53f934d20a44b2fee4468f76805c337527",
-        "048aa413cd89ccb9f4bb348597a7087a04ef0d55",
-        "57cfe7359c39584017552d906642e0c7bb3c1de5",
-        "c87166e935f31133ee42374e5d415669728db6e3",
-        "bf165bab2103f29b9ceb645c616345e1c4f258c9",
-        "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
-        "384876c6090432a2b19e51dfe1ec9985c0f92a12",
-        "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
-        "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
-        "80c98cbad32ff9f0e68f0eb9990add2d6ff07a85"
+        "b20886796fbbc1e90e786081e83cdb2a6aec9098",
+        "3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
+        "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41"
       ],
       "evidence": [
+        "branch automation/wf-cli-001-cancellable-link-v5 rebuilt from main 1d2c9a6cae56b347faf04f36e6083378a98eeae2",
+        "PR #9 final reviewed head a62ce6d30723ce7f6a0d4aeab7a46615cf41db41; package implementation head 3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
         "packages/workframe/bin/workframe.js",
         "packages/workframe/lib/dialogue.js",
+        "packages/workframe/lib/discovery.js",
         "packages/workframe/lib/flow.js",
+        "packages/workframe/lib/process.js",
         "packages/workframe/lib/session.js",
-        "packages/workframe/checks/workframe-checks.js",
-        "packages/workframe/README.md",
-        "bf165ba: runtime questions and non-imperative best/default language remain unresolved; deterministic selection requires an explicit imperative delegation",
-        "b4c7c6a: runtime children receive an allowlisted environment plus only the selected credential names",
-        "b4c7c6a: configured credential values are redacted from subprocess stdout, stderr, and errors before display",
-        "b4c7c6a: Codex and Claude verification consumes structured assistant output and requires exact WORKFRAME_OK",
-        "b4c7c6a: OpenAI and OpenRouter verification parses provider JSON and requires an exact assistant response",
-        "384876c: adversarial regressions cover secret-bearing stderr, argv echo, refusal or diagnostic text, and runtime-selection questions",
-        "implementer evidence: reconstructed package reported 34 passing tests on Linux x64 / Node v22.16.0",
-        "implementer evidence: packed workframe-0.2.1.tgz clean-install smoke checks passed",
-        "implementer evidence: real PTY Ctrl+C and Ctrl+D at consent exited safely",
-        "reviewer source inspection and targeted exact-parser reproduction against head 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
-        "compare main...automation/wf-cli-001-socratic-seed-v3: branch diverged, 18 commits ahead and 9 behind; PR mergeable=false",
-        "exact-head status: only Vercel success was reported; no pull-request workflow run was available for 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
-        "80c98cb: canonical backlog reconciled narrowly to todo; non-CLI rows unchanged",
+        "packages/workframe/lib/terminal.js",
+        "packages/workframe/lib/verification.js",
+        "packages/workframe/test/dialogue-flow.test.js",
+        "packages/workframe/test/authority-verification.test.js",
+        "packages/workframe/test/terminal-package.test.js",
+        "implementer evidence: npm test passed 18 of 18 on Linux x64 / Node v22.16.0",
+        "implementer evidence: npm pack produced workframe-0.2.1.tgz and a clean temporary install returned version 0.2.1 with valid status JSON",
+        "implementer evidence: a real PTY synthetic verification returned stopped:interrupt after Ctrl+C and emitted no Socratic prompt",
+        "reviewer targeted reproduction against the exact dialogue parser: negative or descriptive candidate mentions can select an unintended path",
+        "PR #9 exact-head CI runs 29356707079 and 29358102705 failed at Harness verify; package-install and negative-install steps were skipped",
         "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
         "select one existing inference path conversationally without guessing ambiguity",
-        "require separate billing-disclosed consent before a minimal verification call",
+        "represent account-backed and API-key-backed paths separately and disclose exact payer, credential source, and invocation before consent",
+        "require separate explicit consent before one minimal cancellable verification call",
+        "remove Docker, SSH, unrelated credentials, and other ambient authority handles from inference children",
         "after a verified path, collect preferred name and first objective",
         "print a bounded memory-only mirror without filesystem or installation mutation",
-        "package-local and packed-artifact checks pass without live credentials"
+        "package-local, real-PTY, Windows-semantics, exact-head CI, and packed-artifact checks pass without live credentials"
       ],
-      "previous_review": {
-        "reviewer": "workframe-cli-reviewer",
-        "reviewed_at": "2026-07-14",
-        "result": "rejected",
-        "head_sha": "c15f250af9edf51650917a80fe928b880003150f",
-        "failures": [
-          "invalid OpenRouter JSON.stringify syntax",
-          "questioning or qualified language could authorize a provider call",
-          "credential transmission wording was inaccurate",
-          "authority-boundary tests did not exercise the complete flow",
-          "EOF and interruption were not handled deterministically"
-        ]
-      },
-      "review": {
-        "reviewer": "workframe-cli-reviewer",
-        "reviewed_at": "2026-07-14",
-        "result": "rejected",
-        "head_sha": "c87166e935f31133ee42374e5d415669728db6e3",
-        "verified_repairs": [
-          "26 package tests passed",
-          "packed package installed and ran",
-          "Ctrl+C and Ctrl+D settled cleanly",
-          "consent questions and qualifiers failed closed",
-          "help text stated the direct credential transmission boundary truthfully"
-        ],
-        "failures": [
-          "Codex and Claude failure stderr was printed without secret redaction while child processes inherited the full environment",
-          "Codex and Claude verification accepted successful output that merely echoed WORKFRAME_OK from the prompt",
-          "OpenAI and OpenRouter verification substring-matched the raw HTTP response body",
-          "candidate selection treated best/default questions as delegation",
-          "repository CI remained red at aggregate Harness verify"
-        ]
-      },
-      "resubmission": {
-        "submitted_at": "2026-07-14",
-        "head_sha": "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
-        "result": "rejected",
-        "review_focus": [
-          "independently reconstruct the current package and rerun all 34 tests",
-          "prove configured credential values cannot escape through subprocess or provider diagnostics",
-          "prove argv echo and non-assistant output cannot verify Codex or Claude",
-          "prove refusal or diagnostic text cannot verify OpenAI or OpenRouter",
-          "prove best/default questions remain unresolved without explicit imperative delegation",
-          "rerun packed-artifact, PTY, and available CI checks from the exact current head"
-        ]
-      },
+      "review_history": [
+        {
+          "sequence": 1,
+          "reviewed_at": "2026-07-14",
+          "result": "rejected",
+          "head_sha": "c15f250af9edf51650917a80fe928b880003150f",
+          "failures": [
+            "invalid OpenRouter JSON.stringify syntax",
+            "questioning or qualified language could authorize a provider call",
+            "credential transmission wording was inaccurate",
+            "authority-boundary tests did not exercise the complete flow",
+            "EOF and interruption were not handled deterministically"
+          ]
+        },
+        {
+          "sequence": 2,
+          "reviewed_at": "2026-07-14",
+          "result": "rejected",
+          "head_sha": "c87166e935f31133ee42374e5d415669728db6e3",
+          "failures": [
+            "credential-bearing subprocess diagnostics could escape",
+            "prompt echo and refusal text could falsely verify providers",
+            "best/default questions could select a candidate",
+            "repository CI remained red"
+          ]
+        },
+        {
+          "sequence": 3,
+          "reviewed_at": "2026-07-14",
+          "result": "rejected",
+          "head_sha": "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+          "failures": [
+            "verification was not cancellable after consent",
+            "hedged runtime selections were accepted",
+            "account and API-key billing paths were conflated",
+            "inference children inherited Docker and SSH authority handles",
+            "the implementation branch was behind and diverged from main",
+            "no package or repository CI run was attached to the exact reviewed head"
+          ]
+        },
+        {
+          "sequence": 4,
+          "reviewed_at": "2026-07-14",
+          "result": "rejected",
+          "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
+          "failures": [
+            "descriptive and negative-context candidate mentions can authorize a path",
+            "multi-clause exclusions can silently select an unrelated remaining candidate",
+            "Windows production taskkill completion and child-tree termination are not observed",
+            "exact-head CI is red and does not independently execute the package-local and packed-tarball matrix"
+          ]
+        }
+      ],
       "current_review": {
         "reviewer": "workframe-cli-reviewer",
         "reviewed_at": "2026-07-14",
         "result": "rejected",
-        "head_sha": "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "pull_request": 9,
+        "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
         "verified_repairs": [
-          "structured exact-response parsing replaced prompt-token substring matching",
-          "known secret-like environment values are redacted from displayed subprocess diagnostics",
-          "question-form best/default selection remains unresolved",
-          "consent questions and qualifiers remain fail closed",
-          "consent-prompt EOF and Ctrl+C settlement paths are present"
+          "the implementation branch was rebuilt from then-current main and was mergeable at review",
+          "verification cancellation reaches terminal, HTTP, and asynchronous child-process interfaces",
+          "account-backed and API-key-backed candidates are distinct",
+          "inference child environments exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables",
+          "structured provider parsers require the exact WORKFRAME_OK assistant response"
         ],
         "failures": [
-          "Ctrl+C after consent does not abort a pending provider verification: runInteractiveFlow awaits verify without an abort signal, HTTP requests use only timeout signals, and CLI verification uses synchronous spawnSync with up to a 90-second timeout",
-          "hedged path answers such as 'Maybe Claude.', 'Probably Codex.', and 'I guess OpenRouter.' are treated as selected rather than ambiguous",
-          "Codex and Claude candidates opportunistically receive configured API keys while billing text says account or provider, so the exact credential and payer are not deterministically disclosed",
-          "the inference-child allowlist includes DOCKER_HOST, DOCKER_CONTEXT, DOCKER_CONFIG, and SSH_AUTH_SOCK, exposing unrelated high-authority handles to the model runtime",
-          "the pull-request branch is nine commits behind current main, is diverged, and is not mergeable",
-          "no package or repository CI run is attached to the exact reviewed head"
+          "candidate selection still treats any unhedged candidate mention as an affirmative choice, including descriptive and negative-context statements",
+          "exclusion parsing can exclude multiple named paths and silently choose an unrelated remaining candidate",
+          "Windows cancellation can report cancelled without observing taskkill completion or proving the runtime child tree exited",
+          "exact-head CI runs fail at Harness verify and skip downstream package evidence",
+          "repository CI does not independently execute the package-local and packed-tarball matrix"
         ],
         "required_remediation": [
-          "thread one cancellation signal from the terminal through runInteractiveFlow into verification; abort fetch requests and replace synchronous runtime execution with a cancellable child process that terminates on Ctrl+C",
-          "add verification-phase interruption tests proving the provider call or child process is cancelled promptly and no Socratic prompt follows",
-          "treat hedging and uncertainty markers as unresolved path selection, with regressions for maybe, perhaps, probably, and I guess",
-          "represent account-backed and API-key-backed runtime paths as distinct candidates and disclose the exact billing source before consent; never inject a provider key opportunistically",
-          "split discovery and inference environment allowlists and remove Docker and SSH authority handles from inference children",
-          "rebuild the implementation branch from current main and rerun package, packed-artifact, PTY, Windows-semantics, and available CI checks from the exact repaired head"
+          "require affirmative candidate-selection syntax or parse explicit positive and negative clauses so mere mentions cannot select a path",
+          "scope exclusions to the candidate clause they modify and never infer an unrelated remaining candidate from ambiguous multi-clause text",
+          "add regressions for every exact failing phrase in the fourth review",
+          "await and verify Windows taskkill completion, handle spawn and nonzero-exit failures, and do not settle cancellation while the child tree may remain alive",
+          "add a Windows test exercising the production .cmd and taskkill path",
+          "attach package-local and packed-tarball checks to exact-head CI and obtain a green or explicitly isolated repository result before resubmission"
         ],
-        "canonical_backlog_reconciliation": "resolved at 80c98cbad32ff9f0e68f0eb9990add2d6ff07a85: exactly one campaign remains, WF-CLI-001 is todo, WF-CLI-002 is dependency-gated, and the commit diff changes only WF-CLI rows"
+        "next_builder_slice": [
+          "fix affirmative candidate selection and clause-scoped exclusion parsing",
+          "make Windows production cancellation fail closed",
+          "add only the focused regressions and exact-head package evidence needed for those defects",
+          "do not start WF-CLI-002"
+        ]
       }
     },
     {
@@ -133,49 +139,63 @@
       "title": "Truthful runtime and provider capability graph",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-001"]
+      "depends_on": [
+        "WF-CLI-001"
+      ]
     },
     {
       "id": "WF-CLI-003",
       "title": "Provider-neutral model-assisted dialogue",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-002"]
+      "depends_on": [
+        "WF-CLI-002"
+      ]
     },
     {
       "id": "WF-CLI-004",
       "title": "Constitutional entity and goal draft",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-003"]
+      "depends_on": [
+        "WF-CLI-003"
+      ]
     },
     {
       "id": "WF-CLI-005",
       "title": "Non-destructive Architectonic composition plan",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-004"]
+      "depends_on": [
+        "WF-CLI-004"
+      ]
     },
     {
       "id": "WF-CLI-006",
       "title": "Dry-run Workframe deployment plan",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-005"]
+      "depends_on": [
+        "WF-CLI-005"
+      ]
     },
     {
       "id": "WF-CLI-007",
       "title": "Explicit apply and rollback authority gates",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-006"]
+      "depends_on": [
+        "WF-CLI-006"
+      ]
     },
     {
       "id": "WF-CLI-008",
       "title": "Packed cross-platform Socratic CLI evidence",
       "priority": "P1",
       "status": "todo",
-      "depends_on": ["WF-CLI-007"]
+      "depends_on": [
+        "WF-CLI-007"
+      ]
     }
   ],
   "invariants": [
