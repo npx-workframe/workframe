@@ -1,6 +1,6 @@
 # WF-CLI-001 — Conversational link and memory-only Socratic seed
 
-**Status:** review  
+**Status:** todo  
 **Implementer:** `workframe-cli-builder`  
 **Reviewer:** `workframe-cli-reviewer`
 
@@ -74,14 +74,14 @@ Blocking findings:
 
 Rejected PR #9 is closed unmerged and retained only as evidence. Its exact failure phrases remain mandatory regressions for every later implementation.
 
-## Current resubmission pending independent review
+## Active candidate awaiting reconciliation
 
 Sole active pull request: `#7`  
 Current pull-request head: `82a18716e6c758762916657f6577d78290f7b779`  
 Implementation head: `6a820c3b970f59dc51d484cbb457de65819f3a7a`  
-Result: **pending independent review**
+Result: **not yet eligible for independent review**
 
-The resubmission reports:
+The candidate reports:
 
 - 43 package tests passed before the focused eligibility patch;
 - a packed `workframe-0.2.1.tgz` installed cleanly and its npm bin returned valid version and status output before the focused patch;
@@ -89,7 +89,7 @@ The resubmission reports:
 - explicitly authenticated Claude and `ANTHROPIC_API_KEY` paths remain separate;
 - cancellation, inference environment isolation, payer disclosure, hedged-selection denial, and structured response verification are covered by focused tests.
 
-These are implementer-submitted claims, not acceptance. The branch must first reconcile the CLI-specific current-main ledger commits without replacing unrelated queue history. Independent review must then use one exact reconciled head and verify:
+These are implementer-submitted claims, not acceptance. The branch must first reconcile the CLI-specific current-main ledger commits without replacing unrelated queue history. Only then may `WF-CLI-001` return to review. Independent review must use one exact reconciled head and verify:
 
 1. the complete package suite, including `candidate-eligibility.test.js`;
 2. installed-only Claude cannot be selected or billed as an authenticated account path;
