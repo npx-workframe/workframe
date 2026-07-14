@@ -2,21 +2,22 @@
   "campaign": "WF-CLI",
   "scope": "packages/workframe/**",
   "source_of_truth_target": "docs/ledger/backlog.json",
-  "status": "review",
+  "status": "todo",
   "items": [
     {
       "id": "WF-CLI-001",
       "title": "Conversational link and memory-only Socratic seed",
       "priority": "P0",
-      "status": "review",
+      "status": "todo",
       "depends_on": [],
       "patch_refs": [
         "b20886796fbbc1e90e786081e83cdb2a6aec9098",
-        "3c1b64a49eb25f09c0a8da448f5bfb355394d88a"
+        "3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
+        "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41"
       ],
       "evidence": [
         "branch automation/wf-cli-001-cancellable-link-v5 rebuilt from main 1d2c9a6cae56b347faf04f36e6083378a98eeae2",
-        "PR #9 exact head 3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
+        "PR #9 final reviewed head a62ce6d30723ce7f6a0d4aeab7a46615cf41db41; package implementation head 3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
         "packages/workframe/bin/workframe.js",
         "packages/workframe/lib/dialogue.js",
         "packages/workframe/lib/discovery.js",
@@ -28,9 +29,11 @@
         "packages/workframe/test/dialogue-flow.test.js",
         "packages/workframe/test/authority-verification.test.js",
         "packages/workframe/test/terminal-package.test.js",
-        "local exact-head reconstruction: npm test passed 18 of 18 on Linux x64 / Node v22.16.0",
-        "npm pack produced workframe-0.2.1.tgz; clean temporary install returned version 0.2.1 and valid status JSON",
-        "real PTY synthetic verification: Ctrl+C after consent aborted the in-flight verification, returned stopped:interrupt, and emitted no Socratic prompt",
+        "implementer evidence: npm test passed 18 of 18 on Linux x64 / Node v22.16.0",
+        "implementer evidence: npm pack produced workframe-0.2.1.tgz and a clean temporary install returned version 0.2.1 with valid status JSON",
+        "implementer evidence: a real PTY synthetic verification returned stopped:interrupt after Ctrl+C and emitted no Socratic prompt",
+        "reviewer targeted reproduction against the exact dialogue parser: negative or descriptive candidate mentions can select an unintended path",
+        "PR #9 exact-head CI run 29356707079 failed at Harness verify; package-install and negative-install steps were skipped",
         "no live provider call, package publication, installation mutation, or non-CLI code change"
       ],
       "acceptance": [
@@ -60,24 +63,45 @@
         "submitted_at": "2026-07-14",
         "result": "review",
         "base_sha": "1d2c9a6cae56b347faf04f36e6083378a98eeae2",
-        "head_sha": "3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
+        "package_head_sha": "3c1b64a49eb25f09c0a8da448f5bfb355394d88a",
+        "final_head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
         "pull_request": 9,
         "verified_repairs": [
-          "terminal AbortSignal now reaches HTTP fetch and runtime child process verification",
-          "runtime child verification is asynchronous and terminates on interrupt or timeout",
-          "questions, hedges, mixed choices, and non-imperative recommendations remain unresolved",
+          "terminal AbortSignal reaches HTTP fetch and runtime child process verification",
+          "runtime child verification is asynchronous",
+          "common hedge tokens and direct questions remain unresolved",
           "account-backed and direct API candidates have separate credential and payer disclosures",
-          "inference environments exclude Docker, SSH, and unrelated credential variables",
+          "inference environments exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables",
           "structured assistant responses must equal WORKFRAME_OK exactly",
-          "authority, cancellation, terminal, package, and memory-only dialogue tests pass locally",
-          "packed npm bin and real PTY interruption evidence pass locally"
+          "authority, cancellation, terminal, package, and memory-only dialogue tests were reported green locally",
+          "packed npm bin and real PTY interruption evidence were reported green locally"
+        ]
+      },
+      "current_review": {
+        "reviewer": "workframe-cli-reviewer",
+        "reviewed_at": "2026-07-14",
+        "result": "rejected",
+        "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
+        "verified_repairs": [
+          "the branch is based on current main, is zero commits behind, and is mergeable",
+          "verification cancellation is threaded through the terminal, HTTP, and child-process interfaces",
+          "account and API-key paths are distinct and inference children no longer inherit Docker or SSH environment handles",
+          "structured provider parsers reject prompt echoes and non-exact assistant output"
         ],
-        "review_focus": [
-          "rerun all package tests from PR #9 exact head",
-          "verify Windows process and npm-script semantics",
-          "verify HTTP and runtime-child cancellation promptly prevents Socratic prompts",
-          "verify exact payer and selected-credential disclosure for every candidate",
-          "inspect pull-request CI and classify any repository-baseline harness failure separately from package evidence"
+        "failures": [
+          "candidate selection still treats any unhedged candidate mention as an affirmative choice: descriptive or negative-context statements such as 'I don't know anything about Claude.', 'I don't trust OpenRouter.', 'Claude is installed.', and 'Claude sounds risky.' select that candidate",
+          "exclusion parsing applies a global 48-character window to every later candidate term, so 'Don't use Claude; use Codex.' and 'Not Claude, use Codex.' exclude both named paths and silently select the unrelated remaining OpenRouter candidate",
+          "Windows cancellation is not proven fail-closed: the production path spawns taskkill detached and unrefed without observing its error or exit, while runChildCommand reports cancellation after a 750 ms settle timer even if the child tree remains alive; the test injects a custom terminator and bypasses the production taskkill path",
+          "the exact-head CI run is red at Harness verify, and the downstream package-install and negative-install evidence steps were skipped, so the explicit exact-head CI acceptance gate is not met",
+          "the repository CI does not independently run the package-local test and packed-tarball matrix recorded by the implementer"
+        ],
+        "required_remediation": [
+          "require affirmative selection syntax for named candidates, or parse explicit positive and negative clauses so descriptive mentions cannot select a path",
+          "scope exclusions to their grammatical candidate clause and never infer an unrelated remaining candidate from ambiguous multi-clause text",
+          "add regressions for the exact failing phrases recorded above",
+          "make Windows cancellation await and verify taskkill completion, handle spawn and nonzero-exit failures, and do not return a cancelled result while the runtime child may still be alive",
+          "add a Windows test that exercises the production .cmd and taskkill termination path rather than an injected direct kill",
+          "attach package-local and packed-tarball checks to exact-head CI and obtain a green or explicitly isolated repository result before resubmission"
         ]
       }
     },
