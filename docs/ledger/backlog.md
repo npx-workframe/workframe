@@ -8,9 +8,9 @@ This file is a human wave map. Agents and CI should read/write `backlog.json`; h
 
 ## Standalone Workframe CLI campaign
 
-The bounded Socratic CLI campaign is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md). Canonical `WF-CLI-001` remains **todo** with one active implementation candidate on PR #7 awaiting reconciliation with current `main` before independent review; rejected divergent PR #9 is closed and retained only as review evidence. The candidate reports cancellable verification, account/API-key separation, inference-child authority isolation, structured response parsing, and fail-closed Claude account eligibility. Before returning the item to review, one exact reconciled head must prove descriptive and negative-context mentions remain unresolved, mixed exclusions cannot select an unrelated provider, production Windows `taskkill` termination is observed fail-closed, and package-local, packed-tarball, PTY, Windows, and available CI evidence agree. `WF-CLI-002` remains dependency-gated. Work remains confined to `packages/workframe/**`; no package has been published and no existing installation has been changed.
+The Socratic CLI direction is retained, but the scheduled implementation candidates were rejected and are not continuation points. `packages/workframe` has been restored to the last shipped coherent `workframe@0.2.1` baseline. The next bounded slice is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md): a deterministic, memory-only `workframe begin` conversation that mirrors the human, entity, purpose, goals, constraints, and success criteria without calling a model, reading provider credentials, writing files, or installing anything. Model-assisted interpretation, Architectonic composition, reconciliation, deployment planning, and apply authority remain separate later slices.
 
-Planned sequence: truthful capability graph → bounded inference session → Socratic entity/goal mirror → Architectonic constitutional draft → non-destructive setup reconciliation → deployment dry run → packed cross-platform evidence.
+Planned sequence: deterministic first mirror → provider-neutral model assistance → constitutional draft → non-destructive Architectonic reconciliation → Workframe deployment dry run → explicit apply gate → packed cross-platform evidence.
 
 ## Waves (execution order)
 
