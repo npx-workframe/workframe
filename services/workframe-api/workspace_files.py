@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import base64
+import io
 import mimetypes
 import threading
 import time
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +28,8 @@ TREE_SKIP_NAMES = {
 
 PROTECTED_WORKSPACE_FILE_NAMES = {"AGENTS.md", ".hermes.md"}
 PROTECTED_PROFILE_CONFIG_FILE_NAMES = {"config.yaml", "profile.yaml"}
+MAX_FILE_ACTION_COUNT = 500
+MAX_ARCHIVE_BYTES = 100 * 1024 * 1024
 
 _workspace_state_lock = threading.Lock()
 _workspace_state_cache: dict[str, Any] = {
@@ -342,3 +346,68 @@ def file_raw(rel: str) -> tuple[bytes, str]:
         raise ValueError("not found")
     mime, _ = mimetypes.guess_type(str(fp))
     return fp.read_bytes(), mime or "application/octet-stream"
+
+
+def _selected_workspace_files(paths: list[Any]) -> list[tuple[str, Path]]:
+    if not isinstance(paths, list) or not paths:
+        raise ValueError("select at least one file")
+    if len(paths) > MAX_FILE_ACTION_COUNT:
+        raise ValueError(f"select at most {MAX_FILE_ACTION_COUNT} files")
+
+    selected: list[tuple[str, Path]] = []
+    seen: set[str] = set()
+    for raw in paths:
+        rel = _normalized_workspace_rel(str(raw or "").strip())
+        if not rel or rel in seen:
+            continue
+        reason = workspace_protected_reason(rel)
+        if reason:
+            raise PermissionError(f"protected file: {reason}")
+        path = safe_workspace_path(rel)
+        if path is None or not path.exists():
+            raise ValueError(f"file not found: {rel}")
+        if not path.is_file():
+            raise ValueError(f"not a file: {rel}")
+        selected.append((_workspace_rel(path), path))
+        seen.add(rel)
+
+    if not selected:
+        raise ValueError("select at least one file")
+    return selected
+
+
+def files_archive(paths: list[Any]) -> bytes:
+    selected = _selected_workspace_files(paths)
+    total_bytes = 0
+    for _, path in selected:
+        try:
+            total_bytes += path.stat().st_size
+        except OSError as exc:
+            raise ValueError("could not read selected file") from exc
+        if total_bytes > MAX_ARCHIVE_BYTES:
+            raise ValueError("selected files exceed the 100 MB download limit")
+
+    output = io.BytesIO()
+    try:
+        with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
+            for rel, path in selected:
+                archive.write(path, arcname=rel)
+    except OSError as exc:
+        raise ValueError("could not archive selected files") from exc
+    return output.getvalue()
+
+
+def files_delete(paths: list[Any]) -> dict[str, Any]:
+    # Validate the complete batch before mutating anything so a stale or protected
+    # selection cannot produce a partial deletion.
+    selected = _selected_workspace_files(paths)
+    deleted: list[str] = []
+    for rel, path in selected:
+        try:
+            path.unlink()
+        except OSError as exc:
+            raise ValueError(f"could not delete file: {rel}") from exc
+        deleted.append(rel)
+
+    bump_workspace_state(selected[0][1])
+    return {"ok": True, "deleted": deleted, "count": len(deleted)}

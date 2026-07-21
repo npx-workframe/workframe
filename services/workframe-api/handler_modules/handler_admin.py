@@ -197,6 +197,38 @@ class AdminRoutesMixin:
         content_b64 = str(body.get("content_base64") or body.get("content") or "")
         self._json(200, srv.file_upload_binary(rel, content_b64))
 
+    def _route_post_files_archive(self, body: dict) -> None:
+        srv = _srv()
+        if not srv._check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        paths = body.get("paths")
+        try:
+            archive = srv.files_archive(paths)
+        except PermissionError as exc:
+            self._json(403, {"ok": False, "error": "protected_file", "detail": str(exc)})
+            return
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": "invalid_selection", "detail": str(exc)})
+            return
+        self._send(200, archive, "application/zip")
+
+    def _route_post_files_delete(self, body: dict) -> None:
+        srv = _srv()
+        if not srv._check_auth(self):
+            self._json(401, {"error": "unauthorized"})
+            return
+        paths = body.get("paths")
+        try:
+            result = srv.files_delete(paths)
+        except PermissionError as exc:
+            self._json(403, {"ok": False, "error": "protected_file", "detail": str(exc)})
+            return
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": "invalid_selection", "detail": str(exc)})
+            return
+        self._json(200, result)
+
     def _route_get_admin_vault_status(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()
         if not srv._role_allows(self, srv.OWNER_ADMIN_ROLES):

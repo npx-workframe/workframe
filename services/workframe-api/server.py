@@ -109,6 +109,8 @@ file_read = workspace_files.file_read
 file_write = workspace_files.file_write
 file_upload_binary = workspace_files.file_upload_binary
 file_raw = workspace_files.file_raw
+files_archive = workspace_files.files_archive
+files_delete = workspace_files.files_delete
 
 import activity_feed
 

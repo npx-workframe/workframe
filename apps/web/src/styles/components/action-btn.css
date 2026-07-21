@@ -70,6 +70,10 @@
   box-shadow: var(--wf-btn-shadow-primary);
 }
 
+.wf-action-btn--warn {
+  color: var(--wf-error);
+}
+
 /* Wizard footprint — pairs with wf-action-btn */
 .wf-wizard-btn.wf-action-btn {
   min-width: 7.5rem;

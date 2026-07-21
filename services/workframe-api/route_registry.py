@@ -128,6 +128,8 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/content/delete", AuthLevel.SESSION, "_route_post_content_delete"),
     Route("POST", "/api/files/write", AuthLevel.SESSION, "_route_post_files_write"),
     Route("POST", "/api/files/upload", AuthLevel.SESSION, "_route_post_files_upload"),
+    Route("POST", "/api/files/archive", AuthLevel.SESSION, "_route_post_files_archive"),
+    Route("POST", "/api/files/delete", AuthLevel.SESSION, "_route_post_files_delete"),
     Route("POST", "/api/chat/dispatch", AuthLevel.SESSION, "_route_post_chat_dispatch"),
     Route("POST", "/api/hermes/profiles/create", AuthLevel.SESSION, "_route_post_hermes_profiles_create"),
     Route("POST", "/api/hermes/profiles/start", AuthLevel.SESSION, "_route_post_hermes_profiles_start"),

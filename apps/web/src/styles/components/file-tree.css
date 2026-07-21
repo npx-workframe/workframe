@@ -1,16 +1,77 @@
 /* ── File explorer tree ──────────────────────────────────────────────────── */
 
 .wf-file-explorer {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
-.wf-file-explorer.wf-scroll--inset-sm.wf-scroll--vertical {
+.wf-file-explorer__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--wf-gap);
+  min-height: calc(var(--wf-control) + var(--wf-space-2));
+  padding: var(--wf-space-1) var(--wf-space-2) 0;
+}
+
+.wf-file-explorer__selection-count {
+  flex: 1;
+  min-width: 0;
+  color: var(--wf-muted);
+  font-size: var(--wf-type-caption);
+  line-height: var(--wf-leading-ui);
+}
+
+.wf-file-explorer__delete-btn {
+  color: var(--wf-error);
+}
+
+.wf-file-explorer .wf-spin {
+  animation: wf-spin 1s linear infinite;
+}
+
+.wf-file-explorer__notice {
+  margin: var(--wf-space-1) var(--wf-space-2) 0;
+  padding: var(--wf-space-2);
+}
+
+.wf-file-explorer__scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.wf-file-explorer__scroll.wf-scroll--inset-sm.wf-scroll--vertical {
   padding-block-start: var(--wf-space-2);
   padding-inline-start: var(--wf-space-2);
   --wf-scroll-gutter-inline: var(--wf-space-2);
   --wf-scroll-gutter-block: var(--wf-space-2);
+}
+
+.wf-file-tree__row-shell {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-1);
+  width: 100%;
+  min-width: 0;
+}
+
+.wf-file-tree__row-shell .wf-file-tree__row {
+  flex: 1;
+}
+
+.wf-file-tree__checkbox {
+  margin-inline-start: var(--wf-space-1);
+}
+
+.wf-file-tree__row--checked {
+  background: var(--wf-control-bg-active);
+  border-color: var(--wf-control-border-color-active);
+  box-shadow: var(--wf-control-shadow-active);
+  color: var(--wf-control-fg-hover, var(--wf-text));
 }
 
 .wf-panel--browser .wf-browser {

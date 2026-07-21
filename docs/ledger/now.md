@@ -34,6 +34,12 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 - Local verification: 95 API tests; web production build; Electron build + typecheck; all five scaffold packs; package-install and negative-install evidence. The repository-wide lint command still reports the known React-hooks baseline and is not claimed as green.
 - Live Docker DogFood was rebuilt with the canonical API and UI. Fresh AIbert DM and project-room turns both ran through `Codex · gpt-5.4-mini`; DM and room image attachments rendered and completed `vision_analyze`; room attribution appeared during streaming and remained immutable after reload. The live/persisted merge produced one assistant reply, with no duplicate transient row, and no silent OpenRouter reroute.
 
+### 2026-07-21 Navigator file actions
+
+- Navigator now has a file-only selection mode built from the existing toolbar, button, checkbox, notice, scroll-area, and confirmation-dialog components. A single selected file downloads with its original filename; multiple files download as a ZIP that preserves their workspace-relative paths.
+- Bulk deletion is authenticated and guarded by an explicit count-based confirmation. The API validates the entire selection before mutation, rejects protected, missing, folder, traversal, and out-of-workspace targets, caps actions at 500 files, and closes Browser tabs for deleted files.
+- Verification: 99 API tests and the full web/Python/Electron production build pass. Live Docker DogFood proof covered single download, two-file ZIP, exact two-file deletion, immediate Navigator refresh, deleted-tab cleanup, and a clean browser runtime log.
+
 ### 2026-07-12 stabilization finding
 
 - Package-install and negative-install evidence now match `0.1.18`; the release verifier fails closed on stale evidence.

@@ -32,6 +32,8 @@ _REQUIRED = (
     "_session_info",
     "chat_messages",
     "chat_bootstrap",
+    "files_archive",
+    "files_delete",
     "_gateway_container_exec",
     "_gateway_container_exec_detached",
     "_docker_exec",

@@ -26,10 +26,12 @@ import {
   fetchFilesState,
   fetchFilesTree,
   getCachedFileContent,
+  normalizeWorkspaceFilePath,
   readFileByPath,
   refreshFileByPath,
   setCachedFileContent,
   writeFileByPath,
+  WORKSPACE_FILES_DELETED,
 } from '@/lib/filesApi'
 import { findFileNodeByPath, getRelativePathFromRoot } from '@/lib/fileTreeTypes'
 
@@ -256,6 +258,28 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
   useEffect(() => {
     tabsRef.current = tabs
   }, [tabs])
+
+  useEffect(() => {
+    const onFilesDeleted = (event: Event) => {
+      const paths = (event as CustomEvent<{ paths?: string[] }>).detail?.paths ?? []
+      const deleted = new Set(paths.map(normalizeWorkspaceFilePath))
+      if (!deleted.size) return
+
+      setTabs((previous) => {
+        const next = previous.filter(
+          (tab) => tab.source !== 'file' || !deleted.has(normalizeWorkspaceFilePath(tab.location)),
+        )
+        setActiveTabId((current) => {
+          if (!current || next.some((tab) => tab.id === current)) return current
+          return next.at(-1)?.id ?? null
+        })
+        return next
+      })
+    }
+
+    window.addEventListener(WORKSPACE_FILES_DELETED, onFilesDeleted)
+    return () => window.removeEventListener(WORKSPACE_FILES_DELETED, onFilesDeleted)
+  }, [])
 
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,

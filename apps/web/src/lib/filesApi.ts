@@ -1,5 +1,7 @@
 import { apiGet, apiPost } from '@/lib/apiClient'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import type { FileTreeNode } from '@/lib/fileTreeTypes'
+import { parseApiErrorResponse, WorkframeApiError } from '@/lib/workframeErrors'
 
 type FilesTreeResponse = {
   root: FileTreeNode
@@ -22,11 +24,18 @@ type FileReadResponse = {
   content: string
 }
 
+type FilesDeleteResponse = {
+  ok: boolean
+  deleted: string[]
+  count: number
+}
+
 let filesTreePromise: Promise<FileTreeNode> | null = null
 const fileContentCache = new Map<string, Promise<string>>()
 const FILE_TREE_CACHE_KEY = 'wf-files-tree-cache'
 const FILE_STATE_CACHE_KEY = 'wf-files-state-cache'
 const FILE_CONTENT_CACHE_PREFIX = 'wf-file-content:'
+export const WORKSPACE_FILES_DELETED = 'workframe:files-deleted'
 
 function readStorage<T>(key: string): T | null {
   if (typeof window === 'undefined') return null
@@ -156,6 +165,72 @@ export async function uploadBinaryFile(path: string, file: File): Promise<string
   const data = await apiPost<{ path: string }>('/api/files/upload', { path, content_base64 })
   filesTreePromise = null
   return data.path ?? path
+}
+
+function normalizedSelectedPaths(paths: string[]): string[] {
+  return [...new Set(paths.map(normalizeWorkspaceFilePath).filter(Boolean))]
+}
+
+function safeDownloadName(value: string, fallback: string): string {
+  const normalized = value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ')
+  return normalized || fallback
+}
+
+function saveBrowserBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+async function downloadResponse(response: Response, method: string, path: string): Promise<Blob> {
+  if (!response.ok) {
+    throw new WorkframeApiError(await parseApiErrorResponse(response), method, path)
+  }
+  return response.blob()
+}
+
+export async function downloadWorkspaceFiles(paths: string[], archiveName = 'workframe-files'): Promise<string> {
+  const selected = normalizedSelectedPaths(paths)
+  if (!selected.length) throw new Error('Select at least one file.')
+
+  if (selected.length === 1) {
+    const path = selected[0]
+    const response = await authenticatedFetch(workspaceRawUrl(path))
+    const filename = safeDownloadName(path.split('/').pop() ?? '', 'download')
+    saveBrowserBlob(await downloadResponse(response, 'GET', '/api/files/raw'), filename)
+    return filename
+  }
+
+  const endpoint = '/api/files/archive'
+  const response = await authenticatedFetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paths: selected }),
+  })
+  const filename = `${safeDownloadName(archiveName, 'workframe-files').replace(/\.zip$/i, '')}.zip`
+  saveBrowserBlob(await downloadResponse(response, 'POST', endpoint), filename)
+  return filename
+}
+
+export async function deleteWorkspaceFiles(paths: string[]): Promise<FilesDeleteResponse> {
+  const selected = normalizedSelectedPaths(paths)
+  if (!selected.length) throw new Error('Select at least one file.')
+  const result = await apiPost<FilesDeleteResponse>('/api/files/delete', { paths: selected })
+  filesTreePromise = null
+  for (const path of result.deleted ?? selected) invalidateFileContentCache(path)
+  clearCachedFilesTree()
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(WORKSPACE_FILES_DELETED, { detail: { paths: result.deleted ?? selected } }),
+    )
+  }
+  return result
 }
 
 export function invalidateFilesTreeCache(): void {

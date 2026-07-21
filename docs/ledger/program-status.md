@@ -1,6 +1,6 @@
 # Program status — Workframe v0.1.19
 
-**Date:** 2026-07-21 (provider/model convergence audit)
+**Date:** 2026-07-21 (provider/model convergence and Navigator file-actions audit)
 **Package version:** 0.1.19 ([`docs/VERSION.md`](../VERSION.md))
 **Backlog source:** [`backlog.json`](backlog.json) — **verify artifacts before trusting status**
 **Orchestration:** [`orchestration.md`](orchestration.md) · **Active plan:** [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md)
@@ -83,9 +83,11 @@ Meta todo: WF-SK-001 (spec-kit, not gating). WF-012 **done** 2026-07-08 (`4a3768
 
 ## Verify matrix
 
-**Current release-candidate evidence:** 2026-07-21 working tree based on `c6c55bd`, package `0.1.19`. Agent-owned model persistence/runtime sync, deny-without-provider behavior, and immutable room-turn attribution are covered by the 95-test API suite. Web production build, Electron build/typecheck, all scaffold packs, package-install evidence, negative-install evidence, docs claims, public-repo verification, and version agreement pass. Repository-wide lint retains its known React-hooks baseline and is not counted as a green gate.
+**Current release-candidate evidence:** 2026-07-21 working tree, package `0.1.19`. Agent-owned model persistence/runtime sync, deny-without-provider behavior, immutable room-turn attribution, and authenticated Navigator archive/delete routes are covered by the 99-test API suite. Web production build, Electron build/typecheck, all scaffold packs, package-install evidence, negative-install evidence, docs claims, public-repo verification, and version agreement pass. Repository-wide lint retains its known React-hooks baseline and is not counted as a green gate.
 
 Docker DogFood was rebuilt with the canonical API and UI. Fresh AIbert DM and project-room turns both completed on `Codex · gpt-5.4-mini`; DM and room image attachments rendered and completed `vision_analyze`; room attribution was correct during the live stream and after reload; and the live/persisted merge rendered exactly one assistant reply. No silent OpenRouter reroute, HTTP 400, HTTP 401, or missing-authentication response appeared in the final flows. npm owner authentication, DNS/Caddy, and WF-017 VPS backup/restore evidence remain separate operator gates.
+
+Navigator file actions were also exercised end to end in Docker DogFood: one-file download retained the source filename, a two-file selection produced a ZIP, a count-based confirmation deleted only two disposable fixtures, the open deleted-file tab closed, Navigator refreshed immediately, and no browser runtime error was recorded. Selection remains file-only and the server preflights the complete batch before deletion.
 
 Spot checks this audit (2026-07-08 @ `fb0ca10`):
 
