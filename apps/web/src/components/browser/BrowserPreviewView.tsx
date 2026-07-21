@@ -8,7 +8,7 @@ import { safeHtml } from '@/lib/safeHtml'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { BrowserTab } from '@/lib/browserTypes'
 import { getFileCapability } from '@/lib/fileCapabilities'
-import { workspaceFileServeUrl } from '@/lib/filesApi'
+import { workspaceFileServeUrl, workspaceRawUrl } from '@/lib/filesApi'
 import { isMediaUrl } from '@/lib/mockBrowserArtifacts'
 import {
   renderCsvPreview,
@@ -24,6 +24,13 @@ type BrowserPreviewViewProps = {
 export function BrowserPreviewView({ tab }: BrowserPreviewViewProps) {
   const capability = getFileCapability(tab.title)
   const ext = tab.title.split('.').pop()?.toLowerCase() ?? ''
+  const directPreviewSource = useMemo(() => {
+    if (tab.source === 'file') {
+      const source = workspaceRawUrl(tab.location)
+      return `${source}${source.includes('?') ? '&' : '?'}v=${tab.reloadNonce}`
+    }
+    return isMediaUrl(tab.content) ? tab.content : ''
+  }, [tab.content, tab.location, tab.reloadNonce, tab.source])
 
   const markdownText = useMemo(() => {
     if (capability.unsupported) return null
@@ -67,36 +74,36 @@ export function BrowserPreviewView({ tab }: BrowserPreviewViewProps) {
     return <BrowserUnsupportedView tab={tab} />
   }
 
-  if (isMediaUrl(tab.content)) {
+  if (directPreviewSource) {
     if (capability.mimeType.startsWith('video/')) {
       return (
         <ScrollArea className="wf-browser-pane wf-browser-preview wf-browser-preview--media">
-          <video className="wf-browser-preview__media" controls src={tab.content} />
+          <video className="wf-browser-preview__media" controls preload="metadata" src={directPreviewSource} />
         </ScrollArea>
       )
     }
     if (capability.mimeType.startsWith('audio/')) {
       return (
         <ScrollArea className="wf-browser-pane wf-browser-preview wf-browser-preview--media">
-          <audio className="wf-browser-preview__audio" controls src={tab.content} />
+          <audio className="wf-browser-preview__audio" controls preload="metadata" src={directPreviewSource} />
         </ScrollArea>
       )
     }
     if (ext === 'pdf') {
       return (
-        <ScrollArea className="wf-browser-pane wf-browser-preview wf-browser-preview--embed">
+        <div className="wf-browser-pane wf-browser-preview wf-browser-preview--embed">
           <iframe
             className="wf-browser-preview__frame wf-browser-preview__frame--pdf"
-            src={tab.content}
+            src={directPreviewSource}
             title={tab.title}
           />
-        </ScrollArea>
+        </div>
       )
     }
     if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) {
       return (
         <ScrollArea className="wf-browser-pane wf-browser-preview wf-browser-preview--media">
-          <img className="wf-browser-preview__image" src={tab.content} alt={tab.title} />
+          <img className="wf-browser-preview__image" src={directPreviewSource} alt={tab.title} />
         </ScrollArea>
       )
     }

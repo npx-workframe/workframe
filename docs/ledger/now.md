@@ -36,9 +36,11 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 
 ### 2026-07-21 Navigator file actions
 
-- Navigator now has a file-only selection mode built from the existing toolbar, button, checkbox, notice, scroll-area, and confirmation-dialog components. A single selected file downloads with its original filename; multiple files download as a ZIP that preserves their workspace-relative paths.
+- Navigator now has a file-and-folder selection mode built from the existing toolbar, button, checkbox, notice, scroll-area, and confirmation-dialog components. A single selected file downloads with its original filename; multiple files or selected folders download as a ZIP that recursively preserves their workspace-relative paths. Folder and child selections are deduplicated.
 - Bulk deletion is authenticated and guarded by an explicit count-based confirmation. The API validates the entire selection before mutation, rejects protected, missing, folder, traversal, and out-of-workspace targets, caps actions at 500 files, and closes Browser tabs for deleted files.
-- Verification: 99 API tests and the full web/Python/Electron production build pass. Live Docker DogFood proof covered single download, two-file ZIP, exact two-file deletion, immediate Navigator refresh, deleted-tab cleanup, and a clean browser runtime log.
+- Long names now stay inside the Navigator panel with ellipsis. Selection checkboxes retain the neumorphic surface: unchecked is inset, checked is flush, with theme-correct check colors. Download feedback is the compact `Download started.` status rather than echoing a long filename.
+- Browser file tabs now use authenticated raw URLs for PNG/JPG, audio, video, and PDF previews; CSV remains an authenticated text fetch rendered as a table. Binary previews no longer make the text API decode media files, and PDF owns its native scroll surface instead of nesting scroll containers.
+- Verification: 101 API tests and the full web/Python/Electron production build pass. Live Docker DogFood proof covered recursive folder ZIP, selection/deletion gating, compact feedback, bounded long names, PNG/JPG/MP3/MP4/PDF/CSV rendering, exact two-file deletion, immediate Navigator refresh, deleted-tab cleanup, and a clean browser runtime log.
 
 ### 2026-07-12 stabilization finding
 

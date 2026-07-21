@@ -36,6 +36,38 @@ def test_files_archive_preserves_relative_paths(monkeypatch: pytest.MonkeyPatch,
         assert archive.read("image.bin") == b"\x00\x01"
 
 
+def test_files_archive_expands_folders_and_deduplicates_descendants(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root = _workspace(monkeypatch, tmp_path)
+    (root / "assets" / "nested").mkdir(parents=True)
+    (root / "assets" / "one.txt").write_text("one", encoding="utf-8")
+    (root / "assets" / "nested" / "two.txt").write_text("two", encoding="utf-8")
+    (root / "assets" / "nested" / ".env").write_text("SECRET=value", encoding="utf-8")
+
+    payload = workspace_files.files_archive(["assets", "assets/nested/two.txt"])
+
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        assert archive.namelist() == ["assets/nested/two.txt", "assets/one.txt"]
+        assert archive.read("assets/nested/two.txt") == b"two"
+        assert ".env" not in "\n".join(archive.namelist())
+
+
+def test_files_archive_folder_respects_resolved_file_limit(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root = _workspace(monkeypatch, tmp_path)
+    (root / "assets").mkdir()
+    (root / "assets" / "one.txt").write_text("one", encoding="utf-8")
+    (root / "assets" / "two.txt").write_text("two", encoding="utf-8")
+    monkeypatch.setattr(workspace_files, "MAX_FILE_ACTION_COUNT", 1)
+
+    with pytest.raises(ValueError, match="select at most 1 files"):
+        workspace_files.files_archive(["assets"])
+
+
 def test_files_archive_rejects_protected_and_oversized_files(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

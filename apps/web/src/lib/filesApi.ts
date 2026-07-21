@@ -195,11 +195,15 @@ async function downloadResponse(response: Response, method: string, path: string
   return response.blob()
 }
 
-export async function downloadWorkspaceFiles(paths: string[], archiveName = 'workframe-files'): Promise<string> {
+export async function downloadWorkspaceFiles(
+  paths: string[],
+  archiveName = 'workframe-files',
+  containsFolders = false,
+): Promise<string> {
   const selected = normalizedSelectedPaths(paths)
   if (!selected.length) throw new Error('Select at least one file.')
 
-  if (selected.length === 1) {
+  if (selected.length === 1 && !containsFolders) {
     const path = selected[0]
     const response = await authenticatedFetch(workspaceRawUrl(path))
     const filename = safeDownloadName(path.split('/').pop() ?? '', 'download')

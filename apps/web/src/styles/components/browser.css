@@ -469,13 +469,18 @@
   display: flex;
   flex-direction: column;
   gap: var(--wf-gap-tight);
-  min-width: max-content;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .wf-file-tree__branch {
   display: flex;
   flex-direction: column;
   gap: var(--wf-gap);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .wf-file-tree__row {
@@ -546,6 +551,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--wf-gap);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding-inline-start: var(--wf-tree-indent);
 }
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import io
 import mimetypes
+import os
 import threading
 import time
 import zipfile
@@ -348,7 +349,7 @@ def file_raw(rel: str) -> tuple[bytes, str]:
     return fp.read_bytes(), mime or "application/octet-stream"
 
 
-def _selected_workspace_files(paths: list[Any]) -> list[tuple[str, Path]]:
+def _selected_workspace_paths(paths: list[Any]) -> list[tuple[str, Path]]:
     if not isinstance(paths, list) or not paths:
         raise ValueError("select at least one file")
     if len(paths) > MAX_FILE_ACTION_COUNT:
@@ -358,7 +359,7 @@ def _selected_workspace_files(paths: list[Any]) -> list[tuple[str, Path]]:
     seen: set[str] = set()
     for raw in paths:
         rel = _normalized_workspace_rel(str(raw or "").strip())
-        if not rel or rel in seen:
+        if not rel:
             continue
         reason = workspace_protected_reason(rel)
         if reason:
@@ -366,18 +367,72 @@ def _selected_workspace_files(paths: list[Any]) -> list[tuple[str, Path]]:
         path = safe_workspace_path(rel)
         if path is None or not path.exists():
             raise ValueError(f"file not found: {rel}")
-        if not path.is_file():
-            raise ValueError(f"not a file: {rel}")
-        selected.append((_workspace_rel(path), path))
-        seen.add(rel)
+        canonical_rel = _workspace_rel(path)
+        if canonical_rel in seen:
+            continue
+        selected.append((canonical_rel, path))
+        seen.add(canonical_rel)
 
     if not selected:
         raise ValueError("select at least one file")
     return selected
 
 
+def _selected_workspace_files(paths: list[Any]) -> list[tuple[str, Path]]:
+    selected = _selected_workspace_paths(paths)
+    for rel, path in selected:
+        if not path.is_file():
+            raise ValueError(f"not a file: {rel}")
+    return selected
+
+
+def _archive_workspace_files(paths: list[Any]) -> list[tuple[str, Path]]:
+    selected = _selected_workspace_paths(paths)
+    files: dict[str, Path] = {}
+
+    def add_file(path: Path) -> None:
+        try:
+            rel = _workspace_rel(path)
+        except ValueError as exc:
+            raise ValueError("selected file is outside the workspace") from exc
+        if workspace_protected_reason(rel):
+            return
+        if any(part in TREE_SKIP_NAMES for part in Path(rel).parts):
+            return
+        files.setdefault(rel, path)
+        if len(files) > MAX_FILE_ACTION_COUNT:
+            raise ValueError(f"select at most {MAX_FILE_ACTION_COUNT} files")
+
+    for rel, path in selected:
+        if path.is_file():
+            add_file(path)
+            continue
+        if not path.is_dir():
+            raise ValueError(f"not a file or folder: {rel}")
+        def on_walk_error(exc: OSError) -> None:
+            raise ValueError(f"could not read folder: {rel}") from exc
+
+        for folder, dirnames, filenames in os.walk(path, followlinks=False, onerror=on_walk_error):
+            folder_path = Path(folder)
+            dirnames[:] = sorted(
+                (
+                    name
+                    for name in dirnames
+                    if name not in TREE_SKIP_NAMES
+                    and not workspace_protected_reason(_workspace_rel(folder_path / name))
+                ),
+                key=str.lower,
+            )
+            for filename in sorted(filenames, key=str.lower):
+                add_file(folder_path / filename)
+
+    if not files:
+        raise ValueError("selected folders do not contain downloadable files")
+    return sorted(files.items(), key=lambda item: item[0].lower())
+
+
 def files_archive(paths: list[Any]) -> bytes:
-    selected = _selected_workspace_files(paths)
+    selected = _archive_workspace_files(paths)
     total_bytes = 0
     for _, path in selected:
         try:

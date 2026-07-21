@@ -175,6 +175,11 @@ function normalizeBrowserUrl(input: string) {
   return trimmed
 }
 
+function usesDirectFilePreview(fileName: string): boolean {
+  const capability = getFileCapability(fileName)
+  return capability.previewable && !capability.editable
+}
+
 function createUrlTab(url: string): BrowserTab {
   const title = urlTabLabel(url)
   const entry = createNavigationEntry({
@@ -320,6 +325,8 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
       })
       setActiveTabId(tabId)
 
+      if (usesDirectFilePreview(payload.fileName)) return
+
       void refreshFileByPath(payload.relativePath).then((content) => {
         setTabs((previous) =>
           previous.map((tab) =>
@@ -443,6 +450,7 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
         next,
       ])
       setActiveTabId(next.id)
+      if (usesDirectFilePreview(fileName)) return
       void refreshFileByPath(relativePath)
         .then((content) => {
           setTabs((previous) => previous.map((tab) =>
@@ -488,6 +496,17 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
   const reloadTab = useCallback((tabId: string) => {
     const tab = tabsRef.current.find((item) => item.id === tabId)
     if (!tab) return
+
+    if (tab.source === 'file' && usesDirectFilePreview(tab.title)) {
+      setTabs((previous) =>
+        previous.map((current) =>
+          current.id === tabId
+            ? { ...current, reloadNonce: current.reloadNonce + 1 }
+            : current,
+        ),
+      )
+      return
+    }
 
     const filePath = reloadableFilePath(tab)
     if (filePath) {
@@ -594,6 +613,18 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
         await Promise.all(
           fileTabs.map(async (tab) => {
             if (tab.content !== tab.savedContent) return
+            if (usesDirectFilePreview(tab.title)) {
+              if (!cancelled) {
+                setTabs((previous) =>
+                  previous.map((current) =>
+                    current.id === tab.id
+                      ? { ...current, reloadNonce: current.reloadNonce + 1 }
+                      : current,
+                  ),
+                )
+              }
+              return
+            }
             try {
               const content = await refreshFileByPath(tab.location)
               if (cancelled) return

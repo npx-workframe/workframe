@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download, ListChecks, LoaderCircle, Trash2, X } from 'lucide-react'
 
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { FileTree } from '@/components/ui/file-tree'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
+import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { useOpenWorkspaceFile } from '@/hooks/useOpenWorkspaceFile'
 import {
   collectFolderDescendantIds,
@@ -89,6 +89,14 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
   const [notice, setNotice] = useState<string | null>(null)
   const [noticeTone, setNoticeTone] = useState<'neutral' | 'caution'>('neutral')
   const loadingFoldersRef = useRef(new Set<string>())
+  const selectedNodes = useMemo(
+    () => [...selectedPaths].map((path) => findNode(tree, path)).filter((node): node is FileTreeNode => Boolean(node)),
+    [selectedPaths, tree],
+  )
+  const hasSelectedFolders = selectedNodes.some((node) => node.type === 'folder')
+  const selectedFilePaths = selectedNodes
+    .filter((node) => node.type === 'file')
+    .map((node) => node.id)
 
   useEffect(() => {
     setExpandedIds(new Set([tree.id]))
@@ -235,7 +243,6 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
   )
 
   const onCheckedChange = useCallback((node: FileTreeNode, checked: boolean) => {
-    if (node.type !== 'file') return
     setSelectedPaths((previous) => {
       const next = new Set(previous)
       if (checked) next.add(node.id)
@@ -271,24 +278,24 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
     setBusyAction('download')
     setNotice(null)
     try {
-      const filename = await downloadWorkspaceFiles([...selectedPaths], `${projectName}-files`)
+      await downloadWorkspaceFiles([...selectedPaths], `${projectName}-files`, hasSelectedFolders)
       setNoticeTone('neutral')
-      setNotice(`Downloaded ${filename}.`)
+      setNotice('Download started.')
     } catch (error) {
       setNoticeTone('caution')
       setNotice(error instanceof Error ? error.message : 'Could not download the selected files.')
     } finally {
       setBusyAction(null)
     }
-  }, [busyAction, projectName, selectedPaths])
+  }, [busyAction, hasSelectedFolders, projectName, selectedPaths])
 
   const handleDelete = useCallback(async () => {
-    if (!selectedPaths.size || busyAction) return
-    const count = selectedPaths.size
+    if (!selectedFilePaths.length || hasSelectedFolders || busyAction) return
+    const count = selectedFilePaths.length
     setBusyAction('delete')
     setNotice(null)
     try {
-      await deleteWorkspaceFiles([...selectedPaths])
+      await deleteWorkspaceFiles(selectedFilePaths)
       await refreshAfterMutation()
       setSelectedPaths(new Set())
       setSelectionMode(false)
@@ -300,7 +307,7 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
     } finally {
       setBusyAction(null)
     }
-  }, [busyAction, refreshAfterMutation, selectedPaths])
+  }, [busyAction, hasSelectedFolders, refreshAfterMutation, selectedFilePaths])
 
   return (
     <div ref={containerRef} className="wf-file-explorer">
@@ -327,9 +334,9 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
               size="toolbarIcon"
               className="wf-file-explorer__delete-btn"
               onClick={() => setDeleteDialogOpen(true)}
-              disabled={!selectedPaths.size || busyAction !== null}
+              disabled={!selectedFilePaths.length || hasSelectedFolders || busyAction !== null}
               aria-label="Delete selected files"
-              title="Delete selected files"
+              title={hasSelectedFolders ? 'Folders can be downloaded, not deleted' : 'Delete selected files'}
             >
               {busyAction === 'delete' ? <LoaderCircle className="wf-spin" /> : <Trash2 />}
             </Button>
@@ -362,12 +369,16 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
         )}
       </div>
 
-      <WorkframeNotice
-        message={notice}
-        tone={noticeTone}
-        className="wf-file-explorer__notice"
-        role="status"
-      />
+      {noticeTone === 'caution' ? (
+        <WorkframeNotice
+          message={notice}
+          tone="caution"
+          className="wf-file-explorer__notice"
+          role="status"
+        />
+      ) : (
+        <WorkframeStatusNotice message={notice} className="wf-file-explorer__status" />
+      )}
 
       <ScrollArea axis="vertical" inset="sm" className="wf-file-explorer__scroll">
         <FileTree
@@ -385,7 +396,7 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
       <ConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title={`Delete ${selectedPaths.size === 1 ? 'file' : `${selectedPaths.size} files`}?`}
+        title={`Delete ${selectedFilePaths.length === 1 ? 'file' : `${selectedFilePaths.length} files`}?`}
         description="The selected files will be permanently removed from this project. This cannot be undone."
         confirmLabel="Delete"
         confirmVariant="warn"

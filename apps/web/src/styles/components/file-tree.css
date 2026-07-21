@@ -39,6 +39,14 @@
   padding: var(--wf-space-2);
 }
 
+.wf-file-explorer__status {
+  min-width: 0;
+  margin: var(--wf-space-1) var(--wf-space-2) 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .wf-file-explorer__scroll {
   flex: 1;
   min-height: 0;
@@ -57,14 +65,33 @@
   gap: var(--wf-space-1);
   width: 100%;
   min-width: 0;
+  max-width: 100%;
 }
 
 .wf-file-tree__row-shell .wf-file-tree__row {
   flex: 1;
+  width: auto;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .wf-file-tree__checkbox {
   margin-inline-start: var(--wf-space-1);
+  border: 0 !important;
+  background: var(--wf-control-bg-flush) !important;
+  color: transparent !important;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+.wf-file-tree__checkbox[data-state='checked'] {
+  border-color: transparent !important;
+  background: var(--wf-control-bg-flush) !important;
+  color: #ffffff !important;
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-theme='neo-light'] .wf-file-tree__checkbox[data-state='checked'] {
+  color: var(--wf-violet) !important;
 }
 
 .wf-file-tree__row--checked {

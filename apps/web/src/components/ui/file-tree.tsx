@@ -112,7 +112,7 @@ function FileTreeBranch({ node, depth, isRoot = false }: FileTreeBranchProps) {
   const isFolder = node.type === 'folder'
   const isExpanded = expandedIds.has(node.id)
   const isSelected = selectedId === node.id
-  const isCheckable = selectionMode && !isFolder && !isRoot
+  const isCheckable = selectionMode && !isRoot
   const isChecked = isCheckable && checkedIds.has(node.id)
   const { Icon, color } = getNodePresentation(node.name, node.type, isFolder && isExpanded)
 
@@ -137,7 +137,7 @@ function FileTreeBranch({ node, depth, isRoot = false }: FileTreeBranchProps) {
             checked={isChecked}
             onCheckedChange={(checked) => onCheckedChange?.(node, checked === true)}
             className="wf-file-tree__checkbox"
-            aria-label={`Select ${node.name}`}
+            aria-label={`Select ${node.id || node.name}`}
           />
         ) : null}
         <button
