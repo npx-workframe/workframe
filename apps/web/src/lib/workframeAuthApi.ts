@@ -753,9 +753,18 @@ export const workframeAuthApi = {
     )
   },
 
-  listProviders(workspaceId?: string) {
-    const query = workspaceId?.trim() ? `?workspace_id=${encodeURIComponent(workspaceId.trim())}` : ''
-    return request<ProviderConnectList>(`/me/providers${query}`)
+  listProviders(workspaceId?: string, credentialScope: 'effective' | 'user' | 'workspace' = 'effective') {
+    const params = new URLSearchParams()
+    if (workspaceId?.trim()) params.set('workspace_id', workspaceId.trim())
+    params.set('credential_scope', credentialScope)
+    return request<ProviderConnectList>(`/me/providers?${params.toString()}`)
+  },
+
+  revokeWorkspaceCredential(workspaceId: string, credentialId: string) {
+    return request<{ ok: boolean; credential_id?: string; status?: string; error?: string }>(
+      `/workspace/${encodeURIComponent(workspaceId)}/credentials/${encodeURIComponent(credentialId)}/revoke`,
+      { method: 'POST', body: JSON.stringify({}) },
+    )
   },
 
   disconnectCredential(credentialId: string) {

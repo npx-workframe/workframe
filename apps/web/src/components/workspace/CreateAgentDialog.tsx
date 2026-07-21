@@ -14,7 +14,6 @@ import { setHermesFallbackChain, type FallbackEntry } from '@/lib/hermesCatalogA
 import { agentAvatarPersistPayload, pickRandomPreset } from '@/lib/presetAssets'
 import { workframeAuthApi, type WorkspaceRoom } from '@/lib/workframeAuthApi'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
-import { cn } from '@/lib/utils'
 
 const STEP_LABELS: Record<string, string> = {
   hermes_profile_create: 'Create Hermes profile',
@@ -106,6 +105,11 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
     setAvatarUrl(pickRandomPreset('agent'))
     setError('')
     setSteps([])
+  }
+
+  const closeAndReset = () => {
+    onOpenChange(false)
+    reset()
   }
 
   const applyApiSteps = (apiSteps: Array<{ step?: string; ok?: boolean; error?: string }> | undefined) => {
@@ -217,15 +221,11 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
   return (
     <SettingsSheetFrame
       open={open}
-      onClose={() => {
-        onOpenChange(false)
-        reset()
-      }}
+      onClose={closeAndReset}
       title="Create agent"
       summary={resolvedSlug ? `Profile slug: ${resolvedSlug}` : 'New Hermes specialist'}
       titleId="wf-create-agent-title"
       sheetClassName="wf-dialog-content--settings-compact"
-      contentFill={tab === 'model'}
       tabs={[
         { id: 'identity', label: 'Identity & Bio' },
         { id: 'instructions', label: 'Instructions' },
@@ -235,7 +235,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
       onTabChange={(next) => setTab(next as DialogTab)}
       actions={
         <WizardFormActions>
-          <DialogCancelButton onClick={() => onOpenChange(false)} disabled={busy}>
+          <DialogCancelButton onClick={closeAndReset} disabled={busy}>
             Cancel
           </DialogCancelButton>
           <DialogConfirmButton onClick={() => void createAgent()} disabled={busy || !resolvedSlug || !model.trim()}>
@@ -244,7 +244,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
         </WizardFormActions>
       }
     >
-      <div className={cn('space-y-4', tab === 'model' && 'wf-settings-fill-stack')}>
+      <div className="space-y-4">
         {busy ? <OperationProgress steps={steps} title="Creating agent…" /> : null}
 
         {tab === 'identity' ? (
@@ -316,7 +316,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
             <ModelPickerPanel
             workspaceId={workspaceId}
             embedded
-            selectionOnly
+            draftOnly
             value={model}
             onChanged={setModel}
             onFallbacksDraftChange={setFallbackDraft}

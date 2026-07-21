@@ -41,7 +41,6 @@ export function ModelPickerDialog({
       summary={summary}
       titleId="wf-model-picker-title"
       sheetClassName="wf-dialog-content--settings-compact"
-      contentFill
       actions={
         onConnectProvider ? (
           <DialogCancelButton
@@ -57,7 +56,7 @@ export function ModelPickerDialog({
         )
       }
     >
-      <div className="wf-settings-fill-stack space-y-4" role="tabpanel">
+      <div className="space-y-4" role="tabpanel">
         {error ? <WorkframeNotice message={error} /> : null}
 
         <ModelPickerPanel

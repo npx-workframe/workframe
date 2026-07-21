@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const pkgRoot = path.join(root, 'packages/create-workframe');
 const cli = path.join(pkgRoot, 'bin/create-workframe.js');
+const npmCache = path.join(root, '.install-gate', 'npm-cache');
 
 const args = process.argv.slice(2);
 const buildWeb = args.includes('--build');
@@ -55,16 +56,21 @@ function run(cmd, cmdArgs, opts = {}) {
 
 function runNpmPack(cwd, dest) {
   // ponytail: prep is explicit above; prepack rebuild would duplicate and ignore --skip-build
-  const label = `npm pack --ignore-scripts --pack-destination "${dest}"`;
+  fs.mkdirSync(npmCache, { recursive: true });
+  const packArgs = ['pack', '--ignore-scripts', '--cache', npmCache, '--pack-destination', dest];
+  const label = ['npm', ...packArgs].join(' ');
+  const command = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : 'npm';
+  const commandArgs = process.platform === 'win32'
+    ? ['/d', '/s', '/c', 'npm.cmd', ...packArgs]
+    : packArgs;
   commands.push(label);
-  const res = spawnSync(label, {
-    shell: true,
+  const res = spawnSync(command, commandArgs, {
     encoding: 'utf8',
     cwd,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
   if (res.status !== 0) {
-    const msg = (res.stderr || res.stdout || '').trim().slice(0, 500);
+    const msg = (res.stderr || res.stdout || res.error?.message || '').trim().slice(0, 500);
     throw new Error(`${label} failed: ${msg}`);
   }
   return res;

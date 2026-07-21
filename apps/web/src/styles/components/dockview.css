@@ -29,6 +29,7 @@
   border-right: var(--wf-border-width, 1px) solid var(--wf-divider-color);
   background: color-mix(in srgb, var(--wf-surface) 35%, transparent);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .wf-rail-fallback .wf-panel--rail {

@@ -131,9 +131,7 @@ def _set_profile_model_base_url(profile: str, base_url: str) -> tuple[bool, str]
 
 
 def _proxy_fallback_chain(profile: str, billing_provider: str) -> None:
-    """Runtime fallbacks use provider=custom so Hermes keeps the proxy + lease."""
-    if not _srv()._is_runtime_profile_slug(profile):
-        return
+    """Vault-backed fallbacks use provider=custom so Hermes keeps proxy auth."""
     block = _srv()._read_model_block(profile)
     chain = block.get("fallback_chain") or []
     billing = str(billing_provider or "openrouter").strip().lower()
@@ -214,16 +212,17 @@ def _profile_llm_proxy_ready(profile: str, provider: str) -> bool:
     llm_provider = str(provider or "openrouter").strip().lower()
     if str(block.get("base_url") or "").strip() != _llm_proxy_base_url(llm_provider):
         return False
-    if not _srv()._is_runtime_profile_slug(prof):
-        return True
     if str(block.get("provider") or "").strip().lower() != "custom":
         return False
+    valid_fallbacks = 0
     for entry in block.get("fallback_chain") or []:
         prov = str(entry.get("provider", "")).strip().lower()
         model = str(entry.get("model", "")).strip()
+        if model and prov:
+            valid_fallbacks += 1
         if model and prov == llm_provider and prov != "custom":
             return False
-    return True
+    return valid_fallbacks > 0
 
 
 def _ensure_profile_llm_proxy(profile: str, provider: str) -> None:
@@ -232,20 +231,22 @@ def _ensure_profile_llm_proxy(profile: str, provider: str) -> None:
     prof = _srv().safe_profile_slug(profile)
     if _srv()._oauth_llm_provider_spec(llm_provider):
         _srv()._normalize_profile_config_yaml(prof)
-        _srv()._apply_mvp_model_for_provider(prof, llm_provider)
+        current_model = str(_srv()._read_model_block(prof).get("default") or "").strip()
+        if current_model:
+            _srv()._apply_model_for_billing_provider(prof, llm_provider, current_model)
+        else:
+            _srv()._apply_mvp_model_for_provider(prof, llm_provider)
         return
     _srv()._normalize_profile_config_yaml(prof)
     if _profile_llm_proxy_ready(prof, llm_provider):
         _ensure_profile_proxy_headers(prof)
-        if _srv()._is_runtime_profile_slug(prof):
-            _proxy_fallback_chain(prof, llm_provider)
+        _proxy_fallback_chain(prof, llm_provider)
         return
     _coalesce_profile_model_yaml(prof)
     _set_profile_model_base_url(prof, _llm_proxy_base_url(llm_provider))
     _ensure_profile_proxy_headers(prof)
-    if _srv()._is_runtime_profile_slug(prof):
-        _srv()._set_profile_model_provider(prof, "custom")
-        _proxy_fallback_chain(prof, llm_provider)
+    _srv()._set_profile_model_provider(prof, "custom")
+    _proxy_fallback_chain(prof, llm_provider)
 
 
 def _set_profile_model_api_key(profile: str, api_key: str) -> tuple[bool, str]:
@@ -345,6 +346,24 @@ def _read_config_model_api_key(profile: str) -> str:
     return str(_srv()._read_model_block(profile).get("api_key") or "").strip()
 
 
+def _runtime_llm_lease_id(
+    profile: str,
+    user_id: str,
+    workspace_id: str,
+    provider: str,
+) -> str:
+    """Stable DB key for the opaque credential bound to one user runtime."""
+    seed = "\x1f".join(
+        (
+            str(profile or "").strip(),
+            str(user_id or "").strip(),
+            str(workspace_id or "").strip(),
+            str(provider or "openrouter").strip().lower(),
+        ),
+    )
+    return f"runtime-llm:{uuid.uuid5(uuid.NAMESPACE_URL, seed).hex}"
+
+
 
 
 def _sync_profile_model_api_key(profile: str, api_key: str, *, wait_healthy: bool = False) -> None:
@@ -405,8 +424,16 @@ def _apply_turn_credential_lease(
     workspace_id: str,
     provider: str,
     run_id: str,
+    *,
+    wait_healthy: bool = True,
 ) -> str:
-    """Issue per-run lease token into profile env; real secret stays in API vault."""
+    """Bind an opaque LLM broker token to the user runtime.
+
+    ``run_id`` remains part of the public call shape because action credentials
+    really are turn-scoped.  LLM credentials are runtime-scoped: Hermes caches
+    ``model.api_key``, so per-turn rotation/revocation would restart the gateway
+    during normal chat and sever active streams.
+    """
     provider = str(provider or "openrouter").strip().lower()
     prof = _srv().resolve_hermes_profile(profile)
     env_var = _profile_lease_env_var(prof, provider)
@@ -428,9 +455,9 @@ def _apply_turn_credential_lease(
             binding_id=str(lease_meta.get("credential_binding_id") or ""),
         ):
             # ponytail: hot path — skip credential resolve + env rewrite when lease still valid
-            if _srv()._is_runtime_profile_slug(prof) and existing_token:
+            if existing_token:
                 if _read_config_model_api_key(prof) != existing_token:
-                    _sync_profile_model_api_key(prof, existing_token)
+                    _sync_profile_model_api_key(prof, existing_token, wait_healthy=wait_healthy)
             return existing_token
 
     if _srv()._is_runtime_profile_slug(prof):
@@ -442,7 +469,7 @@ def _apply_turn_credential_lease(
         _srv()._sync_oauth_llm_to_profile(prof, user_id, provider)
         if not _srv()._profile_routing_matches_billing(prof, provider):
             current_model = str(_srv()._read_model_from_config(prof)[1] or "").strip()
-            if not _srv()._resolve_billing_provider_for_model(current_model, {provider}):
+            if not current_model:
                 current_model = str(
                     (_srv().PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
                 ).strip()
@@ -472,24 +499,27 @@ def _apply_turn_credential_lease(
         provider=provider,
         binding_id=binding_id,
     ):
-        if _srv()._is_runtime_profile_slug(prof) and existing_token:
+        if existing_token:
             if _read_config_model_api_key(prof) != existing_token:
-                _sync_profile_model_api_key(prof, existing_token)
+                _sync_profile_model_api_key(prof, existing_token, wait_healthy=wait_healthy)
         return existing_token
 
+    lease_id = _runtime_llm_lease_id(prof, user_id, workspace_id, provider)
     token = turn_credentials.issue_lease(
-        run_id,
+        lease_id,
         user_id,
         workspace_id,
         provider,
         prof,
         binding_id or None,
+        ttl_seconds=turn_credentials.RUNTIME_TTL,
     )
     if token != existing_token:
         _srv()._upsert_env_secret(_srv()._profile_dir(prof) / ".env", env_var, token)
-    if _srv()._is_runtime_profile_slug(prof):
-        _ensure_profile_llm_proxy(prof, provider)
-        _sync_profile_model_api_key(prof, token)
+    _ensure_profile_llm_proxy(prof, provider)
+    # config.yaml is cached by Hermes. Wait for the reload here; scheduling it
+    # in the background races the request and causes intermittent disconnects.
+    _sync_profile_model_api_key(prof, token, wait_healthy=wait_healthy)
     return token
 
 
@@ -608,20 +638,33 @@ def _apply_action_credential_lease(
 
 
 def _revoke_turn_credential_lease(run_id: str, profile: str) -> None:
-    """Revoke lease in DB; clear stale bearer from runtime profile config/gateway."""
+    """Revoke genuinely turn-scoped action leases after a run.
+
+    The profile's LLM broker token is deliberately retained. It contains no
+    provider secret, is profile-bound by the internal proxy, and is resolved
+    against the owner's current vault binding on every request.
+    """
     run_id = str(run_id or "").strip()
     if not run_id:
         return
-    turn_credentials.revoke_lease(run_id)
     for provider_id, _env_var in _user_action_env_specs():
         turn_credentials.revoke_lease(f"{run_id}::{provider_id}")
-    prof = _srv().resolve_hermes_profile(profile)
-    if not _srv()._is_runtime_profile_slug(prof):
-        return
-    config_key = _read_config_model_api_key(prof)
-    if config_key.startswith(turn_credentials.LEASE_PREFIX):
-        _clear_profile_model_api_key(prof)
-        _srv()._restart_runtime_profile_gateway(prof)
+
+
+def _revoke_runtime_llm_leases(
+    *,
+    payer_user_id: str = "",
+    workspace_id: str = "",
+    provider: str = "",
+    credential_binding_id: str = "",
+) -> int:
+    """Invalidate opaque runtime credentials when vault authority changes."""
+    return turn_credentials.revoke_matching_leases(
+        payer_user_id=payer_user_id,
+        workspace_id=workspace_id,
+        provider=provider,
+        credential_binding_id=credential_binding_id,
+    )
 
 
 def _require_user_provider(user_id: str, workspace_id: str, provider: str) -> dict[str, Any]:
@@ -736,11 +779,20 @@ def _overlay_turn_provider_env(
     workspace_id: str,
     provider: str,
     run_id: str = "",
+    *,
+    wait_healthy: bool = True,
 ) -> str:
-    """Per-run lease into profile env; upstream key resolved only inside workframe-api."""
+    """Runtime broker credential into profile env; raw key stays API-only."""
     run_id = str(run_id or "").strip() or str(uuid.uuid4())
     # ponytail: yaml sync + gateway reload are async on the send path — never block TTFT (~40s).
-    return _apply_turn_credential_lease(profile, user_id, workspace_id, provider, run_id)
+    return _apply_turn_credential_lease(
+        profile,
+        user_id,
+        workspace_id,
+        provider,
+        run_id,
+        wait_healthy=wait_healthy,
+    )
 
 
 def _try_overlay_turn_provider_env(
@@ -749,10 +801,19 @@ def _try_overlay_turn_provider_env(
     workspace_id: str,
     provider: str,
     run_id: str = "",
+    *,
+    wait_healthy: bool = True,
 ) -> bool:
     """Best-effort LLM lease; returns False when the user has no key yet."""
     try:
-        _overlay_turn_provider_env(profile, user_id, workspace_id, provider, run_id)
+        _overlay_turn_provider_env(
+            profile,
+            user_id,
+            workspace_id,
+            provider,
+            run_id,
+            wait_healthy=wait_healthy,
+        )
         return True
     except ValueError as exc:
         if "no_llm_provider_for_user" in str(exc):

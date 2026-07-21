@@ -1,11 +1,6 @@
-import {
-  EmailOtpVerification,
-  type EmailOtpStep,
-} from '@/components/auth/EmailOtpVerification'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { SessionProfile } from '@/lib/workframeAuthApi'
 import { SMTP_PROGRESS, type SmtpProgressPhase } from '@/components/onboarding/conciergeFlowUtils'
 
 function SmtpSetupStatus({
@@ -53,7 +48,6 @@ function SmtpProgressList({ phase }: { phase: SmtpProgressPhase | null }) {
 }
 
 type ConciergeSmtpStepProps = {
-  mode: 'smtp' | 'admin_auth'
   busy: boolean
   smtpPhase: SmtpProgressPhase | null
   smtpHost: string
@@ -64,25 +58,15 @@ type ConciergeSmtpStepProps = {
   smtpFrom: string
   smtpSetupComplete: boolean
   smtpTested: boolean
-  adminEmail: string
-  adminOtpStep: EmailOtpStep
-  adminAuthDevOtp: string
-  adminAuthNotice: string | null
-  inviteToken: string
-  googleOAuthEnabled: boolean
   onSmtpHostChange: (value: string) => void
   onSmtpPortChange: (value: string) => void
   onSmtpUserChange: (value: string) => void
   onSmtpPassChange: (value: string) => void
   onSmtpFromChange: (value: string) => void
   onMarkSmtpDirty: () => void
-  onGoogleSignIn: () => void
-  onAdminOtpStepChange: (step: EmailOtpStep) => void
-  onAdminVerified: (profile: SessionProfile) => void
 }
 
 export function ConciergeSmtpStep({
-  mode,
   busy,
   smtpPhase,
   smtpHost,
@@ -93,21 +77,12 @@ export function ConciergeSmtpStep({
   smtpFrom,
   smtpSetupComplete,
   smtpTested,
-  adminEmail,
-  adminOtpStep,
-  adminAuthDevOtp,
-  adminAuthNotice,
-  inviteToken,
-  googleOAuthEnabled,
   onSmtpHostChange,
   onSmtpPortChange,
   onSmtpUserChange,
   onSmtpPassChange,
   onSmtpFromChange,
   onMarkSmtpDirty,
-  onGoogleSignIn,
-  onAdminOtpStepChange,
-  onAdminVerified,
 }: ConciergeSmtpStepProps) {
   return (
     <>
@@ -191,23 +166,6 @@ export function ConciergeSmtpStep({
         />
         <p className="wf-dialog-field__hint">Leave blank to use the login email as the sender.</p>
       </div>
-      {mode === 'admin_auth' ? (
-        <EmailOtpVerification
-          initialEmail={adminEmail}
-          startStep={adminOtpStep}
-          initialDevOtp={adminAuthDevOtp}
-          initialAuthNotice={adminAuthNotice}
-          inviteToken={inviteToken}
-          emailInputId="wf-concierge-admin-email"
-          purpose="register"
-          variant="wizard"
-          skipEmailStep={Boolean(adminEmail.trim())}
-          googleOAuthEnabled={googleOAuthEnabled}
-          onGoogleSignIn={onGoogleSignIn}
-          onStepChange={onAdminOtpStepChange}
-          onVerified={onAdminVerified}
-        />
-      ) : null}
     </>
   )
 }

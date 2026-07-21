@@ -17,7 +17,6 @@ export type ConciergeStep =
 
 /** Map internal steps onto wizard-rail ids (admin OTP shares the SMTP rail step). */
 export function wizardRailStep(step: ConciergeStep): string {
-  if (step === 'admin_auth') return 'smtp'
   return step
 }
 
@@ -50,7 +49,10 @@ export function buildWizardSteps(
   }
 
   if (deploymentMode !== 'single_user_local') {
-    steps.push({ id: 'smtp', label: 'Admin', group: 'Setup' })
+    steps.push(
+      { id: 'smtp', label: 'Email delivery', group: 'Setup' },
+      { id: 'admin_auth', label: 'Verify email', group: 'Setup' },
+    )
   }
 
   steps.push(
@@ -79,9 +81,9 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
     case 'welcome':
       return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
     case 'smtp':
-      return { title: 'Admin', description: 'Configure SMTP for sign-in codes and delivery status.' }
+      return { title: 'Email delivery', description: 'Configure and test SMTP for sign-in codes, invites, and notifications.' }
     case 'admin_auth':
-      return { title: 'Verify admin', description: 'Confirm your email to finish admin setup.' }
+      return { title: 'Verify admin email', description: 'Enter the temporary code sent to your admin email.' }
     case 'integrations':
       return { title: 'Integrations', description: 'Optional — member sign-in (OAuth) and agent messaging bots.' }
     case 'billing':
@@ -203,6 +205,10 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
         }
         return step
       }
+      case 'admin_auth':
+        return ctx.adminVerified
+          ? { ...step, configured: true, detail: truncate(ctx.adminEmail, 42) || 'Verified' }
+          : { ...step, detail: ctx.adminEmail.trim() ? truncate(ctx.adminEmail, 42) : 'Code required' }
       case 'integrations': {
         const parts: string[] = []
         if (ctx.stack?.google_oauth?.enabled) parts.push('Google')
@@ -270,6 +276,5 @@ export function railStepToConciergeStep(
   _currentStep: ConciergeStep,
   _adminVerified: boolean,
 ): ConciergeStep {
-  if (railId === 'smtp') return 'smtp'
   return railId as ConciergeStep
 }

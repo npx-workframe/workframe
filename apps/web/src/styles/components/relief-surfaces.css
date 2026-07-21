@@ -864,10 +864,13 @@
   --dv-active-sash-color: transparent !important;
 }
 
-[data-chrome-mode='relief'] .wf-panel--rail,
 [data-chrome-mode='relief'] .wf-rail-fallback {
   border: none;
-  border-right: var(--wf-border-width) solid var(--wf-divider-color);
+  border-inline-end: var(--wf-border-width, 1px) solid var(--wf-divider-color);
+}
+
+[data-chrome-mode='relief'] .wf-rail-fallback .wf-panel--rail {
+  border: none;
 }
 
 [data-chrome-mode='relief'] .wf-panel--chat {

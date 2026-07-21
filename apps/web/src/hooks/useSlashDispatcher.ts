@@ -25,11 +25,11 @@ import { resolveAgentModelsProfile } from '@/lib/agentProfile'
  * `/compress`) is left for Slice 2 with a real BFF endpoint.
  */
 export function useSlashDispatcher() {
-  const { startNewSession, profile: runtimeProfile } = useHermesSession()
+  const { startNewSession } = useHermesSession()
   const { openModelPicker } = useCommandDialogs()
   const { activeProfile } = useAgentRoute()
   const { activeRoom } = useWorkspacePanels()
-  const modelsProfile = resolveAgentModelsProfile(activeRoom, activeProfile, runtimeProfile)
+  const modelsProfile = resolveAgentModelsProfile(activeRoom, activeProfile)
   const workspaceId = activeRoom?.workspace_id ?? ''
   const [lastResult, setLastResult] = useState<SlashDispatchResult | null>(null)
   const [busy, setBusy] = useState(false)

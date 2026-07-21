@@ -10,6 +10,7 @@ import shutil
 import sqlite3
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -223,12 +224,19 @@ def _scrub_orphan_top_level_yaml_lines(profile: str) -> None:
         return
     out: list[str] = []
     changed = False
+    root_list_key = ""
     for line in lines:
         stripped = line.lstrip()
         indent = len(line) - len(stripped)
         if indent == 0 and stripped.startswith("- "):
+            if root_list_key == "fallback_providers":
+                out.append(line)
+                continue
             changed = True
             continue
+        if indent == 0 and stripped and not stripped.startswith("#") and ":" in stripped:
+            key, _, value = stripped.partition(":")
+            root_list_key = key.strip() if not value.strip() else ""
         out.append(line)
     if changed:
         try:
@@ -724,6 +732,14 @@ def _agent_label(profile: str) -> str:
 
 
 def _native_display_name() -> str:
+    slug = str(_srv().NATIVE_PROFILE or "").strip()
+    if slug:
+        db_name = _agent_db_display_name(slug)
+        if db_name:
+            return db_name
+        reg_name = str(_srv()._agent_registry_row(slug).get("display_name") or "").strip()
+        if reg_name:
+            return reg_name
     return f"{_srv().PROJECT_NAME} Agent"
 
 
@@ -1122,6 +1138,9 @@ def profile_create(
                 if lane.get("room"):
                     results["room"] = lane["room"]
                 results["steps"].extend(lane.get("steps") or [])
+                if lane.get("ok") is False:
+                    results["ok"] = False
+                    results["error"] = str(lane.get("error") or "bootstrap_dm_lane_failed")
             except Exception as exc:
                 results["steps"].append({"step": "bootstrap_dm_lane", "ok": False, "error": str(exc)})
                 results["ok"] = False
@@ -1159,15 +1178,18 @@ def profile_create(
     if _install_child_base_artifacts(prof, display_name=child_label, role=child_role):
         results["steps"].append({"step": "install_child_base", "ok": True})
     
-    # 2. Start the gateway for this profile
-    try:
-        ok, out, port = _srv()._configure_profile_api(prof)
-        results["steps"].append({"step": "configure_api", "ok": ok, "api_port": port, "output": out.strip()})
-        if ok:
-            ok2, out2 = _srv()._patch_profile_gateway_run_script(prof)
-            results["steps"].append({"step": "patch_run_script", "ok": ok2, "output": out2.strip()})
-    except Exception as exc:
-        results["steps"].append({"step": "configure_api", "ok": False, "error": str(exc)})
+    # 2. A per-user DM runtime owns its gateway. The child template is identity/config
+    # authority only, so starting a second template gateway is both redundant and a
+    # secure-mode false failure. Standalone profile creation still provisions one.
+    if not bootstrap_dm:
+        try:
+            ok, out, port = _srv()._configure_profile_api(prof)
+            results["steps"].append({"step": "configure_api", "ok": ok, "api_port": port, "output": out.strip()})
+            if ok:
+                ok2, out2 = _srv()._patch_profile_gateway_run_script(prof)
+                results["steps"].append({"step": "patch_run_script", "ok": ok2, "output": out2.strip()})
+        except Exception as exc:
+            results["steps"].append({"step": "configure_api", "ok": False, "error": str(exc)})
     
     # 3–4. Template model/gateway only when not bootstrapping a per-user DM runtime (C1).
     if not bootstrap_dm:

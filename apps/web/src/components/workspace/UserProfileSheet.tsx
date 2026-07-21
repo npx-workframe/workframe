@@ -22,7 +22,7 @@ type UserProfileSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialTab?: ProfileTab
-  initialConnectTab?: ConnectTab | 'models'
+  initialConnectTab?: ConnectTab
 }
 
 export function UserProfileSheet({

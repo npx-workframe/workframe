@@ -187,13 +187,25 @@ export function clearCachedFilesTree(): void {
   }
 }
 
+export function normalizeWorkspaceFilePath(path: string): string {
+  const normalized = path.trim().replace(/\\/g, '/')
+  // Agent tools see the workspace at /workspace, while the BFF file routes
+  // accept paths relative to that root. Persisted chat attachments can use
+  // either form, so normalize at the URL boundary instead of rewriting
+  // message history.
+  return normalized
+    .replace(/^\/workspace(?:\/|$)/i, '')
+    .replace(/^workspace(?:\/|$)/i, '')
+    .replace(/^\/+/, '')
+}
+
 export function workspaceRawUrl(path: string): string {
-  return `/api/files/raw?path=${encodeURIComponent(path)}`
+  return `/api/files/raw?path=${encodeURIComponent(normalizeWorkspaceFilePath(path))}`
 }
 
 /** Path-style workspace URL so HTML relative assets (js/css) resolve correctly in iframes. */
 export function workspaceFileServeUrl(path: string): string {
-  const trimmed = path.trim().replace(/\\/g, '/').replace(/^\/+/, '')
+  const trimmed = normalizeWorkspaceFilePath(path)
   if (!trimmed) return '/api/files/workspace/'
   return `/api/files/workspace/${trimmed.split('/').map((segment) => encodeURIComponent(segment)).join('/')}`
 }

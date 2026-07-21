@@ -38,6 +38,8 @@ def _prepare_runtime_profile_credentials(
     runtime: str,
     user_id: str,
     workspace_id: str = "",
+    *,
+    wait_healthy: bool = True,
 ) -> bool:
     """Strip stale profile secrets, then overlay the runtime profile owner's keys.
 
@@ -57,7 +59,86 @@ def _prepare_runtime_profile_credentials(
     _srv()._reconcile_profile_llm_for_user(runtime, user, workspace_id)
     prov = _srv()._llm_billing_provider(runtime, user_id=user, workspace_id=workspace_id)
     _srv()._ensure_profile_llm_proxy(runtime, prov)
-    return _srv()._user_can_use_llm(user, workspace_id, prov)
+    ready = _srv()._user_can_use_llm(user, workspace_id, prov)
+    if ready:
+        # Pre-bind the opaque runtime credential while provisioning/opening the
+        # agent. The first chat turn must never be responsible for restarting a
+        # credential-less Hermes gateway.
+        _srv()._try_overlay_turn_provider_env(
+            runtime,
+            user,
+            workspace_id,
+            prov,
+            f"runtime-bootstrap:{runtime}",
+            wait_healthy=wait_healthy,
+        )
+    return ready
+
+
+def _refresh_user_runtime_credentials(
+    user_id: str,
+    workspace_id: str = "",
+    *,
+    wait_healthy: bool = False,
+) -> int:
+    """Refresh all of a user's agent runtimes after a credential change."""
+    user = str(user_id or "").strip()
+    if not user:
+        return 0
+    user_part = re.sub(
+        r"[^a-z0-9]+",
+        "-",
+        _srv()._user_hermes_dir_slug(user).lower(),
+    ).strip("-")[:20] or "user"
+    prefix = f"u-{user_part}-"
+    profiles_dir = _srv().HERMES_DATA / "profiles"
+    if not profiles_dir.is_dir():
+        return 0
+    refreshed = 0
+    for path in profiles_dir.iterdir():
+        if not path.is_dir() or not path.name.startswith(prefix):
+            continue
+        try:
+            if _prepare_runtime_profile_credentials(
+                path.name,
+                user,
+                workspace_id,
+                wait_healthy=wait_healthy,
+            ):
+                refreshed += 1
+        except (OSError, RuntimeError, ValueError):
+            continue
+    return refreshed
+
+
+def _refresh_workspace_runtime_credentials(
+    workspace_id: str,
+    *,
+    wait_healthy: bool = False,
+) -> int:
+    """Refresh active member runtimes after a company credential changes."""
+    workspace = str(workspace_id or "").strip()
+    if not workspace:
+        return 0
+    conn = _srv()._workframe_db()
+    try:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT user_id FROM workspace_memberships
+            WHERE workspace_id = ? AND status = 'active' AND deleted_at IS NULL
+            """,
+            (workspace,),
+        ).fetchall()
+    finally:
+        conn.close()
+    return sum(
+        _refresh_user_runtime_credentials(
+            str(row["user_id"]),
+            workspace,
+            wait_healthy=wait_healthy,
+        )
+        for row in rows
+    )
 
 
 def _resolve_runtime_owner(runtime: str) -> tuple[str, str] | None:
@@ -111,12 +192,9 @@ def _user_owner_name(user_id: str) -> str:
 
 def _runtime_display_label(user_id: str, template_slug: str, workspace_id: str = "") -> str:
     template = _srv().safe_profile_slug(str(template_slug or "").strip())
-    user_id = str(user_id or "").strip()
-    if user_id:
-        runtime = _runtime_profile_slug(user_id, template)
-        reg_runtime = _srv()._agent_registry_row(runtime)
-        if str(reg_runtime.get("display_name") or "").strip():
-            return str(reg_runtime["display_name"]).strip()
+    # Runtime profiles are credential/session proxies. Their registry rows may
+    # contain stale metadata from older builds, but can never rename the shared
+    # workspace agent.
     custom = _srv()._agent_db_display_name(template, workspace_id)
     if custom:
         return custom
@@ -124,11 +202,11 @@ def _runtime_display_label(user_id: str, template_slug: str, workspace_id: str =
     if reg.get("display_name"):
         return str(reg["display_name"])
     if _srv()._is_native_profile(template) or template.endswith("-agent"):
-        return f"{_user_owner_name(user_id)}'s {_srv()._native_display_name().replace(' Agent', '')} Agent"
+        return _srv()._native_display_name()
     role = _srv()._agent_db_display_name(template, workspace_id) or _srv()._agent_registry_row(template).get("display_name")
     if not role:
         role = template.replace("-", " ").title()
-    return f"{_user_owner_name(user_id)}'s {role}"
+    return str(role)
 
 
 def _cohort_alias(user_id: str, template_slug: str) -> str:
@@ -465,6 +543,8 @@ def _write_workframe_cohort_manifest(user_id: str, workspace_id: str, cohort: li
         path = _srv()._profile_dir(runtime) / "WORKFRAME_COHORT.md"
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
+            if path.is_file() and path.read_text(encoding="utf-8") == body:
+                continue
             path.write_text(body, encoding="utf-8")
         except OSError:
             pass
@@ -616,6 +696,11 @@ def _copy_text_without_bom(src: Path, dst: Path) -> None:
     if raw.startswith(b"\xef\xbb\xbf"):
         raw = raw[3:]
     dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        if dst.is_file() and dst.read_bytes() == raw:
+            return
+    except OSError:
+        pass
     dst.write_bytes(raw)
 
 
@@ -648,10 +733,7 @@ def _backfill_runtime_identity(runtime: str, template: str) -> None:
     for name in ("SOUL.md", "AGENTS.md", "SETUP.md"):
         src = tdir / name
         dst = rdir / name
-        if name == "SOUL.md":
-            if _srv()._write_profile_soul_if_stub(runtime, template):
-                continue
-        if src.is_file() and not dst.is_file():
+        if src.is_file():
             try:
                 _copy_text_without_bom(src, dst)
             except OSError:
@@ -680,13 +762,15 @@ def _profile_toolsets_ready(profile: str, want: tuple[str, ...] | list[str]) -> 
     if not names:
         return True
     ts = cfg.get("toolsets") if isinstance(cfg.get("toolsets"), list) else []
-    if not all(name in ts for name in names):
-        return False
+    global_ready = all(name in ts for name in names)
     pts = cfg.get("platform_toolsets") if isinstance(cfg.get("platform_toolsets"), dict) else {}
+    platform_ready = True
     for platform in ("api_server", "cli"):
         plat = pts.get(platform) if isinstance(pts.get(platform), list) else []
         if not all(name in plat for name in names):
-            return False
+            platform_ready = False
+    if not global_ready and not platform_ready:
+        return False
     agent = cfg.get("agent") if isinstance(cfg.get("agent"), dict) else {}
     disabled = agent.get("disabled_toolsets") if isinstance(agent.get("disabled_toolsets"), list) else []
     return not any(name in disabled for name in names)
@@ -724,16 +808,20 @@ def ensure_runtime_profile(
             ok, out, _port = _srv()._configure_profile_api(runtime)
             if not ok:
                 raise ValueError(f"runtime profile api config failed: {out}")
-        skills_dir = _srv()._profile_dir(runtime) / "skills"
-        if not skills_dir.is_dir() or not any(skills_dir.iterdir()):
-            _backfill_runtime_identity(runtime, template)
+        _backfill_runtime_identity(runtime, template)
         if not _profile_toolsets_ready(runtime, _srv()._chat_toolsets_for_profile(runtime)):
             _srv()._ensure_profile_toolsets(runtime)
         _ensure_profile_terminal_cwd(runtime)
-        # Existing profiles still need invariant repair.  This deliberately does
-        # not copy template model preferences; reconciliation keeps the agent's
-        # model when the acting user can use it and falls back to that user's
-        # connected providers otherwise.
+        # A runtime isolates credentials/gateway state, not agent preferences.
+        # Repair model drift before credential preparation so DM, room mention,
+        # kanban, and cron all execute the model owned by the agent template.
+        ok_model, model_error = _srv()._sync_runtime_model_from_template(
+            runtime,
+            template,
+            user_id=user_id,
+        )
+        if not ok_model:
+            raise ValueError(f"runtime model sync failed: {model_error}")
         _prepare_runtime_profile_credentials(runtime, user_id, workspace_id)
         _srv()._ensure_profile_proxy_headers(runtime)
         return
@@ -759,4 +847,11 @@ def ensure_runtime_profile(
         raise ValueError(f"runtime profile api config failed: {out}")
     _srv()._ensure_profile_toolsets(runtime)
     _ensure_profile_terminal_cwd(runtime)
+    ok_model, model_error = _srv()._sync_runtime_model_from_template(
+        runtime,
+        template,
+        user_id=user_id,
+    )
+    if not ok_model:
+        raise ValueError(f"runtime model sync failed: {model_error}")
     _prepare_runtime_profile_credentials(runtime, user_id, workspace_id)

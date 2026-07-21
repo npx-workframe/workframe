@@ -52,6 +52,11 @@ export function CreateProjectDialog({
     setSteps([])
   }
 
+  const closeAndReset = () => {
+    onOpenChange(false)
+    reset()
+  }
+
   const createProject = async () => {
     const trimmed = name.trim()
     if (!trimmed) {
@@ -105,10 +110,7 @@ export function CreateProjectDialog({
   return (
     <SettingsSheetFrame
       open={open}
-      onClose={() => {
-        onOpenChange(false)
-        reset()
-      }}
+      onClose={closeAndReset}
       title="Create project"
       sectionLabel="Project details"
       summary="Add a project channel to this workframe."
@@ -116,10 +118,10 @@ export function CreateProjectDialog({
       sheetClassName="wf-dialog-content--settings-compact"
       actions={
         <WizardFormActions>
-          <DialogCancelButton onClick={() => onOpenChange(false)} disabled={busy}>
+          <DialogCancelButton onClick={closeAndReset} disabled={busy}>
             Cancel
           </DialogCancelButton>
-          <DialogConfirmButton onClick={() => void createProject()} disabled={busy || !workspaceId}>
+          <DialogConfirmButton onClick={() => void createProject()} disabled={busy || !workspaceId || !name.trim()}>
             {busy ? 'Creating…' : 'Create project'}
           </DialogConfirmButton>
         </WizardFormActions>

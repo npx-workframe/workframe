@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 
 import { ModelListGroup } from '@/components/settings/ModelListGroup'
 import { ModelOptionButton } from '@/components/settings/ModelOptionButton'
 import { DialogConfirmButton } from '@/components/dialogs/DialogActions'
 import { PanelStatus } from '@/components/ui/PanelPrimitives'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { Input } from '@/components/ui/input'
 import {
   fetchHermesModels,
@@ -13,8 +14,6 @@ import {
   type HermesModelRow,
   type HermesModelsResponse,
 } from '@/lib/hermesCatalogApi'
-import { peekCachedHermesModels } from '@/lib/workspacePersist'
-import { providerIconForId } from '@/lib/workframeAssets'
 import { resolveProviderDisplayLabel } from '@/lib/chatTypes'
 import { invalidateWorkframeMetaCache } from '@/lib/workframeMetaApi'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
@@ -28,6 +27,8 @@ type ModelPickerPanelProps = {
   embedded?: boolean
   /** List models from user/workspace keys only — do not read or write a Hermes profile. */
   selectionOnly?: boolean
+  /** Draft a new agent's model chain without changing user or profile defaults. */
+  draftOnly?: boolean
   value?: string
   onChanged?: (model: string) => void
   /** Draft fallback chain while picking models before a profile exists. */
@@ -91,6 +92,7 @@ export function ModelPickerPanel({
   compact,
   embedded = false,
   selectionOnly = false,
+  draftOnly = false,
   value,
   onChanged,
   onFallbacksDraftChange,
@@ -110,55 +112,44 @@ export function ModelPickerPanel({
     null,
     null,
   ])
-  const onErrorRef = useRef(onError)
-  const onStatusRef = useRef(onStatus)
-  const onLoadedRef = useRef(onLoaded)
-  onErrorRef.current = onError
-  onStatusRef.current = onStatus
-  onLoadedRef.current = onLoaded
+  const reportLoadError = useEffectEvent((message: string) => onError?.(message))
+  const reportLoaded = useEffectEvent((res: HermesModelsResponse) => {
+    onLoaded?.(res)
+    if (selectionOnly || draftOnly) {
+      const chain = res.fallback_chain ?? []
+      setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
+      const seed = (res.primary || res.default_primary || '').trim()
+      if (seed) onChanged?.(seed)
+    }
+  })
 
   useEffect(() => {
     let cancelled = false
-    const cacheProfile = selectionOnly ? '' : (profile?.trim() ?? '')
-    const cached = cacheProfile ? peekCachedHermesModels(cacheProfile) : null
-    if (cached) {
-      setData(cached)
-      setLoading(false)
-      onLoadedRef.current?.(cached)
-      if (selectionOnly) {
-        const chain = cached.fallback_chain ?? []
-        setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
-        const seed = (cached.primary || cached.default_primary || '').trim()
-        if (seed) onChanged?.(seed)
-      }
-    } else {
-      setLoading(true)
-      setData(null)
-    }
-    setLoadError('')
-    fetchHermesModels(selectionOnly ? undefined : profile, workspaceId, { selectionOnly })
+    const catalogOnly = selectionOnly || draftOnly
+    fetchHermesModels(catalogOnly ? undefined : profile, workspaceId, { selectionOnly: catalogOnly })
       .then((res) => {
         if (cancelled) return
         if (!res.ok) {
           const message = 'Could not load models'
           setLoadError(message)
-          onErrorRef.current?.(message)
+          reportLoadError(message)
           return
         }
+        setLoadError('')
         setData(res)
-        onLoadedRef.current?.(res)
-        if (selectionOnly) {
-          const chain = res.fallback_chain ?? []
-          setDraftFallbacks([chain[0] ?? null, chain[1] ?? null])
-          const seed = (res.primary || res.default_primary || '').trim()
-          if (seed) onChanged?.(seed)
-        }
+        const selectedModel = res.primary || res.default_primary || ''
+        const selectedRow = res.suggestions.find((row) => row.model === selectedModel)
+        const selectedProvider = selectedRow
+          ? providerBucketKey(billingIdForRow(selectedRow))
+          : providerBucketKey(res.billing_provider || res.provider || '')
+        setFilterProvider(selectedProvider || null)
+        reportLoaded(res)
       })
       .catch((err) => {
         if (cancelled) return
         const message = pickerErrorMessage(err, 'Could not load models')
         setLoadError(message)
-        onErrorRef.current?.(message)
+        reportLoadError(message)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -166,15 +157,16 @@ export function ModelPickerPanel({
     return () => {
       cancelled = true
     }
-  }, [profile, selectionOnly, workspaceId])
+  }, [draftOnly, profile, selectionOnly, workspaceId])
 
   const grouped = useMemo(() => {
     const map = new Map<string, HermesModelRow[]>()
     const seenModels = new Set<string>()
     for (const row of data?.suggestions ?? []) {
-      if (seenModels.has(row.model)) continue
-      seenModels.add(row.model)
       const bucket = providerBucketKey(billingIdForRow(row))
+      const key = `${bucket}:${row.model}`
+      if (seenModels.has(key)) continue
+      seenModels.add(key)
       const list = map.get(bucket) ?? []
       list.push(row)
       map.set(bucket, list)
@@ -182,16 +174,23 @@ export function ModelPickerPanel({
     return map
   }, [data?.suggestions])
 
-  const providers = useMemo(
-    () => [...grouped.keys()].sort((a, b) => providerLabel(a).localeCompare(providerLabel(b))),
-    [grouped],
-  )
+  const providers = useMemo(() => {
+    const available = new Set(grouped.keys())
+    for (const provider of data?.connected_providers ?? []) {
+      available.add(providerBucketKey(provider))
+    }
+    return [...available].sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)))
+  }, [data?.connected_providers, grouped])
 
   const filteredGroups = useMemo(() => {
     if (!filterProvider) return [...grouped.entries()]
     const rows = grouped.get(filterProvider)
     return rows ? [[filterProvider, rows] as const] : []
   }, [filterProvider, grouped])
+
+  const emptyCatalogMessage = filterProvider
+    ? data?.catalog_status?.[filterProvider]?.message ?? 'No live chat models were returned for this provider.'
+    : 'No connected provider returned a live chat model. You can retry later or enter a custom model id.'
 
   async function applyFallbackChain(next: FallbackEntry[]) {
     if (!data) return
@@ -201,7 +200,7 @@ export function ModelPickerPanel({
         const res = await setHermesFallbackChain(
           next.map((entry) => ({ provider: entry.provider, model: entry.model })),
           undefined,
-          { selectionOnly: true },
+          { selectionOnly: true, workspaceId },
         )
         if (!res.ok) {
           onError?.(res.error ?? 'Failed to set fallbacks')
@@ -223,7 +222,7 @@ export function ModelPickerPanel({
       const res = await setHermesFallbackChain(
         next.map((entry) => ({ provider: entry.provider, model: entry.model })),
         profile ?? data.profile,
-        { selectionOnly },
+        { selectionOnly, workspaceId },
       )
       if (!res.ok) {
         onError?.(res.error ?? 'Failed to set fallbacks')
@@ -247,7 +246,8 @@ export function ModelPickerPanel({
 
   async function refreshModels() {
     try {
-      const res = await fetchHermesModels(selectionOnly ? undefined : profile, workspaceId, { selectionOnly })
+      const catalogOnly = selectionOnly || draftOnly
+      const res = await fetchHermesModels(catalogOnly ? undefined : profile, workspaceId, { selectionOnly: catalogOnly })
       if (res.ok) setData(res)
     } catch {
       /* ponytail: best-effort resync after save */
@@ -264,9 +264,14 @@ export function ModelPickerPanel({
       return { provider: trimmed.slice(0, slash), model: trimmed }
     }
 
-    if (selectionOnly) {
+    if (selectionOnly || draftOnly) {
       if (activeSlot === 'primary') {
         if (trimmed === value) return
+        if (draftOnly) {
+          onChanged?.(trimmed)
+          onStatus?.(slotStatusMessage('primary', trimmed, data))
+          return
+        }
         setBusy(true)
         try {
           const res = await setHermesModel(trimmed, undefined, workspaceId, {
@@ -278,10 +283,10 @@ export function ModelPickerPanel({
             return
           }
           onChanged?.(res.model ?? trimmed)
-          onStatusRef.current?.(slotStatusMessage('primary', res.model ?? trimmed, data))
+          onStatus?.(slotStatusMessage('primary', res.model ?? trimmed, data))
           await refreshModels()
         } catch (err) {
-          onError?.(pickerErrorMessage(err, 'Failed to set fallbacks'))
+          onError?.(pickerErrorMessage(err, 'Failed to set model'))
         } finally {
           setBusy(false)
         }
@@ -300,9 +305,13 @@ export function ModelPickerPanel({
       const next: [FallbackEntry | null, FallbackEntry | null] = [...draftFallbacks]
       next[idx] = entry
       updateDraftFallbacks(next)
+      if (draftOnly) {
+        onStatus?.(slotStatusMessage(activeSlot, trimmed, data))
+        return
+      }
       const chain = next.filter((item): item is FallbackEntry => Boolean(item?.provider && item?.model))
       await applyFallbackChain(chain)
-      onStatusRef.current?.(slotStatusMessage(activeSlot, trimmed, data))
+      onStatus?.(slotStatusMessage(activeSlot, trimmed, data))
       return
     }
 
@@ -331,11 +340,11 @@ export function ModelPickerPanel({
         const saved = res.model ?? trimmed
         setData({ ...data, primary: saved })
         onChanged?.(saved)
-        onStatusRef.current?.(slotStatusMessage('primary', saved, data))
+        onStatus?.(slotStatusMessage('primary', saved, data))
         invalidateWorkframeMetaCache()
         await refreshModels()
       } catch (err) {
-        onError?.(pickerErrorMessage(err, 'Failed to set fallbacks'))
+        onError?.(pickerErrorMessage(err, 'Failed to set model'))
       } finally {
         setBusy(false)
         setPending(null)
@@ -359,7 +368,7 @@ export function ModelPickerPanel({
     const next = slots.filter((item): item is FallbackEntry => Boolean(item?.provider && item?.model))
     setPending(trimmed)
     await applyFallbackChain(next)
-    onStatusRef.current?.(slotStatusMessage(activeSlot, trimmed, data))
+    onStatus?.(slotStatusMessage(activeSlot, trimmed, data))
   }
 
   if (loading) {
@@ -374,10 +383,11 @@ export function ModelPickerPanel({
     return <p className="text-sm text-muted-foreground">Could not load models.</p>
   }
 
-  const primaryModel = selectionOnly ? (value ?? '') : (data.primary || '')
+  const catalogOnly = selectionOnly || draftOnly
+  const primaryModel = catalogOnly ? (value ?? '') : (data.primary || '')
   const chain = data.fallback_chain ?? []
-  const fallback0 = selectionOnly ? (draftFallbacks[0]?.model ?? '') : (chain[0]?.model ?? '')
-  const fallback1 = selectionOnly ? (draftFallbacks[1]?.model ?? '') : (chain[1]?.model ?? '')
+  const fallback0 = catalogOnly ? (draftFallbacks[0]?.model ?? '') : (chain[0]?.model ?? '')
+  const fallback1 = catalogOnly ? (draftFallbacks[1]?.model ?? '') : (chain[1]?.model ?? '')
 
   const slotModels: Record<ModelSlot, string> = {
     primary: primaryModel,
@@ -410,7 +420,13 @@ export function ModelPickerPanel({
                 activeSlot === slot.id && 'is-active',
                 modelId && 'is-filled',
               )}
-              onClick={() => setActiveSlot(slot.id)}
+              onClick={() => {
+                setActiveSlot(slot.id)
+                const selectedRow = rowForModel(data, modelId)
+                if (selectedRow) {
+                  setFilterProvider(providerBucketKey(billingIdForRow(selectedRow)))
+                }
+              }}
               disabled={busy}
               title={modelId || slot.hint}
             >
@@ -434,7 +450,6 @@ export function ModelPickerPanel({
               All
             </button>
             {providers.map((provider) => {
-              const icon = providerIconForId(provider)
               return (
                 <button
                   key={provider}
@@ -444,9 +459,7 @@ export function ModelPickerPanel({
                   className={cn('wf-llm-models__provider', filterProvider === provider && 'is-active')}
                   onClick={() => setFilterProvider(provider)}
                 >
-                  {icon ? (
-                    <img src={icon} alt="" className="wf-llm-models__provider-icon" aria-hidden="true" />
-                  ) : null}
+                  <BrandMark providerId={provider} className="wf-llm-models__provider-icon" />
                   {providerLabel(provider)}
                 </button>
               )
@@ -456,33 +469,37 @@ export function ModelPickerPanel({
 
         <div
           className={cn(
-            'wf-llm-models__list wf-scroll wf-scroll--vertical',
+            'wf-llm-models__list',
             embedded ? 'wf-llm-models__list--embedded' : compact ? 'wf-llm-models__list--compact' : '',
           )}
         >
-          {filteredGroups.map(([provider, rows]) => (
-            <ModelListGroup key={provider} provider={providerLabel(provider)}>
-              {rows.map((row) => (
-                <ModelOptionButton
-                  key={row.model}
-                  label={row.label}
-                  model={row.model}
-                  provider={row.provider}
-                  isCurrent={row.model === slotModel}
-                  isPending={!selectionOnly && pending === row.model}
-                  disabled={busy}
-                  singleLine
-                  onSelect={() => void pickModel(row.model, billingIdForRow(row))}
-                />
-              ))}
-            </ModelListGroup>
-          ))}
+          {filteredGroups.length ? (
+            filteredGroups.map(([provider, rows]) => (
+              <ModelListGroup key={provider} provider={providerLabel(provider)}>
+                {rows.map((row) => (
+                  <ModelOptionButton
+                    key={`${billingIdForRow(row)}:${row.model}`}
+                    label={row.label}
+                    model={row.model}
+                    provider={row.provider}
+                    isCurrent={row.model === slotModel}
+                    isPending={!catalogOnly && pending === row.model}
+                    disabled={busy}
+                    singleLine
+                    onSelect={() => void pickModel(row.model, billingIdForRow(row))}
+                  />
+                ))}
+              </ModelListGroup>
+            ))
+          ) : (
+            <PanelStatus>{emptyCatalogMessage}</PanelStatus>
+          )}
         </div>
 
         {!compact ? (
           <div className="wf-llm-models__custom">
             <label className="wf-dialog-field__label" htmlFor="wf-model-custom-panel">
-              Custom model id
+              Other model ID
             </label>
             <div className="wf-dialog__custom-model-row">
               <Input
@@ -490,11 +507,11 @@ export function ModelPickerPanel({
                 className="wf-dialog-input"
                 value={customModel}
                 onChange={(event) => setCustomModel(event.target.value)}
-                placeholder="openrouter/owl-alpha"
+                placeholder={filterProvider === 'openrouter' ? 'vendor/model-id' : 'model-id'}
                 disabled={busy}
               />
               <DialogConfirmButton
-                onClick={() => void pickModel(customModel)}
+                onClick={() => void pickModel(customModel, filterProvider ?? '')}
                 disabled={busy || !customModel.trim()}
               >
                 Set

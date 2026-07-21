@@ -1,6 +1,6 @@
 # Now — shipping wedge (v0.1.x)
 
-**Last updated:** 2026-07-12
+**Last updated:** 2026-07-21
 **Package:** `0.1.19` (see [VERSION.md](../VERSION.md))
 **Active plan:** [gate-run-2026-07-08.md](handoffs/gate-run-2026-07-08.md) — close Stages A→D, stop at E
 
@@ -24,6 +24,15 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 | Dogfood sign-off (MyBusiness Docker) | **done** | Alan 2026-07-05 — wizard + chat |
 
 ## Active (next proof layers)
+
+### 2026-07-21 provider/model convergence
+
+- The agent template now owns the primary model and fallback chain. Per-user `u-*` profiles remain credential/session isolation runtimes and synchronize the agent's model choice; they are not an independent preference surface.
+- Credentials remain user-owned (BYOK/OAuth) or workspace-owned (company-pays). If the configured provider is unavailable for the acting user, the run denies with a connect-provider error instead of silently changing the agent to another provider.
+- DM, room mention, settings, composer, and slash-model callers now resolve the same agent-owned model surface. Room responses persist immutable provider/model turn metadata, so changing an agent later cannot relabel historical messages.
+- Provider pickers use live provider catalogs, open on the current agent provider, retain an advanced model-ID escape hatch without presenting a fake `custom` provider, and share the existing neumorphic settings shell. Settings screens reset to the top and keep one scroll owner.
+- Local verification: 95 API tests; web production build; Electron build + typecheck; all five scaffold packs; package-install and negative-install evidence. The repository-wide lint command still reports the known React-hooks baseline and is not claimed as green.
+- Live Docker DogFood was rebuilt with the canonical API and UI. Fresh AIbert DM and project-room turns both ran through `Codex · gpt-5.4-mini`; DM and room image attachments rendered and completed `vision_analyze`; room attribution appeared during streaming and remained immutable after reload. The live/persisted merge produced one assistant reply, with no duplicate transient row, and no silent OpenRouter reroute.
 
 ### 2026-07-12 stabilization finding
 

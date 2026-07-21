@@ -527,6 +527,7 @@ def _ensure_default_workspace() -> bool:
         display_name=native_display,
         role="native",
         is_native=True,
+        preserve_existing_identity=True,
     )
     return True
 

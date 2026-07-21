@@ -19,7 +19,7 @@ from typing import Any
 
 from http.server import BaseHTTPRequestHandler
 
-import openrouter_catalog
+import provider_model_catalog
 import profile_config_yaml
 import user_prefs
 
@@ -31,15 +31,24 @@ def _srv():
 
 
 def _resolve_models_profile(profile: str) -> str:
-    """Hermes profile slug for model picker reads. Use runtime u-* when it exists on disk."""
+    """Hermes profile slug for model picker reads. Models belong to agent templates."""
     raw = str(profile or "").strip()
     if not raw:
         return _srv()._primary_profile()
     slug = _srv().safe_profile_slug(raw)
-    if _srv()._is_runtime_profile_slug(slug) and _srv()._runtime_profile_on_disk(slug):
-        return slug
     if _srv()._is_runtime_profile_slug(slug):
         return _srv().resolve_validated_profile(_srv()._runtime_template_slug(slug))
+    return _srv().resolve_validated_profile(slug)
+
+
+def _agent_model_profile(profile: str) -> str:
+    """Canonical write target for an agent's provider/model configuration."""
+    raw = str(profile or _srv()._primary_profile()).strip()
+    if not raw:
+        return ""
+    slug = _srv().safe_profile_slug(raw)
+    if _srv()._is_runtime_profile_slug(slug):
+        slug = _srv()._runtime_template_slug(slug)
     return _srv().resolve_validated_profile(slug)
 
 
@@ -47,16 +56,25 @@ def _model_suggestion_row(
     model_id: str,
     *,
     provider_label: str = "OpenRouter",
+    billing_provider: str = "",
     label: str = "",
     description: str = "",
 ) -> dict[str, str]:
     slug = model_id.rsplit("/", 1)[-1] if "/" in model_id else model_id
-    return {
+    row = {
         "provider": provider_label,
         "model": model_id,
         "label": label or slug,
         "description": description or model_id,
     }
+    if billing_provider:
+        row["billing_provider"] = billing_provider
+    return row
+
+
+def _model_suggestion_key(row: dict[str, str]) -> tuple[str, str]:
+    provider = str(row.get("billing_provider") or row.get("provider") or "").strip().lower()
+    return provider, str(row.get("model") or "").strip()
 
 
 def _augment_model_suggestions(
@@ -64,22 +82,23 @@ def _augment_model_suggestions(
     block: dict[str, Any],
 ) -> list[dict[str, str]]:
     """Ensure active primary and fallback chain models appear in the picker."""
-    seen = {str(row.get("model") or "") for row in suggestions}
+    seen = {_model_suggestion_key(row) for row in suggestions}
     extra: list[dict[str, str]] = []
     primary = str(block.get("default") or "").strip()
-    if primary and primary not in seen:
-        bill = _billing_provider_id_from_hermes_config(str(block.get("provider") or "")) or str(
-            block.get("provider") or "openrouter"
-        )
+    base_url = str(block.get("base_url") or "").strip()
+    configured_provider = str(block.get("provider") or "").strip()
+    bill = _billing_provider_from_block(base_url, configured_provider, configured_provider)
+    if primary and (bill.lower(), primary) not in seen:
         extra.append(
             _model_suggestion_row(
                 primary,
                 provider_label=_srv()._provider_display_label(bill),
-                label="Current primary",
+                billing_provider=bill,
+                label=primary.rsplit("/", 1)[-1],
                 description="Active model for this agent profile",
             ),
         )
-        seen.add(primary)
+        seen.add((bill.lower(), primary))
     for entry in block.get("fallback_chain") or []:
         if not isinstance(entry, dict):
             continue
@@ -88,18 +107,19 @@ def _augment_model_suggestions(
         if not model:
             continue
         full = model if "/" in model else f"{prov}/{model}"
-        if full in seen:
+        bill = _billing_provider_from_block(base_url, prov, prov)
+        if (bill.lower(), full) in seen:
             continue
-        bill = _billing_provider_id_from_hermes_config(prov) or prov
         extra.append(
             _model_suggestion_row(
                 full,
                 provider_label=_srv()._provider_display_label(bill),
-                label=f"Fallback · {model}",
+                billing_provider=bill,
+                label=model.rsplit("/", 1)[-1],
                 description="Configured in this profile's fallback chain",
             ),
         )
-        seen.add(full)
+        seen.add((bill.lower(), full))
     return extra + suggestions
 
 
@@ -116,15 +136,43 @@ def _billing_provider_from_block(base_url: str, cfg_provider: str, hint: str) ->
     "provider not recognized" bug where an OpenRouter-only user was billed to google.
     """
     h = str(hint or "").strip().lower()
+    mapped_hint = _billing_provider_id_from_hermes_config(h)
+    if mapped_hint:
+        return mapped_hint
     if h and h not in {"custom", "auto"}:
-        return h
+        return h.replace("_", "-")
     m = _INTERNAL_LLM_PROXY_RE.search(str(base_url or ""))
     if m:
         return m.group(1).lower()
     cfg = str(cfg_provider or "").strip().lower()
+    mapped_cfg = _billing_provider_id_from_hermes_config(cfg)
+    if mapped_cfg:
+        return mapped_cfg
     if cfg and cfg not in {"custom", "auto"}:
-        return cfg
+        return cfg.replace("_", "-")
     return "openrouter"
+
+
+def _normalized_profile_fallback_chain(
+    block: dict[str, Any],
+    default_billing_provider: str,
+) -> list[dict[str, str]]:
+    """Expose billing providers, not Hermes' internal ``custom`` transport."""
+    base_url = str(block.get("base_url") or "").strip()
+    normalized: list[dict[str, str]] = []
+    for entry in block.get("fallback_chain") or []:
+        if not isinstance(entry, dict):
+            continue
+        model = str(entry.get("model") or "").strip()
+        configured = str(entry.get("provider") or "").strip()
+        if not model:
+            continue
+        provider = _billing_provider_from_block(base_url, configured, configured)
+        normalized.append({
+            "provider": provider or default_billing_provider,
+            "model": model,
+        })
+    return normalized
 
 
 def _llm_billing_provider(
@@ -147,10 +195,9 @@ def _llm_billing_provider(
     candidate = _billing_provider_from_block(
         str(block.get("base_url") or ""), cfg_provider, provider_hint,
     )
-    if user and not _srv()._user_can_use_llm(user, ws, candidate):
-        connected = sorted(_srv()._user_llm_providers_for_picker(user))
-        if connected:
-            return connected[0]
+    # Provider/model are agent-owned. Credential availability decides whether
+    # the acting user may run the agent; it must never silently reroute the
+    # agent to a different provider and create DM/room drift.
     return candidate or "openrouter"
 
 
@@ -326,6 +373,69 @@ def _suggestions_for_connected_llm_providers(connected: set[str]) -> list[dict[s
     return out
 
 
+def _live_suggestions_for_connected_llm_providers(
+    user_id: str,
+    workspace_id: str,
+    connected: set[str],
+) -> tuple[list[dict[str, str]], dict[str, dict[str, str]]]:
+    """Discover the models each effective credential can use right now."""
+    credentials: dict[str, str] = {}
+    for provider in sorted(connected):
+        spec = _srv()._catalog_provider_for_llm(provider) or {}
+        if str(spec.get("connect_mode") or "") == "oauth":
+            auth_id = str(spec.get("hermes_auth_id") or provider)
+            auth = _srv()._load_user_hermes_auth(user_id) if user_id else None
+            credentials[provider] = provider_model_catalog.oauth_access_token(auth, auth_id)
+            continue
+        resolved = _srv()._resolve_credential(
+            user_id,
+            workspace_id,
+            provider,
+            user_only=_srv()._provider_user_only(provider),
+        )
+        credentials[provider] = _srv()._credential_secret(resolved or {}, user_id) if resolved else ""
+    return provider_model_catalog.discover_many(credentials, timeout=8)
+
+
+def _default_model_from_live_catalog(
+    connected: set[str],
+    suggestions: list[dict[str, str]],
+) -> tuple[str, str]:
+    """Choose a valid default from the first effective provider, never a disconnected one."""
+    catalog_order = [
+        str(spec["id"]).lower()
+        for spec in _srv().PROVIDER_CONNECT_CATALOG
+        if str(spec.get("category") or "") == "llm"
+        and str(spec["id"]).lower() in connected
+    ]
+    for provider in catalog_order:
+        rows = [
+            row for row in suggestions
+            if str(row.get("billing_provider") or row.get("provider") or "").strip().lower() == provider
+        ]
+        if not rows:
+            continue
+        preferred = str((PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or "").strip()
+        if preferred and any(str(row.get("model") or "") == preferred for row in rows):
+            return preferred, provider
+        return str(rows[0].get("model") or "").strip(), provider
+    return "", ""
+
+
+def _effective_fallback_chain(chain: list[dict[str, str]], connected: set[str]) -> list[dict[str, str]]:
+    effective: list[dict[str, str]] = []
+    for entry in chain:
+        if not isinstance(entry, dict):
+            continue
+        provider = _billing_provider_id_from_hermes_config(str(entry.get("provider") or "")) or str(
+            entry.get("provider") or ""
+        ).strip().lower()
+        model = str(entry.get("model") or "").strip()
+        if provider in connected and model:
+            effective.append({"provider": provider, "model": model})
+    return effective
+
+
 def _model_id_vendor_and_bare(model_id: str) -> tuple[str, str]:
     """Split vendor/model ids (e.g. openai-codex/gpt-5.4-mini) into billing + bare model."""
     mid = str(model_id or "").strip()
@@ -388,6 +498,64 @@ def _mirror_template_model_to_runtime(
     return _apply_model_persisted(
         runtime, billing, model_id, user_id=user, restart_gateway=False,
     )
+
+
+def _sync_agent_model_to_runtimes(
+    template_slug: str,
+    *,
+    current_user_id: str = "",
+    current_workspace_id: str = "",
+) -> tuple[bool, str, list[str]]:
+    """Mirror one agent model surface to every existing per-user runtime.
+
+    Runtime profiles isolate credentials and gateways, not agent preferences.
+    Owner-specific credentials are refreshed when their identity is resolvable.
+    """
+    template = _agent_model_profile(template_slug)
+    if not template:
+        return False, "no profile resolved", []
+    profiles_dir = _srv().HERMES_DATA / "profiles"
+    runtimes: set[str] = set()
+    if profiles_dir.is_dir():
+        for path in profiles_dir.iterdir():
+            if not path.is_dir() or not _srv()._is_runtime_profile_slug(path.name):
+                continue
+            try:
+                if _srv()._runtime_template_slug(path.name) == template:
+                    runtimes.add(path.name)
+            except ValueError:
+                continue
+    user = str(current_user_id or "").strip()
+    if user:
+        candidate = _srv()._runtime_profile_slug(user, template)
+        if _srv()._runtime_profile_on_disk(candidate):
+            runtimes.add(candidate)
+
+    synced: list[str] = []
+    for runtime in sorted(runtimes):
+        owner = _srv()._resolve_runtime_owner(runtime)
+        owner_id = str(owner[0] if owner else "").strip()
+        workspace_id = str(owner[1] if owner else "").strip()
+        if not owner_id and user and runtime == _srv()._runtime_profile_slug(user, template):
+            owner_id = user
+            workspace_id = str(current_workspace_id or "").strip()
+        ok, err = _sync_runtime_model_from_template(
+            runtime,
+            template,
+            user_id=owner_id,
+        )
+        if not ok:
+            return False, err or f"runtime model sync failed: {runtime}", synced
+        if owner_id:
+            _srv()._prepare_runtime_profile_credentials(
+                runtime,
+                owner_id,
+                workspace_id,
+                wait_healthy=False,
+            )
+        _srv()._schedule_gateway_reload(runtime)
+        synced.append(runtime)
+    return True, "", synced
 
 
 def _resolve_billing_provider_for_model(
@@ -567,6 +735,10 @@ def _bootstrap_model_after_llm_connect(
                 _apply_mvp_model_for_provider(runtime, provider_key)
             elif user:
                 _srv()._reconcile_profile_llm_for_user(runtime, user, ws, prefer_provider=provider_key)
+    if user:
+        _srv()._refresh_user_runtime_credentials(user, ws, wait_healthy=False)
+    elif ws:
+        _srv()._refresh_workspace_runtime_credentials(ws, wait_healthy=False)
 
 
 # Curated snapshot of commonly-used models per provider. Surfaced in the
@@ -696,6 +868,7 @@ def _parse_model_block_from_disk(profile: str) -> dict[str, Any]:
     in_model = False
     in_fallback = False
     fallback_indent = -1
+    fallback_item_indent = -1
     saw_top_model = False
     for raw in lines:
         stripped = raw.rstrip()
@@ -745,6 +918,7 @@ def _parse_model_block_from_disk(profile: str) -> dict[str, Any]:
         if indent == 0 and content.startswith("fallback_providers:"):
             in_fallback = True
             fallback_indent = indent
+            fallback_item_indent = -1
             after = content.split(":", 1)[1].strip()
             if after and (
                 after in {"{}", "[]"}
@@ -752,6 +926,35 @@ def _parse_model_block_from_disk(profile: str) -> dict[str, Any]:
                 or (after.startswith("[") and after.endswith("]"))
             ):
                 in_fallback = False
+            continue
+
+        if (
+            in_fallback
+            and content.startswith("- ")
+            and indent in {fallback_indent, fallback_indent + 2}
+        ):
+            # PyYAML emits root sequences without indentation by default,
+            # while hand-authored configs commonly indent the same item.
+            fallback_item_indent = indent
+            inline = content[2:].strip()
+            entry: dict[str, str] = {}
+            if ":" in inline:
+                k, _, v = inline.partition(":")
+                entry[k.strip()] = v.strip().strip('"').strip("'")
+            out["fallback_chain"].append(entry)
+            continue
+
+        if (
+            in_fallback
+            and fallback_item_indent >= 0
+            and indent > fallback_item_indent
+            and ":" in content
+        ):
+            k, _, v = content.partition(":")
+            key = k.strip()
+            val = v.strip().strip('"').strip("'")
+            if out["fallback_chain"] and key in {"provider", "model", "base_url"}:
+                out["fallback_chain"][-1][key] = val
             continue
 
         if in_fallback and indent == fallback_indent + 2 and ":" in content and not content.startswith("- "):
@@ -763,25 +966,7 @@ def _parse_model_block_from_disk(profile: str) -> dict[str, Any]:
                 out["fallback_chain"].append({"model": val})
             continue
 
-        if in_fallback and indent == fallback_indent + 2 and content.startswith("- "):
-            # Start of a new fallback entry. First key may be inline.
-            inline = content[2:].strip()
-            entry: dict[str, str] = {}
-            if ":" in inline:
-                k, _, v = inline.partition(":")
-                entry[k.strip()] = v.strip().strip('"').strip("'")
-            out["fallback_chain"].append(entry)
-            continue
-
-        if in_fallback and indent > fallback_indent + 2 and ":" in content:
-            k, _, v = content.partition(":")
-            key = k.strip()
-            val = v.strip().strip('"').strip("'")
-            if out["fallback_chain"] and key in {"provider", "model", "base_url"}:
-                out["fallback_chain"][-1][key] = val
-            continue
-
-        if in_fallback and indent <= fallback_indent:
+        if in_fallback and indent <= fallback_indent and not content.startswith("- "):
             # Exited the fallback block.
             in_fallback = False
     return out
@@ -814,29 +999,41 @@ def _read_model_block(profile: str) -> dict[str, Any]:
     return block
 
 
-def _sync_runtime_model_from_template(runtime: str, template: str) -> None:
-    """Keep per-user runtime Hermes config aligned with agent template model picks."""
+def _sync_runtime_model_from_template(
+    runtime: str,
+    template: str,
+    *,
+    user_id: str = "",
+) -> tuple[bool, str]:
+    """Keep a credential-isolated runtime aligned with its agent template."""
     runtime_slug = _srv().safe_profile_slug(runtime)
     template_slug = _srv().resolve_validated_profile(template)
     if not _srv()._is_runtime_profile_slug(runtime_slug) or not _srv().profile_exists(runtime_slug):
-        return
+        return False, "runtime profile not installed"
     tblock = _parse_model_block_from_disk(template_slug)
     default = str(tblock.get("default") or "").strip()
     if not default:
-        return
-    connected: set[str] = set()
-    billing = _billing_provider_id_from_hermes_config(str(tblock.get("provider") or ""))
-    if not billing:
-        billing = _resolve_billing_provider_for_model(default, connected) or ""
-    _, bare = _model_id_vendor_and_bare(default)
-    model_id = bare or default
-    if billing:
-        _apply_model_for_billing_provider(runtime_slug, billing, model_id)
-        return
-    _set_profile_model(runtime_slug, model_id)
+        return False, "agent template has no model"
+    configured_provider = str(tblock.get("provider") or "").strip()
+    billing = _billing_provider_from_block(
+        str(tblock.get("base_url") or ""),
+        configured_provider,
+        configured_provider,
+    )
+    ok, err = _apply_model_persisted(
+        runtime_slug,
+        billing,
+        default,
+        user_id=str(user_id or "").strip(),
+        restart_gateway=False,
+    )
+    if not ok:
+        return False, err
     chain = [e for e in (tblock.get("fallback_chain") or []) if isinstance(e, dict)]
-    if chain:
-        _write_fallback_chain(runtime_slug, chain)
+    ok, err = _write_fallback_chain(runtime_slug, chain)
+    if not ok:
+        return False, err
+    return True, ""
 
 
 def _write_fallback_chain(profile: str, chain: list[dict[str, str]]) -> tuple[bool, str]:
@@ -884,19 +1081,36 @@ def hermes_models(
         and str(spec.get("id")).lower() in {n.lower() for n in connected}
         for spec in _srv().PROVIDER_CONNECT_CATALOG
     )
-    connected_llm = picker_llm if user_id else {
+    connected_llm = set(picker_llm) if user_id else {
         str(spec["id"]).lower()
         for spec in _srv().PROVIDER_CONNECT_CATALOG
         if str(spec.get("category") or "") == "llm"
         and str(spec.get("id")).lower() in {n.lower() for n in connected}
     }
+    if user_id and workspace_id:
+        connected_llm.update(
+            str(spec["id"]).lower()
+            for spec in _srv().PROVIDER_CONNECT_CATALOG
+            if str(spec.get("category") or "") == "llm"
+            and _srv()._user_can_use_llm(user_id, workspace_id, str(spec["id"]))
+        )
+    live_suggestions, catalog_status = (
+        _live_suggestions_for_connected_llm_providers(user_id, workspace_id, connected_llm)
+        if user_id and connected_llm
+        else ([], {})
+    )
 
     if selection_only:
         user_primary, user_chain = user_prefs.read_user_llm_prefs(user_id) if user_id else ("", [])
-        primary = user_primary or (HERMES_DEFAULT_PRIMARY if has_llm else "")
+        primary = user_primary
         billing = _resolve_billing_provider_for_model(primary, connected_llm) if primary else ""
+        if primary and not billing:
+            primary = ""
+        if not primary and has_llm:
+            primary, billing = _default_model_from_live_catalog(connected_llm, live_suggestions)
+        user_chain = _effective_fallback_chain(user_chain, connected_llm)
         suggestions = _augment_model_suggestions(
-            _suggestions_for_connected_llm_providers(connected_llm) if connected_llm else [],
+            live_suggestions,
             {
                 "default": primary,
                 "provider": billing or "",
@@ -913,7 +1127,8 @@ def hermes_models(
             "base_url": "",
             "fallback_chain": user_chain if has_llm else [],
             "suggestions": suggestions,
-            "connected_providers": sorted(picker_llm if user_id else connected),
+            "connected_providers": sorted(connected_llm),
+            "catalog_status": catalog_status,
             "has_llm_provider": has_llm,
             "billing_provider": billing if has_llm else "",
             "selection_only": True,
@@ -932,42 +1147,34 @@ def hermes_models(
         "providers": {}, "fallback_chain": [],
     }
     active_provider = block.get("provider", "").strip()
-    suggestions = _augment_model_suggestions(
-        _suggestions_for_connected_llm_providers(connected_llm) if connected_llm else [],
-        block,
-    )
     primary_model = str(block.get("default") or "").strip()
-    billing = _billing_provider_id_from_hermes_config(active_provider)
+    billing = _billing_provider_from_block(
+        str(block.get("base_url") or ""),
+        active_provider,
+        active_provider,
+    )
     if not billing and primary_model:
         billing = _resolve_billing_provider_for_model(primary_model, connected_llm) or ""
-    _, bare_primary = _model_id_vendor_and_bare(primary_model)
-    if _srv()._oauth_llm_provider_spec(billing) and bare_primary:
-        primary_model = bare_primary
-    # ponytail: skip OpenRouter live catalog on Codex/other billing — blocks stdlib server up to 45s
-    if user_id and "openrouter" in connected_llm and billing in ("", "openrouter"):
-        resolved = _srv()._resolve_credential(user_id, workspace_id, "openrouter", user_only=True)
-        secret = _srv()._credential_secret(resolved or {}, user_id) if resolved else ""
-        live = openrouter_catalog.live_suggestions(secret, limit=30, timeout=8)
-        if live:
-            seen = {str(r.get("model") or "") for r in suggestions}
-            suggestions = [
-                {**row, "label": f"Live · {row.get('label', row.get('model', ''))}"}
-                for row in live
-                if str(row.get("model") or "") not in seen
-            ] + suggestions
-    seen_models: set[str] = set()
-    deduped: list[dict[str, str]] = []
-    for row in suggestions:
-        mid = str(row.get("model") or "").strip()
-        if not mid or mid in seen_models:
-            continue
-        seen_models.add(mid)
-        deduped.append(row)
-    suggestions = deduped
     if not billing and user_id and primary_profile:
         billing = _llm_billing_provider(
             primary_profile, user_id=user_id, workspace_id=workspace_id,
         )
+    suggestions = _augment_model_suggestions(
+        live_suggestions,
+        {**block, "provider": billing or active_provider},
+    )
+    _, bare_primary = _model_id_vendor_and_bare(primary_model)
+    if _srv()._oauth_llm_provider_spec(billing) and bare_primary:
+        primary_model = bare_primary
+    seen_models: set[tuple[str, str]] = set()
+    deduped: list[dict[str, str]] = []
+    for row in suggestions:
+        key = _model_suggestion_key(row)
+        if not key[1] or key in seen_models:
+            continue
+        seen_models.add(key)
+        deduped.append(row)
+    suggestions = deduped
     display_provider = billing
     return {
         "ok": True,
@@ -975,9 +1182,10 @@ def hermes_models(
         "primary": primary_model if has_llm else "",
         "provider": display_provider if has_llm else "",
         "base_url": block.get("base_url", ""),
-        "fallback_chain": block.get("fallback_chain", []) if has_llm else [],
+        "fallback_chain": _normalized_profile_fallback_chain(block, billing) if has_llm else [],
         "suggestions": suggestions,
-        "connected_providers": sorted(picker_llm if user_id else connected),
+        "connected_providers": sorted(connected_llm),
+        "catalog_status": catalog_status,
         "has_llm_provider": has_llm,
         "billing_provider": billing if has_llm else "",
         "default_primary": HERMES_DEFAULT_PRIMARY,
@@ -1038,7 +1246,10 @@ def hermes_model_set(
             "billing_provider": billing or "",
             "selection_only": True,
         }
-    target = profile or _srv()._primary_profile()
+    try:
+        target = _agent_model_profile(profile)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
     if not target:
         return {"ok": False, "error": "no profile resolved"}
     if not model_id or " " in model_id or "\n" in model_id:
@@ -1062,30 +1273,30 @@ def hermes_model_set(
         )
         if not ok:
             return {"ok": False, "error": err}
-    tpl = _srv().safe_profile_slug(target)
-    ok, err = _mirror_template_model_to_runtime(user, tpl, billing, model_id)
-    if not ok:
-        return {"ok": False, "error": err}
-    reload_prof = ""
-    if _srv()._is_runtime_profile_slug(target):
-        reload_prof = target
-    elif user:
-        runtime = _srv()._runtime_profile_slug(user, tpl)
-        if _srv()._runtime_profile_on_disk(runtime):
-            reload_prof = runtime
-    if reload_prof:
-        _srv()._schedule_gateway_reload(reload_prof)
     block = _read_model_block(target)
     resolved_billing = billing or _billing_provider_id_from_hermes_config(
         str(block.get("provider") or "")
     ) or _llm_billing_provider(target, user_id=user, workspace_id=ws)
     persisted = _persisted_model_id(model_id, billing or resolved_billing)
+    _srv()._sync_agent_profile_db(
+        target,
+        {"model_provider": resolved_billing, "model_name": persisted},
+    )
+    ok, err, synced_runtimes = _sync_agent_model_to_runtimes(
+        target,
+        current_user_id=user,
+        current_workspace_id=ws,
+    )
+    if not ok:
+        return {"ok": False, "error": err}
+    _srv()._schedule_gateway_reload(target)
     return {
         "ok": True,
         "profile": target,
         "model": persisted,
         "provider": resolved_billing,
         "billing_provider": resolved_billing,
+        "synced_runtimes": synced_runtimes,
     }
 
 
@@ -1095,6 +1306,7 @@ def hermes_fallback_chain_set(
     *,
     selection_only: bool = False,
     user_id: str = "",
+    workspace_id: str = "",
 ) -> dict[str, Any]:
     """Set the fallback chain for a profile. Each entry must have
     `provider` and `model` keys. Order matters: Hermes tries them in
@@ -1118,19 +1330,26 @@ def hermes_fallback_chain_set(
             return {"ok": False, "error": "unauthorized"}
         user_prefs.write_user_llm_prefs(user, fallback_chain=normalized)
         return {"ok": True, "profile": "", "fallback_chain": normalized, "selection_only": True}
-    target = profile or _srv()._primary_profile()
+    try:
+        target = _agent_model_profile(profile)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
     if not target:
         return {"ok": False, "error": "no profile resolved"}
     ok, err = _write_fallback_chain(target, normalized)
     if not ok:
         return {"ok": False, "error": err}
-    user = str(user_id or "").strip()
-    tpl = _srv().safe_profile_slug(target)
-    if user and not _srv()._is_runtime_profile_slug(tpl):
-        runtime = _srv()._runtime_profile_slug(user, tpl)
-        if _srv()._runtime_profile_on_disk(runtime):
-            ok, err = _write_fallback_chain(runtime, normalized)
-            if not ok:
-                return {"ok": False, "error": err or "runtime fallback apply failed"}
-            _srv()._schedule_gateway_reload(runtime)
-    return {"ok": True, "profile": target, "fallback_chain": normalized}
+    ok, err, synced_runtimes = _sync_agent_model_to_runtimes(
+        target,
+        current_user_id=str(user_id or "").strip(),
+        current_workspace_id=str(workspace_id or "").strip(),
+    )
+    if not ok:
+        return {"ok": False, "error": err}
+    _srv()._schedule_gateway_reload(target)
+    return {
+        "ok": True,
+        "profile": target,
+        "fallback_chain": normalized,
+        "synced_runtimes": synced_runtimes,
+    }

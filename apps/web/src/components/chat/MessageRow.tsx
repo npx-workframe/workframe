@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import type { ChatMessage, ChatSegment } from '@/lib/chatTypes'
 import { formatModelAttribution } from '@/lib/chatTypes'
 import { ThinkingBlock } from '@/components/chat/ThinkingBlock'
@@ -8,6 +10,7 @@ import { AgentAvatar } from '@/components/ui/AgentAvatar'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
+import { workspaceRawUrl } from '@/lib/filesApi'
 import type { WorkframeNoticeAction } from '@/lib/workframeErrors'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +26,35 @@ function MarkdownBody({ text }: { text: string }) {
       text={text}
       wrapperClass="wf-markdown wf-message__markdown wf-syntax"
     />
+  )
+}
+
+function MessageImage({ segment }: { segment: Extract<ChatSegment, { kind: 'image' }> }) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const src = /^(?:https?:|data:|blob:)/i.test(segment.path)
+    ? segment.path
+    : workspaceRawUrl(segment.path)
+  const label = segment.alt ?? segment.name ?? 'Attached image'
+  const failed = failedSrc === src
+
+  return (
+    <figure className="wf-message__image-wrap">
+      {failed ? (
+        <div className="wf-message__image-fallback" role="img" aria-label={`${label} unavailable`}>
+          <span aria-hidden="true">Image</span>
+          <strong>{segment.name ?? 'Attachment unavailable'}</strong>
+        </div>
+      ) : (
+        <img
+          className="wf-message__image"
+          src={src}
+          alt={label}
+          loading="lazy"
+          onError={() => setFailedSrc(src)}
+        />
+      )}
+      {segment.name ? <figcaption className="wf-message__image-caption">{segment.name}</figcaption> : null}
+    </figure>
   )
 }
 
@@ -55,20 +87,7 @@ function SegmentBlock({
     return <ToolRunCard segment={segment} />
   }
   if (segment.kind === 'image') {
-    const src = segment.path.startsWith('http')
-      ? segment.path
-      : `/api/files/raw?path=${encodeURIComponent(segment.path)}`
-    return (
-      <figure className="wf-message__image-wrap">
-        <img
-          className="wf-message__image"
-          src={src}
-          alt={segment.alt ?? segment.name ?? 'Attached image'}
-          loading="lazy"
-        />
-        {segment.name ? <figcaption className="wf-message__image-caption">{segment.name}</figcaption> : null}
-      </figure>
-    )
+    return <MessageImage segment={segment} />
   }
   return <MarkdownBody text={segment.text} />
 }

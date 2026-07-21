@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 
 import { DialogFrame } from '@/components/dialogs/DialogFrame'
 import { useHermesSession } from '@/contexts/HermesSessionContext'
+import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
+import { fetchHermesModels } from '@/lib/hermesCatalogApi'
 import { fetchWorkframeMeta, type WorkframeMeta } from '@/lib/workframeMetaApi'
 
 type StatusDialogProps = {
@@ -14,16 +16,22 @@ type Row = { label: string; value: string }
 export function StatusDialog({ open, onOpenChange }: StatusDialogProps) {
   const { profile, agentDisplayName, sessionReady, messages, stateDbSessionId, gatewaySessionId } =
     useHermesSession()
+  const { activeRoom } = useWorkspacePanels()
   const [meta, setMeta] = useState<WorkframeMeta | null>(null)
+  const [activeModel, setActiveModel] = useState('')
   const [metaError, setMetaError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setMetaError(null)
-    fetchWorkframeMeta()
-      .then(setMeta)
-      .catch((err) => setMetaError(err instanceof Error ? err.message : 'load failed'))
-  }, [open])
+    void Promise.all([
+      fetchWorkframeMeta().then(setMeta),
+      profile
+        ? fetchHermesModels(profile, activeRoom?.workspace_id ?? '')
+          .then((models) => setActiveModel(models.primary || models.default_primary || ''))
+        : Promise.resolve(),
+    ]).catch((err) => setMetaError(err instanceof Error ? err.message : 'load failed'))
+  }, [activeRoom?.workspace_id, open, profile])
 
   const rows: Row[] = [
     { label: 'Profile', value: profile || '—' },
@@ -41,7 +49,7 @@ export function StatusDialog({ open, onOpenChange }: StatusDialogProps) {
     { label: 'Project', value: meta?.project_name ?? '—' },
     { label: 'Native profile', value: meta?.native_profile ?? '—' },
     { label: 'Native agent', value: meta?.native_agent_name ?? '—' },
-    { label: 'Active model', value: meta?.native_model ?? '—' },
+    { label: 'Active model', value: activeModel || '—' },
   ]
 
   return (

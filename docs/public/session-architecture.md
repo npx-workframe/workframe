@@ -33,6 +33,8 @@ sequenceDiagram
 
 Template agents (e.g. `{slug}-agent`) clone to `u-{user}-{slug}-agent` so each member's keys and chat history stay isolated. Credentials are vault-managed; the gateway uses short-lived lease tokens rather than raw secrets on shared mounts.
 
+The template agent owns its primary model and fallback chain. Runtime profiles synchronize that model surface while retaining per-user credential/session isolation. If the acting user has no permitted credential for the agent's configured provider, Workframe denies the run and asks for that provider to be connected; it does not silently reroute the agent. Room agent messages persist the provider/model used by the completed turn so historical attribution does not change after a later model switch.
+
 ## Binding keys
 
 | Context | Meaning |

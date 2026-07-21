@@ -110,10 +110,10 @@ pre.wf-scroll::-webkit-scrollbar-corner {
 .wf-scroll--inset-rail.wf-scroll--vertical {
   --wf-scrollbar-thumb-size: 2px;
   --wf-scrollbar-inset: 2px;
-  --wf-scroll-gutter-inline: var(--wf-space-2);
+  --wf-scroll-gutter-inline: var(--wf-rail-inset-gutter);
   --wf-scroll-gutter-block: 0px;
   padding-block-start: var(--wf-panel-scroll-inset);
-  padding-inline-start: var(--wf-panel-scroll-inset);
+  padding-inline-start: var(--wf-rail-inset-gutter);
   padding-inline-end: var(--wf-scroll-gutter-inline);
   padding-block-end: var(--wf-panel-scroll-inset);
   scrollbar-width: none;

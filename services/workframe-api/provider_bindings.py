@@ -45,6 +45,30 @@ def _user_provider_bindings(user_id: str) -> dict[str, dict[str, Any]]:
     return by_provider
 
 
+def _workspace_provider_bindings(workspace_id: str) -> dict[str, dict[str, Any]]:
+    """Return the active, newest shared credential for each workspace provider."""
+    by_provider: dict[str, dict[str, Any]] = {}
+    try:
+        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """SELECT id, provider, credential_type, credential_ref, label, is_active, updated_at
+               FROM credential_bindings
+               WHERE workspace_id = ? AND user_id IS NULL
+                 AND deleted_at IS NULL AND is_active = 1
+               ORDER BY updated_at DESC, created_at DESC""",
+            (workspace_id,),
+        ).fetchall()
+        conn.close()
+    except sqlite3.Error:
+        rows = []
+    for row in rows:
+        provider = str(row["provider"] or "").lower()
+        if provider and provider not in by_provider:
+            by_provider[provider] = dict(row)
+    return by_provider
+
+
 _DEVICE_OAUTH_PROVIDER_IDS: frozenset[str] = frozenset({"codex", "nous"})
 _oauth_device_lock = threading.Lock()
 _oauth_device_sessions: dict[str, dict[str, Any]] = {}
@@ -146,14 +170,15 @@ def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> boo
         return False
     prof = _srv().resolve_hermes_profile(profile)
     auth = _load_profile_auth_json(prof)
-    if _extract_oauth_block_from_auth(auth, hermes_auth_id):
-        # ponytail: steady-state turns â€” skip user auth read when profile already has oauth
-        return False
     user_auth = _load_user_hermes_auth(user_id)
     if not isinstance(user_auth, dict):
         return False
     auth_path = _srv()._profile_dir(prof) / "auth.json"
+    before = json.dumps(auth, sort_keys=True, separators=(",", ":"))
     if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+        return False
+    after = json.dumps(auth, sort_keys=True, separators=(",", ":"))
+    if after == before:
         return False
     auth["version"] = 1
     auth["updated_at"] = _srv()._utc_now()
@@ -238,21 +263,47 @@ def _user_provider_connected(user_id: str, spec: dict[str, Any]) -> bool:
     return _srv()._provider_connected_for_user(user_id, spec, bindings, env_keys)
 
 
-def list_user_providers(user_id: str, workspace_id: str = "") -> dict[str, Any]:
+def list_user_providers(
+    user_id: str,
+    workspace_id: str = "",
+    credential_scope: str = "effective",
+) -> dict[str, Any]:
+    scope = str(credential_scope or "effective").strip().lower()
+    if scope not in {"effective", "user", "workspace"}:
+        scope = "effective"
     bindings = _user_provider_bindings(user_id)
     workspace = str(workspace_id or "").strip()
+    workspace_bindings = _workspace_provider_bindings(workspace) if workspace else {}
+    workspace_mode = bool(workspace and _srv()._workspace_credential_mode(None, workspace) == "workspace")
     providers: list[dict[str, Any]] = []
     for spec in _srv().PROVIDER_CONNECT_CATALOG:
         provider_id = str(spec["id"])
         env_var = str(spec.get("env_var") or "")
         binding = bindings.get(provider_id)
-        connected = _user_provider_connected(user_id, spec)
-        source: str | None = "user" if connected else None
-        if not connected and workspace and str(spec.get("category") or "") == "llm":
-            resolved = _srv()._resolve_credential("", workspace, provider_id)
-            if resolved and _srv()._credential_secret(resolved, user_id):
-                connected = True
-                source = "workspace"
+        workspace_binding = workspace_bindings.get(provider_id)
+        connected = False
+        source: str | None = None
+        selected_binding: dict[str, Any] | None = None
+        if scope == "workspace":
+            selected_binding = workspace_binding
+            if selected_binding:
+                connected = bool(_srv()._credential_secret(selected_binding, user_id))
+                source = "workspace" if connected else None
+        else:
+            connected = _user_provider_connected(user_id, spec)
+            source = "user" if connected else None
+            selected_binding = binding if connected else None
+            if (
+                scope == "effective"
+                and not connected
+                and workspace_mode
+                and str(spec.get("category") or "") == "llm"
+                and workspace_binding
+            ):
+                connected = bool(_srv()._credential_secret(workspace_binding, user_id))
+                if connected:
+                    source = "workspace"
+                    selected_binding = workspace_binding
         oauth_configured = None
         if str(spec.get("connect_mode") or "") == "oauth":
             oauth_name = str(spec.get("oauth_provider") or provider_id)
@@ -264,13 +315,18 @@ def list_user_providers(user_id: str, workspace_id: str = "") -> dict[str, Any]:
             **spec,
             "connected": connected,
             "source": source,
-            "credential_id": str(binding["id"]) if binding else None,
-            "credential_ref": str(binding["credential_ref"]) if binding else (f"env:{env_var}" if env_var and connected else None),
+            "credential_id": str(selected_binding["id"]) if selected_binding else None,
+            "credential_ref": str(selected_binding["credential_ref"]) if selected_binding else (f"env:{env_var}" if env_var and connected else None),
             "profile_home": str(_srv()._user_hermes_home(user_id)),
             "oauth_configured": oauth_configured,
             "user_only": bool(spec.get("user_only")),
         })
-    return {"ok": True, "providers": providers, "profile_home": str(_srv()._user_hermes_home(user_id))}
+    return {
+        "ok": True,
+        "credential_scope": scope,
+        "providers": providers,
+        "profile_home": str(_srv()._user_hermes_home(user_id)),
+    }
 
 
 def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, Any]:
@@ -303,6 +359,11 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
+    _srv()._revoke_runtime_llm_leases(
+        payer_user_id=user_id,
+        provider=str(row["provider"]),
+        credential_binding_id=credential_id,
+    )
     return {"ok": True, "credential_id": credential_id, "provider": str(row["provider"])}
 
 
@@ -439,14 +500,14 @@ def _device_oauth_error_from_log(log_text: str) -> str | None:
     if not clean:
         return None
     lowered = clean.lower()
-    auth_err = re.search(r"AuthError:\s*(.+)", clean)
-    if auth_err:
-        return auth_err.group(1).strip()[:500]
     if "rate-limit" in lowered or "rate limiting" in lowered or "http 429" in lowered or re.search(r"\b429\b", lowered):
         return (
             "OpenAI is rate-limiting Codex login requests (HTTP 429). "
             "Wait a minute and try again."
         )
+    auth_err = re.search(r"AuthError:\s*(.+)", clean)
+    if auth_err:
+        return auth_err.group(1).strip()[:500]
     if any(token in lowered for token in ("login timed out", "login cancelled", "oauth_start_failed")):
         lines = [line.strip() for line in clean.splitlines() if line.strip()]
         return (lines[-1] if lines else "OAuth failed")[:500]
@@ -492,6 +553,11 @@ def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: 
 def _finalize_hermes_device_oauth(user_id: str, provider_id: str, spec: dict[str, Any]) -> None:
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
     _sync_user_oauth_provider_to_runtime_profiles(user_id, hermes_auth_id)
+    # The picker caches connected providers for one minute. OAuth material is
+    # stored outside credential_bindings, so the ordinary secret-save
+    # invalidation path never runs; clear it before selecting/bootstraping the
+    # new provider or the completed Codex connection remains invisible.
+    _srv()._invalidate_user_llm_picker_cache(user_id)
     _srv()._bootstrap_model_after_llm_connect(user_id, "", provider_id)
 
 
@@ -506,6 +572,24 @@ def _device_oauth_session_patch(session_id: str, patch: dict[str, Any]) -> None:
         row = _oauth_device_sessions.get(session_id)
         if isinstance(row, dict):
             row.update(patch)
+
+
+def _reusable_device_oauth_session(user_id: str, provider_id: str) -> tuple[str, dict[str, Any]] | None:
+    """Reuse one live device flow instead of rate-limiting the upstream provider."""
+    now = time.time()
+    with _oauth_device_lock:
+        candidates = [
+            (session_id, dict(row))
+            for session_id, row in _oauth_device_sessions.items()
+            if isinstance(row, dict)
+            and row.get("user_id") == user_id
+            and row.get("provider_id") == provider_id
+            and row.get("status") == "pending"
+            and now - float(row.get("started_at") or 0.0) < 16 * 60
+        ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: float(item[1].get("started_at") or 0.0))
 
 
 def _spawn_hermes_device_oauth(user_id: str, hermes_auth_id: str, log_container: str) -> tuple[int, str]:
@@ -544,6 +628,23 @@ def _spawn_hermes_device_oauth(user_id: str, hermes_auth_id: str, log_container:
 
 def _start_device_oauth(user_id: str, provider_id: str, spec: dict[str, Any]) -> dict[str, Any]:
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
+    reusable = _reusable_device_oauth_session(user_id, provider_id)
+    if reusable:
+        reusable_id, _ = reusable
+        current = device_oauth_status(user_id, provider_id, reusable_id)
+        if current.get("status") != "error":
+            return {
+                "ok": True,
+                "provider": provider_id,
+                "hermes_auth_id": hermes_auth_id,
+                "flow": "device_code",
+                "session_id": reusable_id,
+                "status": current.get("status") or "pending",
+                "verification_uri": current.get("verification_uri"),
+                "user_code": current.get("user_code"),
+                "message": current.get("message"),
+                "reused": True,
+            }
     session_id = secrets.token_urlsafe(16)
     log_name = f".oauth-{session_id}.log"
     home = _srv()._hermes_user_home_container(user_id)

@@ -30,6 +30,7 @@ $InstallRoot = (Resolve-Path $InstallRoot).Path
 $Target = Join-Path $InstallRoot $ProjectName
 $LegacyCompose = Join-Path $Root 'infra\compose\workframe'
 $CreatePkg = Join-Path $Root 'packages\create-workframe'
+$NpxCache = Join-Path $Root '.install-gate\npm-cache'
 $LocalHermes = Join-Path $env:LOCALAPPDATA 'hermes'
 
 function Assert-NotHostHermes([string]$Path) {
@@ -113,9 +114,10 @@ if (Test-Path $Target) {
 }
 
 Write-Host '=== npx create-workframe (only step ? package owns bootstrap + docker) ==='
+New-Item -ItemType Directory -Force -Path $NpxCache | Out-Null
 Push-Location $InstallRoot
 try {
-  npx --yes --package="$CreatePkg" create-workframe $ProjectName --out $InstallRoot --deploy docker
+  npx --yes --cache "$NpxCache" --package="$CreatePkg" create-workframe $ProjectName --out $InstallRoot --deploy docker --wait --no-browser
   if ($LASTEXITCODE -ne 0) { throw "npx create-workframe failed ($LASTEXITCODE)" }
 }
 finally {
@@ -136,8 +138,26 @@ if (Test-Path $envPath) {
   if ($apiLine) { $apiPort = $apiLine.Line.Split('=', 2)[1].Trim() }
 }
 
+$healthUrl = "http://127.0.0.1:$apiPort/api/health"
+$deadline = (Get-Date).AddSeconds(90)
+$healthy = $false
+while ((Get-Date) -lt $deadline) {
+  try {
+    $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 3
+    if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+      $healthy = $true
+      break
+    }
+  } catch {
+    Start-Sleep -Seconds 2
+  }
+}
+if (-not $healthy) {
+  throw "Installer returned, but Workframe API did not become healthy: $healthUrl"
+}
+
 Write-Host ''
 Write-Host 'Dogfood reset complete ? finish setup in the browser (wizard), or it did not boot.'
 Write-Host "  Install dir  $Target"
 Write-Host "  UI           http://127.0.0.1:$uiPort/"
-Write-Host "  API health   http://127.0.0.1:$apiPort/api/health"
+Write-Host "  API health   $healthUrl"

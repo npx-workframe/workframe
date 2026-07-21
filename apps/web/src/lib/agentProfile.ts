@@ -62,17 +62,14 @@ export function resolveAgentTemplateProfile(
   )
 }
 
-/** Hermes profile for model reads/writes in agent DM — bound runtime when available. */
+/** Agent template profile for model reads/writes. Credentials remain user/workspace scoped. */
 export function resolveAgentModelsProfile(
   room: AgentProfileRef | null | undefined,
   activeProfile: string,
-  runtimeProfile = '',
 ): string {
-  if (!isAgentChatRoom(room)) return ''
-  const runtime = runtimeProfile.trim()
-  if (runtime && /^u-[a-z0-9]/i.test(runtime)) return runtime
-  const active = activeProfile.trim()
-  if (active && /^u-[a-z0-9]/i.test(active)) return active
+  // Model choice belongs to the agent, not a user's ephemeral u-* runtime.
+  // Project/group rooms never expose an agent-level model picker.
+  if (room && !isAgentChatRoom(room)) return ''
   return resolveAgentTemplateProfile(room, activeProfile)
 }
 

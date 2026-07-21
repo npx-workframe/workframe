@@ -213,57 +213,85 @@ def _reconcile_profile_llm_for_user(
     *,
     prefer_provider: str = "",
 ) -> bool:
-    """Point proxy + MVP model at a provider the acting user can bill."""
+    """Repair routing for the agent-owned model without changing that model.
+
+    Credentials authorize execution; they never silently select a different
+    provider and create DM/room model drift.
+    """
     user = str(user_id or "").strip()
     if not user:
         return False
     prof = _srv().resolve_hermes_profile(profile)
     block = _srv()._read_model_block(prof)
-    model = str(block.get("default") or "").strip()
-    if model:
-        cfg = str(block.get("provider") or "").strip().lower()
-        quick_billing = _srv()._billing_provider_id_from_hermes_config(cfg)
-        # Direct oauth routing only — custom proxy may still need rebilling to user's provider.
-        if quick_billing and cfg != "custom" and _srv()._profile_routing_matches_billing(
-            prof, quick_billing, block=block,
-        ):
-            return False
-    connected = _srv()._user_llm_providers_for_picker(user)
-    current_model = model
-    prefer = str(prefer_provider or "").strip().lower()
-    model_billing = (
-        _srv()._resolve_billing_provider_for_model(current_model, connected, prefer=prefer)
-        if current_model
+    current_model = str(block.get("default") or "").strip()
+    cfg = str(block.get("provider") or "").strip().lower()
+    configured_billing = (
+        _srv()._billing_provider_from_block(
+            str(block.get("base_url") or ""),
+            cfg,
+            cfg,
+        )
+        if (cfg or block.get("base_url"))
         else ""
     )
-    if model_billing and _srv()._user_can_use_llm(user, workspace_id, model_billing):
-        billing = model_billing
+    connected = _srv()._user_llm_providers_for_picker(user)
+    prefer = str(prefer_provider or "").strip().lower()
+    if configured_billing and current_model:
+        billing = configured_billing
     elif prefer and _srv()._user_can_use_llm(user, workspace_id, prefer):
         billing = prefer
     else:
-        billing = _srv()._llm_billing_provider(prof, user_id=user, workspace_id=workspace_id)
-        if not _srv()._user_can_use_llm(user, workspace_id, billing):
-            connected_sorted = sorted(connected)
-            if not connected_sorted:
-                return False
-            billing = connected_sorted[0]
-    if _srv()._profile_routing_matches_billing(prof, billing):
-        return False
-    if _srv()._oauth_llm_provider_spec(billing) and _srv()._user_can_use_llm(user, workspace_id, billing):
-        current = str(_srv()._read_model_from_config(prof)[1] or "").strip()
-        if not _srv()._resolve_billing_provider_for_model(current, {billing}, prefer=billing):
-            current = str((_srv().PROVIDER_MVP_MODELS.get(billing) or {}).get("primary") or "")
-        _srv()._apply_model_for_billing_provider(prof, billing, current, user_id=user)
-        if _srv()._is_runtime_profile_slug(prof):
+        connected_sorted = sorted(connected)
+        if not connected_sorted:
+            return False
+        billing = connected_sorted[0]
+
+    if not current_model:
+        current_model = str(
+            (_srv().PROVIDER_MVP_MODELS.get(billing) or {}).get("primary") or ""
+        ).strip()
+        if not current_model:
+            return False
+
+    if _srv()._oauth_llm_provider_spec(billing):
+        if _srv()._profile_routing_matches_billing(prof, billing, block=block):
+            auth_changed = bool(
+                _srv()._user_can_use_llm(user, workspace_id, billing)
+                and _srv()._sync_oauth_llm_to_profile(prof, user, billing)
+            )
+            if auth_changed:
+                _srv()._reload_runtime_profile_gateway(prof, wait_healthy=True)
+            return auth_changed
+        changed = _srv()._apply_model_for_billing_provider(
+            prof,
+            billing,
+            current_model,
+            user_id=user if _srv()._user_can_use_llm(user, workspace_id, billing) else "",
+        )
+        if changed:
             _srv()._reload_runtime_profile_gateway(prof, wait_healthy=True)
-        return True
-    if _srv()._user_can_use_llm(user, workspace_id, billing) and _srv()._profile_llm_proxy_matches_billing(prof, billing):
+        return changed
+
+    if _srv()._profile_routing_matches_billing(prof, billing, block=block):
+        if not _srv()._profile_llm_proxy_ready(prof, billing):
+            before = _srv()._parse_model_block_from_disk(prof)
+            _srv()._ensure_profile_llm_proxy(prof, billing)
+            changed = before != _srv()._parse_model_block_from_disk(prof)
+            if changed:
+                _srv()._reload_runtime_profile_gateway(prof, wait_healthy=True)
+            return changed
         return False
-    changed = _srv()._apply_mvp_model_for_provider(prof, billing)
-    block = _srv()._read_model_block(prof)
-    if _srv()._is_runtime_profile_slug(prof) or str(block.get("provider") or "").strip().lower() == "custom":
+
+    # API-key providers are vault-backed. Repair transport to the internal
+    # proxy while preserving the exact agent-selected model id.
+    changed = _srv()._apply_model_for_billing_provider(
+        prof,
+        billing,
+        current_model,
+        user_id=user,
+    )
+    if changed:
         _srv()._ensure_profile_llm_proxy(prof, billing)
-    if changed and _srv()._is_runtime_profile_slug(prof):
         _srv()._reload_runtime_profile_gateway(prof, wait_healthy=True)
     return changed
 

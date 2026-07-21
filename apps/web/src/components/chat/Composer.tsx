@@ -124,8 +124,8 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   const { activeProfile } = useAgentRoute()
   const { activeRoom, openUserSettings, openChatSettings } = useWorkspacePanels()
   const modelsProfile = useMemo(
-    () => resolveAgentModelsProfile(activeRoom, activeProfile, runtimeProfile),
-    [activeRoom, activeProfile, runtimeProfile],
+    () => resolveAgentModelsProfile(activeRoom, activeProfile),
+    [activeRoom, activeProfile],
   )
   const workspaceId = activeRoom?.workspace_id ?? ''
   const [hasLlmProvider, setHasLlmProvider] = useState(false)
@@ -405,8 +405,6 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
               modelId={modelId}
               providerId={billingProvider}
               hasProvider={hasLlmProvider}
-              readOnly
-              onOpenAgentModels={() => openChatSettings('models')}
               onConnectProvider={() => openUserSettings('connect')}
             />
           ) : null}
@@ -422,28 +420,32 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         </div>
 
         <div className="wf-composer__actions">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="wf-composer__file-input"
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={(event) => {
-              handleImageFile(event.target.files?.[0])
-              event.target.value = ''
-            }}
-          />
-          <Button
-            type="button"
-            variant="toolbar"
-            size="toolbarIcon"
-            aria-label="Attach image"
-            disabled={disabled || !onAttachImage}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip aria-hidden="true" />
-          </Button>
+          {onAttachImage ? (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="wf-composer__file-input"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(event) => {
+                  handleImageFile(event.target.files?.[0])
+                  event.target.value = ''
+                }}
+              />
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                aria-label="Attach image"
+                disabled={disabled}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip aria-hidden="true" />
+              </Button>
+            </>
+          ) : null}
           <Button
             type="button"
             variant="toolbar"

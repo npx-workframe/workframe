@@ -15,7 +15,7 @@ What you can do in the Workframe UI after install.
 - **Team rail** — switch between agent lanes (native concierge and specialists)
 - **Chat** — stream agent replies; stop or steer an active turn
 - **Create agent** — add a new Hermes profile from the team rail
-- **Model picker** — choose a model from providers you have connected
+- **Model picker** — choose the model and fallback chain owned by that agent; the same choice applies in its DM and room mentions
 - **Skills** — attach Hermes skills from the composer
 - **Slash commands** — Workframe-native command palette (subset of Hermes CLI)
 
@@ -23,7 +23,7 @@ What you can do in the Workframe UI after install.
 
 - **Profile** — display name and workspace identity
 - **Connect accounts** — OAuth and API keys for LLM and integration providers (BYOK)
-- **Per-user runtime** — each member gets an isolated Hermes profile tree (`u-{user}-{agent}`) for credentials and chat
+- **Per-user runtime** — each member gets an isolated Hermes profile tree (`u-{user}-{agent}`) for credentials and chat; it follows the agent's model choice
 
 ## Team admin
 

@@ -37,6 +37,12 @@ export type HermesModelRow = {
   model: string
   label: string
   description: string
+  catalog_source?: 'live' | 'configured'
+}
+
+export type HermesCatalogStatus = {
+  status: 'live' | 'empty' | 'error' | 'unauthenticated' | 'unsupported'
+  message: string
 }
 
 export type FallbackEntry = {
@@ -65,6 +71,7 @@ export type HermesModelsResponse = {
   default_primary: string
   default_fallback_chain: FallbackEntry[]
   connected_providers?: string[]
+  catalog_status?: Record<string, HermesCatalogStatus>
   has_llm_provider?: boolean
   stack_llm_available?: boolean
   /** Billing provider for the active model (e.g. openrouter), not Hermes config provider (custom). */
@@ -142,13 +149,14 @@ export async function setHermesModel(
 export async function setHermesFallbackChain(
   chain: Array<{ provider: string; model: string }>,
   profile?: string,
-  opts?: { selectionOnly?: boolean },
+  opts?: { selectionOnly?: boolean; workspaceId?: string },
 ): Promise<{ ok: boolean; fallback_chain?: FallbackEntry[]; error?: string }> {
   const res = await apiPost<{ ok: boolean; fallback_chain?: FallbackEntry[]; error?: string }>(
     '/api/hermes/fallback-chain',
     {
       chain,
       profile: profile ?? '',
+      workspace_id: opts?.workspaceId?.trim() ?? '',
       selection_only: Boolean(opts?.selectionOnly),
     },
   )

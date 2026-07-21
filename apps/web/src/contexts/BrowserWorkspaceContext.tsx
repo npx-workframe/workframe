@@ -16,7 +16,7 @@ import type {
   OpenContentPayload,
   OpenFilePayload,
 } from '@/lib/browserTypes'
-import { getFileCapability, isUrl } from '@/lib/fileCapabilities'
+import { getFileCapability, hasKnownFileCapability, isUrl } from '@/lib/fileCapabilities'
 import {
   dedupeFileTabs,
   fileTabId,
@@ -153,9 +153,22 @@ function normalizeBrowserUrl(input: string) {
   const trimmed = input.trim()
   if (!trimmed) return ''
   if (isUrl(trimmed) || trimmed.startsWith('/')) return trimmed
-  const hostLike = /^[a-z0-9.-]+(?:\:[0-9]+)?(?:\/.*)?$/i.test(trimmed)
+  const fileName = trimmed.replace(/\\/g, '/').split('/').at(-1) || trimmed
+  if (
+    trimmed.startsWith('./') ||
+    trimmed.startsWith('../') ||
+    trimmed.includes('\\') ||
+    hasKnownFileCapability(fileName)
+  ) {
+    return trimmed.replace(/^\.\//, '')
+  }
+  const host = trimmed.split('/')[0]
+  const hostLike =
+    /^(?:localhost|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/i.test(host) ||
+    /^[a-z0-9-]+(?:\.[a-z0-9-]+)+(?::\d+)?$/i.test(host)
   if (hostLike) {
-    return `https://www.${trimmed.replace(/^www\./i, '')}`
+    const normalizedHost = trimmed.replace(/^www\./i, '')
+    return `https://${host.startsWith('localhost') ? normalizedHost : `www.${normalizedHost}`}`
   }
   return trimmed
 }
@@ -379,33 +392,46 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
       if (!trimmed) return
 
       if (isUrl(trimmed)) {
-        openUrl(trimmed)
+        const next = createUrlTab(trimmed)
+        setTabs((previous) => [
+          ...previous.filter((tab) => tab.id !== tabId && tab.id !== next.id),
+          next,
+        ])
+        setActiveTabId(next.id)
         return
       }
 
-      setTabs((previous) =>
-        previous.map((tab) => {
-          if (tab.id !== tabId || tab.source !== 'file') return tab
-
-          const nav = pushNavigation(
-            tab,
-            createNavigationEntry({
-              ...tab,
-              location: trimmed,
-              mode: tab.mode === 'navigate' ? 'preview' : tab.mode,
-            }),
-          )
-
-          return {
-            ...tab,
-            location: trimmed,
-            mode: tab.mode === 'navigate' ? 'preview' : tab.mode,
-            ...nav,
-          }
-        }),
-      )
+      const relativePath = trimmed.replace(/\\/g, '/').replace(/^\.\//, '')
+      const fileName = relativePath.split('/').at(-1) || relativePath
+      const next = createFileTab({
+        fileId: `path:${relativePath}`,
+        fileName,
+        relativePath,
+      })
+      const cached = getCachedFileContent(relativePath)
+      if (cached != null) {
+        next.content = cached
+        next.savedContent = cached
+        next.undoStack = [cached]
+      }
+      setTabs((previous) => [
+        ...previous.filter((tab) => tab.id !== tabId && tab.id !== next.id),
+        next,
+      ])
+      setActiveTabId(next.id)
+      void refreshFileByPath(relativePath)
+        .then((content) => {
+          setTabs((previous) => previous.map((tab) =>
+            tab.id === next.id && tab.content === tab.savedContent
+              ? { ...tab, content, savedContent: content, undoStack: [content], undoIndex: 0 }
+              : tab,
+          ))
+        })
+        .catch(() => {
+          // A missing relative path is a valid new editable file.
+        })
     },
-    [openUrl, pushNavigation],
+    [],
   )
 
   const goBack = useCallback(() => {

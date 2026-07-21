@@ -77,22 +77,31 @@ def _invoke_room_agent_mention(
     # session. The triggering user's vault credential is overlaid per turn
     # below; do not switch the room onto that user's private runtime profile.
     hermes_slug = template_slug
-    display_model = str(agent_row.get("model_name") or "").strip()
-    display_provider = str(agent_row.get("model_provider") or "").strip()
-    if not display_model:
-        display_model = str(_srv()._read_model_block(hermes_slug).get("default") or "").strip()
-    if not display_provider:
-        display_provider = _srv()._llm_billing_provider(
-            hermes_slug,
-            user_id=triggered_by_user_id,
-            workspace_id=workspace_id,
-        )
+    # The Hermes agent template is the provider/model source of truth. The DB
+    # columns are a UI index and may lag a just-completed save, so never let
+    # them choose execution routing for a room mention.
+    model_block = _srv()._read_model_block(hermes_slug)
+    display_model = str(model_block.get("default") or agent_row.get("model_name") or "").strip()
+    display_provider = _srv()._llm_billing_provider(
+        hermes_slug,
+        user_id=triggered_by_user_id,
+        workspace_id=workspace_id,
+        block=model_block,
+    )
 
     turn_id = str(uuid.uuid4())
     segments: list[dict[str, Any]] = []
     last_flush = 0.0
     flush_interval = 0.05
     run_id = str(uuid.uuid4())
+    turn_metadata = json.dumps(
+        {
+            "run_id": run_id,
+            "model": display_model,
+            "llm_provider": display_provider,
+        },
+        separators=(",", ":"),
+    )
     session_id = ""
     user_text = ""
     provider = ""
@@ -152,8 +161,8 @@ def _invoke_room_agent_mention(
                         """
                         INSERT INTO messages (
                             id, room_id, sender_user_id, sender_agent_id, parent_message_id,
-                            content, content_type, is_edited, created_at, updated_at
-                        ) VALUES (?,?,?,?,?,?,?,?,?,?)
+                            content, content_type, metadata, is_edited, created_at, updated_at
+                        ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
                         """,
                         (
                             mid,
@@ -163,6 +172,7 @@ def _invoke_room_agent_mention(
                             parent_message_id,
                             error,
                             "text",
+                            turn_metadata,
                             0,
                             now_ts,
                             now_ts,
@@ -241,13 +251,7 @@ def _invoke_room_agent_mention(
             raise ValueError("session_bootstrap_failed: could not start agent session for this room")
 
         turn_body = profile_gateway._profile_turn_payload(hermes_slug, user_text, room_id)
-        provider = str(agent_row.get("model_provider") or "").strip()
-        if not provider:
-            provider = _srv()._llm_billing_provider(
-                hermes_slug,
-                user_id=triggered_by_user_id,
-                workspace_id=workspace_id,
-            )
+        provider = display_provider
         if triggered_by_user_id:
             run_ledger.ensure_schema()
             auth_req = run_authority.mention_run_request(
@@ -396,8 +400,8 @@ def _invoke_room_agent_mention(
                 """
                 INSERT INTO messages (
                     id, room_id, sender_user_id, sender_agent_id, parent_message_id,
-                    content, content_type, is_edited, created_at, updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?)
+                    content, content_type, metadata, is_edited, created_at, updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 (
                     mid,
@@ -407,6 +411,7 @@ def _invoke_room_agent_mention(
                     parent_message_id,
                     assistant,
                     "text",
+                    turn_metadata,
                     0,
                     now_ts,
                     now_ts,
@@ -427,7 +432,7 @@ def _invoke_room_agent_mention(
             session_id,
             "completed",
             provider,
-            str(agent_row.get("model_name") or "default"),
+            display_model or "default",
             error=None,
         )
         lane_bindings.chat_dispatch(
@@ -459,8 +464,8 @@ def _invoke_room_agent_mention(
                 triggered_by_user_id,
                 session_id,
                 "failed",
-                str(agent_row.get("model_provider") or "openrouter"),
-                str(agent_row.get("model_name") or "default"),
+                display_provider or "openrouter",
+                display_model or "default",
                 error=err_text,
             )
         except Exception:  # noqa: BLE001

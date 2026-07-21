@@ -33,7 +33,9 @@ export function MessageList({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const initialScrollRef = useRef(true)
+  const stickToBottomRef = useRef(true)
 
   useEffect(() => {
     let cancelled = false
@@ -93,17 +95,37 @@ export function MessageList({
   }, [enrichMessages, messages, messagesOverride])
 
   useLayoutEffect(() => {
-    const anchor = bottomRef.current
-    if (!anchor) return
-    anchor.scrollIntoView({
-      block: 'end',
+    const host = scrollRef.current
+    if (!host) return
+    host.scrollTo({
+      top: host.scrollHeight,
       behavior: initialScrollRef.current ? 'auto' : 'smooth',
     })
+    stickToBottomRef.current = true
     initialScrollRef.current = false
   }, [displayMessages])
 
   return (
-    <ScrollArea axis="vertical" inset="md" className="wf-message-list" role="log" aria-live="polite" aria-relevant="additions">
+    <ScrollArea
+      ref={scrollRef}
+      axis="vertical"
+      inset="md"
+      className="wf-message-list"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions"
+      onScroll={(event) => {
+        const host = event.currentTarget
+        stickToBottomRef.current = host.scrollHeight - host.scrollTop - host.clientHeight < 64
+      }}
+      onLoadCapture={(event) => {
+        if (!(event.target instanceof HTMLImageElement) || !stickToBottomRef.current) return
+        requestAnimationFrame(() => {
+          const host = scrollRef.current
+          if (host) host.scrollTop = host.scrollHeight
+        })
+      }}
+    >
       {displayMessages.length === 0 ? (
         <p className="wf-message-list__empty">No messages yet — say hello to your agent.</p>
       ) : null}

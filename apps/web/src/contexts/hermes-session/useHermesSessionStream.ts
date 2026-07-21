@@ -87,7 +87,7 @@ export function useHermesSessionStream({
   const { bindingVersion, requireBoundSessionId } = bind
 
   const finalizeTurn = useCallback(
-    (assistantId: string, _text: string) => {
+    (assistantId: string) => {
       if (finalizedTurnIdsRef.current.has(assistantId)) return
       finalizedTurnIdsRef.current.add(assistantId)
       setMessages((prev) =>
@@ -307,11 +307,11 @@ export function useHermesSessionStream({
             finalText = String(evt.data.content ?? evt.data.text ?? finalText)
           }
           if (evt.event === 'done') {
-            finalizeTurn(assistantId, finalText)
+            finalizeTurn(assistantId)
           }
         })
 
-        finalizeTurn(assistantId, finalText)
+        finalizeTurn(assistantId)
 
         if (conciergeNotice || !finalText.trim()) {
           setMessages((prev) =>
@@ -410,11 +410,11 @@ export function useHermesSessionStream({
         const attachedText = gwSid && !gwSid.startsWith('api:')
           ? (await attachImagePath(gwSid, workspacePath)).text?.trim() || ''
           : ''
-        const submitText = attachedText || `[User attached image: ${safeName}]`
+        // API-backed sessions cannot use the legacy gateway attach endpoint. Give
+        // Hermes the mounted workspace path so vision tools can actually open it.
+        const submitText = attachedText || `[User attached image: ${workspacePath}]`
         const roomId = roomIdRef.current
         const sid = requireBoundSessionId()
-        let finalText = ''
-
         await streamProfileMessage({
           profile: prof,
           session_id: sid,
@@ -425,17 +425,11 @@ export function useHermesSessionStream({
           text: submitText,
         }, (evt) => {
           applyStreamEvent(evt)
-          if (evt.event === 'assistant.delta' || evt.event === 'message.delta') {
-            finalText += String(evt.data.delta ?? evt.data.text ?? '')
-          }
-          if (evt.event === 'assistant.completed' || evt.event === 'message.complete') {
-            finalText = String(evt.data.content ?? evt.data.text ?? '')
-          }
           if (evt.event === 'done') {
-            finalizeTurn(assistantId, finalText)
+            finalizeTurn(assistantId)
           }
         })
-        finalizeTurn(assistantId, finalText)
+        finalizeTurn(assistantId)
         void reloadHistory()
       } catch (err) {
         turnActiveRef.current = false

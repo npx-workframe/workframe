@@ -452,8 +452,9 @@ class WorkspaceRoutesMixin:
             return
         sender_agent = str(body.get("sender_agent_id", "")).strip()
         content = str(body.get("content", "")).strip()
-        content_type = str(body.get("content_type", "text")).strip()
-        parent_id = str(body.get("parent_message_id", "") or None)
+        content_type = str(body.get("content_type") or "text").strip()
+        parent_value = body.get("parent_message_id")
+        parent_id = str(parent_value).strip() if parent_value else None
         if not content:
             self._json(400, {"error": "content required"})
             return
@@ -875,6 +876,7 @@ class WorkspaceRoutesMixin:
             self._json(400, {"error": str(exc)})
             return
         cred_id = str(payload["credential_id"])
+        srv._revoke_runtime_llm_leases(workspace_id=ws_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
         try:
             srv._bootstrap_model_after_llm_connect("", ws_id, provider)
@@ -923,6 +925,11 @@ class WorkspaceRoutesMixin:
         if not affected:
             self._json(404, {"error": "credential_not_found"})
             return
+        srv._revoke_runtime_llm_leases(
+            workspace_id=ws_id,
+            provider=provider,
+            credential_binding_id=binding_id,
+        )
         self._log_audit("credential_revoked", "credential_binding", binding_id, f"workspace={ws_id}")
         spec = srv._catalog_provider(provider)
         if spec and str(spec.get("category") or "") == "messaging":

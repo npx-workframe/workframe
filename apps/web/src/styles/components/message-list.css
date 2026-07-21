@@ -590,6 +590,23 @@
   background: color-mix(in srgb, var(--wf-surface) 90%, transparent);
 }
 
+.wf-message__image-fallback {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  padding: var(--wf-space-4);
+  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-soft);
+  border-radius: var(--wf-radius);
+  background: color-mix(in srgb, var(--wf-surface) 90%, transparent);
+  color: var(--wf-muted);
+  text-align: center;
+}
+
+.wf-message__image-fallback strong {
+  color: var(--wf-text);
+  font-size: var(--wf-type-ui);
+}
+
 .wf-message__image-caption {
   margin-top: 6px;
   font-size: 11px;

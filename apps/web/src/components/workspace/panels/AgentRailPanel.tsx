@@ -35,7 +35,7 @@ import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
 import { resolveLogoUrl, resolveUserAvatarUrl } from '@/lib/avatarResolve'
-import { isAgentChatRoom, resolveHermesProfileSlug } from '@/lib/agentProfile'
+import { isAgentChatRoom, resolveHermesProfileSlug, templateProfileSlug } from '@/lib/agentProfile'
 import { WORKFRAME_RAIL_LABEL } from '@/lib/panelDisplayLabels'
 import { isProjectRoom } from '@/lib/roomChat'
 
@@ -239,11 +239,12 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
 
   const selectAgent = useCallback(
     async (profile: string, memberName: string) => {
+      const templateProfile = templateProfileSlug(profile)
       const existing = workspaceRooms.find(
         (room) =>
           room.room_type === 'direct' &&
           isAgentChatRoom(room) &&
-          resolveHermesProfileSlug(room, profile) === profile &&
+          resolveHermesProfileSlug(room, templateProfile) === templateProfile &&
           (room.member_user_ids ?? []).includes(currentUserId),
       )
       if (existing) {
@@ -252,23 +253,23 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
       }
       if (!currentWorkspace || !currentUserId) {
         setActiveRoom(null)
-        setActiveRoute(profile)
+        setActiveRoute(templateProfile)
         openChatPanel()
         return
       }
       try {
         const created = await workframeAuthApi.createWorkspaceRoom(currentWorkspace.id, {
           name: memberName,
-          slug: normalizeRoomSlug(`dm-${currentUserId}-${profile}`),
+          slug: normalizeRoomSlug(`dm-${currentUserId}-${templateProfile}`),
           room_type: 'direct',
-          agent_profile_id: profile,
+          agent_profile_id: templateProfile,
           member_user_ids: [currentUserId],
         })
         setWorkspaceRooms((current) => [created.room, ...current.filter((room) => room.id !== created.room.id)])
         selectRoom(created.room)
       } catch {
         setActiveRoom(null)
-        setActiveRoute(profile)
+        setActiveRoute(templateProfile)
         openChatPanel()
       }
     },
@@ -468,7 +469,7 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
               count={crew.length}
               emptyLabel="No agents available"
               addLabel="Create agent"
-              onAdd={() => setCreateAgentOpen(true)}
+              onAdd={canInvite ? () => setCreateAgentOpen(true) : undefined}
             >
               {crew.map((member) => {
                 const isActive = Boolean(

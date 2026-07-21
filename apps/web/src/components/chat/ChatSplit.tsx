@@ -18,9 +18,9 @@ import {
   watchRoomLive,
   type RoomLiveFrame,
 } from '@/lib/roomLive'
-import { mergeRoomMessageHistory } from '@/lib/chatMerge'
+import { mergeRoomLiveDisplay, mergeRoomMessageHistory } from '@/lib/chatMerge'
 import type { ChatMessage } from '@/lib/chatTypes'
-import { systemNoticeChatMessage } from '@/lib/chatTypes'
+import { systemNoticeChatMessage, userImageChatMessage } from '@/lib/chatTypes'
 import { ProviderRequiredDialog } from '@/components/dialogs/ProviderRequiredDialog'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import {
@@ -34,6 +34,7 @@ import { mentionHandleFromLabel } from '@/lib/mentionHandle'
 import { resolveAgentAvatarUrl } from '@/lib/avatarResolve'
 import { useCrew } from '@/hooks/useCrew'
 import { workframeAuthApi, watchWorkspaceEvents } from '@/lib/workframeAuthApi'
+import { uploadBinaryFile } from '@/lib/filesApi'
 import {
   readCachedProjectRoomMessages,
   writeCachedProjectRoomMessages,
@@ -50,6 +51,7 @@ function roomMessageToChatMessage(
     model?: string | null
     llm_provider?: string | null
     content: string
+    content_type?: string | null
     created_at?: string
   },
   meUserId: string,
@@ -72,12 +74,30 @@ function roomMessageToChatMessage(
       (message.sender_agent_id ? agentNames[message.sender_agent_id] : '') ||
       'Agent')
 
+  const contentType = String(message.content_type || 'text').toLowerCase()
+  let segments: ChatMessage['segments'] = [{ kind: 'text', text: message.content }]
+  if (contentType === 'image' || contentType.startsWith('image/')) {
+    const marker = message.content.match(/\[User attached image:\s*([^\]]+)\]/i)
+    let imagePath = marker?.[1]?.trim() || message.content.trim()
+    try {
+      const payload = JSON.parse(message.content) as { path?: unknown }
+      imagePath = typeof payload.path === 'string' ? payload.path.trim() : imagePath
+    } catch {
+      // Room image messages also support the human-readable attachment marker.
+    }
+    imagePath = imagePath.replace(/\\/g, '/').replace(/^\/workspace\//, '').replace(/^\/+/, '')
+    if (imagePath) {
+      const imageName = imagePath.split('/').at(-1) || 'Attached image'
+      segments = [{ kind: 'image', path: imagePath, name: imageName, alt: imageName }]
+    }
+  }
+
   return {
     id: message.id,
     authorId,
     authorName,
     role: isUser ? 'user' : 'agent',
-    segments: [{ kind: 'text', text: message.content }],
+    segments,
     timestamp: message.created_at ? new Date(Number(message.created_at) * 1000).toISOString() : new Date().toISOString(),
     tokens: 0,
     ...(message.model ? { modelId: message.model } : {}),
@@ -115,11 +135,22 @@ export function ChatSplit() {
   const roomStateByIdRef = useRef<Record<string, ChatMessage[]>>({})
   const roomMessagesRef = useRef<ChatMessage[] | null>(null)
   const liveTurnsRef = useRef<Record<string, ChatMessage>>({})
+  const completedTurnIdsRef = useRef<Set<string>>(new Set())
+  const completedTurnMessageIdsRef = useRef<Record<string, string>>({})
   const meUserIdRef = useRef('')
   const meAvatarRef = useRef<string | null>(null)
   const liveMetaRef = useRef<Record<string, { agentName: string; agentSlug: string; modelId?: string; llmProvider?: string }>>({})
   const liveBatcherRef = useRef(createLiveTurnBatcher((updates) => {
-    setLiveTurns((prev) => ({ ...prev, ...updates }))
+    const activeUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([turnId]) => !completedTurnIdsRef.current.has(turnId)),
+    )
+    if (!Object.keys(activeUpdates).length) return
+    // Keep the imperative snapshot ahead of React rendering. turn.complete can
+    // arrive in the same frame as the last delta; a deferred ref update lets a
+    // silent history reload merge both the live alias and persisted message.
+    const next = { ...liveTurnsRef.current, ...activeUpdates }
+    liveTurnsRef.current = next
+    setLiveTurns(next)
   }))
   const composerRef = useRef<ComposerHandle>(null)
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
@@ -147,9 +178,7 @@ export function ChatSplit() {
   const displayRoomMessages = useMemo(() => {
     const base = roomMessages ?? []
     const live = Object.values(liveTurns)
-    if (!live.length) return base
-    const ids = new Set(base.map((message) => message.id))
-    return [...base, ...live.filter((message) => !ids.has(message.id))]
+    return mergeRoomLiveDisplay(base, live, completedTurnMessageIdsRef.current)
   }, [roomMessages, liveTurns])
 
   const persistRoomSnapshot = useCallback((roomId: string) => {
@@ -296,12 +325,18 @@ export function ChatSplit() {
   const handleRoomLive = useCallback(
     (frame: RoomLiveFrame) => {
       if (frame.type === 'turn.started' || frame.type === 'turn.snapshot') {
-        const agentName = frame.agent_name || frame.agent_slug
-        const modelId = frame.type === 'turn.started' ? String(frame.model ?? '').trim() : ''
-        const llmProvider = frame.type === 'turn.started' ? String(frame.llm_provider ?? '').trim() : ''
+        if (completedTurnIdsRef.current.has(frame.turn_id)) return
+        const existingMeta = liveMetaRef.current[frame.turn_id]
+        const agentName = frame.agent_name || existingMeta?.agentName || frame.agent_slug
+        const modelId = frame.type === 'turn.started'
+          ? String(frame.model ?? '').trim()
+          : existingMeta?.modelId ?? ''
+        const llmProvider = frame.type === 'turn.started'
+          ? String(frame.llm_provider ?? '').trim()
+          : existingMeta?.llmProvider ?? ''
         liveMetaRef.current[frame.turn_id] = {
           agentName,
-          agentSlug: frame.agent_slug,
+          agentSlug: frame.agent_slug || existingMeta?.agentSlug || 'agent',
           ...(modelId ? { modelId } : {}),
           ...(llmProvider ? { llmProvider } : {}),
         }
@@ -327,6 +362,7 @@ export function ChatSplit() {
       }
 
       if (frame.type === 'turn.update') {
+        if (completedTurnIdsRef.current.has(frame.turn_id)) return
         const meta = liveMetaRef.current[frame.turn_id]
         if (!meta) return
         const message = liveTurnToChatMessage(
@@ -346,6 +382,8 @@ export function ChatSplit() {
       if (frame.type === 'turn.complete') {
         liveBatcherRef.current.flush()
         const messageId = String(frame.message_id ?? '').trim()
+        completedTurnIdsRef.current.add(frame.turn_id)
+        if (messageId) completedTurnMessageIdsRef.current[frame.turn_id] = messageId
         const liveMsg = liveTurnsRef.current[frame.turn_id]
         if (messageId && liveMsg && humanRoom) {
           const promoted = { ...liveMsg, id: messageId, ephemeral: false }
@@ -357,15 +395,14 @@ export function ChatSplit() {
         }
         delete liveMetaRef.current[frame.turn_id]
         setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
-        setLiveTurns((prev) => {
-          const next = { ...prev }
-          delete next[frame.turn_id]
-          if (!Object.keys(next).length) {
-            setSpaceTurnActive(false)
-            setSpaceTurnStatus(null)
-          }
-          return next
-        })
+        const remainingLiveTurns = { ...liveTurnsRef.current }
+        delete remainingLiveTurns[frame.turn_id]
+        liveTurnsRef.current = remainingLiveTurns
+        setLiveTurns(remainingLiveTurns)
+        if (!Object.keys(remainingLiveTurns).length) {
+          setSpaceTurnActive(false)
+          setSpaceTurnStatus(null)
+        }
         if (humanRoom) void reloadRoomMessages(humanRoom.id, { silent: true })
         return
       }
@@ -386,10 +423,12 @@ export function ChatSplit() {
         liveBatcherRef.current.push(frame.turn_id, { ...message, ephemeral: false })
         delete liveMetaRef.current[frame.turn_id]
         setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
-        setLiveTurns((prev) => {
-          const next = { ...prev, [frame.turn_id]: { ...message, ephemeral: false } }
-          return next
-        })
+        const failedTurns = {
+          ...liveTurnsRef.current,
+          [frame.turn_id]: { ...message, ephemeral: false },
+        }
+        liveTurnsRef.current = failedTurns
+        setLiveTurns(failedTurns)
         setSpaceTurnActive(false)
         setSpaceTurnStatus(null)
         if (humanRoom) void reloadRoomMessages(humanRoom.id, { silent: true })
@@ -406,6 +445,9 @@ export function ChatSplit() {
       persistRoomSnapshot(prevId)
       reloadGenRef.current += 1
       setLiveTurns({})
+      liveTurnsRef.current = {}
+      completedTurnIdsRef.current.clear()
+      completedTurnMessageIdsRef.current = {}
       liveMetaRef.current = {}
       liveBatcherRef.current.cancel()
     }
@@ -415,6 +457,10 @@ export function ChatSplit() {
     if (!humanRoom) {
       setRoomMessages(null)
       roomMessagesRef.current = null
+      setLiveTurns({})
+      liveTurnsRef.current = {}
+      completedTurnIdsRef.current.clear()
+      completedTurnMessageIdsRef.current = {}
       setRoomLoading(false)
       setRoomError('')
       roomRevisionRef.current = ''
@@ -513,6 +559,57 @@ export function ChatSplit() {
     [humanRoom, reloadRoomMessages],
   )
 
+  const attachRoomImage = useCallback(
+    async (file: File) => {
+      if (!humanRoom || !file.type.startsWith('image/')) return
+      const safeName = file.name.replace(/[^\w.-]+/g, '_') || 'attachment.png'
+      const relPath = `.workframe/chat-uploads/${Date.now()}-${safeName}`
+      const optimisticId = `local-image-${Date.now()}`
+      const optimistic = {
+        ...userImageChatMessage(optimisticId, relPath, safeName, new Date().toISOString()),
+        authorId: meUserIdRef.current || 'you',
+        avatarUrl: resolveUserAvatarUrl(meAvatarRef.current),
+      }
+
+      setRoomMessages((prev) => {
+        const next = [...(prev ?? []), optimistic]
+        roomMessagesRef.current = next
+        roomStateByIdRef.current[humanRoom.id] = next
+        return next
+      })
+
+      try {
+        const uploadedPath = await uploadBinaryFile(relPath, file)
+        const workspacePath = `/workspace/${uploadedPath.replace(/^\/+/, '')}`
+        const result = await workframeAuthApi.sendRoomMessage(humanRoom.id, {
+          content: `[User attached image: ${workspacePath}]`,
+          content_type: 'image',
+          invoke_agents: false,
+        })
+        const serverId = String(result.message_id ?? '').trim()
+        if (serverId) {
+          setRoomMessages((prev) => {
+            const next = (prev ?? []).map((message) =>
+              message.id === optimisticId ? { ...message, id: serverId } : message,
+            )
+            roomMessagesRef.current = next
+            roomStateByIdRef.current[humanRoom.id] = next
+            return next
+          })
+        }
+        setRoomError('')
+        await reloadRoomMessages(humanRoom.id, { silent: true })
+      } catch (err) {
+        setRoomMessages((prev) => (prev ?? []).filter((message) => message.id !== optimisticId))
+        const info = formatWorkframeError(err, 'Image upload')
+        setRoomError(formatWorkframeErrorMessage(err, 'Image upload'))
+        showWorkframeError(info, { id: info.code ?? 'room-image-upload' })
+        void reloadRoomMessages(humanRoom.id, { silent: true })
+      }
+    },
+    [humanRoom, reloadRoomMessages],
+  )
+
   if (humanRoom) {
     return (
       <CommandDialogsProvider>
@@ -559,7 +656,7 @@ export function ChatSplit() {
             showModelPicker={false}
             mentionAgents={projectRoom ? roomMentionAgents : []}
             onSend={sendRoomChatMessage}
-            onAttachImage={() => {}}
+            onAttachImage={(file) => void attachRoomImage(file)}
             disabled={roomLoading && roomMessages === null}
             turnActive={spaceTurnActive}
             turnStatus={spaceTurnStatus}

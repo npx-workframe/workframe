@@ -15,6 +15,10 @@ function userText(message: ChatMessage): string {
     .trim()
 }
 
+function normalizeImagePath(path: string): string {
+  return path.trim().replace(/\\/g, '/').replace(/^\/workspace\//, '').replace(/^\.\//, '')
+}
+
 function serverHasUserTurn(server: ChatMessage[], localUser: ChatMessage): boolean {
   const text = normalizeUserText(userText(localUser))
   const localImages = localUser.segments.filter((s) => s.kind === 'image').length
@@ -23,9 +27,13 @@ function serverHasUserTurn(server: ChatMessage[], localUser: ChatMessage): boole
     if (text && normalizeUserText(userText(m)) === text) return true
     if (localImages > 0 && hasImageSegment(m)) {
       const localPaths = new Set(
-        localUser.segments.filter((s) => s.kind === 'image').map((s) => s.path),
+        localUser.segments
+          .filter((s) => s.kind === 'image')
+          .map((s) => normalizeImagePath(s.path)),
       )
-      return m.segments.some((s) => s.kind === 'image' && localPaths.has(s.path))
+      return m.segments.some(
+        (s) => s.kind === 'image' && localPaths.has(normalizeImagePath(s.path)),
+      )
     }
     return false
   })
@@ -189,6 +197,27 @@ function messageTimestamp(message: ChatMessage): number {
   return Number.isFinite(ts) ? ts : 0
 }
 
+function agentReplyText(message: ChatMessage): string {
+  return message.segments
+    .filter((segment) => segment.kind === 'text')
+    .map((segment) => segment.text.trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
+function serverHasEquivalentAgentReply(server: ChatMessage[], local: ChatMessage): boolean {
+  if (local.role !== 'agent') return false
+  const text = agentReplyText(local)
+  if (!text) return false
+  const localTs = messageTimestamp(local)
+  return server.some((candidate) => {
+    if (candidate.role !== 'agent' || candidate.authorId !== local.authorId) return false
+    if (agentReplyText(candidate) !== text) return false
+    const serverTs = messageTimestamp(candidate)
+    return !localTs || !serverTs || Math.abs(serverTs - localTs) <= 5 * 60_000
+  })
+}
+
 /**
  * Project room reload merge: server is canonical order, but never drop persisted local
  * rows missing from a stale fetch (racing reloads / lane switch).
@@ -203,10 +232,36 @@ export function mergeRoomMessageHistory(server: ChatMessage[], local: ChatMessag
     if (mergedIds.has(message.id)) continue
     if (isPendingUserMessage(message)) continue
     if (serverIds.has(message.id)) continue
+    // A completed room turn is first promoted from its SSE turn id, then
+    // reloaded with the database message id. If a late live flush persisted
+    // the promoted card under the old id, the server row is canonical.
+    if (serverHasEquivalentAgentReply(server, message)) continue
     merged.push(message)
     mergedIds.add(message.id)
   }
 
   merged.sort((a, b) => messageTimestamp(a) - messageTimestamp(b))
   return merged
+}
+
+/**
+ * Compose persisted room history with in-flight SSE turns. A completed turn is
+ * promoted to its database message id before the live-state cleanup renders;
+ * suppress that short-lived alias so one reply never appears twice.
+ */
+export function mergeRoomLiveDisplay(
+  base: ChatMessage[],
+  live: ChatMessage[],
+  completedMessageIds: Readonly<Record<string, string>>,
+): ChatMessage[] {
+  if (!live.length) return base
+  const ids = new Set(base.map((message) => message.id))
+  return [
+    ...base,
+    ...live.filter((message) => {
+      if (ids.has(message.id)) return false
+      const canonicalId = completedMessageIds[message.id]
+      return !canonicalId || !ids.has(canonicalId)
+    }),
+  ]
 }

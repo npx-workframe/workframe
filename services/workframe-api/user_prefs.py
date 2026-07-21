@@ -192,6 +192,21 @@ def apply_me_profile_updates(user_id: str, body: dict[str, Any]) -> dict[str, An
         platform_ids = parse_user_platform_ids(body.get("platform_ids"))
         conn = _srv()._workframe_db()
         try:
+            current_row = conn.execute(
+                "SELECT platform_ids FROM users WHERE id = ?", (user_id,),
+            ).fetchone()
+            if current_row:
+                try:
+                    current_ids = json.loads(current_row["platform_ids"] or "{}")
+                except (TypeError, json.JSONDecodeError):
+                    current_ids = {}
+                if isinstance(current_ids, dict):
+                    # LLM preferences share this legacy JSON column but are
+                    # not public messaging identities. Preserve them when
+                    # Linked Accounts saves discord/telegram/slack values.
+                    for key in ("llm_primary", "llm_fallback_chain"):
+                        if key in current_ids:
+                            platform_ids[key] = current_ids[key]
             now_ts = str(int(time.time()))
             conn.execute(
                 "UPDATE users SET platform_ids = ?, updated_at = ? WHERE id = ?",

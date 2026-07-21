@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-07-10",
+  "updated": "2026-07-21",
   "north_star_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "program_stages": {
     "ref": "WF-040",
@@ -954,8 +954,16 @@
         "6. Register in pnpm test scripts / CI"
       ],
       "depends_on": [],
+      "evidence": [
+        "services/workframe-api/test_model_surface_consistency.py",
+        "services/workframe-api/model_surface.py",
+        "services/workframe-api/runtime_cohort.py",
+        "services/workframe-api/provider_bootstrap.py",
+        "services/workframe-api/mention_invoke.py",
+        "services/workframe-api/test_enrich_room_messages.py"
+      ],
       "owner_role": "harness",
-      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-05" }
+      "workflow": { "assignee": null, "reviewer": null, "patch_refs": [], "completed_at": "2026-07-05", "notes": "Reverified 2026-07-21: agent template owns model/fallbacks; per-user runtimes sync that choice while credentials stay user/workspace scoped; missing configured-provider credentials deny instead of rerouting; room messages persist immutable provider/model metadata. Docker DogFood completed fresh Codex gpt-5.4-mini DM, room, DM vision, and room vision flows with live and persisted attribution and no duplicate assistant row. Full API suite: 95 passed." }
     },
     {
       "id": "WF-035",
@@ -1001,7 +1009,7 @@
         "reviewer": null,
         "patch_refs": ["b8e1355", "faa2298", "e3b15e6", "8085e68"],
         "completed_at": "2026-07-08",
-        "notes": "Functional slice complete: ConciergeFlow 189 lines + useConciergeFlow hook; HermesSessionContext 194-line provider + hermes-session/* hooks (all <800 except hook 834); resolveProviderDisplayLabel across composer/settings/messages; inferProviderFromModelId returns null for unknown prefixes; build:web green."
+        "notes": "Functional slice complete: ConciergeFlow 189 lines + useConciergeFlow hook; HermesSessionContext 194-line provider + hermes-session/* hooks (all <800 except hook 834); resolveProviderDisplayLabel across composer/settings/messages; inferProviderFromModelId returns null for unknown prefixes. Reverified 2026-07-21: live catalogs are grouped by real billing provider, picker opens on the current provider, no fake custom-provider tab, settings reset scroll to top, and build:web is green."
       }
     },
     {

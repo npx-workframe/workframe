@@ -31,7 +31,13 @@ def _srv():
 def _reload_runtime_profile_gateway(profile: str, *, wait_healthy: bool = True) -> None:
     """Reload Hermes after config.yaml change — gateway restart before stop+start."""
     prof = _srv().resolve_hermes_profile(profile)
-    if not _srv()._is_runtime_profile_slug(prof) or prof == _srv()._primary_profile():
+    if prof == _srv()._primary_profile():
+        _srv()._invalidate_profile_health_cache(prof)
+        _srv()._restart_stack_gateway()
+        if wait_healthy:
+            _wait_profile_api_healthy(prof, attempts=120, delay=0.5)
+        return
+    if not _srv()._is_runtime_profile_slug(prof):
         return
     with _srv()._gateway_lifecycle_lock:
         if _profile_api_healthy(prof, timeout=0.5, use_cache=False):
@@ -59,8 +65,7 @@ def _schedule_gateway_reload(profile: str) -> None:
 
     def _run() -> None:
         try:
-            with _srv()._gateway_lifecycle_lock:
-                _reload_runtime_profile_gateway(prof, wait_healthy=False)
+            _reload_runtime_profile_gateway(prof, wait_healthy=False)
         except Exception as exc:  # noqa: BLE001
             print(f"[workframe-api] gateway reload failed for {prof}: {exc}")
 
@@ -363,15 +368,18 @@ def _profile_api_healthy(profile: str, timeout: float = 1.5, *, use_cache: bool 
     return ok
 
 
-def _wait_profile_api_healthy(profile: str, attempts: int = 60, delay: float = 0.5) -> bool:
+def _wait_profile_api_healthy(profile: str, attempts: int = 120, delay: float = 0.5) -> bool:
     try:
         prof = _srv().resolve_hermes_profile(profile)
     except ValueError:
         return False
-    if _profile_api_healthy(prof):
+    # A compose-managed primary gateway can take ~40 seconds to restart. Do
+    # not let the short-lived negative health cache consume the polling window
+    # or the first post-install room turn can fail just before it comes up.
+    if _profile_api_healthy(prof, use_cache=False):
         return True
     for _ in range(attempts):
-        if _profile_api_healthy(prof):
+        if _profile_api_healthy(prof, use_cache=False):
             return True
         time.sleep(delay)
     return False
