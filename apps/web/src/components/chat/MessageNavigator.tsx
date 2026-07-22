@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 
 import type { ChatMessage } from '@/lib/chatTypes'
 import { chatMessagePreview } from '@/lib/chatTypes'
+import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { cn } from '@/lib/utils'
 
 type MessageNavigatorProps = {
@@ -38,8 +39,9 @@ export function MessageNavigator({ messages, activeMessageId, onJump }: MessageN
   return (
     <nav className="wf-message-navigator" aria-label="Jump to message">
       {navigatorMessages(messages, activeMessageId).map(({ message, index }) => {
-        const preview = chatMessagePreview(message, 72)
-        const width = Math.max(8, Math.min(20, 7 + Math.round(preview.length / 8)))
+        const labelPreview = chatMessagePreview(message, 72)
+        const cardPreview = chatMessagePreview(message, 180)
+        const position = (index / Math.max(1, messages.length - 1)) * 100
         return (
           <button
             key={message.id}
@@ -47,13 +49,24 @@ export function MessageNavigator({ messages, activeMessageId, onJump }: MessageN
             className={cn(
               'wf-message-navigator__marker',
               message.role === 'user' && 'wf-message-navigator__marker--user',
+              position <= 12 && 'wf-message-navigator__marker--preview-top',
+              position >= 88 && 'wf-message-navigator__marker--preview-bottom',
             )}
-            style={{ '--wf-message-marker-width': `${width}px` } as CSSProperties}
-            aria-label={`Jump to message ${index + 1} from ${message.authorName}: ${preview}`}
+            style={{
+              '--wf-message-marker-position': `${Math.max(1, Math.min(99, position))}%`,
+            } as CSSProperties}
+            aria-label={`Jump to message ${index + 1} from ${message.authorName}: ${labelPreview}`}
             aria-current={message.id === activeMessageId ? 'true' : undefined}
-            title={`${message.authorName}: ${preview}`}
             onClick={() => onJump(message.id)}
-          />
+          >
+            <span className="wf-message-navigator__preview" aria-hidden="true">
+              <span className="wf-message-navigator__preview-head">
+                <strong>{message.authorName}</strong>
+                <time dateTime={message.timestamp}>{formatRelativeTime(message.timestamp)}</time>
+              </span>
+              <span className="wf-message-navigator__preview-copy">{cardPreview}</span>
+            </span>
+          </button>
         )
       })}
     </nav>
