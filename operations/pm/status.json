@@ -5,7 +5,7 @@
   "reports_to": ["alan", "orchestrator"],
   "last_session": "2026-07-22",
   "mode": "Stabilize, publish, and deploy the proven v0.1.x wedge",
-  "mission": "Keep local Hermes personal use and Docker dogfood stable, close publish evidence, then verify abx.alanborger.com, dev.click.blue, and demo.workfra.me installations.",
+  "mission": "Keep local Hermes personal use and Docker dogfood stable, close publish evidence, then verify the requested public cell installations.",
   "dispatched_agents": [],
   "completed_agents": [
     "99ca9676 — Stage A",

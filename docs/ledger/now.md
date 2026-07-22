@@ -86,9 +86,9 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 
 ### 2026-07-12 VPS target preflight
 
-- `abx.alanborger.com`, `dev.click.blue`, and `demo.workfra.me` currently have no public DNS records, so HTTPS deployment cannot yet complete.
-- The existing Hetzner-backed `dev.alanborger.com` record resolves to `95.216.136.200`; the three requested A records should target that address unless the operator intends a different host.
-- The configured Hetzner host is reachable. Its existing slot-2 `MyBusiness` cell is `create-workframe@0.1.7`, healthy for ten days, and reports secure `public_multi_user` posture; Caddy exposes it only at `dev.alanborger.com`.
+- The requested public cell domains currently have no DNS records, so HTTPS deployment cannot yet complete.
+- The configured reference host is reachable and has capacity for the requested cells; exact addresses and routes remain in the private operator system.
+- Its existing reference cell is healthy and reports secure `public_multi_user` posture; no requested public route has been added yet.
 - The host has approximately 6.4 GB available memory and 134 GB free disk. Workframe slots 3, 4, and 5 are unbound and can host the three requested cells after package publication, DNS, SMTP/invite configuration, and per-cell backup/restore planning are resolved.
 
 From [final convergence synthesis](../../archive/planning/living-audit/final-convergence-synthesis.md):

@@ -124,7 +124,7 @@ Follow [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md) wave
 
 1. **WF-017** — run the public deploy verifier on the reference VPS and complete a tested backup/restore cycle with operator assistance.
 2. **Publish 0.1.20** — push the verified version tag and publish through the repository's npm trusted-publishing workflow.
-3. **Provision requested cells** — create DNS for `abx.alanborger.com`, `dev.click.blue`, and `demo.workfra.me`; then use supported install/update paths and complete HTTPS, SMTP/invite, public-deploy, and backup/restore evidence.
+3. **Provision requested cells** — create operator-managed DNS for the requested cell domains; then use supported install/update paths and complete HTTPS, SMTP/invite, public-deploy, and backup/restore evidence.
 4. **Stop** — keep all 14 E/F items deferred; `WF-SK-001` remains a non-gating meta todo.
 
 **Before E stop line:** finish `WF-017`. WF-SK-001 meta may stay open.

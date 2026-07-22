@@ -30,16 +30,16 @@
     {
       "id": "vps-deployments",
       "source_items": ["WF-017"],
-      "targets": ["abx.alanborger.com", "dev.click.blue", "demo.workfra.me"],
+      "targets": ["requested_public_cell_1", "requested_public_cell_2", "requested_public_cell_3"],
       "status": "blocked_until_publish_and_target_preflight",
       "preflight": {
         "checked_utc": "2026-07-12T21:04Z",
         "dns": "all_three_targets_nxdomain",
-        "vps": "reachable_via_hetzner-hermes",
-        "dns_target_ipv4": "95.216.136.200",
-        "existing_cell": "slot_2_MyBusiness_0.1.7_healthy_public_multi_user_behind_dev.alanborger.com",
+        "vps": "reachable_via_private_operator_connector",
+        "dns_target_ipv4": "recorded_in_private_operator_system",
+        "existing_cell": "reference_cell_healthy_public_multi_user",
         "capacity": "6.4GB_available_memory_134GB_disk_free_slots_3_4_5_unbound",
-        "reverse_proxy": "Caddy_only_routes_dev.alanborger.com_to_127.0.0.1:28644"
+        "reverse_proxy": "existing_reference_route_only; requested_routes_absent"
       },
       "evidence_required": ["DNS", "HTTPS", "secure mode", "SMTP or documented invite path", "backup/restore", "public deploy verifier"]
     }
