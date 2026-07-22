@@ -4,6 +4,8 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-22T16:33-03:00 | release | Merged release PR #10 and public-source cleanup PR #11; pushed tag v0.1.20; GitHub OIDC trusted publishing completed successfully; npm registry independently verified create-workframe@0.1.20 as latest with a public integrity digest and tarball.
+
 2026-07-22T16:16-03:00 | release | Reconciled the provider/model and UI hardening branch with current main; cut create-workframe 0.1.20; passed version/docs/public checks, full CI/build, scaffold, package-install, negative-install, and all four local release gates; updated Docker DogFood in place from the SHA-512-verified local pack with API/UI/gateway/supervisor and installed-version parity green. GitHub OIDC trusted publishing is ready.
 
 2026-07-12T19:52-03:00 | pm-workframe | Reconciled canonical program status to release candidate 0.1.19; non-destructive install-gate build/sync/bundle completed and `verify-release-gates.mjs` ALLOWed all four tracked local gates. No dogfood restart, npm publish, DNS, or VPS mutation; remaining gates are npm owner auth, three-domain DNS/Caddy/SMTP setup, and WF-017 public backup/restore evidence.
