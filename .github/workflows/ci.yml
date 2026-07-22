@@ -41,7 +41,7 @@ jobs:
 
       # Harness scaffold checks require the same bundled UI produced by the release path.
       - name: Installer UI bundle
-        run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build
+        run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs
 
       - name: Harness verify
         env:
