@@ -1,6 +1,7 @@
 # Workframe strategy brief (public)
 
-Long-term product, architecture, and monetization brief. **v0.1.x shipping scope** is narrower — see [ledger/now.md](../ledger/now.md).
+Long-term product, architecture, and monetization brief. Current durable work and
+scope gates live in [ledger.json](../ledger/ledger.json).
 
 | Doc | |
 |-----|---|

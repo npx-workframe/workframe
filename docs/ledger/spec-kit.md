@@ -11,11 +11,11 @@ We already have parallel artifacts. **Do not duplicate** — map layers:
 | **constitution** | Product doctrine + agent rules | `AGENTS.md`, [north-star.md](north-star.md), [security.md](../public/security.md) |
 | **specify** (`spec.md`) | What/why for one backlog item | `docs/ledger/specs/<WF-ID>/spec.md` |
 | **plan** (`plan.md`) | How/tech constraints | `docs/ledger/specs/<WF-ID>/plan.md` |
-| **tasks** (`tasks.md`) | Checklist derived from acceptance[] | `docs/ledger/specs/<WF-ID>/tasks.md` or `backlog.json` acceptance |
+| **tasks** (`tasks.md`) | Checklist derived from acceptance[] | `docs/ledger/specs/<WF-ID>/tasks.md` or `ledger.json` acceptance |
 | **implement** | Code patch + harness | git + `.harness/verify.mjs` |
-| **(missing in spec-kit)** | **review gate** | `backlog.json` status `review` → `done` |
+| **(missing in spec-kit)** | **review gate** | `ledger.json` status `review` → `done` |
 
-**Single queue:** [`backlog.json`](backlog.json). Spec-kit folders are **per-item depth**, not a second backlog.
+**Single work authority:** [`ledger.json`](ledger.json). Spec-kit folders are **per-item depth**, not a second queue.
 
 ## Adoption options
 
@@ -42,16 +42,16 @@ Do **not** clone spec-kit into `vendor/` until we pin a release tag and add subm
 
 | System | Queue | Spec shape |
 |--------|-------|------------|
-| living-knowledge | `operations/daily/queues.json` | campaigns + corpus items |
-| ABKB meta | `operations/daily/queues.json` | profile refresh, drift |
-| Workframe | `docs/ledger/backlog.json` | WF-* items + spec-kit specs/ |
+| living-knowledge | project `ledger.json` | campaigns + corpus items |
+| ABKB meta | `operations/ledger.json` | durable meta work |
+| Workframe | `docs/ledger/ledger.json` | WF-* items + spec-kit specs/ |
 | spec-kit (generic) | `tasks.md` per feature | product feature specs |
 
 **Convergence:** Architectonic `living-knowledge` loop-engineering doc is the **meta-pattern**; spec-kit is the **product-dev command surface**; Workframe ledger is the **Workframe program backlog**.
 
 ## Backlog item WF-SK-001
 
-Track spec-kit adoption in [`backlog.json`](backlog.json) (`WF-SK-001`). Done when:
+Track spec-kit adoption in [`ledger.json`](ledger.json) (`WF-SK-001`). Done when:
 
 - This mapping is stable (done)
 - First P0 item has `docs/ledger/specs/WF-002/` spec+plan+tasks

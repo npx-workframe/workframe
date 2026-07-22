@@ -2,7 +2,8 @@
 
 **Default:** execute these after patches without asking Alan. Repo root: `<workframe-repo>`.
 
-**Stage gates:** Read [`docs/ledger/program-status.md`](../../docs/ledger/program-status.md) before picking work — Stage A complete; active push is **B→C→D**; **stop before Stage E** deferred items. `ledger-next.mjs` sorts by `backlog.json` `program_stages.pick_order` (WF-040).
+**Work gate:** read `docs/ledger/ledger.json`; select only dependency-clear
+`ready` items. Deferred work stays out of scope until explicitly reprioritized.
 
 ## Four targets (never confuse)
 
@@ -104,6 +105,6 @@ See [scripts/workframe/README.md](../../scripts/workframe/README.md) deprecated 
 
 ## After every shipped patch
 
-1. Update `docs/ledger/backlog.json` evidence + status
-2. Update `docs/ledger/now.md` if wedge changed
-3. Append `operations/log.md`
+1. Record actual evidence on `docs/ledger/ledger.json`
+2. Apply one valid lifecycle transition when acceptance warrants it
+3. Stop; Git and release notes preserve history

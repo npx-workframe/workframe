@@ -19,7 +19,7 @@ Chain of truth: **source here** → ABKB curated memory → chat hints.
 1. operations/pm/session.md — PM boot (if owning Workframe)
 2. This file (START_HERE.md)
 3. AGENTS.md — mutation discipline, harness pointer
-4. docs/ledger/backlog.json — program queue
+4. docs/ledger/ledger.json — canonical durable work state
 5. ABKB projects/workframe/project_profile.md — ontology + risks
 6. ABKB projects/workframe/install-sandbox-doctrine.md — sign-off spine
 7. .harness/feature_list.json — scenario ledger (what must pass)
@@ -75,11 +75,11 @@ services/workframe-api/ | apps/web/src/
 
 | File | Purpose |
 |------|---------|
-| `docs/ledger/backlog.json` | **Program queue** — WF-* items, agent automation |
+| `docs/ledger/ledger.json` | **Work ledger** — WF-* items, dependencies, evidence, automation |
 | `operations/pm/` | PM harness — session, runbook, queues |
 | `.harness/feature_list.json` | Scenario pass/fail — verify ledger |
 | `.harness/verify.mjs` | Cloud verify runner (`HARNESS_CHECK=1` in CI) |
-| `operations/log.md` | Append-only operator log |
+| Git history | Operator and work-state history |
 | ABKB `operations/daily/.../work_items` | Cross-portfolio worker queue (optional) |
 
 Run: `node .harness/verify.mjs` or `pnpm test:ci`.
@@ -107,10 +107,10 @@ Full doctrine: ABKB `projects/workframe/install-sandbox-doctrine.md`.
 
 When running as a **role** (not ad-hoc chat):
 
-1. **PM:** `operations/pm/session.md` + `docs/ledger/backlog.json`
+1. **PM:** `operations/pm/session.md` + `docs/ledger/ledger.json`
 2. **Worker:** `abkb/operations/roles/<role-id>/` (identity + prompt)
 3. Return here for project map
-4. One task per run; update backlog + `operations/pm/queues.json` when done
+4. One durable item per autonomous run; record evidence and one ledger transition
 
 PM enqueues `WF-*` items; coder implements and opens PR; code-reviewer closes review rows.
 

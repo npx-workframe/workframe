@@ -1,31 +1,9 @@
-# Workframe operations rail
+# Workframe operations
 
-**PM operating system:** [pm/README.md](pm/README.md) — start every session at `pm/session.md`.
+- Current durable work: `docs/ledger/ledger.json`
+- Project-manager binding and release runbook: `operations/pm/`
+- Verification scenarios: `.harness/feature_list.json`
+- Release evidence: `operations/release-evidence/`
+- Historical session state: Git history
 
-Session-level operator log and pointers to ledgers. Not a duplicate of ABKB meta `operations/daily/`.
-
-## Ledgers
-
-```text
-docs/ledger/backlog.json              program queue (WF-*) — PM owns
-.harness/feature_list.json            verify scenarios
-operations/pm/queues.json             active handoffs
-operations/log.md                     narrative (here)
-abkb/operations/daily/.../work_items  cross-portfolio (optional)
-```
-
-| Need | Read |
-|------|------|
-| What to do next | `node scripts/workframe/ledger-next.mjs` |
-| How to ship | `operations/pm/runbook.md` |
-| What must pass before release | `.harness/feature_list.json` |
-| Narrative session history | `operations/log.md` |
-
-## Log
-
-Append-only: `operations/log.md` — `ISO timestamp | Role | outcome`
-
-## Roles
-
-Registry: `abkb/operations/roles/registry.json`  
-Canonical PM harness: `operations/pm/identity.md`
+There is no separate PM queue, daily status, now mirror, or narrative work log.

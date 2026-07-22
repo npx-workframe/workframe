@@ -9,10 +9,9 @@ Also published at [docs.workfra.me](https://docs.workfra.me).
 |-----|---|
 | [PM harness](../operations/pm/README.md) | Session boot, runbook, queues — **start every Workframe session** |
 | [Ledger index](ledger/README.md) | Now, north star, audits, loop engineering |
-| [Now](ledger/now.md) | Current shipping wedge |
+| [Work ledger](ledger/ledger.json) | Current durable work, dependencies, gates, and evidence |
 | [North star summary](ledger/north-star.md) | Vision + link to full strategy brief |
 | [Audit registry](ledger/audits.md) | All audits with status |
-| [Backlog (JSON)](ledger/backlog.json) | Machine queue — 17 findings + north-star + 0027 |
 | [Agent automation](ledger/automation.md) | Implementer/reviewer loop protocol |
 | [Spec-kit mapping](ledger/spec-kit.md) | Spec-driven dev integration |
 | [Strategy brief](strategy/README.md) | Full v0.1.1 north-star package |

@@ -76,4 +76,5 @@ Convergence planning toward the Workframe cell (v0.1.x → v0.2). Indexed below;
 
 1. Land code or doc in `main`.
 2. Point harness or verify script at the claim.
-3. Set status to **shipped** or **partial** with commit/link in [now.md](now.md).
+3. Record verification on the relevant item in [ledger.json](ledger.json) and
+   transition it only when acceptance is met.

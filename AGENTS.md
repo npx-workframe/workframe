@@ -2,8 +2,13 @@
 
 These instructions apply to AI assistants working in this repository.
 
-**Start here:** [operations/pm/README.md](operations/pm/README.md) — PM harness (every Workframe session).  
-Also: [START_HERE.md](START_HERE.md) — repo map, environments, cascade.
+**Start here:** [docs/ledger/ledger.json](docs/ledger/ledger.json) when the work
+requires durable coordination; it is the only current-work authority. The rail
+contract is `architectonic-rail@0.3` (workspace reference:
+`D:/ab/projects/architectonic/rail/rail.md`). Backlog, queue, and now are derived
+views, not parallel files. [operations/pm/README.md](operations/pm/README.md)
+binds PM behavior to the same ledger. Also read [START_HERE.md](START_HERE.md)
+for the repo map, environments, and cascade.
 
 ## Developer loop (source → dogfood → npm)
 
