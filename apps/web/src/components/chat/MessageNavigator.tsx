@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react'
-
 import type { ChatMessage } from '@/lib/chatTypes'
 import { chatMessagePreview } from '@/lib/chatTypes'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -52,9 +50,6 @@ export function MessageNavigator({ messages, activeMessageId, onJump }: MessageN
               position <= 12 && 'wf-message-navigator__marker--preview-top',
               position >= 88 && 'wf-message-navigator__marker--preview-bottom',
             )}
-            style={{
-              '--wf-message-marker-position': `${Math.max(1, Math.min(99, position))}%`,
-            } as CSSProperties}
             aria-label={`Jump to message ${index + 1} from ${message.authorName}: ${labelPreview}`}
             aria-current={message.id === activeMessageId ? 'true' : undefined}
             onClick={() => onJump(message.id)}
