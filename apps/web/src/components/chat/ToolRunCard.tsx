@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Loader2, Terminal, CheckCircle2, XCircle } from 'lucide-react'
+import { Brain, ChevronDown, Loader2, Terminal, CheckCircle2, XCircle } from 'lucide-react'
 
 import type { ChatSegment } from '@/lib/chatTypes'
 import { scrollAreaClass } from '@/components/ui/scroll-area'
@@ -7,12 +7,16 @@ import { cn } from '@/lib/utils'
 
 type ToolRunCardProps = {
   segment: Extract<ChatSegment, { kind: 'tool' }>
+  glyph?: 'tool' | 'thinking'
 }
 
-export function ToolRunCard({ segment }: ToolRunCardProps) {
+export function ToolRunCard({ segment, glyph = 'tool' }: ToolRunCardProps) {
   const { name, status, output, preview } = segment
   const isRunning = status === 'running'
   const isError = status === 'error'
+  const isThinking = glyph === 'thinking'
+  const Glyph = isThinking ? Brain : Terminal
+  const displayStatus = isThinking && isRunning ? 'thinking' : status
   const detail = (isRunning ? preview : output)?.trim()
   // Only collapsible when there's something to show. Tools that complete
   // without output (e.g. a read on an empty file) render as a static one-liner.
@@ -53,16 +57,16 @@ export function ToolRunCard({ segment }: ToolRunCardProps) {
             aria-hidden="true"
           />
           {icon}
-          <Terminal className="wf-tool-run__glyph" aria-hidden="true" />
+          <Glyph className="wf-tool-run__glyph" aria-hidden="true" />
           <span className="wf-tool-run__name">{name}</span>
-          <span className="wf-tool-run__status">{status}</span>
+          <span className="wf-tool-run__status">{displayStatus}</span>
         </button>
       ) : (
         <div className="wf-tool-run__header">
           {icon}
-          <Terminal className="wf-tool-run__glyph" aria-hidden="true" />
+          <Glyph className="wf-tool-run__glyph" aria-hidden="true" />
           <span className="wf-tool-run__name">{name}</span>
-          <span className="wf-tool-run__status">{status}</span>
+          <span className="wf-tool-run__status">{displayStatus}</span>
         </div>
       )}
       {open && hasDetail ? (

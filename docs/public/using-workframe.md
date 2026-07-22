@@ -8,7 +8,7 @@ What you can do in the Workframe UI after install.
 - **Direct messages** — human-to-human and agent DMs
 - **Activity** — room-scoped feed of agent actions
 - **Files** — browse and edit project files under `/workspace`; use **Select files** in Navigator to download one file with its original name, download multiple files or whole folders as a ZIP, or permanently delete a confirmed file selection
-- **Browser panel** — preview text, Markdown, CSV tables, images, audio, video, PDFs, HTML, and other workspace artifacts
+- **Browser panel** — preview text, theme-aware Markdown artifacts, CSV tables, images, audio, video, PDFs, HTML, and other workspace artifacts
 
 ## Agents
 

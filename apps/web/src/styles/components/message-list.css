@@ -712,64 +712,6 @@
   text-align: center;
 }
 
-.wf-thinking {
-  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
-  border-radius: var(--wf-radius);
-  background: color-mix(in srgb, var(--wf-bg) 40%, transparent);
-  overflow: hidden;
-}
-
-.wf-thinking__summary {
-  display: flex;
-  align-items: center;
-  gap: var(--wf-space-1);
-  padding: var(--wf-space-1) var(--wf-space-2);
-  cursor: pointer;
-  list-style: none;
-  font-size: var(--wf-type-caption);
-  line-height: var(--wf-leading-ui);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--wf-muted);
-}
-
-.wf-thinking__summary::-webkit-details-marker {
-  display: none;
-}
-
-.wf-thinking__chevron {
-  width: 14px;
-  height: 14px;
-  transition: transform 0.15s ease;
-}
-
-.wf-thinking[open] .wf-thinking__chevron {
-  transform: rotate(180deg);
-}
-
-.wf-thinking__preview {
-  font-size: 12px;
-  text-transform: none;
-  letter-spacing: normal;
-  color: color-mix(in srgb, var(--wf-muted) 85%, transparent);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-
-.wf-thinking__body {
-  margin: 0;
-  padding: var(--wf-space-2);
-  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border-dim);
-  font-size: var(--wf-type-ui);
-  line-height: var(--wf-leading-ui);
-  color: color-mix(in srgb, var(--wf-muted) 95%, transparent);
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: inherit;
-}
-
 .wf-tool-run {
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-heavy);
   border-radius: var(--wf-radius);

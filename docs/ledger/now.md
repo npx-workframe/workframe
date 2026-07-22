@@ -42,6 +42,14 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 - Browser file tabs now use authenticated raw URLs for PNG/JPG, audio, video, and PDF previews; CSV remains an authenticated text fetch rendered as a table. Binary previews no longer make the text API decode media files, and PDF owns its native scroll surface instead of nesting scroll containers.
 - Verification: 101 API tests and the full web/Python/Electron production build pass. Live Docker DogFood proof covered recursive folder ZIP, selection/deletion gating, compact feedback, bounded long names, PNG/JPG/MP3/MP4/PDF/CSV rendering, exact two-file deletion, immediate Navigator refresh, deleted-tab cleanup, and a clean browser runtime log.
 
+### 2026-07-21 chat disclosures and artifact Markdown
+
+- Thinking segments now render through the same `ToolRunCard` disclosure used by tool calls: compact collapsed row, progress/result icon, semantic glyph, status, and identical expansion behavior. The separate Thinking disclosure/CSS path was removed.
+- Browser Markdown now uses a technical artifact scale aligned with the 13px chat body: 24px H1, 18px H2, and 15px H3, with tighter document spacing and wrapped code for narrow dock panels.
+- Markdown structure remains shared across themes while relief identity comes from existing Workframe role tokens. Neo themes render inline code, code blocks, tables, callouts, details, quotes, and media as inset or raised surfaces; line-mode themes retain their hairline treatment.
+- The implementation follows `architectonic/design-system` principles: structure/identity separation, one compact type scale, semantic surface roles, calm states, and no one-off colors or shadow recipes.
+- Verification: 101 API tests and the full web/Python/Electron build pass. Docker DogFood served the same hashed source/package/install bundle; live visual proof covered collapsed and expanded Thinking cards beside tool calls plus a successful activity artifact with computed 13/24/18/15px hierarchy, wrapped code, and neo relief surfaces.
+
 ### 2026-07-12 stabilization finding
 
 - Package-install and negative-install evidence now match `0.1.18`; the release verifier fails closed on stale evidence.

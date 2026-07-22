@@ -89,6 +89,8 @@ Docker DogFood was rebuilt with the canonical API and UI. Fresh AIbert DM and pr
 
 Navigator file actions and previews were also exercised end to end in Docker DogFood: one-file download retained the source filename; file and folder selections produced relative-path ZIPs, with folders expanded recursively; a count-based confirmation deleted only two disposable files; and the open deleted-file tab closed after Navigator refreshed. Long names remained bounded, checkbox states retained the neumorphic theme treatment, and PNG/JPG/MP3/MP4/PDF/CSV files rendered in Browser. Deletion remains file-only and the server preflights the complete batch before mutation.
 
+Chat Thinking disclosures and Browser artifact Markdown were visually reconciled against `architectonic/design-system`. Thinking now uses the tool-call card itself, while artifact typography uses a compact technical scale and Markdown components consume Workframe theme/relief tokens. Live DogFood verified collapsed and expanded disclosures, wrapped activity JSON, 13px document copy, 24/18/15px headings, neo inset/raised surfaces, and a clean browser console.
+
 Spot checks this audit (2026-07-08 @ `fb0ca10`):
 
 | Command | Result |

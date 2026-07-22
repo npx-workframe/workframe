@@ -77,10 +77,7 @@
 [data-chrome-mode='relief'] .wf-activity-tree__row--active,
 [data-chrome-mode='relief'] .wf-activity-tree__row--active:hover,
 [data-chrome-mode='relief'] .wf-composer button.wf-tool-btn[aria-expanded='true'],
-[data-chrome-mode='relief'] .wf-composer button.wf-tool-btn[aria-expanded='true']:hover,
-[data-chrome-mode='relief'] .wf-thinking[open],
-[data-chrome-mode='relief'] .wf-thinking[open] .wf-thinking__summary,
-[data-chrome-mode='relief'] .wf-thinking[open] .wf-thinking__summary:hover {
+[data-chrome-mode='relief'] .wf-composer button.wf-tool-btn[aria-expanded='true']:hover {
   background: var(--wf-control-bg-flush);
   border: none;
   box-shadow: var(--wf-control-shadow-flush);

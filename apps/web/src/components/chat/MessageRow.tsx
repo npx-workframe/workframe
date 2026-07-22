@@ -81,7 +81,7 @@ function SegmentBlock({
     )
   }
   if (segment.kind === 'thinking') {
-    return <ThinkingBlock text={segment.text} defaultOpen={Boolean(live)} live={live} />
+    return <ThinkingBlock text={segment.text} live={live} />
   }
   if (segment.kind === 'tool') {
     return <ToolRunCard segment={segment} />
