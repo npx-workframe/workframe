@@ -6,15 +6,21 @@
 
 This file is a human wave map. Agents and CI should read/write `backlog.json`; humans skim here.
 
+## Standalone Workframe CLI campaign
+
+The Socratic CLI direction is retained, but the scheduled implementation candidates were rejected and are not continuation points. `packages/workframe` has been restored to the last shipped coherent `workframe@0.2.1` baseline. The next bounded slice is defined in [`specs/WF-CLI-001/spec.md`](specs/WF-CLI-001/spec.md): a deterministic, memory-only `workframe begin` conversation that mirrors the human, entity, purpose, goals, constraints, and success criteria without calling a model, reading provider credentials, writing files, or installing anything. Model-assisted interpretation, Architectonic composition, reconciliation, deployment planning, and apply authority remain separate later slices.
+
+Planned sequence: deterministic first mirror → provider-neutral model assistance → constitutional draft → non-destructive Architectonic reconciliation → Workframe deployment dry run → explicit apply gate → packed cross-platform evidence.
+
 ## Waves (execution order)
 
 | Wave | Focus | Active items |
-|------|--------|--------------|
+|------|-------|--------------|
 | **release-truth** | PackageTruthGate, version parity, evidence JSON, docs-claim gate | WF-001 … WF-006, WF-018 … WF-022 |
 | **authority** | CellAuthority, RunAuthority, surfaces, supervisor tests | WF-007 … WF-011 |
 | **broker** | Forced egress, broker extract, audit events, lease tests | WF-023 ✓, WF-024 ✓, WF-025 … WF-028 |
 | **run-ledger** | runs / run_events / receipt line items | WF-NS-P2, WF-009, WF-016 — **done**; billing amounts remain deferred |
-| **adapter** | Identity seam, runtime candidates, second harness | WF-013 … WF-015, WF-NS-P4 |
+| **adapter** | Identity seam, runtime candidates, second harness, standalone Socratic CLI | WF-013 … WF-015, WF-NS-P4, WF-CLI-001 … WF-CLI-008 |
 | **cell** | Manifests, cell metadata, control plane | WF-NS-P5 … WF-NS-P7 |
 | **marketplace** | After ledger stable | WF-NS-P8 |
 | **meta** | Vocabulary, spec-kit adoption | WF-NS-P0, WF-SK-001 |

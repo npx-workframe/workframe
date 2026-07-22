@@ -1,0 +1,35 @@
+{
+  "name": "workframe",
+  "version": "0.2.1",
+  "description": "Adaptive local entrypoint for Workframe runtimes and model providers.",
+  "type": "module",
+  "bin": {
+    "workframe": "bin/workframe.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check bin/workframe.js",
+    "test": "node --check bin/workframe.js && node bin/workframe.js --version && node bin/workframe.js status --json > /dev/null"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/npx-workframe/workframe.git"
+  },
+  "homepage": "https://workfra.me",
+  "keywords": [
+    "workframe",
+    "agents",
+    "hermes",
+    "codex",
+    "claude",
+    "runtime",
+    "diagnostics"
+  ]
+}

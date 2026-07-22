@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated": "2026-07-21",
+  "updated": "2026-07-22",
   "north_star_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "program_stages": {
     "ref": "WF-040",
@@ -1250,6 +1250,282 @@
       ],
       "owner_role": "design",
       "workflow": { "assignee": null, "reviewer": null, "patch_refs": [] }
+    },
+    {
+      "id": "WF-CLI-001",
+      "title": "Conversational link and memory-only Socratic seed",
+      "summary": "Add a bounded begin command that selects one explicit inference and billing path, requires separate consent for a cancellable verification call, asks who is speaking and for one objective, and reflects a memory-only draft without installing, adopting, or writing anything.",
+      "wave": "adapter",
+      "priority": "P0",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "pull/7",
+        "automation:workframe-cli"
+      ],
+      "acceptance": [
+        "begin preserves read-only discovery and leaves questions, hedges, mixed intent, and non-imperative recommendations unresolved",
+        "account-backed and API-key-backed candidates are distinct and disclose the exact payer and credential source before consent",
+        "verification is separately consent-gated and cancellable through terminal, HTTP, and runtime-child boundaries",
+        "inference children receive no Docker, SSH, or unrelated authority handles",
+        "after a verified existing inference path, collect preferred name and first objective",
+        "print a bounded memory-only mirror without filesystem or installation mutation",
+        "package-local, real-PTY, Windows-semantics, exact-head CI, and packed-artifact tests pass without live credentials",
+        "the installed npm bin entrypoint executes correctly through a POSIX symlink"
+      ],
+      "depends_on": [],
+      "blocks": ["WF-CLI-002"],
+      "evidence": [
+        "packages/workframe/bin/entry.js",
+        "packages/workframe/bin/workframe.js",
+        "packages/workframe/checks/workframe-checks.js",
+        "packages/workframe/lib/dialogue.js",
+        "packages/workframe/lib/flow.js",
+        "packages/workframe/lib/session.js",
+        "packages/workframe/README.md",
+        "reviewed implementation head 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+        "docs/ledger/specs/WF-CLI-001/campaign.json current_review",
+        "docs/ledger/specs/WF-CLI-001/spec.md third independent review",
+        "PR #7 remains draft and unmergeable pending remediation and exact-head evidence"
+      ],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "claimed_at": "2026-07-14T11:00:00Z",
+        "patch_refs": [
+          "e05bdb53f934d20a44b2fee4468f76805c337527",
+          "048aa413cd89ccb9f4bb348597a7087a04ef0d55",
+          "57cfe7359c39584017552d906642e0c7bb3c1de5",
+          "c87166e935f31133ee42374e5d415669728db6e3",
+          "bf165bab2103f29b9ceb645c616345e1c4f258c9",
+          "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
+          "384876c6090432a2b19e51dfe1ec9985c0f92a12",
+          "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
+          "2b85c70d3fb9302dc435c45459ac698ca46a05f6"
+        ],
+        "notes": "Independent review rejected the current candidate. Next builder slice is limited to verification cancellation, hedged-selection denial, exact billing-path candidates, inference-only child environment, branch reconciliation, and exact-head package/PTY/Windows/packed/CI evidence. Do not start WF-CLI-002."
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-002",
+      "title": "Truthful runtime and provider capability graph",
+      "summary": "Represent installed runtimes, account-backed access, configured direct-provider access, credential source, payer, invocation mode, cancellation support, and non-destructive constraints as distinct deterministic candidates without performing inference.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "automation:workframe-cli"
+      ],
+      "acceptance": [
+        "account-backed and API-key-backed paths are separate candidates with exact credential class and payer",
+        "installed does not imply authenticated, authenticated does not imply verified, and verification does not imply installation authority",
+        "candidate selection states why a path is eligible and never opportunistically injects another credential",
+        "capability output contains no credential values and performs no provider call, installation, adoption, or filesystem mutation",
+        "tests cover Codex, Claude, direct providers, no-provider, duplicate-provider, and ambiguous billing fixtures"
+      ],
+      "depends_on": ["WF-CLI-001"],
+      "blocks": ["WF-CLI-003"],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": [],
+        "notes": "Blocked until WF-CLI-001 is independently accepted. Keep this slice to the capability graph and focused tests."
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-003",
+      "title": "Provider-neutral model-assisted Socratic dialogue",
+      "summary": "Build a provider-neutral, in-memory, interruptible dialogue state machine around the accepted capability graph so the model asks one question at a time, reflects answers, tracks unresolved fields, and stops honestly on ambiguity or failure.",
+      "wave": "adapter",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "automation:workframe-cli"
+      ],
+      "acceptance": [
+        "one adapter interface represents invocation, billing source, timeout, cancellation, and normalized text response",
+        "dialogue advances through explicit typed states and never relies on an unbounded free-form loop",
+        "natural answers, corrections, refusal, EOF, Ctrl+C, timeout, and provider failure have deterministic outcomes",
+        "the CLI distinguishes a user statement from an inferred interpretation and asks before resolving material ambiguity",
+        "session remains memory-only, contains no credential values, and has replayable fake-conversation tests"
+      ],
+      "depends_on": ["WF-CLI-002"],
+      "blocks": ["WF-CLI-004"],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": []
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-004",
+      "title": "Constitutional entity and goal draft",
+      "summary": "Transform the Socratic session into a reviewable in-memory entity draft covering authority root, purpose, identity, goals, constraints, success criteria, unresolved questions, and provenance of each statement.",
+      "wave": "meta",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "architectonic-layer-contracts",
+        "automation:workframe-cli"
+      ],
+      "acceptance": [
+        "draft separates constitution, doctrine, identity, project, agents, and goals without writing files",
+        "every material field is marked stated, inferred, confirmed, or unresolved",
+        "human authority and override remain explicit",
+        "the user can correct or reject a reflected field conversationally",
+        "stable JSON output is available for deterministic downstream planning"
+      ],
+      "depends_on": ["WF-CLI-003"],
+      "blocks": ["WF-CLI-005"],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": []
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-005",
+      "title": "Non-destructive Architectonic composition plan",
+      "summary": "Map a confirmed entity draft onto Architectonic layers and agents as an immutable dry-run plan that inventories existing targets, proposes additive paths, identifies collisions, and refuses overwrite or adoption by default.",
+      "wave": "meta",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "architectonic-layer-contracts",
+        "existing-runtime-adoption-policy"
+      ],
+      "acceptance": [
+        "plan inventories the target without reading secrets or mutating it",
+        "existing Architectonic files are preserved and represented as keep, merge-review, or conflict actions; never overwrite",
+        "new files have deterministic paths, content hashes, and provenance",
+        "no package installation or file write occurs in this slice",
+        "the CLI explains unresolved conflicts conversationally and emits a machine-readable plan"
+      ],
+      "depends_on": ["WF-CLI-004"],
+      "blocks": ["WF-CLI-006"],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": []
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-006",
+      "title": "Dry-run Workframe deployment plan",
+      "summary": "Produce a non-destructive Workframe deployment recommendation from verified host capabilities and the confirmed entity draft, without invoking create-workframe or changing any existing cell, runtime, network, credential, or package.",
+      "wave": "cell",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "existing-runtime-adoption-policy",
+        "cell-authority-gate"
+      ],
+      "acceptance": [
+        "plan identifies local, Docker, and VPS possibilities only from observed capabilities",
+        "existing Workframe and runtime installations are classified as preserve, connect-candidate, or conflict; never silently adopted",
+        "required packages, ports, paths, domains, credentials, and authority decisions are listed without executing them",
+        "plan includes explicit stop conditions, rollback prerequisites, and data backup requirements",
+        "no create-workframe, Docker, network, DNS, provider, or filesystem mutation occurs"
+      ],
+      "depends_on": ["WF-CLI-005"],
+      "blocks": ["WF-CLI-007"],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": []
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-007",
+      "title": "Explicit apply and rollback authority gates",
+      "summary": "Define and test the deterministic authority boundary for any future apply command: immutable reviewed plan, exact target, collision-free actions, explicit natural-language approval, preflight snapshot, and bounded rollback. This slice may implement the gate and simulation but must not alter a real setup.",
+      "wave": "authority",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "cell-authority-gate",
+        "automation:workframe-cli"
+      ],
+      "acceptance": [
+        "approval binds to an immutable plan hash and exact target",
+        "mixed, negative, ambiguous, stale, or changed-target consent denies execution",
+        "preflight requires collision checks and rollback evidence before any apply is eligible",
+        "simulation proves additive actions and refusal paths without touching user state",
+        "real installation or deployment remains disabled until a separate reviewed release decision"
+      ],
+      "depends_on": ["WF-CLI-006"],
+      "blocks": ["WF-CLI-008"],
+      "owner_role": "implementer",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": []
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
+    },
+    {
+      "id": "WF-CLI-008",
+      "title": "Packed cross-platform Socratic CLI evidence",
+      "summary": "Prove the accepted standalone CLI campaign from the packed workframe tarball across supported Node and OS entrypoint semantics, including privacy, no-provider, interruption, dry-run, and non-destructive authority cases; publication remains separate.",
+      "wave": "release-truth",
+      "priority": "P1",
+      "status": "todo",
+      "sources": [
+        "docs/ledger/specs/WF-CLI-001/campaign.json",
+        "package-truth-gate",
+        "automation:workframe-cli"
+      ],
+      "acceptance": [
+        "npm pack artifact installs cleanly and the npm bin works on Windows, macOS, and Linux semantics",
+        "Node 20, 22, and 24 package-local and packed tests pass",
+        "status, consent, dialogue, draft, planning, interruption, no-provider, and denial cases are covered",
+        "stdout, stderr, JSON, plans, and errors contain no credential values",
+        "evidence proves no installer, runtime, cell, network, or existing target was mutated",
+        "release recommendation records version agreement and explicitly states whether npm publication is authorized"
+      ],
+      "depends_on": ["WF-CLI-007"],
+      "owner_role": "harness",
+      "workflow": {
+        "assignee": null,
+        "reviewer": "workframe-cli-reviewer",
+        "patch_refs": [],
+        "notes": "Do not publish from this row unless review explicitly changes status to done and records npm version evidence."
+      },
+      "spec": {
+        "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
+      }
     }
   ]
 }

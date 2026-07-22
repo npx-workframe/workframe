@@ -1,15 +1,17 @@
-# Publish create-workframe via npm trusted publishing (OIDC).
-# ponytail: stub workframe / @workframe/workframe CLIs removed in WF-038; installer is the product package.
-# npm: create-workframe → Settings → Trusted publishing → GitHub Actions →
-#   repo npx-workframe/workframe, workflow publish-npm.yml
-# GitHub: secret VERIFY_PUBLIC_PATTERNS_JSON = contents of verify-public-patterns.local.json
+# Publish Workframe npm packages via npm trusted publishing (OIDC).
+# create-workframe remains tag/manual-only. The standalone workframe entrypoint
+# publishes independently when its own package changes on main.
 name: Publish npm
 
-# Only explicit version tags publish — pushes to main run CI only (ci.yml).
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v[0-9]*.[0-9]*.[0-9]*'
+    paths:
+      - 'packages/workframe/**'
+      - '.github/workflows/publish-npm.yml'
   workflow_dispatch:
 
 concurrency:
@@ -21,7 +23,8 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  publish-create-workframe:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +76,6 @@ jobs:
       - name: API Python deps
         run: ${{ steps.setup-python.outputs.python-path }} -m pip install -r services/workframe-api/requirements.txt
 
-      # ponytail: publish gate = compile-only; full self-checks run via harness (run-typecheck.mjs).
       - name: API typecheck
         working-directory: services/workframe-api
         run: ${{ steps.setup-python.outputs.python-path }} -m py_compile server.py zk_auth.py email_sender.py profile_config_yaml.py route_registry.py
@@ -117,3 +119,60 @@ jobs:
               sleep 5
             done
           done
+
+  publish-workframe:
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Smoke test standalone CLI
+        working-directory: packages/workframe
+        run: npm test
+
+      - name: npm CLI (trusted publishing needs >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check registry version
+        id: registry
+        working-directory: packages/workframe
+        run: |
+          VER="$(node -p "require('./package.json').version")"
+          CURRENT="$(npm view workframe version 2>/dev/null || true)"
+          echo "package_version=$VER" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT" = "$VER" ]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "workframe@$VER is already published; skipping publish"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "Publishing workframe@$VER; registry currently has ${CURRENT:-none}"
+          fi
+
+      - name: Publish workframe
+        if: steps.registry.outputs.already_published != 'true'
+        working-directory: packages/workframe
+        run: npm publish --access public
+
+      - name: Verify registry
+        if: steps.registry.outputs.already_published != 'true'
+        run: |
+          VER="${{ steps.registry.outputs.package_version }}"
+          for i in $(seq 1 12); do
+            v="$(npm view workframe version 2>/dev/null || true)"
+            if [ "$v" = "$VER" ]; then
+              echo "OK: workframe@$v"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "npm view workframe did not show $VER (last: $v)"
+          exit 1

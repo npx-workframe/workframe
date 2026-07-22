@@ -7,6 +7,7 @@ Point-in-time reviews and planning audits. Update **status** when code or docs c
 | ID | Title | Status | Key finding |
 |----|-------|--------|-------------|
 | [0027](../audits/0027-agent-vault-comparison.md) | Agent Vault comparison | **partial** | Vault + leases + LLM proxy align with industry; forced egress enforcement is shipped, while broader non-LLM broker work remains deferred |
+| [MM-2026-07-27](audits/2026-07-27-monday-hard-findings.md) | Standalone CLI authority and verification | **open** | Ambiguous consent can authorize a provider call; marker matching can false-positive; package README reports the prior version |
 
 ## Living audit (`archive/planning/living-audit/`)
 
