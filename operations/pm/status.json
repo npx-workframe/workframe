@@ -18,7 +18,7 @@
     "a4aeeccd — verify-matrix"
   ],
   "latest_evidence": {
-    "checked_utc": "2026-07-22T19:16Z",
+    "checked_utc": "2026-07-22T19:33Z",
     "dogfood_package_version": "0.1.20",
     "dogfood_git_ref": "dad4370_plus_release_candidate",
     "api_health": "pass_secure_trusted_team",
@@ -30,7 +30,7 @@
     "latest_negative_install_evidence": "pass_0.1.20",
     "browser_smoke": "pass_dogfood_codex_gpt_5_4_mini_dm_room_and_vision",
     "canonical_installer_parity": "pass",
-    "publish_readiness": "all_local_gates_green_github_oidc_trusted_publish_ready",
+    "publish_readiness": "published_create_workframe_0.1.20_verified_npm_latest",
     "vps_preflight": "reachable; existing slot2 0.1.7 healthy public_multi_user; slots3-5 free with capacity; requested domains have no DNS and no Caddy routes"
   },
   "notes": "Source backlog and harness remain authoritative. Current source tree has active user changes; inspect before mutation. Dogfood @ http://127.0.0.1:18644. Publishing and VPS changes retain explicit operator gates."

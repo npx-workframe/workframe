@@ -81,8 +81,8 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 - Canonical API, installer mirror, packed artifact, and non-destructive MyBusiness dogfood preview contain the Codex profile migration fix.
 - Authenticated browser proof passed: `WORKFRAME_OK — ABX` from `gpt-5.4-mini`; refresh also showed the composer on `gpt-5.4-mini`.
 - Package-install, negative-install, and FirstRunEvidence must all allow at `0.1.20`; `verify-release-gates.mjs` fails closed on stale evidence.
-- Public-repository verification passes. npm publication is authorized through the repository's GitHub OIDC trusted-publishing workflow; local npm credentials are neither present nor required.
-- **Next action:** publish `0.1.20` through the repository's npm trusted-publishing workflow, verify the public registry artifact, then update and verify the three VPS cells through the supported update/install workflow.
+- Public-repository verification passes. `create-workframe@0.1.20` was published through the repository's GitHub OIDC trusted-publishing workflow and verified as npm `latest`; local npm credentials were neither present nor required.
+- **Next action:** update and verify the requested public cells through the supported update/install workflow.
 
 ### 2026-07-12 VPS target preflight
 
