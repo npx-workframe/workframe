@@ -247,7 +247,7 @@
   border: none;
   border-radius: 0;
   background: transparent !important;
-  color: var(--wf-muted);
+  color: var(--wf-text);
   cursor: grab;
 }
 
@@ -265,7 +265,7 @@
   letter-spacing: 0.14em;
   line-height: 1;
   text-transform: uppercase;
-  color: var(--wf-muted);
+  color: var(--wf-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -277,27 +277,19 @@
   justify-content: flex-end;
 }
 
-/* Major workspace panels only — chat, navigator, browser, activity (not rail / browser file tabs) */
-.wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab {
-  color: var(--wf-text);
+/*
+ * A visible panel tab is active by default. Dockview's active-group class only
+ * describes keyboard focus between panel groups; it must not dim other visible
+ * panels. Only inactive siblings inside the same tab container are muted.
+ */
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab,
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab__label {
+  color: var(--wf-control-fg-inactive, var(--wf-muted));
 }
 
-.wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab__label {
-  color: var(--wf-text);
-}
-
-.wf-workspace .dv-groupview.dv-inactive-group .wf-panel-drag-tab {
-  background: transparent !important;
-  color: var(--wf-muted);
-}
-
-.wf-workspace .dv-groupview.dv-inactive-group .wf-panel-drag-tab:hover,
-.wf-workspace .dv-groupview.dv-inactive-group .wf-panel-drag-tab--interacting {
-  background: color-mix(in srgb, var(--wf-surface) 55%, transparent) !important;
-  color: var(--wf-text);
-}
-
-.wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab--interacting {
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab:hover,
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab--interacting,
+.wf-workspace .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab--interacting {
   color: var(--wf-text);
 }
 

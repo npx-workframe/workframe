@@ -1,6 +1,6 @@
 # Now — shipping wedge (v0.1.x)
 
-**Last updated:** 2026-07-21
+**Last updated:** 2026-07-22
 **Package:** `0.1.19` (see [VERSION.md](../VERSION.md))
 **Active plan:** [gate-run-2026-07-08.md](handoffs/gate-run-2026-07-08.md) — close Stages A→D, stop at E
 
@@ -24,6 +24,12 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 | Dogfood sign-off (MyBusiness Docker) | **done** | Alan 2026-07-05 — wizard + chat |
 
 ## Active (next proof layers)
+
+### 2026-07-22 panel chrome hierarchy
+
+- Dock panel headers now distinguish panel visibility from tab selection. Every visible panel's selected tab uses the normal active text/icon treatment even when another Dockview group has keyboard focus; only inactive sibling tabs inside the same panel group are muted.
+- Neo Blue structural dividers, panel seams, message rules, and border tokens use 10% white instead of opaque white. Scrollbar thumbs retain their theme color and geometry without changing color on hover.
+- Verification: web production build passed. Docker DogFood live proof covered four simultaneously visible single-tab panels with only one focused Dockview group, 10% computed header/message/split dividers, identical base/hover scrollbar tokens, and a clean browser runtime log.
 
 ### 2026-07-21 provider/model convergence
 

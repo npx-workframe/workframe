@@ -880,8 +880,8 @@
   border: none;
 }
 
-[data-chrome-mode='line'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab,
-[data-chrome-mode='line'] .wf-workspace .dv-groupview.dv-active-group .wf-panel-drag-tab--interacting {
+[data-chrome-mode='line'] .wf-workspace .dv-tab.dv-active-tab .wf-panel-drag-tab,
+[data-chrome-mode='line'] .wf-workspace .dv-tab.dv-active-tab .wf-panel-drag-tab--interacting {
   background: var(--wf-surface) !important;
 }
 
@@ -894,12 +894,21 @@
 [data-chrome-mode='relief'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab.wf-shadow-right-only {
   background: var(--wf-control-bg-flush) !important;
   box-shadow: none !important;
+  color: var(--wf-text);
+}
+
+[data-chrome-mode='relief'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab__label {
+  color: var(--wf-text);
 }
 
 /* Stacked active tabs also stay flush at rest. */
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab.wf-shadow-right-only {
   background: var(--wf-control-bg-flush) !important;
   box-shadow: none !important;
+  color: var(--wf-text);
+}
+
+[data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab__label {
   color: var(--wf-text);
 }
 
@@ -919,10 +928,6 @@
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only:hover {
   background: var(--wf-control-bg-raised) !important;
   box-shadow: var(--wf-control-shadow-right) !important;
-}
-
-[data-chrome-mode='relief'] .wf-panel-drag-tab__label {
-  color: var(--wf-muted);
 }
 
 [data-chrome-mode='relief'] .wf-panel__header {

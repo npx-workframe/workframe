@@ -93,13 +93,14 @@
   --wf-dialog-warn-hover-text: rgba(255, 255, 255, 0.9);
   --wf-dialog-warn-hover-border: rgba(255, 255, 255, 0.34);
 
-  --wf-control-border-ring-closed: #fff;
+  --wf-control-border-ring-closed: rgba(255, 255, 255, 0.1);
   --wf-control-border-ring-raised: var(--wf-surface);
   --wf-border-width: 2px;
-  --wf-divider-color: #fff;
-  --wf-tool-chrome-border: #fff;
+  --wf-divider-color: rgba(255, 255, 255, 0.1);
+  --wf-tool-chrome-border: rgba(255, 255, 255, 0.1);
+  --wf-scrollbar-thumb: #fff;
   --wf-dnd-indicator-bg: rgba(255, 255, 255, 0.5);
-  --wf-dnd-indicator-border: #fff;
+  --wf-dnd-indicator-border: rgba(255, 255, 255, 0.1);
 
   --radius: 12px;
   --border-width: 0px;
