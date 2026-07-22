@@ -365,7 +365,8 @@
   overflow: visible;
   border: 0;
   background: transparent;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
   transform: translateY(-50%);
 }
 
@@ -384,7 +385,18 @@
   cursor: pointer;
   opacity: 0.55;
   pointer-events: auto;
-  transition: width 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+  transform: translateY(var(--wf-message-marker-shift, 0));
+  transition:
+    width 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.14s ease,
+    opacity 0.14s ease;
+}
+
+.wf-message-navigator__marker::before {
+  position: absolute;
+  inset: -3px -4px;
+  content: '';
 }
 
 .wf-message-navigator__marker--user {
@@ -392,17 +404,33 @@
   background: color-mix(in srgb, var(--wf-violet-glow) 38%, var(--wf-muted));
 }
 
-.wf-message-navigator__marker:hover,
-.wf-message-navigator__marker:focus-visible {
-  width: 20px;
-  background: var(--wf-text);
-  opacity: 1;
+/* Dock-like proximity response with stable hit geometry and two soft falloff steps. */
+.wf-message-navigator__marker[data-proximity='2']:not([aria-current='true']) {
+  width: 10px;
+  background: color-mix(in srgb, var(--wf-text) 46%, var(--wf-muted));
+  opacity: 0.72;
+}
+
+.wf-message-navigator__marker[data-proximity='1']:not([aria-current='true']) {
+  width: 14px;
+  background: color-mix(in srgb, var(--wf-text) 70%, var(--wf-muted));
+  opacity: 0.88;
 }
 
 .wf-message-navigator__marker[aria-current='true'] {
   width: 18px;
   background: var(--wf-cyan);
   opacity: 1;
+}
+
+.wf-message-navigator__marker[data-proximity='0'] {
+  width: 22px;
+  background: var(--wf-text);
+  opacity: 1;
+}
+
+.wf-message-navigator__marker[aria-current='true'][data-proximity='0'] {
+  background: var(--wf-cyan);
 }
 
 .wf-message-navigator__marker:focus-visible {
@@ -434,7 +462,7 @@
   transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
 }
 
-.wf-message-navigator__marker:hover .wf-message-navigator__preview,
+.wf-message-navigator__marker[data-proximity='0'] .wf-message-navigator__preview,
 .wf-message-navigator__marker:focus-visible .wf-message-navigator__preview {
   opacity: 1;
   visibility: visible;
@@ -446,7 +474,7 @@
   transform: translateX(6px);
 }
 
-.wf-message-navigator__marker--preview-top:hover .wf-message-navigator__preview,
+.wf-message-navigator__marker--preview-top[data-proximity='0'] .wf-message-navigator__preview,
 .wf-message-navigator__marker--preview-top:focus-visible .wf-message-navigator__preview {
   transform: none;
 }
@@ -457,7 +485,7 @@
   transform: translateX(6px);
 }
 
-.wf-message-navigator__marker--preview-bottom:hover .wf-message-navigator__preview,
+.wf-message-navigator__marker--preview-bottom[data-proximity='0'] .wf-message-navigator__preview,
 .wf-message-navigator__marker--preview-bottom:focus-visible .wf-message-navigator__preview {
   transform: none;
 }
@@ -496,6 +524,13 @@
   color: color-mix(in srgb, var(--wf-text) 78%, var(--wf-muted));
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wf-message-navigator__marker,
+  .wf-message-navigator__preview {
+    transition: none;
+  }
 }
 
 .wf-message__live-hint {
