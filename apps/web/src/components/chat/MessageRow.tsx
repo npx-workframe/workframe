@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowUpRight, Reply } from 'lucide-react'
 
 import type { ChatMessage, ChatReaction, ChatSegment } from '@/lib/chatTypes'
 import { formatModelAttribution } from '@/lib/chatTypes'
@@ -8,6 +9,7 @@ import { WaitHint } from '@/components/chat/WaitHint'
 import { ToolRunCard } from '@/components/chat/ToolRunCard'
 import { MarkdownContent } from '@/components/markdown/MarkdownContent'
 import { AgentAvatar } from '@/components/ui/AgentAvatar'
+import { Button } from '@/components/ui/button'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
@@ -170,16 +172,24 @@ export function MessageRow({
       </div>
 
       {message.replyTo ? (
-        <button
+        <Button
           type="button"
+          variant="toolbar"
+          size="toolbarText"
           className="wf-message__reply-context"
           onClick={() => onJumpToMessage?.(message.replyTo!.id)}
           disabled={!onJumpToMessage}
           aria-label={`Jump to replied message from ${message.replyTo.authorName}`}
         >
-          <span className="wf-message__reply-context-author">{message.replyTo.authorName}</span>
-          <span className="wf-message__reply-context-preview">{message.replyTo.preview}</span>
-        </button>
+          <span className="wf-message__reply-context-icon" aria-hidden="true">
+            <Reply />
+          </span>
+          <span className="wf-message__reply-context-copy">
+            <span className="wf-message__reply-context-author">Reply to {message.replyTo.authorName}</span>
+            <span className="wf-message__reply-context-preview">{message.replyTo.preview}</span>
+          </span>
+          <ArrowUpRight className="wf-message__reply-context-jump" aria-hidden="true" />
+        </Button>
       ) : null}
 
       <div className="wf-message__segments">
