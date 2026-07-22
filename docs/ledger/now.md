@@ -44,7 +44,7 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 
 ### 2026-07-21 chat disclosures and artifact Markdown
 
-- Thinking segments now render through the same `ToolRunCard` disclosure used by tool calls: compact collapsed row, progress/result icon, semantic glyph, status, and identical expansion behavior. The separate Thinking disclosure/CSS path was removed.
+- Thinking segments now render through the same `ToolRunCard` disclosure used by tool calls: compact collapsed row, semantic glyph beside the chevron, and one right-edge progress/result icon with no redundant status word. The expansion behavior is identical, and the separate Thinking disclosure/CSS path was removed.
 - Browser Markdown now uses a technical artifact scale aligned with the 13px chat body: 24px H1, 18px H2, and 15px H3, with tighter document spacing and wrapped code for narrow dock panels.
 - Markdown structure remains shared across themes while relief identity comes from existing Workframe role tokens. Neo themes render inline code, code blocks, tables, callouts, details, quotes, and media as inset or raised surfaces; line-mode themes retain their hairline treatment.
 - The implementation follows `architectonic/design-system` principles: structure/identity separation, one compact type scale, semantic surface roles, calm states, and no one-off colors or shadow recipes.

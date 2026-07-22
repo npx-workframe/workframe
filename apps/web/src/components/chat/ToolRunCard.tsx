@@ -50,23 +50,22 @@ export function ToolRunCard({ segment, glyph = 'tool' }: ToolRunCardProps) {
           className="wf-tool-run__header wf-tool-run__header--button"
           onClick={toggle}
           aria-expanded={open}
+          aria-label={`${name} ${displayStatus}`}
           title={open ? 'Collapse' : 'Expand'}
         >
           <ChevronDown
             className={cn('wf-tool-run__chevron', open && 'wf-tool-run__chevron--open')}
             aria-hidden="true"
           />
-          {icon}
           <Glyph className="wf-tool-run__glyph" aria-hidden="true" />
           <span className="wf-tool-run__name">{name}</span>
-          <span className="wf-tool-run__status">{displayStatus}</span>
+          {icon}
         </button>
       ) : (
-        <div className="wf-tool-run__header">
-          {icon}
+        <div className="wf-tool-run__header" role="status" aria-label={`${name} ${displayStatus}`}>
           <Glyph className="wf-tool-run__glyph" aria-hidden="true" />
           <span className="wf-tool-run__name">{name}</span>
-          <span className="wf-tool-run__status">{displayStatus}</span>
+          {icon}
         </div>
       )}
       {open && hasDetail ? (

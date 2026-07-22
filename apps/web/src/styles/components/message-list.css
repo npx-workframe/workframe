@@ -805,15 +805,6 @@
   white-space: nowrap;
 }
 
-.wf-tool-run__status {
-  margin-left: auto;
-  font-size: var(--wf-type-meta);
-  line-height: var(--wf-leading-meta);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--wf-muted);
-}
-
 .wf-tool-run__output,
 .wf-tool-run__placeholder {
   margin: 0;
