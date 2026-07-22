@@ -50,7 +50,7 @@
   gap: var(--wf-space-2);
   width: 100%;
   max-width: 100%;
-  padding-block: var(--wf-space-3);
+  padding-block: var(--wf-space-4);
 }
 
 .wf-message--user {
@@ -278,10 +278,11 @@
   height: auto;
   min-height: 42px;
   min-width: 0;
-  padding: var(--wf-space-2) var(--wf-space-3);
+  padding: var(--wf-space-2);
+  padding-inline-start: var(--wf-space-1);
   border: 0;
   border-radius: var(--wf-radius-control);
-  background: color-mix(in srgb, var(--wf-violet-glow) 6%, transparent);
+  background: transparent;
   box-shadow: var(--wf-control-shadow-flush);
   color: inherit;
   text-align: left;

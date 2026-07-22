@@ -251,9 +251,9 @@
   cursor: grab;
 }
 
-/* Straight-right relief — Neo token; active/hover states in neo-light.css */
+/* Straight-right relief is opt-in on hover in relief-surfaces.css. */
 .wf-shadow-right-only {
-  box-shadow: var(--wf-control-shadow-right, none);
+  box-shadow: none;
 }
 
 .wf-panel-drag-tab__label {

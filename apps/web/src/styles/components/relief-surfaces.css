@@ -890,16 +890,16 @@
   box-shadow: var(--wf-control-shadow-flush);
 }
 
-/* Single tab per group â€” straight-right shadow always */
+/* Single-tab groups stay flush at rest. */
 [data-chrome-mode='relief'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab.wf-shadow-right-only {
-  background: var(--wf-control-bg-raised) !important;
-  box-shadow: var(--wf-control-shadow-right) !important;
+  background: var(--wf-control-bg-flush) !important;
+  box-shadow: none !important;
 }
 
-/* Stacked tabs â€” active first (left), right shadow */
+/* Stacked active tabs also stay flush at rest. */
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab.wf-shadow-right-only {
-  background: var(--wf-control-bg-raised) !important;
-  box-shadow: var(--wf-control-shadow-right) !important;
+  background: var(--wf-control-bg-flush) !important;
+  box-shadow: none !important;
   color: var(--wf-text);
 }
 
@@ -912,6 +912,13 @@
 
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only .wf-panel-drag-tab__label {
   color: var(--wf-control-fg-inactive);
+}
+
+[data-chrome-mode='relief'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab.wf-shadow-right-only:hover,
+[data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab.wf-shadow-right-only:hover,
+[data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only:hover {
+  background: var(--wf-control-bg-raised) !important;
+  box-shadow: var(--wf-control-shadow-right) !important;
 }
 
 [data-chrome-mode='relief'] .wf-panel-drag-tab__label {
