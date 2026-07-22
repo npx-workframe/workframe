@@ -296,30 +296,45 @@ export function ChatSplit() {
         return acc
       }, {})
       const mentionAgents = (membersResponse.members ?? []).reduce<MentionAgent[]>((acc, member) => {
-        if (!member.agent_profile_id || !member.hermes_profile) return acc
-        const slug = member.hermes_profile
-        let name = member.display_name || member.handle || slug
-        let handle =
-          member.mention_handle ||
-          mentionHandleFromLabel(name, slug)
-        const nativeCrew = crewRef.current.find((row) => row.is_native && row.profile === slug)
-        if (nativeCrew?.display_name) {
-          name = nativeCrew.display_name
-          handle = mentionHandleFromLabel(nativeCrew.display_name, slug)
+        if (member.agent_profile_id && member.hermes_profile) {
+          const slug = member.hermes_profile
+          let name = member.display_name || member.handle || slug
+          let handle =
+            member.mention_handle ||
+            mentionHandleFromLabel(name, slug)
+          const nativeCrew = crewRef.current.find((row) => row.is_native && row.profile === slug)
+          if (nativeCrew?.display_name) {
+            name = nativeCrew.display_name
+            handle = mentionHandleFromLabel(nativeCrew.display_name, slug)
+          }
+          acc.push({
+            slug,
+            name,
+            handle,
+            kind: 'agent',
+            tagline: nativeCrew?.tagline || undefined,
+            role: member.role || nativeCrew?.role || undefined,
+            avatarUrl: resolveAgentAvatarUrl({
+              avatar_url: member.avatar_url,
+              avatar_id: member.avatar_id,
+              profile: slug,
+              key: slug,
+            }),
+            agent_profile_id: member.agent_profile_id,
+          })
+          return acc
         }
+
+        if (!member.user_id || member.user_id === meResponse.user.user_id) return acc
+        const name = member.display_name || member.email || 'Contact'
         acc.push({
-          slug,
+          slug: `contact:${member.user_id}`,
           name,
-          handle,
-          tagline: nativeCrew?.tagline || undefined,
-          role: member.role || nativeCrew?.role || undefined,
-          avatarUrl: resolveAgentAvatarUrl({
-            avatar_url: member.avatar_url,
-            avatar_id: member.avatar_id,
-            profile: slug,
-            key: slug,
-          }),
-          agent_profile_id: member.agent_profile_id,
+          handle: member.mention_handle || member.handle || mentionHandleFromLabel(name, member.user_id),
+          kind: 'contact',
+          role: member.role || 'Contact',
+          avatarUrl: resolveUserAvatarUrl(member.avatar_url),
+          user_id: member.user_id,
         })
         return acc
       }, [])
@@ -614,7 +629,7 @@ export function ChatSplit() {
     async (file: File) => {
       if (!humanRoom || !file.type.startsWith('image/')) return
       const safeName = file.name.replace(/[^\w.-]+/g, '_') || 'attachment.png'
-      const relPath = `.workframe/chat-uploads/${Date.now()}-${safeName}`
+      const relPath = `uploads/${Date.now()}-${safeName}`
       const optimisticId = `local-image-${Date.now()}`
       const optimistic = {
         ...userImageChatMessage(optimisticId, relPath, safeName, new Date().toISOString()),

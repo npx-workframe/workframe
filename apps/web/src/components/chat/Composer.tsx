@@ -325,35 +325,6 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         </p>
       ) : null}
 
-      {/* When agent is working: textarea becomes steer input, send button becomes stop.
-          Same composer, same textarea — just a different mode. */}
-      {turnActive ? (
-        <div className="wf-composer__working-indicator-row">
-          <div className="wf-composer__working-indicator" />
-          <span className="wf-composer__working-label">Working…</span>
-        </div>
-      ) : null}
-
-      {replyTo && !turnActive ? (
-        <div className="wf-composer__reply-context" aria-label={`Replying to ${replyTo.authorName}`}>
-          <Reply className="wf-composer__reply-context-icon" aria-hidden="true" />
-          <div className="wf-composer__reply-context-copy">
-            <span className="wf-composer__reply-context-author">Replying to {replyTo.authorName}</span>
-            <span className="wf-composer__reply-context-preview">{replyTo.preview}</span>
-          </div>
-          <Button
-            type="button"
-            variant="toolbar"
-            size="toolbarIcon"
-            className="wf-composer__reply-context-close"
-            aria-label="Cancel reply"
-            onClick={onCancelReply}
-          >
-            <X aria-hidden="true" />
-          </Button>
-        </div>
-      ) : null}
-
       <Textarea
         ref={textareaRef}
         className={cn('wf-composer__input', scrollAreaClass, 'wf-scroll--vertical')}
@@ -425,23 +396,52 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
 
       <div ref={toolbarRef} className="wf-composer__toolbar">
         <div className="wf-composer__toolbar-start">
-          {showModelPicker ? (
-            <ModelSwitcher
-              modelId={modelId}
-              providerId={billingProvider}
-              hasProvider={hasLlmProvider}
-              onConnectProvider={() => openUserSettings('connect')}
-            />
-          ) : null}
-          <SkillsMenu
-            onPick={(skill: HermesSkillRow) => {
-              // Skills are themselves slash commands; dispatching
-              // them through the same pipeline as /new means the
-              // BFF / gateway / approval flow all treat them
-              // uniformly.
-              void dispatch(`/${skill.name}`)
-            }}
-          />
+          {turnActive ? (
+            <div className="wf-composer__working-context" role="status" aria-label="Agent is working; messages steer the current turn">
+              <span className="wf-composer__working-indicator" aria-hidden="true" />
+              <span className="wf-composer__working-label">Steering current turn</span>
+            </div>
+          ) : replyTo ? (
+            <div
+              className="wf-composer__reply-context"
+              aria-label={`Replying to ${replyTo.authorName}`}
+              title={replyTo.preview}
+            >
+              <Reply className="wf-composer__reply-context-icon" aria-hidden="true" />
+              <span className="wf-composer__reply-context-author">{replyTo.authorName}</span>
+              <span className="wf-composer__reply-context-preview">{replyTo.preview}</span>
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                className="wf-composer__reply-context-close"
+                aria-label="Cancel reply"
+                onClick={onCancelReply}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              {showModelPicker ? (
+                <ModelSwitcher
+                  modelId={modelId}
+                  providerId={billingProvider}
+                  hasProvider={hasLlmProvider}
+                  onConnectProvider={() => openUserSettings('connect')}
+                />
+              ) : null}
+              <SkillsMenu
+                onPick={(skill: HermesSkillRow) => {
+                  // Skills are themselves slash commands; dispatching
+                  // them through the same pipeline as /new means the
+                  // BFF / gateway / approval flow all treat them
+                  // uniformly.
+                  void dispatch(`/${skill.name}`)
+                }}
+              />
+            </>
+          )}
         </div>
 
         <div className="wf-composer__actions">

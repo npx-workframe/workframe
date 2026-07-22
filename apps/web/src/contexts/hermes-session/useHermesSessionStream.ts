@@ -391,7 +391,7 @@ export function useHermesSessionStream({
       const assistantId = `a-${Date.now()}`
       finalizedTurnIdsRef.current.delete(assistantId)
       const safeName = file.name.replace(/[^\w.-]+/g, '_') || 'paste.png'
-      const relPath = `.workframe/chat-uploads/${Date.now()}-${safeName}`
+      const relPath = `uploads/${Date.now()}-${safeName}`
 
       const crewAgent = findAgentByProfile(crew, crewProf)
       const streamAvatar = crewAgent?.avatarUrl ?? null

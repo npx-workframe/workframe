@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { AgentAvatar } from '@/components/ui/AgentAvatar'
 import type { ChatReaction } from '@/lib/chatTypes'
 
 const REACTION_OPTIONS = ['👍', '❤️', '🎉', '🔥', '😂', '😮', '😢', '🙏', '👀', '✅', '🚀', '💡']
@@ -89,22 +90,49 @@ export function MessageReactions({
 }) {
   if (!reactions.length) return null
   return (
-    <div className="wf-message-reactions" aria-label="Message reactions">
-      {reactions.map((reaction) => (
-        <Button
-          key={reaction.emoji}
-          type="button"
-          variant="toolbar"
-          size="toolbarText"
-          className="wf-message-reaction"
-          aria-label={`${reaction.emoji}, ${reaction.count} ${reaction.count === 1 ? 'reaction' : 'reactions'}`}
-          aria-pressed={reaction.reacted}
-          onClick={() => onToggle?.(reaction.emoji)}
-        >
-          <span aria-hidden="true">{reaction.emoji}</span>
-          <span>{reaction.count}</span>
-        </Button>
-      ))}
-    </div>
+    <TooltipProvider delayDuration={250}>
+      <div className="wf-message-reactions" aria-label="Message reactions">
+        {reactions.map((reaction) => {
+          const names = reaction.reactors.map((reactor) => reactor.displayName).join(', ')
+          return (
+            <Tooltip key={reaction.emoji}>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="toolbar"
+                  size="toolbarText"
+                  className="wf-message-reaction"
+                  aria-label={`${reaction.emoji}, ${reaction.count} ${reaction.count === 1 ? 'reaction' : 'reactions'}${names ? ` from ${names}` : ''}`}
+                  aria-pressed={reaction.reacted}
+                  onClick={() => onToggle?.(reaction.emoji)}
+                >
+                  <span aria-hidden="true">{reaction.emoji}</span>
+                  <span>{reaction.count}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="wf-message-reaction-tooltip">
+                {reaction.reactors.length ? (
+                  <div className="wf-message-reaction-tooltip__people">
+                    {reaction.reactors.map((reactor) => (
+                      <span key={reactor.userId} className="wf-message-reaction-tooltip__person">
+                        <AgentAvatar
+                          src={reactor.avatarUrl}
+                          name={reactor.displayName}
+                          size="xs"
+                          className="wf-message-reaction-tooltip__avatar"
+                        />
+                        <span>{reactor.displayName}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span>{reaction.count} {reaction.count === 1 ? 'reaction' : 'reactions'}</span>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )
+        })}
+      </div>
+    </TooltipProvider>
   )
 }

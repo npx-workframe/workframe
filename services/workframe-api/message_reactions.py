@@ -37,24 +37,41 @@ def _resolved_scope(
 def _reaction_rows(conn: sqlite3.Connection, scope_key: str, user_id: str) -> list[dict[str, Any]]:
     rows = conn.execute(
         """
-        SELECT message_id, emoji, COUNT(*) AS reaction_count,
-               MAX(CASE WHEN user_id = ? THEN 1 ELSE 0 END) AS reacted_by_me
-        FROM message_reactions
-        WHERE scope_key = ?
-        GROUP BY message_id, emoji
-        ORDER BY MIN(created_at), emoji
+        SELECT mr.message_id, mr.emoji, mr.user_id, mr.created_at,
+               u.display_name, u.avatar_url
+        FROM message_reactions AS mr
+        LEFT JOIN users AS u ON u.id = mr.user_id
+        WHERE mr.scope_key = ?
+        ORDER BY mr.created_at, mr.emoji, mr.user_id
         """,
-        (user_id, scope_key),
+        (scope_key,),
     ).fetchall()
-    return [
-        {
-            "message_id": str(row["message_id"]),
-            "emoji": str(row["emoji"]),
-            "count": int(row["reaction_count"]),
-            "reacted": bool(row["reacted_by_me"]),
-        }
-        for row in rows
-    ]
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in rows:
+        message_id = str(row["message_id"])
+        emoji = str(row["emoji"])
+        key = (message_id, emoji)
+        reaction = grouped.setdefault(
+            key,
+            {
+                "message_id": message_id,
+                "emoji": emoji,
+                "count": 0,
+                "reacted": False,
+                "reactors": [],
+            },
+        )
+        reactor_user_id = str(row["user_id"])
+        reaction["count"] += 1
+        reaction["reacted"] = reaction["reacted"] or reactor_user_id == user_id
+        reaction["reactors"].append(
+            {
+                "user_id": reactor_user_id,
+                "display_name": str(row["display_name"] or "Member"),
+                "avatar_url": row["avatar_url"],
+            }
+        )
+    return list(grouped.values())
 
 
 def list_reactions(

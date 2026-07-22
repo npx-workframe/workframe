@@ -33,12 +33,15 @@ What you can do in the Workframe UI after install.
 
 ## Collaboration patterns
 
-- **Space @mentions** — mention an agent in a room; all members see the live turn via SSE
+- **Space @mentions** — the avatar-backed picker includes both people and agents in the room; agent mentions invoke the shared live turn via SSE
+- **Replies and reactions** — reply to a persisted message or add a durable emoji reaction; hovering a posted reaction shows who reacted
 - **Agent DMs** — private lane per user; sessions persist per browser tab
 - **Kanban** — execution state via Hermes Kanban; project truth stays in files
 
 Advanced Hermes settings (MCP, cron, full config editor) are available in the **Hermes dashboard** for owner/admin.
 
 Navigator selection accepts files and folders for download. A selected folder is expanded recursively into the ZIP while protected paths stay excluded. Deletion remains file-only: Workframe disables it when a folder is selected, validates the complete selection on the server before mutation, rejects protected or out-of-workspace paths, and closes Browser tabs for files that were deleted.
+
+Images attached from chat are stored under the workspace-visible `uploads/` folder so they appear in Navigator and remain movable by an agent or teammate. Chat renders the image itself without printing its storage filename.
 
 See [Install](./install.md), [Security](./security.md), and [Session architecture](./session-architecture.md).

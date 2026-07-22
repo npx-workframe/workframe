@@ -39,13 +39,15 @@
 .wf-composer__reply-context {
   display: flex;
   align-items: center;
-  gap: var(--wf-space-2);
+  gap: var(--wf-space-1);
+  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
-  min-height: 34px;
-  padding: var(--wf-space-1) var(--wf-space-2);
-  border-radius: var(--wf-radius-control);
-  background: color-mix(in srgb, var(--wf-surface) 42%, transparent);
-  flex-shrink: 0;
+  max-width: 100%;
+  min-height: 22px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
 }
 
 .wf-composer__reply-context-icon {
@@ -55,39 +57,71 @@
   color: var(--wf-violet-glow);
 }
 
-.wf-composer__reply-context-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-
 .wf-composer__reply-context-author {
+  flex: 0 0 auto;
   color: var(--wf-text);
   font-size: var(--wf-type-caption);
   font-weight: 600;
-  line-height: 15px;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
 .wf-composer__reply-context-preview {
   overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--wf-muted);
   font-size: var(--wf-type-meta);
-  line-height: 13px;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .wf-composer__reply-context-close.wf-tool-btn {
-  width: 22px;
-  height: 22px;
-  min-height: 22px;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
   flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-composer__reply-context {
-  background: var(--wf-control-bg-raised);
-  box-shadow: var(--wf-control-shadow-inset);
+  background: transparent;
+  box-shadow: none;
+}
+
+.wf-composer__working-context {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wf-space-2);
+  min-width: 0;
+  min-height: 22px;
+  padding-inline: 2px;
+}
+
+.wf-composer__working-indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  margin: 0;
+  border-radius: 50%;
+  background: var(--wf-violet-glow);
+  animation: wf-pulse 1.2s ease-in-out infinite;
+}
+
+.wf-composer__working-label {
+  overflow: hidden;
+  color: var(--wf-muted);
+  font-family: var(--wf-font-mono);
+  font-size: var(--wf-type-meta);
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .wf-composer__toolbar {

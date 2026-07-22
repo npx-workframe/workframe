@@ -37,6 +37,7 @@ export function MessageList({
   const { crew } = useCrew(projectName)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null)
+  const [reactionSelf, setReactionSelf] = useState({ userId: '', displayName: 'You', avatarUrl: null as string | null })
   const [reactions, setReactions] = useState<Record<string, ChatReaction[]>>({})
   const [activeMessageId, setActiveMessageId] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -48,7 +49,14 @@ export function MessageList({
   useEffect(() => {
     let cancelled = false
     void workframeAuthApi.getMe().then((response) => {
-      if (!cancelled) setUserAvatarUrl(response.user.avatar_url ?? null)
+      if (!cancelled) {
+        setUserAvatarUrl(response.user.avatar_url ?? null)
+        setReactionSelf({
+          userId: response.user.user_id,
+          displayName: response.user.display_name?.trim() || 'You',
+          avatarUrl: response.user.avatar_url ?? null,
+        })
+      }
     }).catch(() => {
       if (!cancelled) setUserAvatarUrl(null)
     })
@@ -102,11 +110,26 @@ export function MessageList({
     return enrichMessages(source)
   }, [enrichMessages, messages, messagesOverride])
 
-  const applyReactionRows = useCallback((rows: Array<{ message_id: string; emoji: string; count: number; reacted: boolean }>) => {
+  const applyReactionRows = useCallback((rows: Array<{
+    message_id: string
+    emoji: string
+    count: number
+    reacted: boolean
+    reactors?: Array<{ user_id: string; display_name: string; avatar_url?: string | null }>
+  }>) => {
     const next: Record<string, ChatReaction[]> = {}
     rows.forEach((row) => {
       const list = next[row.message_id] ?? []
-      list.push({ emoji: row.emoji, count: row.count, reacted: row.reacted })
+      list.push({
+        emoji: row.emoji,
+        count: row.count,
+        reacted: row.reacted,
+        reactors: (row.reactors ?? []).map((reactor) => ({
+          userId: reactor.user_id,
+          displayName: reactor.display_name,
+          avatarUrl: reactor.avatar_url,
+        })),
+      })
       next[row.message_id] = list
     })
     setReactions(next)
@@ -131,8 +154,20 @@ export function MessageList({
       const list = current[messageId] ?? []
       const existing = list.find((row) => row.emoji === emoji)
       const nextRow = existing
-        ? { ...existing, count: Math.max(0, existing.count + (existing.reacted ? -1 : 1)), reacted: !existing.reacted }
-        : { emoji, count: 1, reacted: true }
+        ? {
+            ...existing,
+            count: Math.max(0, existing.count + (existing.reacted ? -1 : 1)),
+            reacted: !existing.reacted,
+            reactors: existing.reacted
+              ? existing.reactors.filter((reactor) => reactor.userId !== reactionSelf.userId)
+              : [
+                  ...existing.reactors,
+                  ...(!reactionSelf.userId || existing.reactors.some((reactor) => reactor.userId === reactionSelf.userId)
+                    ? []
+                    : [reactionSelf]),
+                ],
+          }
+        : { emoji, count: 1, reacted: true, reactors: reactionSelf.userId ? [reactionSelf] : [] }
       const nextList = [
         ...list.filter((row) => row.emoji !== emoji),
         ...(nextRow.count > 0 ? [nextRow] : []),
@@ -147,6 +182,11 @@ export function MessageList({
             emoji: row.emoji,
             count: row.count,
             reacted: row.reacted,
+            reactors: (row.reactors ?? []).map((reactor) => ({
+              userId: reactor.user_id,
+              displayName: reactor.display_name,
+              avatarUrl: reactor.avatar_url,
+            })),
           })),
         }))
       })
@@ -156,7 +196,7 @@ export function MessageList({
           .catch(() => undefined)
         showWorkframeError(formatWorkframeError(error, 'Message reaction'), { id: 'message-reaction' })
       })
-  }, [applyReactionRows, interactionScope])
+  }, [applyReactionRows, interactionScope, reactionSelf])
 
   const updateActiveMessage = useCallback((host: HTMLDivElement) => {
     const anchor = host.getBoundingClientRect().top + host.clientHeight * 0.34
@@ -173,7 +213,7 @@ export function MessageList({
   const jumpToMessage = useCallback((messageId: string) => {
     const row = rowRefs.current.get(messageId)
     if (!row) return
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    row.scrollIntoView({ behavior: 'auto', block: 'center' })
     setActiveMessageId(messageId)
   }, [])
 

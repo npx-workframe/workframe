@@ -50,6 +50,13 @@ export type ChatReaction = {
   emoji: string
   count: number
   reacted: boolean
+  reactors: ChatReactionReactor[]
+}
+
+export type ChatReactionReactor = {
+  userId: string
+  displayName: string
+  avatarUrl?: string | null
 }
 
 export function chatMessagePreview(message: ChatMessage, maxLength = 120): string {

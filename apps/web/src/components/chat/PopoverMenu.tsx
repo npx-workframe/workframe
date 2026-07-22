@@ -9,6 +9,7 @@ import {
 } from 'react'
 
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { AgentAvatar } from '@/components/ui/AgentAvatar'
 
 /**
  * A single item in a popover. Slash commands, skills, or anything else
@@ -24,6 +25,8 @@ export type PopoverItem = {
   description?: string
   /** Optional avatar for agent mention rows. */
   avatarUrl?: string | null
+  /** Name used by the shared avatar when no image is available. */
+  avatarName?: string
   /** Optional alternative names shown next to the name. */
   aliases?: string[]
   /** Args hint, shown right-aligned in the row header. */
@@ -226,12 +229,12 @@ export const PopoverMenu = forwardRef<PopoverMenuHandle, PopoverMenuProps>(
                   onMouseEnter={() => setSelectedIndex(idx)}
                   onClick={() => onSelect(item)}
                 >
-                  {item.avatarUrl ? (
-                    <img
+                  {item.avatarName ? (
+                    <AgentAvatar
                       src={item.avatarUrl}
-                      alt=""
+                      name={item.avatarName}
+                      size="sm"
                       className="wf-popover__row-avatar"
-                      aria-hidden="true"
                     />
                   ) : null}
                   <div className="wf-popover__row-copy">

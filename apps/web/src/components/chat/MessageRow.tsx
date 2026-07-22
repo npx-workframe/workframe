@@ -46,7 +46,7 @@ function MessageImage({ segment }: { segment: Extract<ChatSegment, { kind: 'imag
       {failed ? (
         <div className="wf-message__image-fallback" role="img" aria-label={`${label} unavailable`}>
           <span aria-hidden="true">Image</span>
-          <strong>{segment.name ?? 'Attachment unavailable'}</strong>
+          <strong>Attachment unavailable</strong>
         </div>
       ) : (
         <img
@@ -57,7 +57,6 @@ function MessageImage({ segment }: { segment: Extract<ChatSegment, { kind: 'imag
           onError={() => setFailedSrc(src)}
         />
       )}
-      {segment.name ? <figcaption className="wf-message__image-caption">{segment.name}</figcaption> : null}
     </figure>
   )
 }

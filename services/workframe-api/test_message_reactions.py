@@ -17,6 +17,9 @@ def reaction_db() -> sqlite3.Connection:
     conn.execute(
         "CREATE TABLE messages (id TEXT PRIMARY KEY, room_id TEXT, deleted_at TEXT)"
     )
+    conn.execute(
+        "CREATE TABLE users (id TEXT PRIMARY KEY, display_name TEXT, avatar_url TEXT)"
+    )
     # Run-ledger already owns migration 14. This regression marker ensures
     # reactions still migrate on installs that have that older row.
     conn.execute(
@@ -27,6 +30,13 @@ def reaction_db() -> sqlite3.Connection:
         "SELECT 1 FROM schema_migrations WHERE version = '15'"
     ).fetchone()
     conn.execute("INSERT INTO messages (id, room_id, deleted_at) VALUES ('message-1', 'room-1', NULL)")
+    conn.executemany(
+        "INSERT INTO users (id, display_name, avatar_url) VALUES (?, ?, ?)",
+        [
+            ("user-1", "Alan", "/avatars/alan.png"),
+            ("user-2", "Grace", None),
+        ],
+    )
     conn.commit()
     return conn
 
@@ -43,7 +53,19 @@ def test_room_reaction_toggles_and_aggregates() -> None:
         )
         assert first["reacted"] is True
         assert first["reactions"] == [
-            {"message_id": "message-1", "emoji": "👍", "count": 1, "reacted": True}
+            {
+                "message_id": "message-1",
+                "emoji": "👍",
+                "count": 1,
+                "reacted": True,
+                "reactors": [
+                    {
+                        "user_id": "user-1",
+                        "display_name": "Alan",
+                        "avatar_url": "/avatars/alan.png",
+                    }
+                ],
+            }
         ]
 
         second = message_reactions.toggle_reaction(
@@ -51,6 +73,47 @@ def test_room_reaction_toggles_and_aggregates() -> None:
         )
         assert second["reacted"] is False
         assert second["reactions"] == []
+    finally:
+        conn.close()
+
+
+def test_room_reactions_include_people_for_hover_details() -> None:
+    conn = reaction_db()
+    try:
+        message_reactions.toggle_reaction(
+            conn, "room:room-1", "message-1", "🎉", "user-1", can_access_room
+        )
+        conn.execute(
+            """
+            INSERT INTO message_reactions (scope_key, message_id, user_id, emoji, created_at)
+            VALUES ('room:room-1', 'message-1', 'user-2', '🎉', '2')
+            """
+        )
+        conn.commit()
+
+        listed = message_reactions.list_reactions(
+            conn, "room:room-1", "user-1", can_access_room
+        )
+        assert listed["reactions"] == [
+            {
+                "message_id": "message-1",
+                "emoji": "🎉",
+                "count": 2,
+                "reacted": True,
+                "reactors": [
+                    {
+                        "user_id": "user-1",
+                        "display_name": "Alan",
+                        "avatar_url": "/avatars/alan.png",
+                    },
+                    {
+                        "user_id": "user-2",
+                        "display_name": "Grace",
+                        "avatar_url": None,
+                    },
+                ],
+            }
+        ]
     finally:
         conn.close()
 

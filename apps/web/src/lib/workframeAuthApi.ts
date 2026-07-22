@@ -429,6 +429,11 @@ export type MessageReaction = {
   emoji: string
   count: number
   reacted: boolean
+  reactors: Array<{
+    user_id: string
+    display_name: string
+    avatar_url?: string | null
+  }>
 }
 
 export type MessageReactionsResponse = {
