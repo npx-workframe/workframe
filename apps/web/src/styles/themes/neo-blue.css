@@ -98,7 +98,7 @@
   --wf-border-width: 2px;
   --wf-divider-color: rgba(255, 255, 255, 0.1);
   --wf-tool-chrome-border: rgba(255, 255, 255, 0.1);
-  --wf-scrollbar-thumb: #fff;
+  --wf-scrollbar-thumb: rgba(255, 255, 255, 0.1);
   --wf-dnd-indicator-bg: rgba(255, 255, 255, 0.5);
   --wf-dnd-indicator-border: rgba(255, 255, 255, 0.1);
 

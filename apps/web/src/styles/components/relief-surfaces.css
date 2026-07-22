@@ -934,6 +934,15 @@
   border-bottom: var(--wf-border-width) solid var(--wf-divider-color);
 }
 
+[data-theme='neo-light'][data-chrome-mode='relief'] .wf-message-navigator .wf-message-navigator__marker {
+  background: #fff;
+  opacity: 1;
+}
+
+[data-chrome-mode='relief'] .wf-message-navigator__preview {
+  background: var(--wf-bg);
+}
+
 [data-chrome-mode='relief'] .wf-divider {
   border-top: var(--wf-border-width) solid var(--wf-divider-color);
 }

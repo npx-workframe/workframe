@@ -167,6 +167,10 @@
   padding-left: var(--wf-gap);
 }
 
+.wf-panel--rail-expanded .wf-panel__label {
+  color: var(--wf-text);
+}
+
 .wf-panel--rail-expanded .wf-panel__header .wf-agent-rail__toggle {
   margin-left: 0;
 }

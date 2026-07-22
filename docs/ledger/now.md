@@ -28,8 +28,9 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 ### 2026-07-22 panel chrome hierarchy
 
 - Dock panel headers now distinguish panel visibility from tab selection. Every visible panel's selected tab uses the normal active text/icon treatment even when another Dockview group has keyboard focus; only inactive sibling tabs inside the same panel group are muted.
-- Neo Blue structural dividers, panel seams, message rules, and border tokens use 10% white instead of opaque white. Scrollbar thumbs retain their theme color and geometry without changing color on hover.
-- Verification: web production build passed. Docker DogFood live proof covered four simultaneously visible single-tab panels with only one focused Dockview group, 10% computed header/message/split dividers, identical base/hover scrollbar tokens, and a clean browser runtime log.
+- Neo Blue structural dividers, panel seams, message rules, border tokens, and scrollbar thumbs use 10% white instead of opaque white; scrollbar color remains unchanged on hover. The Workframe rail label uses the same active emphasis as visible panel tabs.
+- Neo Light message-navigation ticks are opaque white rather than muted gray. Navigator preview cards use the fully opaque theme canvas in both Neo themes so chat content cannot show through the blurb.
+- Verification: full web/API/Electron production build passed. Docker DogFood live proof covered four simultaneously visible single-tab panels with only one focused Dockview group, 10% computed Neo Blue header/message/split dividers and scrollbar thumb, opaque white Neo Light navigator ticks, solid Neo preview backgrounds, identical base/hover scrollbar tokens, and a clean browser runtime log.
 
 ### 2026-07-21 provider/model convergence
 
