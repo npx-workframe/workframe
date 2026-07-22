@@ -15,6 +15,7 @@ import uuid
 import activity_feed
 import api_errors
 import chat_bind
+import message_reactions
 from email_sender import APP_BASE_URL, send_branded_invite_email
 
 list_room_sessions = chat_bind.list_room_sessions
@@ -30,6 +31,56 @@ def _srv():
 
 
 class WorkspaceRoutesMixin:
+
+    def _route_get_message_reactions(self, qs: dict[str, list[str]]) -> None:
+        srv = _srv()
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        conn = srv._workframe_db()
+        try:
+            payload = message_reactions.list_reactions(
+                conn,
+                qs.get("scope", [""])[0],
+                user_id,
+                srv._user_can_access_room,
+            )
+        except PermissionError:
+            self._json(403, {"ok": False, "error": "forbidden"})
+            return
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        finally:
+            conn.close()
+        self._json(200, payload)
+
+    def _route_post_message_reactions_toggle(self, body: dict) -> None:
+        srv = _srv()
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        conn = srv._workframe_db()
+        try:
+            payload = message_reactions.toggle_reaction(
+                conn,
+                str(body.get("scope") or ""),
+                str(body.get("message_id") or ""),
+                str(body.get("emoji") or ""),
+                user_id,
+                srv._user_can_access_room,
+            )
+        except PermissionError:
+            self._json(403, {"ok": False, "error": "forbidden"})
+            return
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        finally:
+            conn.close()
+        self._json(200, payload)
 
     def _route_get_board(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()

@@ -50,6 +50,13 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 - The implementation follows `architectonic/design-system` principles: structure/identity separation, one compact type scale, semantic surface roles, calm states, and no one-off colors or shadow recipes.
 - Verification: 101 API tests and the full web/Python/Electron build pass. Docker DogFood served the same hashed source/package/install bundle; live visual proof covered collapsed and expanded Thinking cards beside tool calls plus a successful activity artifact with computed 13/24/18/15px hierarchy, wrapped code, and neo relief surfaces.
 
+### 2026-07-21 chat message interactions and rhythm
+
+- Thinking and tool disclosures in chat, plus tool rows in Activity, no longer draw a white outline; they retain the theme-owned neumorphic relief shadow. Message rows now use one symmetric spacing interval between each divider, header, and message body, including Markdown bodies that previously carried an extra 12px bottom pad.
+- Every persisted user or agent message exposes compact reply and reaction actions built from the existing shadcn-owned button, tooltip, and dropdown components. Room replies persist the real `parent_message_id`; agent-DM replies preserve visible context as a Markdown quote. Reply previews deliberately exclude hidden reasoning.
+- Reactions are authenticated and durable for room and user-namespaced DM scopes. A compact Architectonic-inspired message navigator sits beside the chat scrollbar, distinguishes user/agent markers, tracks the current row, and jumps to an accessible message label without creating a second scroll surface.
+- Verification: 104 API tests and the full web/Python/Electron production build pass. Docker DogFood proof covered reply preview/cancel, exact emoji persistence across reload, cleanup, and marker navigation. A live migration-version collision with the existing run-ledger migration was caught during browser testing and fixed by assigning reactions migration 15.
+
 ### 2026-07-12 stabilization finding
 
 - Package-install and negative-install evidence now match `0.1.18`; the release verifier fails closed on stale evidence.

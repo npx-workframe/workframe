@@ -152,11 +152,11 @@
 }
 
 [data-theme='strato-dark'] :is(.wf-tool-run, .wf-activity-tree__row--child) {
-  border: 1px solid var(--wf-tool-chrome-border);
+  border: none;
 }
 
 [data-theme='strato-dark'] :is(.wf-tool-run--running, .wf-tool-run--error) {
-  border-color: var(--wf-tool-chrome-border);
+  border-color: transparent;
 }
 
 [data-theme='strato-dark'] .wf-theme-switcher--open .wf-theme-switcher__panel {

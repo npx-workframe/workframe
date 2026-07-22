@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
-import type { ChatMessage, ChatSegment } from '@/lib/chatTypes'
+import type { ChatMessage, ChatReaction, ChatSegment } from '@/lib/chatTypes'
 import { formatModelAttribution } from '@/lib/chatTypes'
+import { MessageActions, MessageReactions } from '@/components/chat/MessageActions'
 import { ThinkingBlock } from '@/components/chat/ThinkingBlock'
 import { WaitHint } from '@/components/chat/WaitHint'
 import { ToolRunCard } from '@/components/chat/ToolRunCard'
@@ -17,7 +18,10 @@ import { cn } from '@/lib/utils'
 type MessageRowProps = {
   message: ChatMessage
   waitMessageId?: string | null
-  onReplyToAgent?: (slug: string) => void
+  reactions?: ChatReaction[]
+  onReply?: (message: ChatMessage) => void
+  onToggleReaction?: (messageId: string, emoji: string) => void
+  onJumpToMessage?: (messageId: string) => void
 }
 
 function MarkdownBody({ text }: { text: string }) {
@@ -92,10 +96,17 @@ function SegmentBlock({
   return <MarkdownBody text={segment.text} />
 }
 
-export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: MessageRowProps) {
+export function MessageRow({
+  message,
+  waitMessageId = null,
+  reactions = [],
+  onReply,
+  onToggleReaction,
+  onJumpToMessage,
+}: MessageRowProps) {
   const isUser = message.role === 'user'
   const { openChatSettings, openUserSettings } = useWorkspacePanels()
-  const canReply = !isUser && Boolean(onReplyToAgent && message.authorId && message.authorId !== 'system')
+  const canInteract = !message.ephemeral && message.authorId !== 'system'
   const modelAttribution = !isUser ? formatModelAttribution(message.modelId, message.llmProvider) : ''
 
   const handleNoticeAction = (action: WorkframeNoticeAction) => {
@@ -117,6 +128,13 @@ export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: Me
       className={cn('wf-message', isUser && 'wf-message--user', message.ephemeral && 'wf-message--ephemeral')}
       data-author={message.authorId}
     >
+      {canInteract ? (
+        <MessageActions
+          onReply={onReply ? () => onReply(message) : undefined}
+          onReact={onToggleReaction ? (emoji) => onToggleReaction(message.id, emoji) : undefined}
+        />
+      ) : null}
+
       <div className={cn('wf-message__header', isUser && 'wf-message__header--user')}>
         {isUser ? (
           <AgentAvatar
@@ -152,6 +170,19 @@ export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: Me
         </div>
       </div>
 
+      {message.replyTo ? (
+        <button
+          type="button"
+          className="wf-message__reply-context"
+          onClick={() => onJumpToMessage?.(message.replyTo!.id)}
+          disabled={!onJumpToMessage}
+          aria-label={`Jump to replied message from ${message.replyTo.authorName}`}
+        >
+          <span className="wf-message__reply-context-author">{message.replyTo.authorName}</span>
+          <span className="wf-message__reply-context-preview">{message.replyTo.preview}</span>
+        </button>
+      ) : null}
+
       <div className="wf-message__segments">
         {message.segments.length === 0 && message.id === waitMessageId ? <WaitHint /> : null}
         {message.segments.map((segment, index) => (
@@ -164,17 +195,10 @@ export function MessageRow({ message, waitMessageId = null, onReplyToAgent }: Me
         ))}
       </div>
 
-      {canReply && onReplyToAgent ? (
-        <div className="wf-message__footer">
-          <button
-            type="button"
-            className="wf-message__reply"
-            onClick={() => onReplyToAgent(message.authorId)}
-          >
-            Reply
-          </button>
-        </div>
-      ) : null}
+      <MessageReactions
+        reactions={reactions}
+        onToggle={onToggleReaction ? (emoji) => onToggleReaction(message.id, emoji) : undefined}
+      />
     </article>
   )
 }

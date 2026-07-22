@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Paperclip, Send, Square } from 'lucide-react'
+import { Paperclip, Reply, Send, Square, X } from 'lucide-react'
 
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
 import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
@@ -26,6 +26,7 @@ import { apiStopRun, apiSteerRun, fetchHermesModels, type HermesSkillRow, type S
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveAgentModelsProfile } from '@/lib/agentProfile'
 import { cn } from '@/lib/utils'
+import type { ChatReplyTarget } from '@/lib/chatTypes'
 
 type ComposerProps = {
   onMinHeightChange?: (height: number) => void
@@ -37,6 +38,8 @@ type ComposerProps = {
   placeholder?: string
   showModelPicker?: boolean
   mentionAgents?: MentionAgent[]
+  replyTo?: ChatReplyTarget | null
+  onCancelReply?: () => void
 }
 
 export type ComposerHandle = {
@@ -110,6 +113,8 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   placeholder = 'Message Workframe Agent…',
   showModelPicker = true,
   mentionAgents = [],
+  replyTo = null,
+  onCancelReply,
 }, ref) {
   const [value, setValue] = useState('')
   const [caret, setCaret] = useState(0)
@@ -326,6 +331,26 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         <div className="wf-composer__working-indicator-row">
           <div className="wf-composer__working-indicator" />
           <span className="wf-composer__working-label">Working…</span>
+        </div>
+      ) : null}
+
+      {replyTo && !turnActive ? (
+        <div className="wf-composer__reply-context" aria-label={`Replying to ${replyTo.authorName}`}>
+          <Reply className="wf-composer__reply-context-icon" aria-hidden="true" />
+          <div className="wf-composer__reply-context-copy">
+            <span className="wf-composer__reply-context-author">Replying to {replyTo.authorName}</span>
+            <span className="wf-composer__reply-context-preview">{replyTo.preview}</span>
+          </div>
+          <Button
+            type="button"
+            variant="toolbar"
+            size="toolbarIcon"
+            className="wf-composer__reply-context-close"
+            aria-label="Cancel reply"
+            onClick={onCancelReply}
+          >
+            <X aria-hidden="true" />
+          </Button>
         </div>
       ) : null}
 

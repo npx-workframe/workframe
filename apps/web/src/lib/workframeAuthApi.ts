@@ -424,6 +424,18 @@ export type WorkspaceRoomMessagesList = {
   offset?: number
 }
 
+export type MessageReaction = {
+  message_id: string
+  emoji: string
+  count: number
+  reacted: boolean
+}
+
+export type MessageReactionsResponse = {
+  ok: boolean
+  reactions: MessageReaction[]
+}
+
 export type RoomSessionRow = {
   id: string
   room_id: string
@@ -670,6 +682,20 @@ export const workframeAuthApi = {
 
   listRoomMessages(roomId: string, limit = 100, offset = 0) {
     return request<WorkspaceRoomMessagesList>(`/rooms/${roomId}/messages?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`)
+  },
+
+  listMessageReactions(scope: string) {
+    return request<MessageReactionsResponse>(`/message-reactions?scope=${encodeURIComponent(scope)}`)
+  },
+
+  toggleMessageReaction(scope: string, messageId: string, emoji: string) {
+    return request<MessageReactionsResponse & { reacted: boolean; message_id: string }>(
+      '/message-reactions/toggle',
+      {
+        method: 'POST',
+        body: JSON.stringify({ scope, message_id: messageId, emoji }),
+      },
+    )
   },
 
   listRoomActivity(roomId: string) {
