@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "updated": "2026-07-12",
+  "updated": "2026-07-22",
   "pm_role": "pm-workframe",
   "mission": "Stabilize local and Docker operation, prove package truth, publish with approval, and deploy three verified VPS cells.",
   "agent_discipline": "Backlog and harness are authoritative. One bounded WF item per run; verify before status changes; preserve active user work.",
@@ -9,22 +9,22 @@
       "id": "local-personal",
       "source_items": ["WF-020", "WF-017"],
       "target": "Stable personal Hermes-backed Workframe on the local machine",
-      "status": "pass_0.1.19",
+      "status": "pass_0.1.20",
       "evidence_required": ["health", "login", "Hermes chat", "session restore", "restart persistence"]
     },
     {
       "id": "docker-dogfood",
       "source_items": ["WF-002", "WF-020"],
       "target": "MyBusiness Docker install remains a clean dogfood proof",
-      "status": "pass_non_destructive_preview_0.1.19",
+      "status": "pass_current_version_0.1.20",
       "evidence_required": ["packed artifact identity", "wizard", "first chat", "restart persistence"]
     },
     {
       "id": "publish",
       "source_items": ["WF-001", "WF-002", "WF-003", "WF-020", "WF-021", "WF-022"],
       "target": "Publish only the package proven by install-gate evidence",
-      "status": "blocked_npm_authentication",
-      "next_action": "Authenticate npm for the package owner, rerun npm whoami, then publish the already gated create-workframe@0.1.19 artifact.",
+      "status": "ready_github_oidc_trusted_publish",
+      "next_action": "Push the verified 0.1.20 release commit and tag, monitor the npm trusted-publishing workflow, and verify the public registry artifact.",
       "evidence_required": ["version agreement", "package install", "negative install", "first run", "operator sign-off"]
     },
     {

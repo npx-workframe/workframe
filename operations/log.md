@@ -4,6 +4,8 @@ Append-only. Format: ISO timestamp | Role | one-line outcome
 
 ## Entries
 
+2026-07-22T16:16-03:00 | release | Reconciled the provider/model and UI hardening branch with current main; cut create-workframe 0.1.20; passed version/docs/public checks, full CI/build, scaffold, package-install, negative-install, and all four local release gates; updated Docker DogFood in place from the SHA-512-verified local pack with API/UI/gateway/supervisor and installed-version parity green. GitHub OIDC trusted publishing is ready.
+
 2026-07-12T19:52-03:00 | pm-workframe | Reconciled canonical program status to release candidate 0.1.19; non-destructive install-gate build/sync/bundle completed and `verify-release-gates.mjs` ALLOWed all four tracked local gates. No dogfood restart, npm publish, DNS, or VPS mutation; remaining gates are npm owner auth, three-domain DNS/Caddy/SMTP setup, and WF-017 public backup/restore evidence.
 
 2026-07-11T00:20-03:00 | architect (claude) | Working-set review: pytest 3F+1 collection error (sys.modules["server"] pollution from test_model_surface_consistency; test_user_llm_prefs has no test funcs; stale run_ledger assertion), apiClient throw-plain-object regression risk at ~42 instanceof-Error catch sites, harness passes:false vs local green; handoff docs/ledger/handoffs/2026-07-11-working-set-review.md

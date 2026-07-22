@@ -1,7 +1,7 @@
 # Now — shipping wedge (v0.1.x)
 
 **Last updated:** 2026-07-22
-**Package:** `0.1.19` (see [VERSION.md](../VERSION.md))
+**Package:** `0.1.20` (see [VERSION.md](../VERSION.md))
 **Active plan:** [gate-run-2026-07-08.md](handoffs/gate-run-2026-07-08.md) — close Stages A→D, stop at E
 
 ## One line
@@ -75,14 +75,14 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 - Canonical source now makes `gpt-5.4-mini` the Codex MVP/default and removes the unsupported medium model from the Codex picker. Focused model-surface tests pass.
 - That required proof was completed in the release-candidate result below.
 
-### 2026-07-12 release candidate result
+### 2026-07-22 release candidate result
 
-- `create-workframe@0.1.19` is the current candidate; version agreement passes.
+- `create-workframe@0.1.20` is the current candidate; version agreement passes.
 - Canonical API, installer mirror, packed artifact, and non-destructive MyBusiness dogfood preview contain the Codex profile migration fix.
 - Authenticated browser proof passed: `WORKFRAME_OK — ABX` from `gpt-5.4-mini`; refresh also showed the composer on `gpt-5.4-mini`.
-- Package-install, negative-install, and FirstRunEvidence all allow at `0.1.19`; `verify-release-gates.mjs` allows all tracked gates.
-- Public-repository verification passes. npm publication has **not** occurred because `npm whoami` returns `401 Unauthorized`.
-- **Next action:** authenticate npm as the package owner, rerun `npm whoami`, publish 0.1.19, then update and verify the three VPS cells through the supported update/install workflow.
+- Package-install, negative-install, and FirstRunEvidence must all allow at `0.1.20`; `verify-release-gates.mjs` fails closed on stale evidence.
+- Public-repository verification passes. npm publication is authorized through the repository's GitHub OIDC trusted-publishing workflow; local npm credentials are neither present nor required.
+- **Next action:** publish `0.1.20` through the repository's npm trusted-publishing workflow, verify the public registry artifact, then update and verify the three VPS cells through the supported update/install workflow.
 
 ### 2026-07-12 VPS target preflight
 
