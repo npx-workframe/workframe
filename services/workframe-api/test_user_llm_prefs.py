@@ -95,5 +95,32 @@ def test_user_llm_prefs_infers_primary_from_fallback_chain(llm_prefs_db) -> None
     assert chain[0]["model"] == "google/gemini-2.5-flash"
 
 
+def test_linked_account_save_preserves_llm_preferences(
+    llm_prefs_db, monkeypatch: pytest.MonkeyPatch,
+) -> None:  # noqa: ARG001
+    import user_prefs  # noqa: WPS433
+
+    stored = json.dumps({
+        "discord": "old-discord",
+        "llm_primary": "google/gemini-2.5-flash",
+        "llm_fallback_chain": json.dumps([
+            {"provider": "openrouter", "model": "meta-llama/llama-3.3-70b-instruct:free"},
+        ]),
+    })
+    user_id = _insert_user(email="merge@test.local", display_name="Merge", platform_ids=stored)
+    monkeypatch.setattr(user_prefs._zk, "update_profile", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(user_prefs._zk, "get_profile", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(user_prefs, "sync_workframe_user_profile", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(server, "_get_user_workspaces", lambda _user: [])
+
+    user_prefs.apply_me_profile_updates(user_id, {"platform_ids": {"discord": "new-discord"}})
+
+    user = user_prefs.get_workframe_user(user_id)
+    assert user is not None
+    assert user["platform_ids"]["discord"] == "new-discord"
+    assert user["platform_ids"]["llm_primary"] == "google/gemini-2.5-flash"
+    assert "llama-3.3-70b" in user["platform_ids"]["llm_fallback_chain"]
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

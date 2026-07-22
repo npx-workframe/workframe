@@ -15,6 +15,7 @@ import uuid
 import activity_feed
 import api_errors
 import chat_bind
+import message_reactions
 from email_sender import APP_BASE_URL, send_branded_invite_email
 
 list_room_sessions = chat_bind.list_room_sessions
@@ -30,6 +31,56 @@ def _srv():
 
 
 class WorkspaceRoutesMixin:
+
+    def _route_get_message_reactions(self, qs: dict[str, list[str]]) -> None:
+        srv = _srv()
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        conn = srv._workframe_db()
+        try:
+            payload = message_reactions.list_reactions(
+                conn,
+                qs.get("scope", [""])[0],
+                user_id,
+                srv._user_can_access_room,
+            )
+        except PermissionError:
+            self._json(403, {"ok": False, "error": "forbidden"})
+            return
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        finally:
+            conn.close()
+        self._json(200, payload)
+
+    def _route_post_message_reactions_toggle(self, body: dict) -> None:
+        srv = _srv()
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+        conn = srv._workframe_db()
+        try:
+            payload = message_reactions.toggle_reaction(
+                conn,
+                str(body.get("scope") or ""),
+                str(body.get("message_id") or ""),
+                str(body.get("emoji") or ""),
+                user_id,
+                srv._user_can_access_room,
+            )
+        except PermissionError:
+            self._json(403, {"ok": False, "error": "forbidden"})
+            return
+        except ValueError as exc:
+            self._json(400, {"ok": False, "error": str(exc)})
+            return
+        finally:
+            conn.close()
+        self._json(200, payload)
 
     def _route_get_board(self, qs: dict[str, list[str]]) -> None:
         srv = _srv()
@@ -452,8 +503,9 @@ class WorkspaceRoutesMixin:
             return
         sender_agent = str(body.get("sender_agent_id", "")).strip()
         content = str(body.get("content", "")).strip()
-        content_type = str(body.get("content_type", "text")).strip()
-        parent_id = str(body.get("parent_message_id", "") or None)
+        content_type = str(body.get("content_type") or "text").strip()
+        parent_value = body.get("parent_message_id")
+        parent_id = str(parent_value).strip() if parent_value else None
         if not content:
             self._json(400, {"error": "content required"})
             return
@@ -875,6 +927,7 @@ class WorkspaceRoutesMixin:
             self._json(400, {"error": str(exc)})
             return
         cred_id = str(payload["credential_id"])
+        srv._revoke_runtime_llm_leases(workspace_id=ws_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
         try:
             srv._bootstrap_model_after_llm_connect("", ws_id, provider)
@@ -923,6 +976,11 @@ class WorkspaceRoutesMixin:
         if not affected:
             self._json(404, {"error": "credential_not_found"})
             return
+        srv._revoke_runtime_llm_leases(
+            workspace_id=ws_id,
+            provider=provider,
+            credential_binding_id=binding_id,
+        )
         self._log_audit("credential_revoked", "credential_binding", binding_id, f"workspace={ws_id}")
         spec = srv._catalog_provider(provider)
         if spec and str(spec.get("category") or "") == "messaging":

@@ -12,6 +12,7 @@ import { ProfileEntityCardGridOrEmpty, ProfileEntityCardRow } from '@/components
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { AgentDelegationPanel } from '@/components/workspace/AgentDelegationPanel'
+import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
 import { StackUpdatesPanel } from '@/components/workspace/StackUpdatesPanel'
 import { resolveLogoUrl, resolveUserAvatarUrl } from '@/lib/avatarResolve'
 import { logoAvatarPersistPayload, logoAvatarPickerValue } from '@/lib/presetAssets'
@@ -35,7 +36,7 @@ type WorkframeSettingsSheetProps = {
   onChanged?: () => void
 }
 
-type WorkframeTab = 'workframe' | 'members' | 'invites' | 'integrations' | 'delegation' | 'updates'
+type WorkframeTab = 'workframe' | 'members' | 'invites' | 'funding' | 'integrations' | 'delegation' | 'updates'
 
 export function WorkframeSettingsSheet({
   open,
@@ -54,6 +55,7 @@ export function WorkframeSettingsSheet({
   const [workframeTagline, setWorkframeTagline] = useState('')
   const [description, setDescription] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [credentialMode, setCredentialMode] = useState<'byok' | 'workspace'>('byok')
   const [tab, setTab] = useState<WorkframeTab>('workframe')
   const [loading, setLoading] = useState(false)
   const [busyUserId, setBusyUserId] = useState('')
@@ -85,6 +87,7 @@ export function WorkframeSettingsSheet({
       setWorkframeTagline(detail.workspace.tagline ?? '')
       setDescription(detail.workspace.description ?? '')
       setAvatarUrl(logoAvatarPickerValue(detail.workspace.avatar_url ?? ''))
+      setCredentialMode(detail.workspace.credential_mode === 'workspace' ? 'workspace' : 'byok')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load Workframe settings')
     } finally {
@@ -192,6 +195,29 @@ export function WorkframeSettingsSheet({
     }
   }
 
+  const saveModelFunding = async () => {
+    if (!canManage || !workspaceId) return
+    setSaving(true)
+    setError('')
+    setStatus('')
+    try {
+      const result = await workframeAuthApi.patchWorkspaceIntegrations(workspaceId, {
+        credential_mode: credentialMode,
+      })
+      setWorkspace(result.workspace)
+      setStatus(
+        credentialMode === 'workspace'
+          ? 'Company-funded models enabled. Agents will use shared Workframe keys.'
+          : 'BYOK enabled. Each member must connect their own model provider.',
+      )
+      onChanged?.()
+    } catch (err) {
+      setError(formatWorkframeErrorMessage(err, 'Save model funding'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const removeMember = async (member: WorkspaceMember) => {
     if (!canManage || !workspaceId || member.user_id === currentUserId) return
     setBusyUserId(member.user_id)
@@ -223,6 +249,7 @@ export function WorkframeSettingsSheet({
         { id: 'delegation', label: 'Delegation' },
         ...(canManage
           ? [
+              { id: 'funding', label: 'Model funding' },
               {
                 id: 'updates',
                 label: updatesBadge > 0 ? `Updates (${updatesBadge})` : 'Updates',
@@ -233,7 +260,11 @@ export function WorkframeSettingsSheet({
           : []),
       ]}
       activeTab={tab}
-      onTabChange={(next) => setTab(next as WorkframeTab)}
+      onTabChange={(next) => {
+        setTab(next as WorkframeTab)
+        setError('')
+        setStatus('')
+      }}
       actions={
         tab === 'workframe' && canManage ? (
           <WfActionButton
@@ -244,6 +275,16 @@ export function WorkframeSettingsSheet({
           >
             <Save className="w-4 h-4 mr-2" aria-hidden="true" />
             {saving ? 'Saving…' : 'Save changes'}
+          </WfActionButton>
+        ) : tab === 'funding' && canManage ? (
+          <WfActionButton
+            type="button"
+            tone="primary"
+            onClick={() => void saveModelFunding()}
+            disabled={fieldsDisabled}
+          >
+            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+            {saving ? 'Saving…' : 'Save funding'}
           </WfActionButton>
         ) : null
       }
@@ -354,6 +395,68 @@ export function WorkframeSettingsSheet({
             loading={loading}
             onChanged={onChanged}
           />
+        ) : null}
+
+        {tab === 'funding' && canManage ? (
+          <SettingsPanelBody error={error} status={status} className="space-y-6">
+            <SettingsSection
+              title="Who pays for agent models?"
+              hint="The model belongs to each agent. This setting only decides where the provider credential comes from."
+            >
+              <div className="wf-wizard-choice-grid">
+                <label className={`wf-wizard-choice-card${credentialMode === 'byok' ? ' is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="wf-settings-credential-mode"
+                    checked={credentialMode === 'byok'}
+                    disabled={fieldsDisabled}
+                    onChange={() => setCredentialMode('byok')}
+                  />
+                  <span>
+                    <strong>Members bring their own keys</strong>
+                    <small>Each person connects providers in User Settings → Integrations.</small>
+                  </span>
+                </label>
+                <label className={`wf-wizard-choice-card${credentialMode === 'workspace' ? ' is-selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="wf-settings-credential-mode"
+                    checked={credentialMode === 'workspace'}
+                    disabled={fieldsDisabled}
+                    onChange={() => setCredentialMode('workspace')}
+                  />
+                  <span>
+                    <strong>Company-funded shared keys</strong>
+                    <small>Admins connect keys once; every member's agent runs use them.</small>
+                  </span>
+                </label>
+              </div>
+            </SettingsSection>
+
+            {credentialMode === 'workspace' ? (
+              <SettingsSection
+                title="Shared LLM providers"
+                hint="Only API-key providers can be shared. Personal OAuth accounts remain under User Settings."
+              >
+                <ProviderConnectPanel
+                  workspaceId={workspaceId}
+                  credentialScope="workspace"
+                  categories={['llm']}
+                  hint="compact"
+                  layout="stack"
+                  scrollInner={false}
+                  disabled={fieldsDisabled}
+                  onStatus={setStatus}
+                  onError={setError}
+                  onConnected={onChanged}
+                />
+              </SettingsSection>
+            ) : (
+              <p className="wf-user-settings__hint">
+                Members manage their own LLM keys and OAuth accounts under User Settings → Integrations.
+              </p>
+            )}
+          </SettingsPanelBody>
         ) : null}
 
         {tab === 'invites' && canManage ? (

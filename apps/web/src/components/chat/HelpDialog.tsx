@@ -29,14 +29,15 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
 
   const groups = useMemo<Group[]>(() => {
     const needle = filter.trim().toLowerCase()
+    const available = commands.filter((command) => command.wired !== false)
     const filtered = needle
-      ? commands.filter(
+      ? available.filter(
           (c) =>
             c.name.toLowerCase().includes(needle) ||
             c.description.toLowerCase().includes(needle) ||
             (c.aliases ?? []).some((a) => a.toLowerCase().includes(needle)),
         )
-      : commands
+      : available
     const map = new Map<string, HermesSlashCommand[]>()
     for (const cmd of filtered) {
       const bucket = map.get(cmd.category) ?? []
@@ -51,7 +52,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
       open={open}
       onOpenChange={onOpenChange}
       title="Slash commands"
-      description="Type a command in the composer (start with /) and press Enter. Wired commands execute locally; others are placeholders for upcoming slices."
+      description="Type a command in the composer (start with /) and press Enter. Every command listed here is available now."
       contentClassName="wf-dialog--help"
     >
       <input
@@ -82,11 +83,6 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                   <span className="wf-dialog__option-id">{cmd.args_hint}</span>
                 ) : null}
                 <span className="wf-dialog__option-desc">{cmd.description}</span>
-                {cmd.wired === false ? (
-                  <span className="wf-dialog__option-tag" aria-label="Not yet wired">
-                    wip
-                  </span>
-                ) : null}
               </div>
             ))}
           </div>

@@ -85,6 +85,7 @@
 .wf-activity-tree__row--child {
   padding-block: var(--wf-gap-tight);
   padding-inline-start: var(--wf-space-1);
+  border: 0;
 }
 
 .wf-activity-tree__row--group {
@@ -507,4 +508,3 @@
   color: var(--wf-violet-glow);
   flex-shrink: 0;
 }
-

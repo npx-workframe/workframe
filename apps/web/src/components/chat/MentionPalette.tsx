@@ -11,10 +11,12 @@ export type MentionAgent = {
   slug: string
   name: string
   handle: string
+  kind: 'agent' | 'contact'
   tagline?: string
   role?: string
   avatarUrl?: string | null
   agent_profile_id?: string
+  user_id?: string
 }
 
 type MentionPaletteProps = {
@@ -46,8 +48,12 @@ export const MentionPalette = forwardRef<MentionPaletteHandle, MentionPalettePro
         agents.map((agent) => ({
           id: agent.slug,
           name: `@${agent.handle}`,
-          description: agent.tagline || agent.role || agent.name,
+          description: [
+            agent.name,
+            agent.tagline || agent.role || (agent.kind === 'agent' ? 'Agent' : 'Contact'),
+          ].filter(Boolean).join(' · '),
           avatarUrl: agent.avatarUrl,
+          avatarName: agent.name,
         })),
       [agents],
     )
@@ -60,10 +66,10 @@ export const MentionPalette = forwardRef<MentionPaletteHandle, MentionPalettePro
         anchor={anchor}
         isOpen={isOpen}
         onClose={() => {}}
-        header={{ label: 'Agents', hint: '↑↓ navigate · Tab complete' }}
+        header={{ label: 'People & agents', hint: '↑↓ navigate · Tab complete' }}
         items={items}
         filter={query}
-        emptyMessage={query ? `No agents match @${query}` : 'No agents in this room'}
+        emptyMessage={query ? `No people or agents match @${query}` : 'No people or agents in this room'}
         onSelect={(item) => {
           const agent = agents.find((row) => row.slug === item.id)
           if (agent) onPick(agent)

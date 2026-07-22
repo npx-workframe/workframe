@@ -570,3 +570,36 @@
 .wf-markdown .wf-md-callout--warn .wf-md-callout__title {
   color: #d97706;
 }
+
+/* Relief identity: Markdown keeps one structure while Neo themes supply depth. */
+[data-chrome-mode='relief'] .wf-markdown {
+  --wf-md-code-bg: var(--wf-control-bg-flush);
+  --wf-md-pre-bg: var(--wf-control-bg-flush);
+  --wf-md-pre-border: transparent;
+  --wf-md-quote-bg: var(--wf-control-bg-raised);
+  --wf-md-table-stripe: color-mix(in srgb, var(--wf-control-bg-raised) 72%, transparent);
+  --wf-md-kbd-bg: var(--wf-control-bg-raised);
+  --wf-md-kbd-border: transparent;
+}
+
+[data-chrome-mode='relief'] .wf-markdown :not(pre) > code,
+[data-chrome-mode='relief'] .wf-markdown kbd {
+  border-color: transparent;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] .wf-markdown :is(pre, table) {
+  border-color: transparent;
+  box-shadow: var(--wf-control-shadow-inset);
+}
+
+[data-chrome-mode='relief'] .wf-markdown :is(address, blockquote, dl, details, .wf-md-callout) {
+  border-color: transparent;
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
+[data-chrome-mode='relief'] .wf-markdown img {
+  border-color: transparent;
+  box-shadow: var(--wf-control-shadow-raised);
+}

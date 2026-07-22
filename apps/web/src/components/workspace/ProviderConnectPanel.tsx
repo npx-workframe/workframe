@@ -74,14 +74,17 @@ export function ProviderConnectPanel({
   const loadProviders = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await workframeAuthApi.listProviders(workspaceId)
+      const result = await workframeAuthApi.listProviders(
+        workspaceId,
+        credentialScope === 'workspace' ? 'workspace' : 'effective',
+      )
       setProviders(result.providers ?? [])
     } catch (err) {
       onErrorRef.current?.(err instanceof Error ? err.message : 'Failed to load integrations')
     } finally {
       setLoading(false)
     }
-  }, [workspaceId])
+  }, [credentialScope, workspaceId])
 
   useEffect(() => {
     void loadProviders()
@@ -105,6 +108,7 @@ export function ProviderConnectPanel({
     const allowCat = categories?.length ? new Set(categories) : null
     const allowId = providerIds?.length ? new Set(providerIds) : null
     for (const row of providers) {
+      if (credentialScope === 'workspace' && (row.user_only || row.connect_mode === 'oauth')) continue
       if (allowCat && !allowCat.has(row.category)) continue
       if (allowId && !allowId.has(row.id)) continue
       const bucket = map.get(row.category) ?? []
@@ -112,7 +116,7 @@ export function ProviderConnectPanel({
       map.set(row.category, bucket)
     }
     return [...map.entries()]
-  }, [categories, providerIds, providers])
+  }, [categories, credentialScope, providerIds, providers])
 
   useEffect(() => {
     if (!grouped.length) return
@@ -131,7 +135,9 @@ export function ProviderConnectPanel({
     setBusyId(row.id)
     onError?.('')
     try {
-      if (row.credential_id) {
+      if (credentialScope === 'workspace' && row.credential_id && workspaceId) {
+        await workframeAuthApi.revokeWorkspaceCredential(workspaceId, row.credential_id)
+      } else if (row.credential_id) {
         await workframeAuthApi.disconnectCredential(row.credential_id)
       } else {
         await workframeAuthApi.disconnectProvider(row.id)
@@ -260,6 +266,10 @@ export function ProviderConnectPanel({
 
   const onToggle = async (row: ProviderConnectRow, nextOn: boolean) => {
     if (disabled || busyId) return
+    if (!nextOn && credentialScope === 'user' && row.source === 'workspace') {
+      onStatus?.('This provider is funded by your Workframe. A Workframe admin manages the shared key.')
+      return
+    }
     if (nextOn) {
       if (row.connect_mode === 'oauth') {
         if (row.id === 'github' && row.oauth_configured === false) {
@@ -369,6 +379,7 @@ export function ProviderConnectPanel({
                 secretDraft={draftSecrets[row.id] ?? ''}
                 draftExtraSecrets={draftExtraSecrets[row.id] ?? {}}
                 oauthOutput={oauthOutput[row.id]}
+                lockSharedCredential={credentialScope === 'user'}
                 onToggle={(nextOn) => void onToggle(row, nextOn)}
                 onSecretChange={(value) =>
                   setDraftSecrets((current) => ({ ...current, [row.id]: value }))

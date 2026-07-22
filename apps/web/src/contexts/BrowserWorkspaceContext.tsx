@@ -16,7 +16,7 @@ import type {
   OpenContentPayload,
   OpenFilePayload,
 } from '@/lib/browserTypes'
-import { getFileCapability, isUrl } from '@/lib/fileCapabilities'
+import { getFileCapability, hasKnownFileCapability, isUrl } from '@/lib/fileCapabilities'
 import {
   dedupeFileTabs,
   fileTabId,
@@ -26,10 +26,12 @@ import {
   fetchFilesState,
   fetchFilesTree,
   getCachedFileContent,
+  normalizeWorkspaceFilePath,
   readFileByPath,
   refreshFileByPath,
   setCachedFileContent,
   writeFileByPath,
+  WORKSPACE_FILES_DELETED,
 } from '@/lib/filesApi'
 import { findFileNodeByPath, getRelativePathFromRoot } from '@/lib/fileTreeTypes'
 
@@ -153,11 +155,29 @@ function normalizeBrowserUrl(input: string) {
   const trimmed = input.trim()
   if (!trimmed) return ''
   if (isUrl(trimmed) || trimmed.startsWith('/')) return trimmed
-  const hostLike = /^[a-z0-9.-]+(?:\:[0-9]+)?(?:\/.*)?$/i.test(trimmed)
+  const fileName = trimmed.replace(/\\/g, '/').split('/').at(-1) || trimmed
+  if (
+    trimmed.startsWith('./') ||
+    trimmed.startsWith('../') ||
+    trimmed.includes('\\') ||
+    hasKnownFileCapability(fileName)
+  ) {
+    return trimmed.replace(/^\.\//, '')
+  }
+  const host = trimmed.split('/')[0]
+  const hostLike =
+    /^(?:localhost|\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/i.test(host) ||
+    /^[a-z0-9-]+(?:\.[a-z0-9-]+)+(?::\d+)?$/i.test(host)
   if (hostLike) {
-    return `https://www.${trimmed.replace(/^www\./i, '')}`
+    const normalizedHost = trimmed.replace(/^www\./i, '')
+    return `https://${host.startsWith('localhost') ? normalizedHost : `www.${normalizedHost}`}`
   }
   return trimmed
+}
+
+function usesDirectFilePreview(fileName: string): boolean {
+  const capability = getFileCapability(fileName)
+  return capability.previewable && !capability.editable
 }
 
 function createUrlTab(url: string): BrowserTab {
@@ -244,6 +264,28 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
     tabsRef.current = tabs
   }, [tabs])
 
+  useEffect(() => {
+    const onFilesDeleted = (event: Event) => {
+      const paths = (event as CustomEvent<{ paths?: string[] }>).detail?.paths ?? []
+      const deleted = new Set(paths.map(normalizeWorkspaceFilePath))
+      if (!deleted.size) return
+
+      setTabs((previous) => {
+        const next = previous.filter(
+          (tab) => tab.source !== 'file' || !deleted.has(normalizeWorkspaceFilePath(tab.location)),
+        )
+        setActiveTabId((current) => {
+          if (!current || next.some((tab) => tab.id === current)) return current
+          return next.at(-1)?.id ?? null
+        })
+        return next
+      })
+    }
+
+    window.addEventListener(WORKSPACE_FILES_DELETED, onFilesDeleted)
+    return () => window.removeEventListener(WORKSPACE_FILES_DELETED, onFilesDeleted)
+  }, [])
+
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
     [activeTabId, tabs],
@@ -282,6 +324,8 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
         ]
       })
       setActiveTabId(tabId)
+
+      if (usesDirectFilePreview(payload.fileName)) return
 
       void refreshFileByPath(payload.relativePath).then((content) => {
         setTabs((previous) =>
@@ -379,33 +423,47 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
       if (!trimmed) return
 
       if (isUrl(trimmed)) {
-        openUrl(trimmed)
+        const next = createUrlTab(trimmed)
+        setTabs((previous) => [
+          ...previous.filter((tab) => tab.id !== tabId && tab.id !== next.id),
+          next,
+        ])
+        setActiveTabId(next.id)
         return
       }
 
-      setTabs((previous) =>
-        previous.map((tab) => {
-          if (tab.id !== tabId || tab.source !== 'file') return tab
-
-          const nav = pushNavigation(
-            tab,
-            createNavigationEntry({
-              ...tab,
-              location: trimmed,
-              mode: tab.mode === 'navigate' ? 'preview' : tab.mode,
-            }),
-          )
-
-          return {
-            ...tab,
-            location: trimmed,
-            mode: tab.mode === 'navigate' ? 'preview' : tab.mode,
-            ...nav,
-          }
-        }),
-      )
+      const relativePath = trimmed.replace(/\\/g, '/').replace(/^\.\//, '')
+      const fileName = relativePath.split('/').at(-1) || relativePath
+      const next = createFileTab({
+        fileId: `path:${relativePath}`,
+        fileName,
+        relativePath,
+      })
+      const cached = getCachedFileContent(relativePath)
+      if (cached != null) {
+        next.content = cached
+        next.savedContent = cached
+        next.undoStack = [cached]
+      }
+      setTabs((previous) => [
+        ...previous.filter((tab) => tab.id !== tabId && tab.id !== next.id),
+        next,
+      ])
+      setActiveTabId(next.id)
+      if (usesDirectFilePreview(fileName)) return
+      void refreshFileByPath(relativePath)
+        .then((content) => {
+          setTabs((previous) => previous.map((tab) =>
+            tab.id === next.id && tab.content === tab.savedContent
+              ? { ...tab, content, savedContent: content, undoStack: [content], undoIndex: 0 }
+              : tab,
+          ))
+        })
+        .catch(() => {
+          // A missing relative path is a valid new editable file.
+        })
     },
-    [openUrl, pushNavigation],
+    [],
   )
 
   const goBack = useCallback(() => {
@@ -438,6 +496,17 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
   const reloadTab = useCallback((tabId: string) => {
     const tab = tabsRef.current.find((item) => item.id === tabId)
     if (!tab) return
+
+    if (tab.source === 'file' && usesDirectFilePreview(tab.title)) {
+      setTabs((previous) =>
+        previous.map((current) =>
+          current.id === tabId
+            ? { ...current, reloadNonce: current.reloadNonce + 1 }
+            : current,
+        ),
+      )
+      return
+    }
 
     const filePath = reloadableFilePath(tab)
     if (filePath) {
@@ -544,6 +613,18 @@ export function BrowserWorkspaceProvider({ projectName, children }: BrowserWorks
         await Promise.all(
           fileTabs.map(async (tab) => {
             if (tab.content !== tab.savedContent) return
+            if (usesDirectFilePreview(tab.title)) {
+              if (!cancelled) {
+                setTabs((previous) =>
+                  previous.map((current) =>
+                    current.id === tab.id
+                      ? { ...current, reloadNonce: current.reloadNonce + 1 }
+                      : current,
+                  ),
+                )
+              }
+              return
+            }
             try {
               const content = await refreshFileByPath(tab.location)
               if (cancelled) return

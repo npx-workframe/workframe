@@ -65,6 +65,8 @@ When `SECURE_MODE=true`, profile lifecycle and gateway exec go through `workfram
 - Admin configures OAuth app ids during install
 - Each user connects LLM keys via **Connect accounts**
 - Agent chat and space @mentions require the acting user to have an LLM provider connected
+- The agent owns its model/fallback chain; BYOK or company-pays determines which credential funds that configured provider
+- Missing credentials deny the run instead of changing the agent's provider/model
 
 | Surface | Transport |
 |---------|-----------|

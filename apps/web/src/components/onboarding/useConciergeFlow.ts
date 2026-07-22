@@ -26,8 +26,13 @@ import {
 import { type OperationStep } from '@/components/ui/OperationProgress'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { DEFAULT_USER_AVATAR, DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
-import { logoAvatarPickerValue, pickRandomPreset } from '@/lib/presetAssets'
-import type { FallbackEntry } from '@/lib/hermesCatalogApi'
+import {
+  agentAvatarPickerValue,
+  logoAvatarPickerValue,
+  pickRandomPreset,
+  userAvatarPickerValue,
+} from '@/lib/presetAssets'
+import { fetchProfileSoul, type FallbackEntry } from '@/lib/hermesCatalogApi'
 import {
   workframeAuthApi,
   type ProviderConnectRow,
@@ -88,6 +93,7 @@ export function useConciergeFlow({
   const [agentName, setAgentName] = useState(`${projectName} Agent`)
   const [agentTagline, setAgentTagline] = useState('Workframe Manager')
   const [agentSoul, setAgentSoul] = useState('')
+  const autoAgentSoulRef = useRef('')
   const [agentAvatar, setAgentAvatar] = useState(() => pickRandomPreset('agent') || DEFAULT_USER_AVATAR)
   const [inviteEmails, setInviteEmails] = useState('')
   const [publicUrl, setPublicUrl] = useState('')
@@ -234,10 +240,13 @@ export function useConciergeFlow({
   }, [projectName])
 
   useEffect(() => {
-    if (!agentSoul) {
-      setAgentSoul(defaultAgentSoul(agentName, resolveWorkframeName()))
-    }
-  }, [agentName, agentSoul, resolveWorkframeName])
+    const nextDefault = defaultAgentSoul(agentName, resolveWorkframeName())
+    setAgentSoul((current) => {
+      if (current && current !== autoAgentSoulRef.current) return current
+      autoAgentSoulRef.current = nextDefault
+      return nextDefault
+    })
+  }, [agentName, resolveWorkframeName])
 
   useEffect(() => {
     const trimmed = workframeName.trim()
@@ -264,8 +273,10 @@ export function useConciergeFlow({
           }
           return
         }
+        let installComplete = false
         try {
           const status = await workframeAuthApi.getInstallStatus()
+          installComplete = Boolean(status.install_complete)
           const session = await workframeAuthApi.peekSession()
           if (status.install_complete && !session) {
             setOwnerSignInRequired(true)
@@ -332,6 +343,10 @@ export function useConciergeFlow({
           const me = await workframeAuthApi.getMe()
           const wsId = me.current_workspace?.id || me.default_workspace?.id || ''
           if (wsId) setWorkspaceId(wsId)
+          setDisplayName(me.user.display_name ?? '')
+          setTagline(me.user.tagline ?? '')
+          setBio(me.user.bio ?? '')
+          if (me.user.avatar_url) setAvatarUrl(userAvatarPickerValue(me.user.avatar_url))
           if (me.user.email) {
             setAdminEmail((prev) =>
               preferAdminEmailOverSmtpLogin(prev, me.user.email || '', cfg?.smtp?.user),
@@ -342,8 +357,41 @@ export function useConciergeFlow({
             setHasAdminSession(true)
           }
 
+          if (wsId) {
+            // Runtime cohort hydration can provision or inspect profiles, so it
+            // must not hold the entire wizard behind the loading screen.
+            void (async () => {
+              try {
+                const [meta, cohortPayload] = await Promise.all([
+                  fetchWorkframeMeta(),
+                  workframeAuthApi.getMyCohort(wsId),
+                ])
+                const sharedAgent =
+                  cohortPayload.cohort?.find((agent) => agent.template_slug === meta.native_profile)
+                  ?? cohortPayload.cohort?.[0]
+                if (sharedAgent) {
+                  setAgentName(sharedAgent.display_name || meta.native_agent_name || 'Workframe Agent')
+                  setAgentTagline(sharedAgent.tagline || sharedAgent.role || 'Workframe Manager')
+                  const savedAvatar = sharedAgent.avatar_url || sharedAgent.avatar_id || ''
+                  if (savedAvatar) setAgentAvatar(agentAvatarPickerValue(savedAvatar))
+                  try {
+                    const soul = await fetchProfileSoul(sharedAgent.template_slug)
+                    if (soul.soul?.trim()) setAgentSoul(soul.soul)
+                  } catch {
+                    // Identity metadata still hydrates when the SOUL read is unavailable.
+                  }
+                }
+              } catch {
+                // Existing values remain usable during the install window.
+              }
+            })()
+          }
+
           const onboarding = await workframeAuthApi.getOnboarding()
-          if (onboarding.complete) {
+          // A completed personal profile is not the same as a completed
+          // installation. Keep the owner in the wizard until model/team setup
+          // has finalized the install, otherwise the two shells can oscillate.
+          if (onboarding.complete && installComplete) {
             onComplete()
           }
         } catch {
@@ -420,6 +468,9 @@ export function useConciergeFlow({
     if (deploymentMode !== 'single_user_local' && modeChosen) {
       max = Math.max(max, idx('smtp'))
     }
+    if (smtpSetupComplete && !adminVerified) {
+      max = Math.max(max, idx('admin_auth'))
+    }
     if (smtpReady && adminVerified) {
       max = Math.max(max, idx('workframe'))
     }
@@ -427,7 +478,7 @@ export function useConciergeFlow({
       max = steps.length - 1
     }
     return max
-  }, [adminVerified, deploymentMode, inviteeAuthed, isInvitee, modeChosen, smtpReady, workspaceId])
+  }, [adminVerified, deploymentMode, inviteeAuthed, isInvitee, modeChosen, smtpReady, smtpSetupComplete, workspaceId])
 
   const maxReachableIndex = Math.max(visitedMaxIndex, unlockedMaxIndex)
 
@@ -775,8 +826,8 @@ export function useConciergeFlow({
   }, [step, visitedMaxIndex, wizardSteps])
 
   function goToRailStep(railId: string) {
-    if (isInvitee && railId === 'smtp') return
-    if (!modeChosen && (railId === 'smtp' || railId === 'publish')) return
+    if (isInvitee && (railId === 'smtp' || railId === 'admin_auth')) return
+    if (!modeChosen && (railId === 'smtp' || railId === 'admin_auth' || railId === 'publish')) return
     if (busy) return
     const targetIdx = wizardSteps.findIndex((s) => s.id === railId)
     if (targetIdx < 0 || targetIdx > maxReachableIndex) return

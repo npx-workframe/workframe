@@ -339,8 +339,10 @@ for (const pack of PACKS) {
 
   const startInstall = fs.readFileSync(path.join(root, 'scripts/start-install.ps1'), 'utf8');
   if (!startInstall.includes('open-install-ui.ps1')) fail(`pack ${pack}: start-install.ps1 missing open-install-ui`);
+  if (!startInstall.includes('[switch]$NoBrowser') || !startInstall.includes('[switch]$NoPrompt')) fail(`pack ${pack}: start-install.ps1 missing non-interactive switches`);
   const startInstallSh = fs.readFileSync(path.join(root, 'scripts/start-install.sh'), 'utf8');
   if (!startInstallSh.includes('open-install-ui.sh')) fail(`pack ${pack}: start-install.sh missing open-install-ui`);
+  if (!startInstallSh.includes('--no-browser')) fail(`pack ${pack}: start-install.sh missing non-interactive browser switch`);
   if (!fs.existsSync(path.join(root, 'scripts/apply-update-hermes.sh'))) {
     fail(`pack ${pack}: missing scripts/apply-update-hermes.sh`);
   }
@@ -374,7 +376,13 @@ for (const pack of PACKS) {
   if (!workframeApi.includes('"binding_version": binding_version')) {
     fail(`pack ${pack}: workframe-api should persist binding_version in lane bindings`);
   }
-  if (!workframeApi.includes('_wait_profile_api_healthy(profile: str, attempts: int = 60')) {
+  const healthWait = workframeApi.match(
+    /def _wait_profile_api_healthy\(profile: str, attempts: int = (\d+), delay: float = ([\d.]+)\)/,
+  );
+  const healthWaitSeconds = healthWait
+    ? Number(healthWait[1]) * Number(healthWait[2])
+    : 0;
+  if (healthWaitSeconds < 30) {
     fail(`pack ${pack}: workframe-api must wait >=30s for cold u-* profile health`);
   }
   if (!workframeApi.includes('http://gateway:')) {

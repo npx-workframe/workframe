@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import {
   Dialog,
@@ -66,8 +66,16 @@ export function SettingsSheetFrame({
     [sectionLabel, shellTitle, tabs],
   )
   const effectiveActiveTab = activeTab ?? effectiveTabs[0]?.id
+  const contentScrollRef = useRef<HTMLDivElement>(null)
   const panelTitle =
     effectiveTabs.find((tab) => tab.id === effectiveActiveTab)?.label || shellTitle
+
+  useEffect(() => {
+    if (!open) return
+    // A shared settings shell must never inherit the previous screen's scroll
+    // position. Each modal and each settings tab starts at its own heading.
+    contentScrollRef.current?.scrollTo({ top: 0, left: 0 })
+  }, [effectiveActiveTab, open])
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
@@ -124,6 +132,7 @@ export function SettingsSheetFrame({
           </header>
 
           <ScrollArea
+            ref={contentScrollRef}
             axis="vertical"
             className={cn('wf-settings-shell__scroll', contentFill && 'wf-settings-shell__scroll--fill')}
           >

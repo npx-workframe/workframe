@@ -1,7 +1,7 @@
-# Program status — Workframe v0.1.19
+# Program status — Workframe v0.1.20
 
-**Date:** 2026-07-12 (backlog/source reconciliation)
-**Package version:** 0.1.19 ([`docs/VERSION.md`](../VERSION.md))
+**Date:** 2026-07-22 (v0.1.20 release verification)
+**Package version:** 0.1.20 ([`docs/VERSION.md`](../VERSION.md))
 **Backlog source:** [`backlog.json`](backlog.json) — **verify artifacts before trusting status**
 **Orchestration:** [`orchestration.md`](orchestration.md) · **Active plan:** [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md)
 
@@ -83,7 +83,15 @@ Meta todo: WF-SK-001 (spec-kit, not gating). WF-012 **done** 2026-07-08 (`4a3768
 
 ## Verify matrix
 
-**Current release-candidate evidence:** 2026-07-12 @ `4649e15`, package `0.1.19`. `verify-release-gates.mjs` allows installer UI bundle, dogfood install gate, first-run evidence, and negative-install evidence. The authenticated dogfood browser smoke returned `WORKFRAME_OK — ABX` through the supported `gpt-5.4-mini` Codex profile. npm publication remains blocked by owner authentication (`npm whoami` → 401), and the three requested domains have neither DNS records nor Caddy routes.
+**Current release-candidate evidence:** 2026-07-22 working tree, package `0.1.20`. Agent-owned model persistence/runtime sync, deny-without-provider behavior, immutable room-turn attribution, authenticated Navigator archive/delete routes, and persistent chat reactions are covered by the 105-test API suite. Web production build, Electron build/typecheck, all scaffold packs, package-install evidence, negative-install evidence, first-run evidence, docs claims, public-repo verification, version agreement, and all four local release gates pass. Repository-wide lint retains its known React-hooks baseline and is not counted as a green gate.
+
+Docker DogFood was rebuilt with the canonical API and UI. Fresh AIbert DM and project-room turns both completed on `Codex · gpt-5.4-mini`; DM and room image attachments rendered and completed `vision_analyze`; room attribution was correct during the live stream and after reload; and the live/persisted merge rendered exactly one assistant reply. No silent OpenRouter reroute, HTTP 400, HTTP 401, or missing-authentication response appeared in the final flows. GitHub OIDC trusted publishing is configured; npm publication, DNS/Caddy, and WF-017 VPS backup/restore evidence remain separate execution gates.
+
+Navigator file actions and previews were also exercised end to end in Docker DogFood: one-file download retained the source filename; file and folder selections produced relative-path ZIPs, with folders expanded recursively; a count-based confirmation deleted only two disposable files; and the open deleted-file tab closed after Navigator refreshed. Long names remained bounded, checkbox states retained the neumorphic theme treatment, and PNG/JPG/MP3/MP4/PDF/CSV files rendered in Browser. Deletion remains file-only and the server preflights the complete batch before mutation.
+
+Chat Thinking disclosures and Browser artifact Markdown were visually reconciled against `architectonic/design-system`. Thinking now uses the tool-call card itself, while artifact typography uses a compact technical scale and Markdown components consume Workframe theme/relief tokens. Live DogFood verified collapsed and expanded disclosures, wrapped activity JSON, 13px document copy, 24/18/15px headings, neo inset/raised surfaces, and a clean browser console.
+
+Chat interaction refinement was also completed in Docker DogFood: reply/steer context stays inside the existing composer toolbar, in-message reply references use compact neo cards, reaction controls and the picker are borderless/flush, reaction hover details identify members, @mentions combine avatar-backed contacts and agents, new image attachments use workspace `uploads/`, storage filenames are not printed in chat, row rhythm is more spacious, and a centered message minimap uses a lane distinct from the scrollbar with immediate jumps. The API suite is now 105 tests; the full web/API/Electron production build passes.
 
 Spot checks this audit (2026-07-08 @ `fb0ca10`):
 
@@ -115,7 +123,7 @@ Spot checks this audit (2026-07-08 @ `fb0ca10`):
 Follow [`handoffs/gate-run-2026-07-08.md`](handoffs/gate-run-2026-07-08.md) waves — progress @ `fb0ca10`:
 
 1. **WF-017** — run the public deploy verifier on the reference VPS and complete a tested backup/restore cycle with operator assistance.
-2. **Publish 0.1.19** — authenticate npm as package owner, rerun `npm whoami`, then publish through the supported release script.
+2. **Publish 0.1.20** — push the verified version tag and publish through the repository's npm trusted-publishing workflow.
 3. **Provision requested cells** — create DNS for `abx.alanborger.com`, `dev.click.blue`, and `demo.workfra.me`; then use supported install/update paths and complete HTTPS, SMTP/invite, public-deploy, and backup/restore evidence.
 4. **Stop** — keep all 14 E/F items deferred; `WF-SK-001` remains a non-gating meta todo.
 

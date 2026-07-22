@@ -588,6 +588,33 @@ def _migrate_v13_workspace_members_in_spaces(conn: sqlite3.Connection) -> None:
         VALUES ('13', 'workspace members joined to all space rooms', datetime('now'))
         """,
     )
+def _migrate_v15_message_reactions(conn: sqlite3.Connection) -> None:
+    if conn.execute("SELECT 1 FROM schema_migrations WHERE version = '15' LIMIT 1").fetchone():
+        return
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS message_reactions (
+            scope_key  TEXT NOT NULL,
+            message_id TEXT NOT NULL,
+            user_id    TEXT NOT NULL,
+            emoji      TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            PRIMARY KEY (scope_key, message_id, user_id, emoji)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_message_reactions_scope_message
+            ON message_reactions(scope_key, message_id, created_at)
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO schema_migrations (version, description, applied_at)
+        VALUES ('15', 'message reactions for room and agent-DM chat surfaces', datetime('now'))
+        """,
+    )
 def _migrate_v8_room_avatars(conn: sqlite3.Connection) -> None:
     if conn.execute("SELECT 1 FROM schema_migrations WHERE version = '8' LIMIT 1").fetchone():
         return
@@ -738,6 +765,7 @@ def ensure_workframe_db_schema(open_db: OpenDb) -> None:
         _migrate_v11_delegation_kanban_boards(conn)
         _migrate_v12_adopt_install_keys_to_owners(conn)
         _migrate_v13_workspace_members_in_spaces(conn)
+        _migrate_v15_message_reactions(conn)
         conn.commit()
     finally:
         conn.close()
@@ -750,6 +778,7 @@ def ensure_oauth_pending_migrations(open_db: OpenDb) -> None:
         _migrate_v11_delegation_kanban_boards(conn)
         _migrate_v12_adopt_install_keys_to_owners(conn)
         _migrate_v13_workspace_members_in_spaces(conn)
+        _migrate_v15_message_reactions(conn)
         conn.commit()
     finally:
         conn.close()

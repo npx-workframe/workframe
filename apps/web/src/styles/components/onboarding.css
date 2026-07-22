@@ -96,6 +96,19 @@
   filter: brightness(0) saturate(100%) opacity(0.58);
 }
 
+.wf-brand-mark--fallback {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--wf-muted);
+  color: var(--wf-surface);
+  font-size: 0.55em;
+  font-weight: 800;
+  line-height: 1;
+  filter: none !important;
+}
+
 [data-theme='strato-dark'] .wf-brand-img--theme,
 [data-theme='strato-dark'] .wf-brand-img--mono,
 [data-theme='neo-blue'] .wf-brand-img--theme,
@@ -153,11 +166,11 @@
 }
 
 .wf-onboarding-wizard__nav.wf-scroll--inset-rail.wf-scroll--vertical {
-  --wf-scroll-gutter-inline: var(--wf-space-2);
+  --wf-scroll-gutter-inline: var(--wf-rail-inset-gutter);
   --wf-scroll-gutter-block: var(--wf-space-2);
   /* ponytail: S outset bleeds ~3px+blur left — inset nav only, brand stays on rail gutter */
-  padding-inline-start: var(--wf-space-2);
-  padding-inline-end: var(--wf-space-2);
+  padding-inline-start: var(--wf-rail-inset-gutter);
+  padding-inline-end: var(--wf-rail-inset-gutter);
   padding-block-start: 0;
   padding-block-end: 0;
 }

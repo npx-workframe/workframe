@@ -39,14 +39,17 @@ jobs:
       - name: Release evidence fixtures
         run: node scripts/workframe/validate-release-evidence.mjs
 
+      # Harness scaffold checks require the same bundled UI produced by the release path.
+      - name: Installer UI bundle
+        run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs
+
       - name: Harness verify
         env:
           HARNESS_CHECK: "1"
           PYTHON: ${{ steps.setup-python.outputs.python-path }}
+          # API imports generate ephemeral auth keys; never target production /app in CI.
+          WORKFRAME_API_DATA_DIR: ${{ runner.temp }}/workframe-api-data
         run: node .harness/verify.mjs
-
-      - name: Installer UI bundle
-        run: node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build
 
       - name: Package install evidence
         run: node scripts/workframe/run-package-install-evidence.mjs --build

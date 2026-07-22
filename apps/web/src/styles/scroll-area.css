@@ -4,7 +4,7 @@
  *
  * Content↔track spacing: --wf-scroll-gutter-inline on the scroll container.
  *
- * WebKit/Chromium: ::-webkit-scrollbar* only (no scrollbar-color — it blocks thumb:hover).
+ * WebKit/Chromium: ::-webkit-scrollbar* keeps the inset geometry consistent.
  * Firefox: scrollbar-color fallback when pseudo-elements are unavailable.
  */
 
@@ -21,7 +21,7 @@
   --wf-scrollbar-size: calc(var(--wf-scrollbar-thumb-size) + 2 * var(--wf-scrollbar-inset));
 }
 
-/* ponytail: Chrome 121+ — scrollbar-color suppresses ::-webkit-scrollbar-thumb:hover */
+/* Firefox fallback when WebKit pseudo-elements are unavailable. */
 @supports not selector(::-webkit-scrollbar) {
   .wf-scroll,
   textarea.wf-scroll,
@@ -56,7 +56,7 @@ pre.wf-scroll::-webkit-scrollbar-thumb {
 .wf-scroll::-webkit-scrollbar-thumb:hover,
 textarea.wf-scroll::-webkit-scrollbar-thumb:hover,
 pre.wf-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: var(--wf-scrollbar-thumb-hover);
+  background-color: var(--wf-scrollbar-thumb);
 }
 
 .wf-scroll::-webkit-scrollbar-corner,
@@ -110,10 +110,10 @@ pre.wf-scroll::-webkit-scrollbar-corner {
 .wf-scroll--inset-rail.wf-scroll--vertical {
   --wf-scrollbar-thumb-size: 2px;
   --wf-scrollbar-inset: 2px;
-  --wf-scroll-gutter-inline: var(--wf-space-2);
+  --wf-scroll-gutter-inline: var(--wf-rail-inset-gutter);
   --wf-scroll-gutter-block: 0px;
   padding-block-start: var(--wf-panel-scroll-inset);
-  padding-inline-start: var(--wf-panel-scroll-inset);
+  padding-inline-start: var(--wf-rail-inset-gutter);
   padding-inline-end: var(--wf-scroll-gutter-inline);
   padding-block-end: var(--wf-panel-scroll-inset);
   scrollbar-width: none;

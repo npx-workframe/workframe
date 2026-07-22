@@ -20,6 +20,7 @@ export function ConfirmDialog({
   description,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  confirmVariant = 'accent',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -42,7 +43,10 @@ export function ConfirmDialog({
       footer={
         <>
           <DialogCancelButton onClick={handleCancel}>{cancelLabel}</DialogCancelButton>
-          <DialogConfirmButton onClick={handleConfirm}>
+          <DialogConfirmButton
+            className={confirmVariant === 'warn' ? 'wf-action-btn--warn' : undefined}
+            onClick={handleConfirm}
+          >
             {confirmLabel}
           </DialogConfirmButton>
         </>

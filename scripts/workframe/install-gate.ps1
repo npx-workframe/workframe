@@ -7,12 +7,13 @@ $ErrorActionPreference = 'Stop'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Pkg = Join-Path $Root 'packages\create-workframe'
 $GateDir = Join-Path $Root '.install-gate'
+$NpmCacheDir = Join-Path $GateDir 'npm-cache'
 
 Set-Location $Root
 Write-Host 'OK: building web'
 $prevEapBuild = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-pnpm build:web
+pnpm.cmd build:web
 if ($LASTEXITCODE -ne 0) { throw "pnpm build:web failed ($LASTEXITCODE)" }
 $ErrorActionPreference = $prevEapBuild
 Write-Host 'OK: syncing API/supervisor to installer package'
@@ -24,15 +25,17 @@ node (Join-Path $Pkg 'scripts\bundle-workframe-ui.mjs')
 if ($LASTEXITCODE -ne 0) { throw "bundle-workframe-ui failed ($LASTEXITCODE)" }
 $ErrorActionPreference = $prevEapBundle
 Write-Host 'OK: API tests'
-pnpm test:api
+pnpm.cmd test:api
+if ($LASTEXITCODE -ne 0) { throw "pnpm test:api failed ($LASTEXITCODE)" }
 Write-Host 'OK: installer scaffold tests'
-pnpm test:scaffold
+pnpm.cmd test:scaffold
+if ($LASTEXITCODE -ne 0) { throw "pnpm test:scaffold failed ($LASTEXITCODE)" }
 
-New-Item -ItemType Directory -Force -Path $GateDir | Out-Null
+New-Item -ItemType Directory -Force -Path $GateDir, $NpmCacheDir | Out-Null
 Set-Location $Pkg
 $prevEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
-$packOut = npm pack --pack-destination $GateDir 2>&1
+$packOut = npm.cmd pack --cache $NpmCacheDir --pack-destination $GateDir 2>&1
 $packExit = $LASTEXITCODE
 $ErrorActionPreference = $prevEap
 if ($packExit -ne 0) { throw "npm pack failed: $packOut" }

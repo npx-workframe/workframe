@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Paperclip, Send, Square } from 'lucide-react'
+import { Paperclip, Reply, Send, Square, X } from 'lucide-react'
 
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
 import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
@@ -26,6 +26,7 @@ import { apiStopRun, apiSteerRun, fetchHermesModels, type HermesSkillRow, type S
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveAgentModelsProfile } from '@/lib/agentProfile'
 import { cn } from '@/lib/utils'
+import type { ChatReplyTarget } from '@/lib/chatTypes'
 
 type ComposerProps = {
   onMinHeightChange?: (height: number) => void
@@ -37,6 +38,8 @@ type ComposerProps = {
   placeholder?: string
   showModelPicker?: boolean
   mentionAgents?: MentionAgent[]
+  replyTo?: ChatReplyTarget | null
+  onCancelReply?: () => void
 }
 
 export type ComposerHandle = {
@@ -110,6 +113,8 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   placeholder = 'Message Workframe Agent…',
   showModelPicker = true,
   mentionAgents = [],
+  replyTo = null,
+  onCancelReply,
 }, ref) {
   const [value, setValue] = useState('')
   const [caret, setCaret] = useState(0)
@@ -124,8 +129,8 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
   const { activeProfile } = useAgentRoute()
   const { activeRoom, openUserSettings, openChatSettings } = useWorkspacePanels()
   const modelsProfile = useMemo(
-    () => resolveAgentModelsProfile(activeRoom, activeProfile, runtimeProfile),
-    [activeRoom, activeProfile, runtimeProfile],
+    () => resolveAgentModelsProfile(activeRoom, activeProfile),
+    [activeRoom, activeProfile],
   )
   const workspaceId = activeRoom?.workspace_id ?? ''
   const [hasLlmProvider, setHasLlmProvider] = useState(false)
@@ -320,15 +325,6 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
         </p>
       ) : null}
 
-      {/* When agent is working: textarea becomes steer input, send button becomes stop.
-          Same composer, same textarea — just a different mode. */}
-      {turnActive ? (
-        <div className="wf-composer__working-indicator-row">
-          <div className="wf-composer__working-indicator" />
-          <span className="wf-composer__working-label">Working…</span>
-        </div>
-      ) : null}
-
       <Textarea
         ref={textareaRef}
         className={cn('wf-composer__input', scrollAreaClass, 'wf-scroll--vertical')}
@@ -400,50 +396,81 @@ const ComposerInner = forwardRef<ComposerHandle, ComposerProps>(function Compose
 
       <div ref={toolbarRef} className="wf-composer__toolbar">
         <div className="wf-composer__toolbar-start">
-          {showModelPicker ? (
-            <ModelSwitcher
-              modelId={modelId}
-              providerId={billingProvider}
-              hasProvider={hasLlmProvider}
-              readOnly
-              onOpenAgentModels={() => openChatSettings('models')}
-              onConnectProvider={() => openUserSettings('connect')}
-            />
-          ) : null}
-          <SkillsMenu
-            onPick={(skill: HermesSkillRow) => {
-              // Skills are themselves slash commands; dispatching
-              // them through the same pipeline as /new means the
-              // BFF / gateway / approval flow all treat them
-              // uniformly.
-              void dispatch(`/${skill.name}`)
-            }}
-          />
+          {turnActive ? (
+            <div className="wf-composer__working-context" role="status" aria-label="Agent is working; messages steer the current turn">
+              <span className="wf-composer__working-indicator" aria-hidden="true" />
+              <span className="wf-composer__working-label">Steering current turn</span>
+            </div>
+          ) : replyTo ? (
+            <div
+              className="wf-composer__reply-context"
+              aria-label={`Replying to ${replyTo.authorName}`}
+              title={replyTo.preview}
+            >
+              <Reply className="wf-composer__reply-context-icon" aria-hidden="true" />
+              <span className="wf-composer__reply-context-author">{replyTo.authorName}</span>
+              <span className="wf-composer__reply-context-preview">{replyTo.preview}</span>
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                className="wf-composer__reply-context-close"
+                aria-label="Cancel reply"
+                onClick={onCancelReply}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              {showModelPicker ? (
+                <ModelSwitcher
+                  modelId={modelId}
+                  providerId={billingProvider}
+                  hasProvider={hasLlmProvider}
+                  onConnectProvider={() => openUserSettings('connect')}
+                />
+              ) : null}
+              <SkillsMenu
+                onPick={(skill: HermesSkillRow) => {
+                  // Skills are themselves slash commands; dispatching
+                  // them through the same pipeline as /new means the
+                  // BFF / gateway / approval flow all treat them
+                  // uniformly.
+                  void dispatch(`/${skill.name}`)
+                }}
+              />
+            </>
+          )}
         </div>
 
         <div className="wf-composer__actions">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="wf-composer__file-input"
-            tabIndex={-1}
-            aria-hidden="true"
-            onChange={(event) => {
-              handleImageFile(event.target.files?.[0])
-              event.target.value = ''
-            }}
-          />
-          <Button
-            type="button"
-            variant="toolbar"
-            size="toolbarIcon"
-            aria-label="Attach image"
-            disabled={disabled || !onAttachImage}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip aria-hidden="true" />
-          </Button>
+          {onAttachImage ? (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="wf-composer__file-input"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(event) => {
+                  handleImageFile(event.target.files?.[0])
+                  event.target.value = ''
+                }}
+              />
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                aria-label="Attach image"
+                disabled={disabled}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip aria-hidden="true" />
+              </Button>
+            </>
+          ) : null}
           <Button
             type="button"
             variant="toolbar"

@@ -4,6 +4,7 @@ import { DialogCancelButton, DialogConfirmButton } from '@/components/dialogs/Di
 import { DialogField } from '@/components/dialogs/DialogField'
 import { DialogSelect } from '@/components/dialogs/DialogSelect'
 import { Input } from '@/components/ui/input'
+import { CopyInput } from '@/components/ui/CopyInput'
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { WizardFormActions } from '@/components/workspace/WizardFormActions'
@@ -29,12 +30,19 @@ export function InviteMemberDialog({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
+  const [inviteUrl, setInviteUrl] = useState('')
 
   const reset = () => {
     setEmail('')
     setRole('member')
     setError('')
     setStatus('')
+    setInviteUrl('')
+  }
+
+  const closeAndReset = () => {
+    onOpenChange(false)
+    reset()
   }
 
   const sendInvite = async () => {
@@ -50,7 +58,12 @@ export function InviteMemberDialog({
         email: email.trim(),
         role,
       })
-      setStatus(`Invite created for ${result.email}.`)
+      setInviteUrl(result.invite_url ?? '')
+      setStatus(
+        result.email_sent
+          ? `Invite sent to ${result.email}.`
+          : `Invite created for ${result.email}, but email delivery was not confirmed.`,
+      )
       setEmail('')
       onInvited?.()
     } catch (err) {
@@ -64,10 +77,7 @@ export function InviteMemberDialog({
   return (
     <SettingsSheetFrame
       open={open}
-      onClose={() => {
-        onOpenChange(false)
-        reset()
-      }}
+      onClose={closeAndReset}
       title="Invite teammate"
       sectionLabel="Invite details"
       summary={`Invite to ${workspaceName}`}
@@ -75,10 +85,10 @@ export function InviteMemberDialog({
       sheetClassName="wf-dialog-content--settings-compact"
       actions={
         <WizardFormActions>
-          <DialogCancelButton onClick={() => onOpenChange(false)} disabled={busy}>
+          <DialogCancelButton onClick={closeAndReset} disabled={busy}>
             Close
           </DialogCancelButton>
-          <DialogConfirmButton onClick={() => void sendInvite()} disabled={busy || !workspaceId}>
+          <DialogConfirmButton onClick={() => void sendInvite()} disabled={busy || !workspaceId || !email.trim()}>
             {busy ? 'Sending…' : 'Send invite'}
           </DialogConfirmButton>
         </WizardFormActions>
@@ -112,6 +122,16 @@ export function InviteMemberDialog({
               ]}
             />
           </DialogField>
+
+          {inviteUrl ? (
+            <DialogField
+              label="Invite link"
+              htmlFor="wf-invite-link"
+              hint="Share this link directly if the email does not arrive."
+            >
+              <CopyInput id="wf-invite-link" label="invite link" value={inviteUrl} />
+            </DialogField>
+          ) : null}
       </SettingsPanelBody>
     </SettingsSheetFrame>
   )

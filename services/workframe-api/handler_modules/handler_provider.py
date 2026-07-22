@@ -8,7 +8,6 @@ from typing import Any
 import action_proxy
 import internal_proxy_auth
 import llm_proxy
-import openrouter_catalog
 import platform_auth
 import run_surface_wiring
 
@@ -125,7 +124,8 @@ class ProviderRoutesMixin:
             self._json(401, {"ok": False, "error": "no_session"})
             return
         workspace_id = qs.get("workspace_id", [""])[0]
-        self._json(200, srv.list_user_providers(user_id, workspace_id))
+        credential_scope = qs.get("credential_scope", ["effective"])[0]
+        self._json(200, srv.list_user_providers(user_id, workspace_id, credential_scope))
 
     def _route_post_me_credentials(self, body: dict) -> None:
         srv = _srv()
@@ -191,19 +191,18 @@ class ProviderRoutesMixin:
             self._json(500, {"ok": False, "error": f"db_error: {exc}"})
             return
         srv._invalidate_user_llm_picker_cache(user_id)
+        srv._revoke_runtime_llm_leases(payer_user_id=user_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
-        health: dict[str, Any] = {}
-        if provider == "openrouter":
-            secret_probe = srv._credential_secret(
-                {
-                    "credential_ref": cred_ref,
-                    "scope": "user",
-                    "user_id": user_id,
-                },
-                user_id,
-            )
-            if secret_probe:
-                health = openrouter_catalog.probe_account(secret_probe)
+        # Credential persistence must not depend on an upstream network round-trip.
+        # OpenRouter's account endpoints can each consume their full timeout when a
+        # self-hosted install has restricted egress, leaving the settings UI stuck
+        # in "Saving…" even though the encrypted credential is already committed.
+        # Model/catalog requests provide the first real provider health signal.
+        health: dict[str, Any] = {
+            "ok": True,
+            "provider": provider,
+            "status": "stored",
+        }
         try:
             srv._bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
         except (OSError, RuntimeError, ValueError) as exc:

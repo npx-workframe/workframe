@@ -650,6 +650,7 @@ def _ensure_workspace_agent_profile_row(
     role: str = "",
     tagline: str = "",
     is_native: bool = False,
+    preserve_existing_identity: bool = False,
 ) -> str | None:
     """Ensure agent_profiles row exists for a workspace (default workspace when id omitted)."""
     slug = str(slug or "").strip()
@@ -686,11 +687,11 @@ def _ensure_workspace_agent_profile_row(
         if existing:
             agent_id = str(existing["id"])
             patches: dict[str, Any] = {}
-            if display_name.strip():
+            if display_name.strip() and not preserve_existing_identity:
                 patches["display_name"] = display_name.strip()
-            if tagline.strip():
+            if tagline.strip() and not preserve_existing_identity:
                 patches["tagline"] = tagline.strip()
-            if role.strip():
+            if role.strip() and not preserve_existing_identity:
                 patches["role"] = role.strip()
             if patches:
                 sets = [f"{col} = ?" for col in patches]

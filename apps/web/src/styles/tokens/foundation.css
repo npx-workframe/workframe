@@ -20,7 +20,8 @@
   --wf-gap: var(--wf-space-2);
   --wf-panel-stack-gap: var(--wf-space-4);
   --wf-rail-list-gap: var(--wf-gap);
-  --wf-rail-inset-gutter: var(--wf-gap);
+  /* Leaves the 3px/6px relief shadow room to resolve without clipping. */
+  --wf-rail-inset-gutter: var(--wf-space-3);
   --wf-rail-cell-gap: var(--wf-gap-tight);
 
   /* Scrollbar track = thumb + 2×inset (2+6+2 = 10px; rail 2+2+2 = 6px) */
@@ -40,6 +41,7 @@
   /* ponytail: 4px spacing grid + compact type scale for workspace chrome */
   --wf-space-1: 4px;
   --wf-space-2: 8px;
+  --wf-space-3: 12px;
   --wf-space-4: 16px;
   --wf-shell-width: 840px;
   --wf-shell-height: 540px;

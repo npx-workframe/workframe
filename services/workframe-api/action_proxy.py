@@ -82,8 +82,10 @@ def forward_request(
             "content-length",
             "authorization",
             "x-api-key",
+            "accept-encoding",
         }
     }
+    upstream_headers["Accept-Encoding"] = "identity"
     upstream_headers.update(upstream_auth_header(provider, secret))
 
     req = urllib.request.Request(url, data=body, headers=upstream_headers, method=method.upper())
@@ -91,10 +93,16 @@ def forward_request(
         with urllib.request.urlopen(req, timeout=600) as resp:
             resp_body = resp.read()
             out_headers = {"Content-Type": resp.headers.get("Content-Type", "application/octet-stream")}
+            content_encoding = resp.headers.get("Content-Encoding", "").strip()
+            if content_encoding:
+                out_headers["Content-Encoding"] = content_encoding
             return resp.status, out_headers, resp_body
     except urllib.error.HTTPError as exc:
         raw = exc.read()
         out_headers = {"Content-Type": exc.headers.get("Content-Type", "application/json")}
+        content_encoding = exc.headers.get("Content-Encoding", "").strip()
+        if content_encoding:
+            out_headers["Content-Encoding"] = content_encoding
         return exc.code, out_headers, raw
 
 

@@ -18,9 +18,9 @@ import {
   watchRoomLive,
   type RoomLiveFrame,
 } from '@/lib/roomLive'
-import { mergeRoomMessageHistory } from '@/lib/chatMerge'
-import type { ChatMessage } from '@/lib/chatTypes'
-import { systemNoticeChatMessage } from '@/lib/chatTypes'
+import { mergeRoomLiveDisplay, mergeRoomMessageHistory } from '@/lib/chatMerge'
+import type { ChatMessage, ChatReplyTarget } from '@/lib/chatTypes'
+import { chatMessagePreview, systemNoticeChatMessage, userImageChatMessage } from '@/lib/chatTypes'
 import { ProviderRequiredDialog } from '@/components/dialogs/ProviderRequiredDialog'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import {
@@ -33,7 +33,8 @@ import { resolveUserAvatarUrl } from '@/lib/avatarResolve'
 import { mentionHandleFromLabel } from '@/lib/mentionHandle'
 import { resolveAgentAvatarUrl } from '@/lib/avatarResolve'
 import { useCrew } from '@/hooks/useCrew'
-import { workframeAuthApi, watchWorkspaceEvents } from '@/lib/workframeAuthApi'
+import { workframeAuthApi, watchWorkspaceEvents, type WorkspaceRoomMessage } from '@/lib/workframeAuthApi'
+import { uploadBinaryFile } from '@/lib/filesApi'
 import {
   readCachedProjectRoomMessages,
   writeCachedProjectRoomMessages,
@@ -41,22 +42,13 @@ import {
 import { cn } from '@/lib/utils'
 
 function roomMessageToChatMessage(
-  message: {
-    id: string
-    sender_user_id?: string | null
-    sender_agent_id?: string | null
-    sender_agent_slug?: string | null
-    sender_agent_name?: string | null
-    model?: string | null
-    llm_provider?: string | null
-    content: string
-    created_at?: string
-  },
+  message: WorkspaceRoomMessage,
   meUserId: string,
   memberNames: Record<string, string>,
   memberAvatars: Record<string, string | null | undefined>,
   agentNames: Record<string, string>,
   agentSlugs: Record<string, string>,
+  parentMessage?: WorkspaceRoomMessage,
 ): ChatMessage {
   const isUser = Boolean(message.sender_user_id)
   const agentSlug =
@@ -72,16 +64,55 @@ function roomMessageToChatMessage(
       (message.sender_agent_id ? agentNames[message.sender_agent_id] : '') ||
       'Agent')
 
+  const contentType = String(message.content_type || 'text').toLowerCase()
+  let segments: ChatMessage['segments'] = [{ kind: 'text', text: message.content }]
+  if (contentType === 'image' || contentType.startsWith('image/')) {
+    const marker = message.content.match(/\[User attached image:\s*([^\]]+)\]/i)
+    let imagePath = marker?.[1]?.trim() || message.content.trim()
+    try {
+      const payload = JSON.parse(message.content) as { path?: unknown }
+      imagePath = typeof payload.path === 'string' ? payload.path.trim() : imagePath
+    } catch {
+      // Room image messages also support the human-readable attachment marker.
+    }
+    imagePath = imagePath.replace(/\\/g, '/').replace(/^\/workspace\//, '').replace(/^\/+/, '')
+    if (imagePath) {
+      const imageName = imagePath.split('/').at(-1) || 'Attached image'
+      segments = [{ kind: 'image', path: imagePath, name: imageName, alt: imageName }]
+    }
+  }
+
+  const parent = parentMessage
+    ? roomMessageToChatMessage(
+        parentMessage,
+        meUserId,
+        memberNames,
+        memberAvatars,
+        agentNames,
+        agentSlugs,
+      )
+    : null
+
   return {
     id: message.id,
     authorId,
     authorName,
     role: isUser ? 'user' : 'agent',
-    segments: [{ kind: 'text', text: message.content }],
+    segments,
     timestamp: message.created_at ? new Date(Number(message.created_at) * 1000).toISOString() : new Date().toISOString(),
     tokens: 0,
     ...(message.model ? { modelId: message.model } : {}),
     ...(message.llm_provider ? { llmProvider: message.llm_provider } : {}),
+    ...(parent
+      ? {
+          replyTo: {
+            id: parent.id,
+            authorId: parent.authorId,
+            authorName: parent.authorName,
+            preview: chatMessagePreview(parent),
+          },
+        }
+      : {}),
     avatarUrl: message.sender_user_id ? resolveUserAvatarUrl(memberAvatars[message.sender_user_id]) : undefined,
   }
 }
@@ -97,6 +128,8 @@ export function ChatSplit() {
     turnActive,
     turnStatus,
     messages,
+    profile,
+    stateDbSessionId,
     sendMessage,
     attachImage,
   } = useHermesSession()
@@ -109,17 +142,29 @@ export function ChatSplit() {
   const [spaceTurnActive, setSpaceTurnActive] = useState(false)
   const [spaceTurnStatus, setSpaceTurnStatus] = useState<string | null>(null)
   const [spaceWaitTurnId, setSpaceWaitTurnId] = useState<string | null>(null)
+  const [replyState, setReplyState] = useState<{ scope: string; target: ChatReplyTarget } | null>(null)
   const roomRevisionRef = useRef('')
   const reloadGenRef = useRef(0)
   const activeHumanRoomIdRef = useRef<string | null>(null)
   const roomStateByIdRef = useRef<Record<string, ChatMessage[]>>({})
   const roomMessagesRef = useRef<ChatMessage[] | null>(null)
   const liveTurnsRef = useRef<Record<string, ChatMessage>>({})
+  const completedTurnIdsRef = useRef<Set<string>>(new Set())
+  const completedTurnMessageIdsRef = useRef<Record<string, string>>({})
   const meUserIdRef = useRef('')
   const meAvatarRef = useRef<string | null>(null)
   const liveMetaRef = useRef<Record<string, { agentName: string; agentSlug: string; modelId?: string; llmProvider?: string }>>({})
   const liveBatcherRef = useRef(createLiveTurnBatcher((updates) => {
-    setLiveTurns((prev) => ({ ...prev, ...updates }))
+    const activeUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([turnId]) => !completedTurnIdsRef.current.has(turnId)),
+    )
+    if (!Object.keys(activeUpdates).length) return
+    // Keep the imperative snapshot ahead of React rendering. turn.complete can
+    // arrive in the same frame as the last delta; a deferred ref update lets a
+    // silent history reload merge both the live alias and persisted message.
+    const next = { ...liveTurnsRef.current, ...activeUpdates }
+    liveTurnsRef.current = next
+    setLiveTurns(next)
   }))
   const composerRef = useRef<ComposerHandle>(null)
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
@@ -143,13 +188,32 @@ export function ChatSplit() {
 
   const humanRoom = activeRoom && !isAgentChatRoom(activeRoom) ? activeRoom : null
   const projectRoom = humanRoom && isProjectRoom(humanRoom) ? humanRoom : null
+  const chatInteractionScope = humanRoom
+    ? `room:${humanRoom.id}`
+    : (profile && stateDbSessionId ? `dm:${profile}:${stateDbSessionId}` : '')
+  const replyTo = replyState?.scope === chatInteractionScope ? replyState.target : null
+
+  const beginReply = useCallback((message: ChatMessage) => {
+    setReplyState({
+      scope: chatInteractionScope,
+      target: {
+        id: message.id,
+        authorId: message.authorId,
+        authorName: message.authorName,
+        preview: chatMessagePreview(message),
+      },
+    })
+    if (projectRoom && message.role === 'agent') {
+      const agent = roomMentionAgents.find((row) => row.slug === message.authorId)
+      composerRef.current?.insertMention(agent?.handle || message.authorId)
+    }
+    requestAnimationFrame(() => composerRef.current?.focus())
+  }, [chatInteractionScope, projectRoom, roomMentionAgents])
 
   const displayRoomMessages = useMemo(() => {
     const base = roomMessages ?? []
     const live = Object.values(liveTurns)
-    if (!live.length) return base
-    const ids = new Set(base.map((message) => message.id))
-    return [...base, ...live.filter((message) => !ids.has(message.id))]
+    return mergeRoomLiveDisplay(base, live, completedTurnMessageIdsRef.current)
   }, [roomMessages, liveTurns])
 
   const persistRoomSnapshot = useCallback((roomId: string) => {
@@ -232,36 +296,61 @@ export function ChatSplit() {
         return acc
       }, {})
       const mentionAgents = (membersResponse.members ?? []).reduce<MentionAgent[]>((acc, member) => {
-        if (!member.agent_profile_id || !member.hermes_profile) return acc
-        const slug = member.hermes_profile
-        let name = member.display_name || member.handle || slug
-        let handle =
-          member.mention_handle ||
-          mentionHandleFromLabel(name, slug)
-        const nativeCrew = crewRef.current.find((row) => row.is_native && row.profile === slug)
-        if (nativeCrew?.display_name) {
-          name = nativeCrew.display_name
-          handle = mentionHandleFromLabel(nativeCrew.display_name, slug)
+        if (member.agent_profile_id && member.hermes_profile) {
+          const slug = member.hermes_profile
+          let name = member.display_name || member.handle || slug
+          let handle =
+            member.mention_handle ||
+            mentionHandleFromLabel(name, slug)
+          const nativeCrew = crewRef.current.find((row) => row.is_native && row.profile === slug)
+          if (nativeCrew?.display_name) {
+            name = nativeCrew.display_name
+            handle = mentionHandleFromLabel(nativeCrew.display_name, slug)
+          }
+          acc.push({
+            slug,
+            name,
+            handle,
+            kind: 'agent',
+            tagline: nativeCrew?.tagline || undefined,
+            role: member.role || nativeCrew?.role || undefined,
+            avatarUrl: resolveAgentAvatarUrl({
+              avatar_url: member.avatar_url,
+              avatar_id: member.avatar_id,
+              profile: slug,
+              key: slug,
+            }),
+            agent_profile_id: member.agent_profile_id,
+          })
+          return acc
         }
+
+        if (!member.user_id || member.user_id === meResponse.user.user_id) return acc
+        const name = member.display_name || member.email || 'Contact'
         acc.push({
-          slug,
+          slug: `contact:${member.user_id}`,
           name,
-          handle,
-          tagline: nativeCrew?.tagline || undefined,
-          role: member.role || nativeCrew?.role || undefined,
-          avatarUrl: resolveAgentAvatarUrl({
-            avatar_url: member.avatar_url,
-            avatar_id: member.avatar_id,
-            profile: slug,
-            key: slug,
-          }),
-          agent_profile_id: member.agent_profile_id,
+          handle: member.mention_handle || member.handle || mentionHandleFromLabel(name, member.user_id),
+          kind: 'contact',
+          role: member.role || 'Contact',
+          avatarUrl: resolveUserAvatarUrl(member.avatar_url),
+          user_id: member.user_id,
         })
         return acc
       }, [])
       setRoomMentionAgents(mentionAgents)
-      const rows = (messagesResponse.messages ?? []).map((message) =>
-        roomMessageToChatMessage(message, meResponse.user.user_id, memberNames, memberAvatars, agentNames, agentSlugs),
+      const rawMessages = messagesResponse.messages ?? []
+      const rawById = new Map(rawMessages.map((message) => [message.id, message]))
+      const rows = rawMessages.map((message) =>
+        roomMessageToChatMessage(
+          message,
+          meResponse.user.user_id,
+          memberNames,
+          memberAvatars,
+          agentNames,
+          agentSlugs,
+          message.parent_message_id ? rawById.get(message.parent_message_id) : undefined,
+        ),
       )
       const localBase =
         activeHumanRoomIdRef.current === roomId
@@ -296,12 +385,18 @@ export function ChatSplit() {
   const handleRoomLive = useCallback(
     (frame: RoomLiveFrame) => {
       if (frame.type === 'turn.started' || frame.type === 'turn.snapshot') {
-        const agentName = frame.agent_name || frame.agent_slug
-        const modelId = frame.type === 'turn.started' ? String(frame.model ?? '').trim() : ''
-        const llmProvider = frame.type === 'turn.started' ? String(frame.llm_provider ?? '').trim() : ''
+        if (completedTurnIdsRef.current.has(frame.turn_id)) return
+        const existingMeta = liveMetaRef.current[frame.turn_id]
+        const agentName = frame.agent_name || existingMeta?.agentName || frame.agent_slug
+        const modelId = frame.type === 'turn.started'
+          ? String(frame.model ?? '').trim()
+          : existingMeta?.modelId ?? ''
+        const llmProvider = frame.type === 'turn.started'
+          ? String(frame.llm_provider ?? '').trim()
+          : existingMeta?.llmProvider ?? ''
         liveMetaRef.current[frame.turn_id] = {
           agentName,
-          agentSlug: frame.agent_slug,
+          agentSlug: frame.agent_slug || existingMeta?.agentSlug || 'agent',
           ...(modelId ? { modelId } : {}),
           ...(llmProvider ? { llmProvider } : {}),
         }
@@ -327,6 +422,7 @@ export function ChatSplit() {
       }
 
       if (frame.type === 'turn.update') {
+        if (completedTurnIdsRef.current.has(frame.turn_id)) return
         const meta = liveMetaRef.current[frame.turn_id]
         if (!meta) return
         const message = liveTurnToChatMessage(
@@ -346,6 +442,8 @@ export function ChatSplit() {
       if (frame.type === 'turn.complete') {
         liveBatcherRef.current.flush()
         const messageId = String(frame.message_id ?? '').trim()
+        completedTurnIdsRef.current.add(frame.turn_id)
+        if (messageId) completedTurnMessageIdsRef.current[frame.turn_id] = messageId
         const liveMsg = liveTurnsRef.current[frame.turn_id]
         if (messageId && liveMsg && humanRoom) {
           const promoted = { ...liveMsg, id: messageId, ephemeral: false }
@@ -357,15 +455,14 @@ export function ChatSplit() {
         }
         delete liveMetaRef.current[frame.turn_id]
         setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
-        setLiveTurns((prev) => {
-          const next = { ...prev }
-          delete next[frame.turn_id]
-          if (!Object.keys(next).length) {
-            setSpaceTurnActive(false)
-            setSpaceTurnStatus(null)
-          }
-          return next
-        })
+        const remainingLiveTurns = { ...liveTurnsRef.current }
+        delete remainingLiveTurns[frame.turn_id]
+        liveTurnsRef.current = remainingLiveTurns
+        setLiveTurns(remainingLiveTurns)
+        if (!Object.keys(remainingLiveTurns).length) {
+          setSpaceTurnActive(false)
+          setSpaceTurnStatus(null)
+        }
         if (humanRoom) void reloadRoomMessages(humanRoom.id, { silent: true })
         return
       }
@@ -386,10 +483,12 @@ export function ChatSplit() {
         liveBatcherRef.current.push(frame.turn_id, { ...message, ephemeral: false })
         delete liveMetaRef.current[frame.turn_id]
         setSpaceWaitTurnId((id) => (id === frame.turn_id ? null : id))
-        setLiveTurns((prev) => {
-          const next = { ...prev, [frame.turn_id]: { ...message, ephemeral: false } }
-          return next
-        })
+        const failedTurns = {
+          ...liveTurnsRef.current,
+          [frame.turn_id]: { ...message, ephemeral: false },
+        }
+        liveTurnsRef.current = failedTurns
+        setLiveTurns(failedTurns)
         setSpaceTurnActive(false)
         setSpaceTurnStatus(null)
         if (humanRoom) void reloadRoomMessages(humanRoom.id, { silent: true })
@@ -406,6 +505,9 @@ export function ChatSplit() {
       persistRoomSnapshot(prevId)
       reloadGenRef.current += 1
       setLiveTurns({})
+      liveTurnsRef.current = {}
+      completedTurnIdsRef.current.clear()
+      completedTurnMessageIdsRef.current = {}
       liveMetaRef.current = {}
       liveBatcherRef.current.cancel()
     }
@@ -415,6 +517,10 @@ export function ChatSplit() {
     if (!humanRoom) {
       setRoomMessages(null)
       roomMessagesRef.current = null
+      setLiveTurns({})
+      liveTurnsRef.current = {}
+      completedTurnIdsRef.current.clear()
+      completedTurnMessageIdsRef.current = {}
       setRoomLoading(false)
       setRoomError('')
       roomRevisionRef.current = ''
@@ -468,6 +574,7 @@ export function ChatSplit() {
       if (!trimmed) return
 
       const optimisticId = `local-${Date.now()}`
+      const activeReply = replyTo
       setRoomMessages((prev) => {
         const next = [
           ...(prev ?? []),
@@ -480,6 +587,7 @@ export function ChatSplit() {
             timestamp: new Date().toISOString(),
             tokens: 0,
             avatarUrl: resolveUserAvatarUrl(meAvatarRef.current),
+            ...(activeReply ? { replyTo: activeReply } : {}),
           },
         ]
         roomMessagesRef.current = next
@@ -488,7 +596,10 @@ export function ChatSplit() {
       })
 
       void workframeAuthApi
-        .sendRoomMessage(humanRoom.id, { content: trimmed })
+        .sendRoomMessage(humanRoom.id, {
+          content: trimmed,
+          parent_message_id: activeReply?.id ?? null,
+        })
         .then((result) => {
           const serverId = String(result.message_id ?? '').trim()
           if (serverId) {
@@ -509,9 +620,72 @@ export function ChatSplit() {
           showWorkframeError(info, { id: info.code ?? 'room-send' })
           void reloadRoomMessages(humanRoom.id, { silent: true })
         })
+      setReplyState(null)
+    },
+    [humanRoom, reloadRoomMessages, replyTo],
+  )
+
+  const attachRoomImage = useCallback(
+    async (file: File) => {
+      if (!humanRoom || !file.type.startsWith('image/')) return
+      const safeName = file.name.replace(/[^\w.-]+/g, '_') || 'attachment.png'
+      const relPath = `uploads/${Date.now()}-${safeName}`
+      const optimisticId = `local-image-${Date.now()}`
+      const optimistic = {
+        ...userImageChatMessage(optimisticId, relPath, safeName, new Date().toISOString()),
+        authorId: meUserIdRef.current || 'you',
+        avatarUrl: resolveUserAvatarUrl(meAvatarRef.current),
+      }
+
+      setRoomMessages((prev) => {
+        const next = [...(prev ?? []), optimistic]
+        roomMessagesRef.current = next
+        roomStateByIdRef.current[humanRoom.id] = next
+        return next
+      })
+
+      try {
+        const uploadedPath = await uploadBinaryFile(relPath, file)
+        const workspacePath = `/workspace/${uploadedPath.replace(/^\/+/, '')}`
+        const result = await workframeAuthApi.sendRoomMessage(humanRoom.id, {
+          content: `[User attached image: ${workspacePath}]`,
+          content_type: 'image',
+          invoke_agents: false,
+        })
+        const serverId = String(result.message_id ?? '').trim()
+        if (serverId) {
+          setRoomMessages((prev) => {
+            const next = (prev ?? []).map((message) =>
+              message.id === optimisticId ? { ...message, id: serverId } : message,
+            )
+            roomMessagesRef.current = next
+            roomStateByIdRef.current[humanRoom.id] = next
+            return next
+          })
+        }
+        setRoomError('')
+        await reloadRoomMessages(humanRoom.id, { silent: true })
+      } catch (err) {
+        setRoomMessages((prev) => (prev ?? []).filter((message) => message.id !== optimisticId))
+        const info = formatWorkframeError(err, 'Image upload')
+        setRoomError(formatWorkframeErrorMessage(err, 'Image upload'))
+        showWorkframeError(info, { id: info.code ?? 'room-image-upload' })
+        void reloadRoomMessages(humanRoom.id, { silent: true })
+      }
     },
     [humanRoom, reloadRoomMessages],
   )
+
+  const sendAgentChatMessage = useCallback((text: string) => {
+    const activeReply = replyTo
+    setReplyState(null)
+    if (!activeReply) {
+      void sendMessage(text)
+      return
+    }
+    const quoted = `> **Replying to ${activeReply.authorName}:** ${activeReply.preview}\n\n${text}`
+    void sendMessage(quoted)
+  }, [replyTo, sendMessage])
 
   if (humanRoom) {
     return (
@@ -530,14 +704,8 @@ export function ChatSplit() {
             nativeAgentName={agentDisplayName}
             messagesOverride={displayRoomMessages}
             waitMessageId={spaceWaitTurnId}
-            onReplyToAgent={
-              projectRoom
-                ? (slug) => {
-                    const agent = roomMentionAgents.find((row) => row.slug === slug)
-                    composerRef.current?.insertMention(agent?.handle || slug)
-                  }
-                : undefined
-            }
+            interactionScope={chatInteractionScope}
+            onReply={beginReply}
           />
         </div>
 
@@ -559,10 +727,12 @@ export function ChatSplit() {
             showModelPicker={false}
             mentionAgents={projectRoom ? roomMentionAgents : []}
             onSend={sendRoomChatMessage}
-            onAttachImage={() => {}}
+            onAttachImage={(file) => void attachRoomImage(file)}
             disabled={roomLoading && roomMessages === null}
             turnActive={spaceTurnActive}
             turnStatus={spaceTurnStatus}
+            replyTo={replyTo}
+            onCancelReply={() => setReplyState(null)}
             placeholder={
               projectRoom
                 ? `Message ${humanRoom.name}… @agent to invoke`
@@ -590,6 +760,8 @@ export function ChatSplit() {
           nativeAgentName={agentDisplayName}
           messagesOverride={displayAgentMessages}
           waitMessageId={dmWaitMessageId}
+          interactionScope={chatInteractionScope}
+          onReply={beginReply}
         />
       </div>
 
@@ -606,12 +778,15 @@ export function ChatSplit() {
 
       <div className="wf-chat-split__composer" style={{ height: composerHeight }}>
         <Composer
+          ref={composerRef}
           onMinHeightChange={setComposerMinPx}
-          onSend={(text) => void sendMessage(text)}
+          onSend={sendAgentChatMessage}
           onAttachImage={(file) => void attachImage(file)}
           disabled={!sessionReady || turnActive}
           turnActive={turnActive}
           turnStatus={turnStatus}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyState(null)}
           placeholder={`Message ${agentDisplayName}…`}
         />
       </div>

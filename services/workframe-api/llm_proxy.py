@@ -115,8 +115,14 @@ def _build_upstream_request(
             "authorization",
             "x-api-key",
             "x-goog-api-key",
+            "accept-encoding",
         }
     }
+    # urllib does not transparently decode compressed upstream responses. If
+    # the caller's Accept-Encoding reaches OpenRouter, gzip bytes can be sent
+    # back as JSON after this proxy normalizes response headers. Prefer an
+    # identity response and still preserve Content-Encoding defensively below.
+    upstream_headers["Accept-Encoding"] = "identity"
     upstream_headers.update(upstream_auth_header(provider, secret))
     if provider == "openrouter":
         upstream_headers.setdefault("HTTP-Referer", "https://workfra.me")
@@ -150,10 +156,16 @@ def forward_request(
         with urllib.request.urlopen(req, timeout=600) as resp:
             resp_body = resp.read()
             out_headers = {"Content-Type": resp.headers.get("Content-Type", "application/octet-stream")}
+            content_encoding = resp.headers.get("Content-Encoding", "").strip()
+            if content_encoding:
+                out_headers["Content-Encoding"] = content_encoding
             return resp.status, out_headers, resp_body
     except urllib.error.HTTPError as exc:
         raw = exc.read()
         out_headers = {"Content-Type": exc.headers.get("Content-Type", "application/json")}
+        content_encoding = exc.headers.get("Content-Encoding", "").strip()
+        if content_encoding:
+            out_headers["Content-Encoding"] = content_encoding
         return exc.code, out_headers, raw
 
 
@@ -190,6 +202,9 @@ def stream_request_to_handler(
             content_type = resp.headers.get("Content-Type", "application/octet-stream")
             handler.send_response(resp.status)
             handler.send_header("Content-Type", content_type)
+            content_encoding = resp.headers.get("Content-Encoding", "").strip()
+            if content_encoding:
+                handler.send_header("Content-Encoding", content_encoding)
             handler.end_headers()
             if "text/event-stream" in content_type.lower():
                 while True:
@@ -209,6 +224,9 @@ def stream_request_to_handler(
         raw = exc.read()
         handler.send_response(exc.code)
         handler.send_header("Content-Type", exc.headers.get("Content-Type", "application/json"))
+        content_encoding = exc.headers.get("Content-Encoding", "").strip()
+        if content_encoding:
+            handler.send_header("Content-Encoding", content_encoding)
         handler.end_headers()
         handler.wfile.write(raw)
     except urllib.error.URLError as exc:

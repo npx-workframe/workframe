@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { useCommandDialogs } from '@/contexts/CommandDialogsContext'
 import { formatComposerModelLabel } from '@/lib/chatTypes'
 import { inferProviderFromModelId, providerIconForId } from '@/lib/workframeAssets'
@@ -27,10 +28,13 @@ export function ModelSwitcher({
   const inactive = !hasProvider
   const label = inactive ? 'Connect provider' : formatComposerModelLabel(providerId, modelId)
   const inferredProvider = inferProviderFromModelId(modelId)
-  const iconProvider =
-    providerIconForId(providerId) ??
-    (inferredProvider ? providerIconForId(inferredProvider) : null) ??
-    providerIconForId(modelId.split('/')[0] ?? '')
+  const iconProviderId = providerIconForId(providerId)
+    ? providerId
+    : inferredProvider && providerIconForId(inferredProvider)
+      ? inferredProvider
+      : providerIconForId(modelId.split('/')[0] ?? '')
+        ? modelId.split('/')[0]
+        : ''
 
   return (
     <Button
@@ -64,13 +68,8 @@ export function ModelSwitcher({
         openModelPicker()
       }}
     >
-      {!inactive && iconProvider ? (
-        <img
-          src={iconProvider}
-          alt=""
-          aria-hidden="true"
-          className="wf-composer__model-provider"
-        />
+      {!inactive && iconProviderId ? (
+        <BrandMark providerId={iconProviderId} className="wf-composer__model-provider" />
       ) : null}
       <span>{label}</span>
     </Button>

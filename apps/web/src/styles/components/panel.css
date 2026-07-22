@@ -167,6 +167,10 @@
   padding-left: var(--wf-gap);
 }
 
+.wf-panel--rail-expanded .wf-panel__label {
+  color: var(--wf-text);
+}
+
 .wf-panel--rail-expanded .wf-panel__header .wf-agent-rail__toggle {
   margin-left: 0;
 }
@@ -583,10 +587,10 @@
 }
 
 .wf-settings-shell__nav.wf-scroll--inset-rail.wf-scroll--vertical {
-  --wf-scroll-gutter-inline: var(--wf-space-2);
+  --wf-scroll-gutter-inline: var(--wf-rail-inset-gutter);
   --wf-scroll-gutter-block: var(--wf-space-2);
-  padding-inline-start: var(--wf-space-2);
-  padding-inline-end: var(--wf-space-2);
+  padding-inline-start: var(--wf-rail-inset-gutter);
+  padding-inline-end: var(--wf-rail-inset-gutter);
   padding-block-start: 0;
   padding-block-end: 0;
 }
@@ -654,7 +658,6 @@
 }
 
 .wf-settings-shell__scroll--fill {
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }

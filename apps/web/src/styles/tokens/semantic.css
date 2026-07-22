@@ -56,5 +56,5 @@
   --wf-scrollbar-inset: 2px;
   --wf-scrollbar-thumb-size: 6px;
   --wf-scrollbar-thumb: var(--wf-divider-color);
-  --wf-scrollbar-thumb-hover: var(--wf-accent);
+  --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
 }

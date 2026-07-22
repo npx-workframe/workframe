@@ -26,7 +26,14 @@ export function useComposerMinHeight(onMinHeightChange?: (height: number) => voi
         parseFloat(textareaStyles.borderTopWidth) + parseFloat(textareaStyles.borderBottomWidth)
       const textareaMin = lineHeight + textareaPadY + textareaBorderY
 
-      const next = Math.ceil(rootPadY + gap + toolbar.offsetHeight + textareaMin)
+      const fixedChildren = Array.from(root.children).filter((child): child is HTMLElement => {
+        if (!(child instanceof HTMLElement) || child === textarea) return false
+        const styles = getComputedStyle(child)
+        return styles.position !== 'absolute' && styles.display !== 'none' && child.offsetHeight > 0
+      })
+      const fixedHeight = fixedChildren.reduce((total, child) => total + child.offsetHeight, 0)
+      const flowGapCount = fixedChildren.length
+      const next = Math.ceil(rootPadY + fixedHeight + gap * flowGapCount + textareaMin)
       onMinHeightChange(next)
     }
 

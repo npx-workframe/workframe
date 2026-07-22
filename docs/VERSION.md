@@ -1,17 +1,24 @@
-# Workframe v0.1.19
+# Workframe v0.1.20
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.19 |
+| create-workframe | 0.1.20 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.19 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.20 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.19 MyProject
+npx create-workframe@0.1.20 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.20
+
+- Make agent-owned model selection, provider credential resolution, fallbacks, Codex authentication, and persisted provider/model attribution consistent across onboarding, settings, DMs, and rooms.
+- Add recursive Navigator selection/download archives, safe batch deletion, bounded filenames, and in-browser image, audio, video, PDF, and CSV previews.
+- Add persistent reactions, compact replies, avatar-backed mentions, upload routing, rich attachment rendering, and a smooth message navigator without competing with the chat scrollbar.
+- Reconcile Thinking/tool disclosures, Markdown artifacts, panel headers, borders, and scrollbars with the existing neumorphic theme system.
 
 ## 0.1.19
 

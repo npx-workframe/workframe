@@ -16,6 +16,7 @@ import {
   getWorkspaceLayoutController,
   type ApplyLayoutOptions,
 } from '@/lib/workspaceLayout'
+import { WORKSPACE_PANEL_ORDER } from '@/lib/workspaceLayoutTokens'
 import type { WorkspaceRoom } from '@/lib/workframeAuthApi'
 
 type WorkspacePanelsContextValue = {
@@ -29,7 +30,7 @@ type WorkspacePanelsContextValue = {
   openPanel: (panelId: string) => void
   openUserSettings: (
     tab?: 'profile' | 'connect' | 'agents' | 'appearance',
-    connectTab?: 'providers' | 'messaging' | 'models',
+    connectTab?: 'providers' | 'messaging',
   ) => void
   closeUserSettings: () => void
   openAgentSettings: (profile: string, displayName: string) => void
@@ -56,7 +57,9 @@ export function WorkspacePanelsProvider({
   onLogout?: () => void | Promise<void>
 }) {
   const [closedPanelIds, setClosedPanelIds] = useState<ReadonlySet<string>>(() => new Set())
-  const [railExpanded, setRailExpandedState] = useState(true)
+  const [railExpanded, setRailExpandedState] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 1280,
+  )
   const [workspaceApi, setWorkspaceApi] = useState<DockviewApi | null>(null)
   const [projectName, setProjectName] = useState('Workframe')
   const [activeRoom, setActiveRoomState] = useState<WorkspaceRoom | null>(null)
@@ -90,12 +93,8 @@ export function WorkspacePanelsProvider({
 
   const openUserSettings = useCallback((
     tab: 'profile' | 'connect' | 'agents' | 'appearance' = 'profile',
-    connectTab: 'providers' | 'messaging' | 'models' = 'providers',
+    connectTab: 'providers' | 'messaging' = 'providers',
   ) => {
-    if (connectTab === 'models') {
-      openChatSettingsRef.current?.('models')
-      return
-    }
     setUserSettingsTab(tab)
     if (tab === 'connect') setUserSettingsConnectTab(connectTab)
     setUserSettingsOpen(true)
@@ -109,8 +108,10 @@ export function WorkspacePanelsProvider({
     (api: DockviewApi, name: string, root?: HTMLElement | null) => {
       setWorkspaceApi(api)
       setProjectName(name)
-      setClosedPanelIds(new Set())
-      setRailExpandedState(true)
+      setClosedPanelIds(
+        new Set(WORKSPACE_PANEL_ORDER.filter((panelId) => !api.getPanel(panelId))),
+      )
+      setRailExpandedState(typeof window === 'undefined' || window.innerWidth >= 1280)
 
       const controller = createWorkspaceLayoutController(api, root ?? null)
       controller.layout('init')

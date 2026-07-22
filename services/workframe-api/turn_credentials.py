@@ -17,6 +17,11 @@ DATA_DIR = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data"))
 WORKFRAME_DB = DATA_DIR / "workframe.db"
 LEASE_PREFIX = "wf_rt_"
 DEFAULT_TTL = int(os.environ.get("WORKFRAME_TURN_LEASE_TTL", "900"))
+# LLM authorization belongs to a user-specific runtime profile, not to an
+# individual chat turn.  Keep that opaque broker credential long-lived and
+# explicitly revocable; rotating it on every message forces Hermes to restart
+# its gateway and can drop the in-flight response.
+RUNTIME_TTL = int(os.environ.get("WORKFRAME_RUNTIME_LEASE_TTL", "2592000"))
 
 
 def _connect() -> sqlite3.Connection:
@@ -216,6 +221,42 @@ def revoke_lease(run_id: str) -> None:
             (now, run_id),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def revoke_matching_leases(
+    *,
+    payer_user_id: str = "",
+    workspace_id: str = "",
+    provider: str = "",
+    credential_binding_id: str = "",
+) -> int:
+    """Revoke active broker credentials after an ownership/binding change."""
+    clauses = ["revoked_at IS NULL"]
+    params: list[str] = []
+    for column, value in (
+        ("payer_user_id", payer_user_id),
+        ("workspace_id", workspace_id),
+        ("provider", str(provider or "").strip().lower()),
+        ("credential_binding_id", credential_binding_id),
+    ):
+        normalized = str(value or "").strip()
+        if normalized:
+            clauses.append(f"{column} = ?")
+            params.append(normalized)
+    if len(clauses) == 1:
+        return 0
+    ensure_schema()
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _connect()
+    try:
+        cur = conn.execute(
+            f"UPDATE turn_credential_leases SET revoked_at = ? WHERE {' AND '.join(clauses)}",
+            (now, *params),
+        )
+        conn.commit()
+        return int(cur.rowcount or 0)
     finally:
         conn.close()
 

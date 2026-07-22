@@ -1,7 +1,7 @@
 # Now — shipping wedge (v0.1.x)
 
-**Last updated:** 2026-07-12
-**Package:** `0.1.19` (see [VERSION.md](../VERSION.md))
+**Last updated:** 2026-07-22
+**Package:** `0.1.20` (see [VERSION.md](../VERSION.md))
 **Active plan:** [gate-run-2026-07-08.md](handoffs/gate-run-2026-07-08.md) — close Stages A→D, stop at E
 
 ## One line
@@ -25,6 +25,48 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 
 ## Active (next proof layers)
 
+### 2026-07-22 panel chrome hierarchy
+
+- Dock panel headers now distinguish panel visibility from tab selection. Every visible panel's selected tab uses the normal active text/icon treatment even when another Dockview group has keyboard focus; only inactive sibling tabs inside the same panel group are muted.
+- Neo Blue structural dividers, panel seams, message rules, border tokens, and scrollbar thumbs use 10% white instead of opaque white; scrollbar color remains unchanged on hover. The Workframe rail label uses the same active emphasis as visible panel tabs.
+- Neo Light message-navigation ticks are opaque white rather than muted gray. Navigator preview cards use the fully opaque theme canvas in both Neo themes so chat content cannot show through the blurb.
+- Verification: full web/API/Electron production build passed. Docker DogFood live proof covered four simultaneously visible single-tab panels with only one focused Dockview group, 10% computed Neo Blue header/message/split dividers and scrollbar thumb, opaque white Neo Light navigator ticks, solid Neo preview backgrounds, identical base/hover scrollbar tokens, and a clean browser runtime log.
+
+### 2026-07-21 provider/model convergence
+
+- The agent template now owns the primary model and fallback chain. Per-user `u-*` profiles remain credential/session isolation runtimes and synchronize the agent's model choice; they are not an independent preference surface.
+- Credentials remain user-owned (BYOK/OAuth) or workspace-owned (company-pays). If the configured provider is unavailable for the acting user, the run denies with a connect-provider error instead of silently changing the agent to another provider.
+- DM, room mention, settings, composer, and slash-model callers now resolve the same agent-owned model surface. Room responses persist immutable provider/model turn metadata, so changing an agent later cannot relabel historical messages.
+- Provider pickers use live provider catalogs, open on the current agent provider, retain an advanced model-ID escape hatch without presenting a fake `custom` provider, and share the existing neumorphic settings shell. Settings screens reset to the top and keep one scroll owner.
+- Local verification: 95 API tests; web production build; Electron build + typecheck; all five scaffold packs; package-install and negative-install evidence. The repository-wide lint command still reports the known React-hooks baseline and is not claimed as green.
+- Live Docker DogFood was rebuilt with the canonical API and UI. Fresh AIbert DM and project-room turns both ran through `Codex · gpt-5.4-mini`; DM and room image attachments rendered and completed `vision_analyze`; room attribution appeared during streaming and remained immutable after reload. The live/persisted merge produced one assistant reply, with no duplicate transient row, and no silent OpenRouter reroute.
+
+### 2026-07-21 Navigator file actions
+
+- Navigator now has a file-and-folder selection mode built from the existing toolbar, button, checkbox, notice, scroll-area, and confirmation-dialog components. A single selected file downloads with its original filename; multiple files or selected folders download as a ZIP that recursively preserves their workspace-relative paths. Folder and child selections are deduplicated.
+- Bulk deletion is authenticated and guarded by an explicit count-based confirmation. The API validates the entire selection before mutation, rejects protected, missing, folder, traversal, and out-of-workspace targets, caps actions at 500 files, and closes Browser tabs for deleted files.
+- Long names now stay inside the Navigator panel with ellipsis. Selection checkboxes retain the neumorphic surface: unchecked is inset, checked is flush, with theme-correct check colors. Download feedback is the compact `Download started.` status rather than echoing a long filename.
+- Browser file tabs now use authenticated raw URLs for PNG/JPG, audio, video, and PDF previews; CSV remains an authenticated text fetch rendered as a table. Binary previews no longer make the text API decode media files, and PDF owns its native scroll surface instead of nesting scroll containers.
+- Verification: 101 API tests and the full web/Python/Electron production build pass. Live Docker DogFood proof covered recursive folder ZIP, selection/deletion gating, compact feedback, bounded long names, PNG/JPG/MP3/MP4/PDF/CSV rendering, exact two-file deletion, immediate Navigator refresh, deleted-tab cleanup, and a clean browser runtime log.
+
+### 2026-07-21 chat disclosures and artifact Markdown
+
+- Thinking segments now render through the same `ToolRunCard` disclosure used by tool calls: compact collapsed row, semantic glyph beside the chevron, and one right-edge progress/result icon with no redundant status word. The expansion behavior is identical, and the separate Thinking disclosure/CSS path was removed.
+- Browser Markdown now uses a technical artifact scale aligned with the 13px chat body: 24px H1, 18px H2, and 15px H3, with tighter document spacing and wrapped code for narrow dock panels.
+- Markdown structure remains shared across themes while relief identity comes from existing Workframe role tokens. Neo themes render inline code, code blocks, tables, callouts, details, quotes, and media as inset or raised surfaces; line-mode themes retain their hairline treatment.
+- The implementation follows `architectonic/design-system` principles: structure/identity separation, one compact type scale, semantic surface roles, calm states, and no one-off colors or shadow recipes.
+- Verification: 101 API tests and the full web/Python/Electron build pass. Docker DogFood served the same hashed source/package/install bundle; live visual proof covered collapsed and expanded Thinking cards beside tool calls plus a successful activity artifact with computed 13/24/18/15px hierarchy, wrapped code, and neo relief surfaces.
+
+### 2026-07-21 chat message interactions and rhythm
+
+- Thinking and tool disclosures in chat, plus tool rows in Activity, no longer draw a white outline; they retain the theme-owned neumorphic relief shadow. Message rows now use one symmetric spacing interval between each divider, header, and message body, including Markdown bodies that previously carried an extra 12px bottom pad.
+- Every persisted user or agent message exposes compact reply and reaction actions built from the existing shadcn-owned button, tooltip, and dropdown components. Room replies persist the real `parent_message_id`; agent-DM replies preserve visible context as a Markdown quote. Reply previews deliberately exclude hidden reasoning.
+- Reactions are authenticated and durable for room and user-namespaced DM scopes. A compact Architectonic-inspired message navigator occupies a reserved lane inside the chat gutter, physically separate from the scrollbar; it distinguishes user/agent markers, tracks the current row, and jumps to an accessible message label without creating a second scroll surface.
+- Reply and active-turn steering context now share the composer's existing bottom toolbar instead of taking a second row above the input. Reaction actions, the emoji picker, and posted reactions are flush by default; posted reactions lift only on hover and expose the reacting members with avatars. Reaction aggregates now return those member identities without exposing email addresses.
+- The @mention palette uses the shared avatar component and combines human room contacts with agents. New chat image uploads land in the workspace-visible `uploads/` folder, and chat images no longer print storage filenames, including unavailable-image fallbacks.
+- Reply references now use the shared button and icon system as compact two-line neo controls with an explicit author, preview, and jump affordance; they stay transparent at rest with a tight leading inset and gain relief only on hover. The message navigator keeps representative markers in a bounded centered cluster while retaining the active message. Its dock-like proximity response uses stable pointer bands plus transform-based displacement: the focused tick expands most, the two neighboring levels gain progressively less width and separation, and the cluster settles without moving its hit targets or spreading across the panel. The themed author/time/message preview replaces native browser tooltips. Message rows use the larger 16px symmetric spacing interval requested in the live review, and dock panel tabs remain flush until hovered.
+- Verification: 105 API tests and the full web/Python/Electron production build pass. Docker DogFood proof covered reply preview/cancel without composer squeeze, avatar-backed mention results, filename-free image rendering, positional message navigation with themed preview cards and instant end-to-end jumps, exact emoji persistence across reload, and cleanup. A live migration-version collision with the existing run-ledger migration was caught during browser testing and fixed by assigning reactions migration 15.
+
 ### 2026-07-12 stabilization finding
 
 - Package-install and negative-install evidence now match `0.1.18`; the release verifier fails closed on stale evidence.
@@ -33,14 +75,14 @@ Hermes-native **multi-user Workframe cell** on Docker/VPS: invite teammates, BYO
 - Canonical source now makes `gpt-5.4-mini` the Codex MVP/default and removes the unsupported medium model from the Codex picker. Focused model-surface tests pass.
 - That required proof was completed in the release-candidate result below.
 
-### 2026-07-12 release candidate result
+### 2026-07-22 release candidate result
 
-- `create-workframe@0.1.19` is the current candidate; version agreement passes.
+- `create-workframe@0.1.20` is the current candidate; version agreement passes.
 - Canonical API, installer mirror, packed artifact, and non-destructive MyBusiness dogfood preview contain the Codex profile migration fix.
 - Authenticated browser proof passed: `WORKFRAME_OK — ABX` from `gpt-5.4-mini`; refresh also showed the composer on `gpt-5.4-mini`.
-- Package-install, negative-install, and FirstRunEvidence all allow at `0.1.19`; `verify-release-gates.mjs` allows all tracked gates.
-- Public-repository verification passes. npm publication has **not** occurred because `npm whoami` returns `401 Unauthorized`.
-- **Next action:** authenticate npm as the package owner, rerun `npm whoami`, publish 0.1.19, then update and verify the three VPS cells through the supported update/install workflow.
+- Package-install, negative-install, and FirstRunEvidence must all allow at `0.1.20`; `verify-release-gates.mjs` fails closed on stale evidence.
+- Public-repository verification passes. npm publication is authorized through the repository's GitHub OIDC trusted-publishing workflow; local npm credentials are neither present nor required.
+- **Next action:** publish `0.1.20` through the repository's npm trusted-publishing workflow, verify the public registry artifact, then update and verify the three VPS cells through the supported update/install workflow.
 
 ### 2026-07-12 VPS target preflight
 

@@ -529,13 +529,16 @@ class AuthRoutesMixin:
         )
         display = str(body.get("display_name") or "").strip() if "display_name" in body else ""
         tagline = str(body.get("tagline") or "").strip() if "tagline" in body else ""
-        srv._seed_native_user_overlay(
-            runtime,
+        srv._apply_profile_identity(
             native_slug,
             display_name=display,
             tagline=tagline,
-            user_soul=soul,
         )
+        if soul:
+            result = srv.profile_soul_set(native_slug, soul)
+            if not result.get("ok"):
+                self._json(400, result)
+                return
         profile_patch: dict[str, Any] = {}
         if display:
             profile_patch["display_name"] = display
@@ -552,6 +555,5 @@ class AuthRoutesMixin:
                 stamp = datetime.now(timezone.utc).isoformat()
                 row_patch = {**avatar_patch, "updated_at": stamp}
                 srv._upsert_agent_registry_row(native_slug, row_patch)
-                srv._upsert_agent_registry_row(runtime, row_patch)
                 srv._sync_agent_profile_db(native_slug, {"avatar_url": avatar_patch.get("avatar_url", "")})
         self._json(200, {"ok": True, "runtime_profile": runtime})

@@ -1,4 +1,4 @@
-import { providerIconForId } from '@/lib/workframeAssets'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { cn } from '@/lib/utils'
 
 type ModelOptionButtonProps = {
@@ -26,8 +26,6 @@ export function ModelOptionButton({
   onSelect,
 }: ModelOptionButtonProps) {
   const title = label.trim() || model
-  const icon = provider ? providerIconForId(provider) : null
-
   return (
     <button
       type="button"
@@ -37,9 +35,7 @@ export function ModelOptionButton({
       data-current={isCurrent ? 'true' : undefined}
       title={singleLine ? model : undefined}
     >
-      {icon ? (
-        <img src={icon} alt="" className="wf-dialog__option-icon" aria-hidden="true" />
-      ) : null}
+      {provider ? <BrandMark providerId={provider} className="wf-dialog__option-icon" /> : null}
       <span className="wf-dialog__option-label">{title}</span>
       {!singleLine && description ? <span className="wf-dialog__option-desc">{description}</span> : null}
       {isCurrent ? <span className="wf-dialog__option-tag">active</span> : null}

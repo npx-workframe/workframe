@@ -129,10 +129,9 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         <WorkframeNotice info={flow.error} className="wf-notice--wizard" />
       ) : null}
 
-      {flow.step === 'smtp' || flow.step === 'admin_auth' ? (
-        <SettingsPanelBody compact authOtp={flow.step === 'admin_auth'}>
+      {flow.step === 'smtp' ? (
+        <SettingsPanelBody compact>
           <ConciergeSmtpStep
-          mode={flow.step}
           busy={flow.busy}
           smtpPhase={flow.smtpPhase}
           smtpHost={flow.smtpHost}
@@ -143,22 +142,31 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           smtpFrom={flow.smtpFrom}
           smtpSetupComplete={flow.smtpSetupComplete}
           smtpTested={Boolean(flow.stack?.smtp?.tested)}
-          adminEmail={flow.adminEmail}
-          adminOtpStep={flow.adminOtpStep}
-          adminAuthDevOtp={flow.adminAuthDevOtp}
-          adminAuthNotice={flow.adminAuthNotice}
-          inviteToken={inviteToken}
-          googleOAuthEnabled={Boolean(flow.stack?.google_oauth?.enabled)}
           onSmtpHostChange={flow.setSmtpHost}
           onSmtpPortChange={flow.setSmtpPort}
           onSmtpUserChange={flow.setSmtpUser}
           onSmtpPassChange={flow.setSmtpPass}
           onSmtpFromChange={flow.setSmtpFrom}
           onMarkSmtpDirty={flow.markSmtpDirty}
-          onGoogleSignIn={() => void flow.startGoogleSignIn()}
-          onAdminOtpStepChange={flow.setAdminOtpStep}
-          onAdminVerified={flow.handleAdminRegistered}
         />
+        </SettingsPanelBody>
+      ) : flow.step === 'admin_auth' ? (
+        <SettingsPanelBody compact authOtp>
+          <EmailOtpVerification
+            initialEmail={flow.adminEmail}
+            startStep={flow.adminOtpStep}
+            initialDevOtp={flow.adminAuthDevOtp}
+            initialAuthNotice={flow.adminAuthNotice}
+            inviteToken={inviteToken}
+            emailInputId="wf-concierge-admin-email"
+            purpose="register"
+            variant="wizard"
+            skipEmailStep={Boolean(flow.adminEmail.trim())}
+            googleOAuthEnabled={Boolean(flow.stack?.google_oauth?.enabled)}
+            onGoogleSignIn={() => void flow.startGoogleSignIn()}
+            onStepChange={flow.setAdminOtpStep}
+            onVerified={flow.handleAdminRegistered}
+          />
         </SettingsPanelBody>
       ) : (
         <ConciergeWizardPanels

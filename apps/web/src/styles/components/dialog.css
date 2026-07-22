@@ -940,9 +940,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-llm-models--embedded .wf-llm-models__list--embedded {
-  flex: 1;
-  min-height: 280px;
-  max-height: none;
+  min-height: 0;
 }
 
 .wf-llm-models__body {
@@ -987,10 +985,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-llm-models__list {
-  flex: 1;
-  min-height: 220px;
-  max-height: min(420px, 52vh);
-  overflow-y: auto;
+  min-height: 0;
   border: var(--wf-border-width, 1px) solid var(--wf-border);
   border-radius: var(--wf-radius-surface);
   padding: 8px;
@@ -998,8 +993,7 @@ textarea.wf-dialog-input {
 }
 
 .wf-llm-models__list--compact {
-  min-height: 160px;
-  max-height: 200px;
+  min-height: 0;
 }
 
 .wf-llm-models__custom {

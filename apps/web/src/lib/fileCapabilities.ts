@@ -166,6 +166,13 @@ export function isUnsupportedFile(fileName: string) {
   return Boolean(getFileCapability(fileName).unsupported)
 }
 
+export function hasKnownFileCapability(fileName: string) {
+  const normalized = fileName.toLowerCase()
+  if (FILE_NAME_CAPABILITIES[normalized]) return true
+  const ext = getFileExtension(fileName)
+  return Boolean(ext && CAPABILITIES[ext])
+}
+
 export function isUrl(value: string) {
   return /^https?:\/\//i.test(value.trim())
 }

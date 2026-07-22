@@ -58,18 +58,16 @@ export type ProviderBrandId =
   | 'nvidia'
   | 'stripe'
 
-const PROVIDER_ICON_BY_ID: Record<ProviderBrandId, string> = {
+const PROVIDER_ICON_BY_ID: Partial<Record<ProviderBrandId, string>> = {
   anthropic: BRAND_ICON.anthropic,
   openai: BRAND_ICON.openai,
   openrouter: BRAND_ICON.openrouter,
   cursor: BRAND_ICON.cursor,
   perplexity: BRAND_ICON.perplexity,
-  nous: BRAND_ICON.openrouter,
   github: BRAND_ICON.github,
   codex: BRAND_ICON.openai,
   google: BRAND_ICON.google,
   gemini: BRAND_ICON.gemini,
-  deepseek: BRAND_ICON.openrouter,
   brave: BRAND_ICON.brave,
   grok: BRAND_ICON.grok,
   nvidia: BRAND_ICON.nvidia,
@@ -78,8 +76,7 @@ const PROVIDER_ICON_BY_ID: Record<ProviderBrandId, string> = {
 
 export function providerIconForId(providerId: string): string | null {
   const key = providerId.trim().toLowerCase()
-  if (key in PROVIDER_ICON_BY_ID) return PROVIDER_ICON_BY_ID[key as ProviderBrandId]
-  return null
+  return PROVIDER_ICON_BY_ID[key as ProviderBrandId] ?? null
 }
 
 /** Human label for billing provider ids (codex, openrouter) — not Hermes config ids (custom, openai-codex). */

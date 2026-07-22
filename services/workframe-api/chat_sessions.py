@@ -213,6 +213,34 @@ def _llm_attribution_for_profile(profile: str, session_model: str = "") -> tuple
     return model, str(billing or "").strip()
 
 
+def _session_run_attributions(profile: str, session_id: str) -> list[tuple[str, str]]:
+    """Completed-turn model/provider pairs in the same order as chat turns."""
+    prof = str(profile or "").strip()
+    sid = str(session_id or "").strip()
+    if not prof or not sid:
+        return []
+    conn = _srv()._workframe_db()
+    try:
+        rows = conn.execute(
+            """
+            SELECT li.model, li.provider
+            FROM runs r
+            JOIN run_line_items li ON li.run_id = r.run_id AND li.kind = 'llm_turn'
+            WHERE r.session_id = ? AND r.profile_slug = ? AND r.status = 'completed'
+            ORDER BY r.created_at ASC, li.created_at ASC, li.line_item_id ASC
+            """,
+            (sid, prof),
+        ).fetchall()
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    return [
+        (str(row["model"] or "").strip(), str(row["provider"] or "").strip())
+        for row in rows
+    ]
+
+
 def _latest_session_id(profile: str) -> str:
     """Most recent session â€” prefer active (ended_at IS NULL), then by started_at."""
     db = _srv()._profile_dir(profile) / "state.db"
@@ -441,7 +469,8 @@ def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> 
         _srv()._runtime_template_slug(profile) if _srv()._is_runtime_profile_slug(profile) else profile
     )
     display = _srv()._profile_display_name(profile)
-    attr_model, attr_provider = _llm_attribution_for_profile(profile)
+    run_attributions = _session_run_attributions(profile, sid)
+    agent_turn_index = 0
     try:
         raw = conn.execute(
             """
@@ -483,12 +512,14 @@ def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> 
             if current and current["role"] == "agent":
                 current["segments"].extend(segments)
                 current["tokens"] += tokens
-                if attr_model:
-                    current["model"] = attr_model
-                    current["llm_provider"] = attr_provider
             else:
                 if current:
                     turns.append(current)
+                if agent_turn_index < len(run_attributions):
+                    attr_model, attr_provider = run_attributions[agent_turn_index]
+                else:
+                    attr_model, attr_provider = "", ""
+                agent_turn_index += 1
                 current = {
                     "id": f"turn-{m['id']}",
                     "authorId": author_profile,
@@ -497,8 +528,8 @@ def chat_messages(profile: str, session_id: str = "", source_id: str = "ui") -> 
                     "segments": list(segments),
                     "timestamp": ts,
                     "tokens": tokens,
-                    "model": attr_model,
-                    "llm_provider": attr_provider,
+                    **({"model": attr_model} if attr_model else {}),
+                    **({"llm_provider": attr_provider} if attr_provider else {}),
                 }
         if current:
             turns.append(current)

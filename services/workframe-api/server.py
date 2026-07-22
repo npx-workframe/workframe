@@ -109,6 +109,8 @@ file_read = workspace_files.file_read
 file_write = workspace_files.file_write
 file_upload_binary = workspace_files.file_upload_binary
 file_raw = workspace_files.file_raw
+files_archive = workspace_files.files_archive
+files_delete = workspace_files.files_delete
 
 import activity_feed
 
@@ -162,6 +164,8 @@ _assign_agent_avatar = avatar_registry._assign_agent_avatar
 # WF-032: runtime_cohort re-exports
 _runtime_profile_slug = runtime_cohort._runtime_profile_slug
 _prepare_runtime_profile_credentials = runtime_cohort._prepare_runtime_profile_credentials
+_refresh_user_runtime_credentials = runtime_cohort._refresh_user_runtime_credentials
+_refresh_workspace_runtime_credentials = runtime_cohort._refresh_workspace_runtime_credentials
 _resolve_runtime_owner = runtime_cohort._resolve_runtime_owner
 _user_handle = runtime_cohort._user_handle
 _user_owner_name = runtime_cohort._user_owner_name
@@ -269,6 +273,7 @@ _resolve_models_profile = model_surface._resolve_models_profile
 _model_suggestion_row = model_surface._model_suggestion_row
 _augment_model_suggestions = model_surface._augment_model_suggestions
 _billing_provider_from_block = model_surface._billing_provider_from_block
+_normalized_profile_fallback_chain = model_surface._normalized_profile_fallback_chain
 _llm_billing_provider = model_surface._llm_billing_provider
 _profile_llm_proxy_matches_billing = model_surface._profile_llm_proxy_matches_billing
 _profile_routing_matches_billing = model_surface._profile_routing_matches_billing
@@ -278,6 +283,7 @@ _catalog_row_for_billing_provider = model_surface._catalog_row_for_billing_provi
 _provider_display_label = model_surface._provider_display_label
 _model_catalog_rows_for_provider = model_surface._model_catalog_rows_for_provider
 _suggestions_for_connected_llm_providers = model_surface._suggestions_for_connected_llm_providers
+_live_suggestions_for_connected_llm_providers = model_surface._live_suggestions_for_connected_llm_providers
 _model_id_vendor_and_bare = model_surface._model_id_vendor_and_bare
 _persisted_model_id = model_surface._persisted_model_id
 _apply_model_persisted = model_surface._apply_model_persisted
@@ -1382,6 +1388,7 @@ _user_action_env_specs = turn_overlay._user_action_env_specs
 _overlay_turn_user_env = turn_overlay._overlay_turn_user_env
 _apply_action_credential_lease = turn_overlay._apply_action_credential_lease
 _revoke_turn_credential_lease = turn_overlay._revoke_turn_credential_lease
+_revoke_runtime_llm_leases = turn_overlay._revoke_runtime_llm_leases
 _require_user_provider = turn_overlay._require_user_provider
 _require_runtime_owner_provider = turn_overlay._require_runtime_owner_provider
 _strip_profile_llm_env = turn_overlay._strip_profile_llm_env
@@ -1467,11 +1474,32 @@ def _enrich_room_messages(conn: sqlite3.Connection, messages: list[Any]) -> list
     enriched: list[dict[str, Any]] = []
     for row in messages:
         item = dict(row)
+        # Provider/model attribution is turn evidence, not mutable agent state.
+        # New agent messages persist it in messages.metadata.  Legacy messages
+        # without that evidence intentionally render without a model badge rather
+        # than being relabelled whenever the agent's current model changes.
+        metadata: dict[str, Any] = {}
+        raw_metadata = item.get("metadata")
+        if isinstance(raw_metadata, dict):
+            metadata = raw_metadata
+        elif isinstance(raw_metadata, str) and raw_metadata.strip():
+            try:
+                parsed = json.loads(raw_metadata)
+                if isinstance(parsed, dict):
+                    metadata = parsed
+            except (TypeError, ValueError, json.JSONDecodeError):
+                metadata = {}
+        turn_model = str(metadata.get("model") or "").strip()
+        turn_provider = str(metadata.get("llm_provider") or "").strip()
+        if turn_model:
+            item["model"] = turn_model
+        if turn_provider:
+            item["llm_provider"] = turn_provider
         agent_id = str(item.get("sender_agent_id") or "").strip()
         if agent_id:
             agent = conn.execute(
                 """
-                SELECT slug, display_name, model_name, model_provider
+                SELECT slug, display_name
                 FROM agent_profiles WHERE id = ? AND deleted_at IS NULL
                 """,
                 (agent_id,),
@@ -1479,17 +1507,6 @@ def _enrich_room_messages(conn: sqlite3.Connection, messages: list[Any]) -> list
             if agent:
                 item["sender_agent_slug"] = str(agent["slug"])
                 item["sender_agent_name"] = str(agent["display_name"] or agent["slug"])
-                model_name = str(agent["model_name"] or "").strip()
-                model_provider = str(agent["model_provider"] or "").strip()
-                slug = str(agent["slug"] or "").strip()
-                if not model_name and slug:
-                    model_name = str(_read_model_block(slug).get("default") or "").strip()
-                if not model_provider and slug:
-                    model_provider = _llm_billing_provider(slug)
-                if model_name:
-                    item["model"] = model_name
-                if model_provider:
-                    item["llm_provider"] = model_provider
         enriched.append(item)
     return enriched
 
@@ -1542,10 +1559,13 @@ def _sync_agent_profile_db(profile: str, fields: dict[str, Any]) -> None:
         "tagline": "tagline",
         "role": "role",
         "avatar_url": "avatar_url",
+        "model_provider": "model_provider",
+        "model_name": "model_name",
     }
     updates = {column: fields[key] for key, column in column_map.items() if key in fields}
     if not updates:
         return
+    _ensure_workframe_db_schema()
     conn = _workframe_db()
     try:
         now_ts = str(int(time.time()))
@@ -1555,6 +1575,18 @@ def _sync_agent_profile_db(profile: str, fields: dict[str, Any]) -> None:
             f"UPDATE agent_profiles SET {', '.join(sets)}, updated_at = ? WHERE slug = ? AND deleted_at IS NULL",
             vals,
         )
+        if "display_name" in updates and str(updates["display_name"] or "").strip():
+            conn.execute(
+                """
+                UPDATE rooms
+                SET name = ?, updated_at = ?
+                WHERE room_type = 'direct' AND deleted_at IS NULL
+                  AND agent_profile_id IN (
+                    SELECT id FROM agent_profiles WHERE slug = ? AND deleted_at IS NULL
+                  )
+                """,
+                (str(updates["display_name"]).strip(), now_ts, slug),
+            )
         conn.commit()
     finally:
         conn.close()

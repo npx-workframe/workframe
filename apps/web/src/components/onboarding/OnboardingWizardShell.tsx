@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 
 import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { useDocumentTheme } from '@/hooks/useDocumentTheme'
@@ -50,6 +50,7 @@ export function OnboardingWizardShell({
   children,
 }: OnboardingWizardShellProps) {
   const theme = useDocumentTheme()
+  const bodyRef = useRef<HTMLDivElement>(null)
   const stepIndex = Math.max(0, steps.findIndex((s) => s.id === step))
   const reachable = maxReachableIndex ?? stepIndex
   const progress = steps.length > 1 ? Math.round(((stepIndex + 1) / steps.length) * 100) : 100
@@ -67,6 +68,12 @@ export function OnboardingWizardShell({
   const defaultLogo = defaultWizardRailLogo(theme)
   const railLogoSrc = brandLogoUrl ?? defaultLogo.src
   const railLogoMono = brandLogoUrl ? false : defaultLogo.mono
+
+  useLayoutEffect(() => {
+    // A new wizard screen is a new reading context. Do not inherit the
+    // previous screen's scroll position, which can hide its title and fields.
+    bodyRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [step])
 
   return (
     <div className="wf-onboarding-page">
@@ -159,7 +166,7 @@ export function OnboardingWizardShell({
             {description ? <p className="wf-onboarding-wizard__description">{description}</p> : null}
           </header>
 
-          <div className="wf-onboarding-wizard__body wf-scroll wf-scroll--vertical wf-scroll-host">
+          <div ref={bodyRef} className="wf-onboarding-wizard__body wf-scroll wf-scroll--vertical wf-scroll-host">
             {children}
           </div>
 

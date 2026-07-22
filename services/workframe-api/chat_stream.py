@@ -393,7 +393,20 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         raise ValueError("text required")
     # Bootstrap before reading the model block. Existing generated profiles may
     # need provider/model migrations; reading first dispatches one stale turn.
-    _srv()._bootstrap_profile_providers(prof, _triggering_user, _workspace_id)
+    bootstrapped = _srv()._bootstrap_profile_providers(prof, _triggering_user, _workspace_id)
+    # Native/template profiles can still contain the installer default
+    # (provider=openrouter + public base_url). A user vault credential must
+    # always be consumed through Workframe's authenticated proxy.
+    if _triggering_user:
+        reconciled = _srv()._reconcile_profile_llm_for_user(
+            prof, _triggering_user, _workspace_id,
+        )
+    else:
+        reconciled = False
+    if bootstrapped and not reconciled:
+        # Hermes caches config.yaml. Reload before dispatching so the first
+        # turn after a repair or model save cannot use stale routing.
+        _srv()._reload_runtime_profile_gateway(prof, wait_healthy=True)
     model_block = _srv()._read_model_block(prof)
     llm_provider = _srv()._llm_billing_provider(
         prof, user_id=_triggering_user, workspace_id=_workspace_id, block=model_block,

@@ -36,6 +36,45 @@ export type ChatMessage = {
   color?: string
   avatarUrl?: string | null
   initials?: string
+  replyTo?: ChatReplyTarget
+}
+
+export type ChatReplyTarget = {
+  id: string
+  authorId: string
+  authorName: string
+  preview: string
+}
+
+export type ChatReaction = {
+  emoji: string
+  count: number
+  reacted: boolean
+  reactors: ChatReactionReactor[]
+}
+
+export type ChatReactionReactor = {
+  userId: string
+  displayName: string
+  avatarUrl?: string | null
+}
+
+export function chatMessagePreview(message: ChatMessage, maxLength = 120): string {
+  const raw = message.segments
+    .map((segment) => {
+      // Reply and navigator previews describe the visible message, never the
+      // agent's private reasoning that may precede it in the segment stream.
+      if (segment.kind === 'text') return segment.text
+      if (segment.kind === 'thinking') return ''
+      if (segment.kind === 'image') return segment.name ? `Image: ${segment.name}` : 'Image attachment'
+      if (segment.kind === 'tool') return `Tool: ${segment.name}`
+      return segment.notice.message
+    })
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!raw) return 'Message'
+  return raw.length > maxLength ? `${raw.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…` : raw
 }
 
 export type ChatModel = {

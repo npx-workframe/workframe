@@ -17,7 +17,6 @@ import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/Workfram
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { useAgentRoute } from '@/contexts/AgentRouteContext'
-import { useHermesSession } from '@/contexts/HermesSessionContext'
 import { useCrew } from '@/hooks/useCrew'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveAgentAvatarUrl, resolveUserAvatarUrl } from '@/lib/avatarResolve'
@@ -32,7 +31,6 @@ import {
 } from '@/lib/hermesCatalogApi'
 import { resolveAgentModelsProfile, resolveAgentTemplateProfile } from '@/lib/agentProfile'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
-import { cn } from '@/lib/utils'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
 import {
   workframeAuthApi,
@@ -63,7 +61,6 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
   const { crew, reload: reloadCrew } = useCrew(projectName)
   const { activeRoom, setActiveRoom } = useWorkspacePanels()
   const { activeProfile, routes } = useAgentRoute()
-  const { profile: sessionRuntimeProfile } = useHermesSession()
   const [me, setMe] = useState<{ user_id: string; workspace_id: string } | null>(null)
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [roomMembers, setRoomMembers] = useState<WorkspaceRoomMember[]>([])
@@ -94,8 +91,8 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
     [activeRoom, activeProfile],
   )
   const modelsProfile = useMemo(
-    () => resolveAgentModelsProfile(activeRoom, activeProfile, sessionRuntimeProfile),
-    [activeRoom, activeProfile, sessionRuntimeProfile],
+    () => resolveAgentModelsProfile(activeRoom, activeProfile),
+    [activeRoom, activeProfile],
   )
   const route = useMemo(
     () => routes.find((row) => row.profile === agentProfile) ?? null,
@@ -456,21 +453,23 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
         }
         onTabChange={
           mode === 'agent'
-            ? (next) => setAgentTab(next as AgentSettingsTab)
+            ? (next) => {
+                setAgentTab(next as AgentSettingsTab)
+                setError('')
+                setStatus('')
+              }
             : mode === 'project'
-              ? (next) => setProjectTab(next as ProjectSettingsTab)
+              ? (next) => {
+                  setProjectTab(next as ProjectSettingsTab)
+                  setError('')
+                  setStatus('')
+                }
               : undefined
         }
         loading={loading}
-        contentFill={mode === 'agent' && agentTab === 'models'}
         actions={footerActions}
       >
-        <div
-          className={cn(
-            'space-y-6',
-            mode === 'agent' && agentTab === 'models' && 'wf-settings-fill-stack',
-          )}
-        >
+        <div className="space-y-6">
           {mode === 'dm' && error ? <WorkframeNotice message={error} /> : null}
           {mode === 'dm' && status ? <WorkframeStatusNotice message={status} /> : null}
 
@@ -671,7 +670,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                 )}
               </SettingsSection>
               <p className="text-sm text-muted-foreground italic border-t border-border pt-4">
-                Block and clear-history actions will land here in a later slice.
+                This direct conversation is visible only to its members. Workframe admins manage membership and access.
               </p>
             </div>
           ) : null}

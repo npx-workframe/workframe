@@ -1,7 +1,7 @@
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { Label } from '@/components/ui/label'
-import { providerIconForId } from '@/lib/workframeAssets'
+import { BrandMark } from '@/components/ui/BrandMark'
 import type { ProviderConnectRow } from '@/lib/workframeAuthApi'
 
 type ProviderOptionRowProps = {
@@ -18,6 +18,7 @@ type ProviderOptionRowProps = {
   onCancel: () => void
   onSave: () => void
   onOAuth?: () => void
+  lockSharedCredential?: boolean
 }
 
 export function ProviderOptionRow({
@@ -34,26 +35,22 @@ export function ProviderOptionRow({
   onCancel,
   onSave,
   onOAuth,
+  lockSharedCredential,
 }: ProviderOptionRowProps) {
   const inputType = row.connect_mode === 'bot_token' ? 'bot token' : 'API key'
   const showPatFallback = row.id === 'github' && row.connect_mode === 'oauth'
-  const providerIcon = providerIconForId(row.id)
-
   return (
     <li className="wf-provider-connect__item">
       <div className="wf-provider-connect__row">
         <div className="wf-sign-in-app__icon" aria-hidden="true">
-          {providerIcon ? (
-            <img src={providerIcon} alt="" className="wf-sign-in-app__brand-img wf-brand-img--theme" />
-          ) : (
-            <span className="wf-provider-connect__icon--placeholder" />
-          )}
+          <BrandMark providerId={row.id} className="wf-sign-in-app__brand-img" />
         </div>
         <div className="wf-provider-connect__copy">
           <div className="wf-provider-connect__title-row">
             <strong>{row.label}</strong>
             <code className="wf-provider-connect__env">{row.env_var || 'OAuth'}</code>
             {row.user_only ? <span className="wf-provider-connect__badge">per-user</span> : null}
+            {row.source === 'workspace' ? <span className="wf-provider-connect__badge">shared</span> : null}
           </div>
           <span className="wf-provider-connect__desc">{row.description}</span>
         </div>
@@ -61,7 +58,7 @@ export function ProviderOptionRow({
           <input
             type="checkbox"
             checked={row.connected}
-            disabled={disabled || isBusy}
+            disabled={disabled || isBusy || (lockSharedCredential && row.source === 'workspace')}
             aria-label={`Connect ${row.label}`}
             onChange={(event) => onToggle(event.target.checked)}
           />

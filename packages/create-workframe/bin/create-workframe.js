@@ -1360,10 +1360,27 @@ echo "Done. Mission control and workframe unchanged unless you recreate the full
 `;
 }
 
-function launchPhaseBInstaller(target) {
+function launchPhaseBInstaller(target, { wait = false, noBrowser = false } = {}) {
   if (process.platform === 'win32') {
     const script = path.join(target, 'scripts', 'start-install.ps1');
     if (!fs.existsSync(script)) return false;
+    if (wait) {
+      const args = [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        script,
+        '-NoPrompt',
+      ];
+      if (noBrowser) args.push('-NoBrowser');
+      const child = spawnSync('powershell.exe', args, { cwd: target, stdio: 'inherit' });
+      if (child.error) throw child.error;
+      if (child.status !== 0) {
+        throw new Error(`Phase B installer failed (${child.status ?? 'unknown exit'})`);
+      }
+      return true;
+    }
     const escaped = script.replace(/'/g, "''");
     const child = spawn(
       'powershell.exe',
@@ -1386,6 +1403,16 @@ function launchPhaseBInstaller(target) {
   }
   const script = path.join(target, 'scripts', 'start-install.sh');
   if (!fs.existsSync(script)) return false;
+  if (wait) {
+    const args = ['--no-prompt'];
+    if (noBrowser) args.push('--no-browser');
+    const child = spawnSync(script, args, { cwd: target, stdio: 'inherit' });
+    if (child.error) throw child.error;
+    if (child.status !== 0) {
+      throw new Error(`Phase B installer failed (${child.status ?? 'unknown exit'})`);
+    }
+    return true;
+  }
   const child = spawn(script, [], {
     cwd: target,
     detached: true,
@@ -1520,7 +1547,12 @@ ${openWorkframeBrowserBlockSh()}
 }
 
 function startInstallPs1(docker, nativeProfile, nativeAgentName, ports) {
-  return `$ErrorActionPreference = 'Stop'
+  return `param(
+  [switch]$NoBrowser,
+  [switch]$NoPrompt
+)
+
+$ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
@@ -1533,7 +1565,9 @@ Write-Host " Project: ${nativeAgentName}" -ForegroundColor Cyan
 Write-Host '========================================' -ForegroundColor Cyan
 Write-Host ''
 
-& "$Root\\scripts\\open-install-ui.ps1"
+if (-not $NoBrowser) {
+  & "$Root\\scripts\\open-install-ui.ps1"
+}
 
 Write-Host 'Step 1/2 - Starting Docker stack...' -ForegroundColor Yellow
 ${composeUpPs1Block()}
@@ -1558,8 +1592,14 @@ Write-Host '  Workframe UI:      http://127.0.0.1:${ports.ui}'
 Write-Host '  Hermes dashboard:  http://127.0.0.1:${ports.dashboard}'
 Write-Host ''
 Write-Host 'LLM keys are configured in the onboarding UI - no Hermes TUI required.' -ForegroundColor DarkGray
-${openInstallBrowserBlockPs1()}
-Read-Host 'Press Enter to close'
+if (-not $NoBrowser) {
+  Write-Host ''
+  Write-Host 'Opening Workframe setup wizard (/install)...' -ForegroundColor Green
+  & "$Root\\scripts\\open-install-ui.ps1"
+}
+if (-not $NoPrompt) {
+  Read-Host 'Press Enter to close'
+}
 `;
 }
 
@@ -1568,6 +1608,15 @@ function startInstallSh(docker, nativeProfile, nativeAgentName, ports) {
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+NO_BROWSER=0
+for arg in "$@"; do
+  case "$arg" in
+    --no-browser) NO_BROWSER=1 ;;
+    --no-prompt) ;;
+    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
 
 mkdir -p Agents Files
 
@@ -1578,7 +1627,9 @@ echo " Project: ${nativeAgentName}"
 echo "========================================"
 echo ""
 
-"$ROOT/scripts/open-install-ui.sh" || true
+if [ "$NO_BROWSER" -eq 0 ]; then
+  "$ROOT/scripts/open-install-ui.sh" || true
+fi
 
 echo "Step 1/2 — Starting Docker stack..."
 ${composeUpBashBlock()}
@@ -1598,7 +1649,11 @@ echo "  Workframe UI:      http://127.0.0.1:${ports.ui}"
 echo "  Hermes dashboard:  http://127.0.0.1:${ports.dashboard}/"
 echo ""
 echo "LLM keys are configured in the onboarding UI - no Hermes TUI required."
-${openInstallBrowserBlockSh()}
+if [ "$NO_BROWSER" -eq 0 ]; then
+  echo ""
+  echo "Opening Workframe setup wizard (/install)..."
+  "$ROOT/scripts/open-install-ui.sh" || true
+fi
 `;
 }
 
@@ -1827,6 +1882,8 @@ function parseArgs(argv) {
     else if (a === '--run-docker-pull') args.runDockerPull = true;
     else if (a === '--allow-install-actions') args.installGuideOnly = false;
     else if (a === '--no-launch') args.noLaunch = true;
+    else if (a === '--wait') args.waitForInstall = true;
+    else if (a === '--no-browser') args.noBrowser = true;
     else if (a === '--slot') args.slot = Number(argv[++i]);
     else if (a.startsWith('--slot=')) args.slot = Number(a.split('=', 2)[1]);
     else if (a === '--deploy') args.deploy = argv[++i];
@@ -1867,6 +1924,8 @@ Flags:
   --allow-install-actions  Allow installer to execute shell install actions
   -y, --yes                Non-interactive defaults
   --no-launch              Scaffold only; do not open Phase B installer
+  --wait                   Run Phase B here and fail if installation fails
+  --no-browser             With --wait, do not open the system browser
 `);
 }
 
@@ -2799,9 +2858,14 @@ async function main() {
     console.log(`Bootstrap default: bootstrap-native (full pack: ${profiles.length} profiles)`);
     console.log(`SOUL seeds: ${seedProfiles.length} profiles + native SETUP playbook`);
     if (!args.ci && !args.noLaunch) {
-      if (launchPhaseBInstaller(target)) {
+      if (launchPhaseBInstaller(target, {
+        wait: Boolean(args.waitForInstall),
+        noBrowser: Boolean(args.noBrowser),
+      })) {
         console.log('');
-        console.log('Launching installer — browser opens /install immediately.');
+        console.log(args.waitForInstall
+          ? 'Installer completed successfully.'
+          : 'Launching installer — browser opens /install immediately.');
         console.log(`Continue setup at http://127.0.0.1:${ports.ui}/install`);
       }
     } else if (args.noLaunch) {
