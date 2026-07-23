@@ -1,0 +1,218 @@
+/*
+ * Architectonic -> Workframe semantic adapter.
+ * Architectonic owns visual identity; Workframe keeps its layout and behavior contracts.
+ */
+:root[data-arch-theme] {
+  --wf-font-sans: var(--font-sans);
+  --wf-font-mono: var(--font-mono);
+  --wf-bg: var(--bg);
+  --wf-text: var(--fg);
+  --wf-fg: var(--fg);
+  --wf-foreground: var(--fg);
+  --wf-muted: var(--fg-muted);
+  --wf-muted-fg: var(--fg-muted);
+  --wf-border: var(--line);
+  --wf-border-strong: var(--line-strong);
+  --wf-surface: var(--surface);
+  --wf-surface-soft: var(--surface-2);
+  --wf-surface-elevated: var(--card-bg, var(--surface));
+  --wf-surface-sunken: var(--field-bg, var(--surface-2));
+  --wf-input-bg: var(--field-bg);
+  --wf-input-border: var(--field-border);
+  --wf-primary: var(--primary);
+  --wf-primary-foreground: var(--primary-fg);
+  --wf-violet: var(--primary);
+  --wf-violet-glow: var(--primary-hover);
+  --wf-cyan: var(--info);
+  --wf-teal: var(--info);
+  --wf-mint: var(--ok);
+  --wf-ring: color-mix(in srgb, var(--ring) 32%, transparent);
+  --wf-error: var(--bad);
+  --wf-danger: var(--bad);
+  --wf-error-soft: color-mix(in srgb, var(--bad) 76%, var(--fg));
+  --wf-success: var(--ok);
+  --wf-warning: var(--warn);
+
+  --wf-shadow-sm: var(--shadow-sm);
+  --wf-shadow-md: var(--shadow-md);
+  --wf-shadow-lg: var(--shadow-lg);
+  --wf-shadow-xl: var(--shadow-xl);
+  --wf-shadow-inset: var(--shadow-inset);
+  --wf-shadow-l: var(--shadow-lg);
+
+  --wf-border-width: var(--border-w);
+  --wf-control-border-ring-raised: var(--line-strong);
+  --wf-type-overline: var(--text-overline);
+  --wf-dot-grid-tile: 10px;
+  --wf-dot-grid-rgb: 0 0 0;
+  --wf-dot-grid-opacity: 0.08;
+  --wf-moleskine-grid-tile: 24px;
+  --wf-moleskine-grid-line: color-mix(in srgb, var(--fg) 8%, transparent);
+
+  --wf-bg-gradient: none;
+  --wf-orb-primary: transparent;
+  --wf-orb-primary-opacity: 0;
+  --wf-orb-secondary: transparent;
+  --wf-orb-secondary-opacity: 0;
+  --wf-overlay: none;
+
+  --wf-notice-fg: var(--fg);
+  --wf-notice-muted: var(--fg-muted);
+  --wf-notice-border: var(--line-strong);
+  --wf-notice-bg: var(--info-soft);
+  --wf-notice-info-bg: var(--info-soft);
+  --wf-notice-info-border: color-mix(in srgb, var(--info) 32%, var(--line));
+  --wf-status-fg: var(--fg-muted);
+
+  --wf-chrome-border-solid: var(--line);
+  --wf-chrome-border-whisper: color-mix(in srgb, var(--line) 30%, transparent);
+  --wf-chrome-border-subtle: color-mix(in srgb, var(--line) 40%, transparent);
+  --wf-chrome-border-weak: color-mix(in srgb, var(--line) 45%, transparent);
+  --wf-chrome-border-light: color-mix(in srgb, var(--line) 50%, transparent);
+  --wf-chrome-border: color-mix(in srgb, var(--line) 55%, transparent);
+  --wf-chrome-border-dim: color-mix(in srgb, var(--line) 60%, transparent);
+  --wf-chrome-border-accent: color-mix(in srgb, var(--line) 65%, transparent);
+  --wf-chrome-border-strong: var(--line-strong);
+  --wf-chrome-border-drag: color-mix(in srgb, var(--line-strong) 72%, transparent);
+  --wf-chrome-border-heavy: color-mix(in srgb, var(--line-strong) 75%, transparent);
+  --wf-chrome-border-soft: color-mix(in srgb, var(--line) 80%, transparent);
+  --wf-chrome-border-faint: color-mix(in srgb, var(--line) 85%, transparent);
+  --wf-chrome-border-ghost: color-mix(in srgb, var(--line) 90%, transparent);
+  --wf-divider-color: var(--line-strong);
+  --wf-tool-chrome-border: var(--line);
+  --wf-dnd-indicator-bg: color-mix(in srgb, var(--primary) 14%, transparent);
+  --wf-dnd-indicator-border: var(--primary);
+  --wf-scrollbar-thumb: color-mix(in srgb, var(--fg-muted) 34%, transparent);
+  --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
+
+  /* A full capsule is reserved for controls up to 40px tall. */
+  --wf-radius-control-cap: min(var(--radius-control), 1.25rem);
+  --wf-radius-control: var(--wf-radius-control-cap);
+  --wf-radius-row: var(--wf-radius-control-cap);
+  --wf-radius-surface: var(--radius-card);
+  --wf-radius-tool-btn: var(--wf-radius-control-cap);
+  --wf-radius-panel-control: var(--wf-radius-control-cap);
+  --wf-radius-browser-toolbar-btn: var(--wf-radius-control-cap);
+  --wf-rail-cell-radius: var(--wf-radius-control-cap);
+
+  --radius: var(--wf-radius-control-cap);
+  --border-width: var(--border-w);
+  --background: var(--wf-bg);
+  --foreground: var(--wf-text);
+  --card: var(--card-bg);
+  --card-foreground: var(--card-fg);
+  --popover: var(--pop-bg);
+  --popover-foreground: var(--pop-fg);
+  --primary-foreground: var(--wf-primary-foreground);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--wf-text);
+  --muted-foreground: var(--wf-muted);
+  --accent: var(--accent-soft);
+  --accent-foreground: var(--wf-primary);
+  --destructive: var(--bad);
+  --destructive-foreground: var(--bad-fg);
+  --border: var(--wf-border);
+  --input: var(--field-border);
+}
+
+:root[data-style='lines'] {
+  --wf-control-bg: transparent;
+  --wf-control-bg-hover: var(--muted-hover);
+  --wf-control-bg-active: var(--muted);
+  --wf-control-border-width: var(--border-w);
+  --wf-control-border-color: var(--line);
+  --wf-control-border-color-hover: var(--line-strong);
+  --wf-control-border-color-active: var(--line-strong);
+  --wf-control-border-color-inactive: var(--line-soft);
+  --wf-control-shadow: none;
+  --wf-control-shadow-hover: var(--shadow-sm);
+  --wf-control-shadow-active: var(--shadow-inset);
+  --wf-control-shadow-flush: none;
+  --wf-control-shadow-raised: var(--shadow-sm);
+  --wf-control-shadow-highlight: var(--shadow-sm);
+  --wf-control-shadow-inset: var(--shadow-inset);
+  --wf-control-shadow-elevated: var(--shadow-lg);
+  --wf-control-shadow-footer: none;
+
+  --wf-btn-bg: transparent;
+  --wf-btn-bg-hover: var(--muted-hover);
+  --wf-btn-bg-primary: var(--primary);
+  --wf-btn-fg: var(--fg);
+  --wf-btn-fg-inactive: var(--fg-subtle);
+  --wf-btn-border-width: var(--border-w);
+  --wf-btn-border-color: var(--line);
+  --wf-btn-border-color-hover: var(--line-strong);
+  --wf-btn-border-color-primary: var(--primary);
+  --wf-btn-border-color-inactive: var(--line-soft);
+  --wf-btn-shadow: none;
+  --wf-btn-shadow-hover: var(--shadow-sm);
+  --wf-btn-shadow-primary: var(--shadow-sm);
+  --wf-icon-control-border-width: 0;
+}
+
+:root[data-style='shadows'] {
+  --wf-relief-shadow-rgb: 0 0 0;
+  --wf-relief-shadow-alpha: 0.15;
+  --wf-relief-highlight-rgb: 255 255 255;
+  --wf-relief-highlight-alpha: 0.8;
+  --wf-border: transparent;
+  --wf-border-strong: transparent;
+  --wf-divider-color: transparent;
+  --wf-tool-chrome-border: transparent;
+  --wf-border-width: 1px;
+  --wf-control-border-ring-raised: var(--bg);
+}
+
+:root[data-style='shadows'][data-color-mode='dark'] {
+  --wf-relief-shadow-alpha: 0.5;
+  --wf-relief-highlight-alpha: 0.1;
+}
+
+:root[data-style='glass'] {
+  --wf-surface: var(--card-bg);
+  --wf-surface-soft: var(--field-bg);
+  --wf-surface-elevated: var(--pop-bg);
+  --wf-overlay-bg: color-mix(in srgb, var(--bg) 58%, transparent);
+  --wf-control-bg: color-mix(in srgb, var(--surface) 22%, transparent);
+  --wf-control-bg-hover: color-mix(in srgb, var(--surface) 42%, transparent);
+  --wf-control-bg-active: color-mix(in srgb, var(--surface) 54%, transparent);
+  --wf-control-border-width: var(--border-w);
+  --wf-control-border-color: var(--line);
+  --wf-control-border-color-hover: var(--line-strong);
+  --wf-control-border-color-active: var(--line-strong);
+  --wf-control-border-color-inactive: var(--line-soft);
+  --wf-control-shadow: none;
+  --wf-control-shadow-hover: var(--shadow-sm);
+  --wf-control-shadow-active: var(--shadow-inset);
+  --wf-control-shadow-flush: none;
+  --wf-control-shadow-raised: var(--shadow-sm);
+  --wf-control-shadow-highlight: var(--shadow-sm);
+  --wf-control-shadow-inset: var(--shadow-inset);
+  --wf-control-shadow-elevated: var(--shadow-lg);
+  --wf-control-shadow-footer: none;
+  --wf-btn-bg: transparent;
+  --wf-btn-bg-hover: color-mix(in srgb, var(--surface) 42%, transparent);
+  --wf-btn-bg-primary: color-mix(in srgb, var(--primary) 18%, transparent);
+  --wf-btn-border-width: var(--border-w);
+  --wf-btn-border-color: var(--line);
+  --wf-btn-border-color-hover: var(--line-strong);
+  --wf-btn-border-color-primary: color-mix(in srgb, var(--primary) 38%, var(--line));
+  --wf-btn-border-color-inactive: var(--line-soft);
+  --wf-btn-shadow: none;
+  --wf-btn-shadow-hover: var(--shadow-sm);
+  --wf-btn-shadow-primary: var(--shadow-sm);
+  --wf-icon-control-border-width: 0;
+}
+
+:root[data-style='glass'] :is(.wf-dialog-content, .wf-auth-card, .wf-auth, .wf-onboarding-wizard) {
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+body {
+  background-image: var(--theme-canvas-image, none);
+  background-size: var(--theme-canvas-size, auto);
+  background-position: var(--theme-canvas-position, 0 0);
+  background-attachment: var(--theme-canvas-attachment, scroll);
+  background-blend-mode: var(--theme-canvas-blend-mode, normal);
+}

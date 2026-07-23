@@ -1,27 +1,33 @@
-export type Theme = 'strato-dark' | 'neo-light' | 'neo-blue'
+import {
+  ARCHITECTONIC_THEME_REGISTRY,
+  type ArchitectonicTheme,
+  type ArchitectonicThemeDefinition,
+} from '@/generated/architectonicThemes'
 
-export type ChromeMode = 'line' | 'relief'
+export type Theme = ArchitectonicTheme
+export type ChromeMode = 'line' | 'relief' | 'glass'
 
-const CHROME_MODE: Record<Theme, ChromeMode> = {
-  'strato-dark': 'line',
-  'neo-light': 'relief',
-  'neo-blue': 'relief',
-}
+export const THEME_DEFINITIONS = ARCHITECTONIC_THEME_REGISTRY.themes
+export const VALID_THEMES = THEME_DEFINITIONS.map((definition) => definition.id) as Theme[]
 
 const STORAGE_KEY = 'wf-theme'
-
-const VALID_THEMES: Theme[] = ['strato-dark', 'neo-light', 'neo-blue']
-
-/** ponytail: one-time localStorage migration from pre-rebrand slugs */
 const LEGACY_THEME: Record<string, Theme> = {
-  dark: 'strato-dark',
-  neo: 'neo-light',
-  blueprint: 'neo-blue',
+  ...ARCHITECTONIC_THEME_REGISTRY.legacyAliases,
+  'strato-dark': 'liquid-glass-dark',
+  'neo-blue': 'neo-dark',
+}
+
+export function isTheme(value: string | null | undefined): value is Theme {
+  return Boolean(value && VALID_THEMES.includes(value as Theme))
+}
+
+export function getThemeDefinition(theme: Theme): ArchitectonicThemeDefinition {
+  return THEME_DEFINITIONS.find((definition) => definition.id === theme) ?? THEME_DEFINITIONS[0]
 }
 
 function normalizeTheme(value: string | null): Theme | null {
   if (!value) return null
-  if (VALID_THEMES.includes(value as Theme)) return value as Theme
+  if (isTheme(value)) return value
   return LEGACY_THEME[value] ?? null
 }
 
@@ -29,9 +35,7 @@ function readStoredTheme(): Theme | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const theme = normalizeTheme(raw)
-    if (theme && raw !== theme) {
-      localStorage.setItem(STORAGE_KEY, theme)
-    }
+    if (theme && raw !== theme) localStorage.setItem(STORAGE_KEY, theme)
     return theme
   } catch {
     return null
@@ -39,41 +43,38 @@ function readStoredTheme(): Theme | null {
 }
 
 export function getInitialTheme(): Theme {
-  return readStoredTheme() ?? 'neo-light'
+  return readStoredTheme() ?? ARCHITECTONIC_THEME_REGISTRY.defaultTheme
 }
 
-export function isStratoDark(theme: Theme): boolean {
-  return theme === 'strato-dark'
+export function isDarkTheme(theme: Theme): boolean {
+  return getThemeDefinition(theme).mode === 'dark'
 }
 
 export function isReliefTheme(theme: Theme): boolean {
-  return theme === 'neo-light' || theme === 'neo-blue'
+  return getThemeDefinition(theme).style === 'shadows'
 }
 
 export function applyTheme(theme: Theme) {
-  document.documentElement.dataset.theme = theme
-  document.documentElement.dataset.chromeMode = CHROME_MODE[theme]
-  document.documentElement.style.colorScheme = isStratoDark(theme) ? 'dark' : 'light'
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0A0A0F')
-  installNeoPressFeedback(isReliefTheme(theme))
-}
+  const root = document.documentElement
+  const definition = getThemeDefinition(theme)
+  const chromeMode: ChromeMode =
+    definition.style === 'shadows' ? 'relief' : definition.style === 'glass' ? 'glass' : 'line'
 
-let neoPressCleanup: (() => void) | undefined
+  root.dataset.theme = theme
+  root.dataset.archTheme = theme
+  root.dataset.colorMode = definition.mode
+  root.dataset.style = definition.style
+  root.dataset.texture = definition.texture
+  root.dataset.chromeMode = chromeMode
+  root.dataset.density = 'technical'
+  root.dataset.space = 'default'
+  root.dataset.typeScale = 'compact'
+  root.style.colorScheme = definition.mode
 
-function installNeoPressFeedback(enabled: boolean) {
-  neoPressCleanup?.()
-  neoPressCleanup = undefined
-  if (!enabled) return
-
-  const onPointerUp = (event: PointerEvent) => {
-    const close = (event.target as Element | null)?.closest?.('.wf-browser-tabs__close')
-    if (!(close instanceof HTMLElement) || close.matches(':disabled')) return
-    close.classList.add('wf-neo-pressed')
-    window.setTimeout(() => close.classList.remove('wf-neo-pressed'), 500)
-  }
-
-  document.addEventListener('pointerup', onPointerUp)
-  neoPressCleanup = () => document.removeEventListener('pointerup', onPointerUp)
+  const canvas = getComputedStyle(root).getPropertyValue('--bg').trim()
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', canvas || (definition.mode === 'dark' ? '#0b1120' : '#f7f9fb'))
 }
 
 export function persistTheme(theme: Theme) {

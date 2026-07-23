@@ -1,55 +1,7 @@
 /**
- * shadcn/ui CSS variable bridge — aliases Workframe --wf-* tokens so CLI
- * components theme automatically. Add new shadcn components without rewiring.
+ * Tailwind/shadcn compile-time aliases. Runtime semantic values come from the
+ * Architectonic bridge so every registered theme follows one path.
  */
-
-[data-theme='strato-dark'],
-[data-theme='neo-light'],
-[data-theme='neo-blue'] {
-  --radius: 0.5rem;
-  --border-width: 1px;
-
-  --background: var(--wf-bg);
-  --foreground: var(--wf-text);
-
-  --card: var(--wf-surface);
-  --card-foreground: var(--wf-text);
-
-  --popover: var(--wf-surface);
-  --popover-foreground: var(--wf-text);
-
-  --primary: var(--wf-primary);
-  --primary-foreground: var(--wf-primary-foreground);
-
-  --secondary: var(--wf-surface-soft);
-  --secondary-foreground: var(--wf-text);
-
-  --muted: var(--wf-surface-soft);
-  --muted-foreground: var(--wf-muted);
-
-  --accent: color-mix(in srgb, var(--wf-primary) 10%, transparent);
-  --accent-foreground: var(--wf-primary);
-
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  --border: var(--wf-border);
-  --input: var(--wf-border-strong);
-  --ring: var(--wf-ring);
-  
-  --shadow-sm: var(--wf-shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
-  --shadow-md: var(--wf-shadow-md, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06));
-  --shadow-lg: var(--wf-shadow-lg, 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05));
-  --shadow-xl: var(--wf-shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04));
-}
-
-[data-theme='neo-light'],
-[data-theme='neo-blue'] {
-  --radius: 12px;
-  --border-width: 0px;
-  --border: transparent;
-  --input: transparent;
-}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 2px);

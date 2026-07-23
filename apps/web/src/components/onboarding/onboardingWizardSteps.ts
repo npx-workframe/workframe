@@ -2,6 +2,7 @@ import type { WizardStepItem } from '@/components/onboarding/OnboardingWizardShe
 
 export type ConciergeStep =
   | 'intro'
+  | 'theme'
   | 'welcome'
   | 'smtp'
   | 'admin_auth'
@@ -21,6 +22,7 @@ export function wizardRailStep(step: ConciergeStep): string {
 }
 
 const INVITEE_STEPS: WizardStepItem[] = [
+  { id: 'theme', label: 'Your Theme', group: 'Join' },
   { id: 'profile', label: 'Your Identity', group: 'Join' },
   { id: 'agent_model', label: 'Provider & model', group: 'Join' },
 ]
@@ -35,12 +37,14 @@ export function buildWizardSteps(
   if (!modeChosen) {
     return [
       { id: 'intro', label: 'Welcome', group: 'Setup' },
+      { id: 'theme', label: 'Your Theme', group: 'Setup' },
       { id: 'welcome', label: 'Deployment', group: 'Setup' },
     ]
   }
 
   const steps: WizardStepItem[] = [
     { id: 'intro', label: 'Welcome', group: 'Setup' },
+    { id: 'theme', label: 'Your Theme', group: 'Setup' },
     { id: 'welcome', label: 'Deployment', group: 'Setup' },
   ]
 
@@ -80,6 +84,11 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
       }
     case 'welcome':
       return { title: 'Deployment', description: 'Choose who will use this Workframe install.' }
+    case 'theme':
+      return {
+        title: 'Pick a theme',
+        description: 'Make Workframe feel like yours. You can change this anytime in User Settings → Appearance.',
+      }
     case 'smtp':
       return { title: 'Email delivery', description: 'Configure and test SMTP for sign-in codes, invites, and notifications.' }
     case 'admin_auth':
@@ -155,6 +164,8 @@ export type WizardStatusContext = {
   agentPrimaryModel: string
   inviteEmails: string
   publicUrl: string
+  themeLabel: string
+  themeConfirmed: boolean
 }
 
 function truncate(text: string, max = 36): string {
@@ -182,6 +193,8 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
         return ctx.modeChosen
           ? { ...step, configured: true, detail: MODE_LABELS[ctx.deploymentMode] ?? ctx.deploymentMode }
           : step
+      case 'theme':
+        return { ...step, configured: ctx.themeConfirmed, detail: ctx.themeLabel || 'Optional' }
       case 'smtp': {
         const host = ctx.smtpHost.trim() || ctx.stack?.smtp?.host?.trim() || ''
         const smtpReady = Boolean(ctx.stack?.smtp?.configured || host)
@@ -271,10 +284,6 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
 }
 
 /** Map wizard rail id → internal concierge step (admin OTP shares smtp rail). */
-export function railStepToConciergeStep(
-  railId: string,
-  _currentStep: ConciergeStep,
-  _adminVerified: boolean,
-): ConciergeStep {
+export function railStepToConciergeStep(railId: string): ConciergeStep {
   return railId as ConciergeStep
 }

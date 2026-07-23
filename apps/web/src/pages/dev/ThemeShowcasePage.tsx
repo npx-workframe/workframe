@@ -2,8 +2,11 @@ import { useMemo, useState, type ReactNode } from 'react'
 
 import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { useTheme } from '@/hooks/useTheme'
+import { getThemeDefinition } from '@/lib/theme'
 
 const PALETTE_TOKENS = [
   '--wf-bg',
@@ -71,6 +74,7 @@ function SpecCard({ title, children }: { title: string; children: ReactNode }) {
 
 export function ThemeShowcasePage() {
   const { theme } = useTheme()
+  const definition = getThemeDefinition(theme)
   const [liveToken, setLiveToken] = useState('--wf-accent')
   const [liveValue, setLiveValue] = useState('')
 
@@ -97,8 +101,8 @@ export function ThemeShowcasePage() {
           <p className="wf-theme-showcase__eyebrow">UI lab · /dev/theme (or ?wf-dev=theme)</p>
           <h1>Theme &amp; token contract</h1>
           <p className="wf-theme-showcase__lede">
-            Theme: <strong>{theme}</strong> — palette primitives, semantic aliases, type scale, and custom scrollbar
-            thumbs (white default, accent purple on thumb hover in Neo Light).
+            Theme: <strong>{theme}</strong> · {definition.mode} · {definition.style} · {definition.texture}. Palette,
+            semantic aliases, type scale, fields, and stable custom scrollbar chrome use the same registry entry.
           </p>
         </div>
         <ThemeSwitcher />
@@ -160,7 +164,7 @@ export function ThemeShowcasePage() {
         <div className="wf-theme-showcase__live">
           <label className="wf-theme-showcase__live-field">
             <span>Token</span>
-            <input
+            <Input
               value={liveToken}
               onChange={(event) => setLiveToken(event.target.value)}
               spellCheck={false}
@@ -168,7 +172,7 @@ export function ThemeShowcasePage() {
           </label>
           <label className="wf-theme-showcase__live-field">
             <span>Value</span>
-            <input
+            <Input
               value={liveValue}
               onChange={(event) => setLiveValue(event.target.value)}
               placeholder="#7c6a9e"
@@ -176,12 +180,12 @@ export function ThemeShowcasePage() {
             />
           </label>
           <div className="wf-theme-showcase__live-actions">
-            <button type="button" onClick={applyLiveToken}>
+            <WfActionButton type="button" tone="primary" onClick={applyLiveToken}>
               Apply on &lt;html&gt;
-            </button>
-            <button type="button" onClick={resetLiveToken}>
+            </WfActionButton>
+            <WfActionButton type="button" onClick={resetLiveToken}>
               Reset token
-            </button>
+            </WfActionButton>
           </div>
         </div>
       </SpecCard>

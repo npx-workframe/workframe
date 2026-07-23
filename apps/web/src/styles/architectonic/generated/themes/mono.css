@@ -1,0 +1,159 @@
+/* =============================================================
+   ARCHI · THEME — MONO   (light + dark)
+   ------------------------------------------------------------
+   A theme is a complete, standalone visual identity. It owns:
+     · the palette          · fonts
+     · border language      · elevation language
+     · every semantic role token + component (Tier-3) default
+   Structure (space/radius/motion/sizing) comes from globals.css
+   and is never touched here.
+
+   Mono's personality: architectural restraint. Hairline borders
+   do the structural work; shadows are near-absent (overlays get
+   one whisper of depth, no more). Status colours are low-chroma
+   and grown-up — never a saturated "traffic light". Interactive
+   states are transformative (ink invert), not a 10%-lighter nudge.
+   ============================================================= */
+
+:root {
+  /* ---- Fonts (theme-owned) --------------------------------- */
+  --font-display: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans:    "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ---- Palette (theme-owned primitives) -------------------- */
+  --slate-50:#f8fafc; --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1;
+  --slate-400:#94a3b8; --slate-500:#64748b; --slate-600:#475569; --slate-700:#334155;
+  --slate-800:#1e293b; --slate-900:#0f172a; --slate-950:#020617;
+  --white:#ffffff; --black:#0a0a0b; --amber-500:#c9902f;
+
+  /* ---- Surfaces -------------------------------------------- */
+  --bg:        #f7f9fb;
+  --surface:   #ffffff;
+  --surface-2: #f1f4f8;
+  --surface-3: #e4e9f0;
+  --overlay:   rgb(15 23 42 / 0.42);
+  --theme-canvas-image: none;
+  --theme-canvas-size: auto;
+  --theme-canvas-position: 0 0;
+  --theme-canvas-attachment: scroll;
+  --theme-canvas-blend-mode: normal;
+
+  /* ---- Text ------------------------------------------------ */
+  --fg:          #0f172a;
+  --fg-muted:    #55637a;
+  --fg-subtle:   #97a1b4;
+  --fg-on-primary:#ffffff;
+
+  /* ---- Borders (theme owns colour + width) ----------------- */
+  --border-w:  1px;
+  --line:        #e7ebf2;
+  --line-strong: #d5dbe6;
+  --line-soft:   #eef1f6;
+
+  /* ---- Primary (ink) --------------------------------------- */
+  --primary:       #0f172a;
+  --primary-hover: #1e293b;
+  --primary-active:#020617;
+  --primary-fg:    #ffffff;
+  --primary-soft:  #eef1f6;
+
+  /* ---- Interactive neutrals -------------------------------- */
+  --muted:        #f1f4f8;
+  --muted-hover:  #e4e9f0;
+  --accent-soft:  #eef1f6;
+
+  /* ---- Focus ring ------------------------------------------ */
+  --ring:        #0f172a;
+  --ring-offset: var(--bg);
+
+  /* ---- Status · low-chroma, architectural ------------------ */
+  --ok:   #3f7d64;  --ok-fg:#ffffff;  --ok-soft:#eef4f1;
+  --warn: #9a6a2f;  --warn-fg:#ffffff;--warn-soft:#f6f0e6;
+  --bad:  #b1524b;  --bad-fg:#ffffff; --bad-soft:#f7edec;
+  --info: #41597d;  --info-fg:#ffffff;--info-soft:#eef2f7;
+
+  /* ---- Elevation · hairline-first -------------------------- */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 6px 20px -8px rgb(15 23 42 / 0.14);
+  --shadow-xl: 0 16px 40px -16px rgb(15 23 42 / 0.20);
+  --shadow-inset: none;
+  --shadow-card:  none;
+  --shadow-pop:   var(--shadow-lg);
+  --shadow-modal: var(--shadow-xl);
+
+  /* =====================================================
+     COMPONENT (Tier-3) DEFAULTS — the theme fully owns the
+     look; another theme can re-point any of these.
+     ===================================================== */
+  --btn-bg: var(--primary); --btn-fg: var(--primary-fg); --btn-border: transparent;
+  --btn-hover-bg: var(--primary-hover); --btn-active-bg: var(--primary-active);
+  --btn-radius: var(--radius-control); --btn-h: var(--ar-size-md); --btn-px: calc(var(--ar-pad-x) + min(var(--radius-control), 1.25rem) * 0.3);
+  --btn-font: var(--text-small); --btn-weight: var(--ar-weight-medium); --btn-shadow: none;
+
+  --field-bg: var(--surface); --field-fg: var(--fg); --field-placeholder: var(--fg-subtle);
+  --field-border: var(--line-strong); --field-border-width: var(--border-w); --field-hover-border: var(--fg-subtle); --field-focus-border: var(--primary);
+  --field-radius: var(--radius-control); --field-h: var(--ar-size-md); --field-px: calc(var(--ar-space-3) + min(var(--radius-control), 1.25rem) * 0.3); --field-font: var(--text-small);
+
+  --card-bg: var(--surface); --card-fg: var(--fg); --card-border: var(--line);
+  --card-radius: var(--radius-card); --card-pad: var(--ar-space-6); --card-shadow: var(--shadow-card);
+
+  --badge-bg: var(--muted); --badge-fg: var(--fg-muted); --badge-radius: var(--ar-radius-sm); --badge-font: var(--text-overline);
+
+  --pop-bg: var(--surface); --pop-fg: var(--fg); --pop-border: var(--line-strong);
+  --pop-radius: var(--radius-card); --pop-shadow: var(--shadow-pop); --pop-pad: var(--ar-space-2);
+
+  --tooltip-bg: var(--fg); --tooltip-fg: var(--bg);
+
+  --switch-track-off: var(--surface-3); --switch-track-on: var(--primary); --switch-thumb: var(--surface);
+
+  --tab-fg: var(--fg-muted); --tab-fg-active: var(--fg); --tab-indicator: var(--primary);
+
+  --track-bg: var(--surface-3); --track-fill: var(--primary);
+
+  --nav-bg: color-mix(in srgb, var(--surface) 85%, transparent);
+  --nav-border: var(--line); --nav-h: calc(4rem * var(--ar-density));
+}
+
+/* =============================================================
+   MONO · DARK
+   ============================================================= */
+[data-color-mode="dark"] {
+  --bg:        #0b1120;
+  --surface:   #121a2b;
+  --surface-2: #1a2437;
+  --surface-3: #26324a;
+  --overlay:   rgb(2 6 23 / 0.6);
+
+  --fg:          #eef2f8;
+  --fg-muted:    #9aa7bd;
+  --fg-subtle:   #64708a;
+  --fg-on-primary:#0b1120;
+
+  --line:        #223049;
+  --line-strong: #33425e;
+  --line-soft:   #1a2437;
+
+  --primary:       #eef2f8;
+  --primary-hover: #d6deeb;
+  --primary-active:#ffffff;
+  --primary-fg:    #0b1120;
+  --primary-soft:  #1a2437;
+
+  --muted:        #1a2437;
+  --muted-hover:  #26324a;
+  --accent-soft:  #1a2437;
+
+  --ring: #cdd6e6; --ring-offset: var(--bg);
+
+  --ok:   #6bbf97;  --ok-soft:#12241c;
+  --warn: #d3a15c;  --warn-soft:#26200f;
+  --bad:  #d98077;  --bad-soft:#2a1613;
+  --info: #7ea0cf;  --info-soft:#131f30;
+
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 8px 24px -8px rgb(0 0 0 / 0.55);
+  --shadow-xl: 0 20px 48px -18px rgb(0 0 0 / 0.65);
+}

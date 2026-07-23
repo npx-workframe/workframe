@@ -1,15 +1,16 @@
 @import 'tailwindcss';
 @import 'dockview/dist/styles/dockview.css';
 
+/* Architectonic owns theme identity + structural style axes. */
+@import './styles/architectonic/generated/imports.css';
+
 /* ── Tokens (dimensions → semantic wiring → contract doc) ───────────────── */
 @import './styles/tokens/tokens.css';
 @import './styles/tokens/shadcn-bridge.css';
 
 /* ── Themes (palette + feel per data-theme) ─────────────────────────────── */
-@import './styles/themes/strato-dark.css';
-@import './styles/themes/neo-light.css';
-@import './styles/themes/neo-blue.css';
 @import './styles/tokens/relief-primitives.css';
+@import './styles/architectonic/bridge.css';
 
 /* ── Content / vendor adapters ──────────────────────────────────────────── */
 @import './styles/highlight-themes.css';
@@ -34,6 +35,7 @@
 @import './styles/components/file-tree.css';
 @import './styles/components/browser.css';
 @import './styles/components/activity.css';
+@import './styles/components/theme-picker.css';
 @import './styles/components/placeholder.css';
 @import './styles/components/dialog.css';
 @import './styles/components/auth.css';

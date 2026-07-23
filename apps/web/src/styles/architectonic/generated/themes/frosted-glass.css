@@ -1,0 +1,17 @@
+/* =============================================================
+   ARCHI · THEME — FROSTED GLASS
+   glass style · matte translucency, standard geometry
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme^="frosted-glass"] {
+  --card-bg: color-mix(in srgb, var(--surface) 62%, transparent);
+  --field-bg: color-mix(in srgb, var(--surface) 55%, transparent);
+  --pop-bg: color-mix(in srgb, var(--surface) 75%, transparent);
+  --theme-canvas-image:
+    radial-gradient(50% 60% at 20% 20%, rgba(148,163,184,0.35), transparent 70%),
+    radial-gradient(50% 60% at 80% 85%, rgba(100,116,139,0.30), transparent 72%);
+  --theme-canvas-attachment: fixed;
+}
+:root[data-arch-theme="frosted-glass-light"] { --bg: #e4e8ef; }
+:root[data-arch-theme="frosted-glass-dark"] { --bg: #14161d; }

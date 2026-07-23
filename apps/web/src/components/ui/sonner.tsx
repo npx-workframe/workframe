@@ -1,8 +1,10 @@
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
+import { isDarkTheme, isTheme } from '@/lib/theme'
 
 function toasterTheme(): 'dark' | 'light' {
   if (typeof document === 'undefined') return 'light'
-  return document.documentElement.dataset.theme === 'strato-dark' ? 'dark' : 'light'
+  const theme = document.documentElement.dataset.theme
+  return isTheme(theme) && isDarkTheme(theme) ? 'dark' : 'light'
 }
 
 export function Toaster({ ...props }: ToasterProps) {

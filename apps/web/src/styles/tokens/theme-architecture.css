@@ -1,13 +1,14 @@
 /* Theme architecture contract
    LAYER STACK (bottom to top)
    1. COLOR     - body + AtmosphereBg: --wf-bg (solid; neo relief = flat, no gradient)
-   2. TEXTURE   - DotGrid | MoleskineGrid (canvas-layers.ts; neo themes = none)
+   2. TEXTURE   - registry-driven canvas identity (canvas-layers.ts)
    3. SHELL     - chrome depth via shadows; neo relief re-paints solid --wf-bg
-   4. THEME     - per [data-theme]: palette, texture recipe, typography, shell family
+   4. THEME     - Architectonic [data-arch-theme]: palette, texture recipe, typography
 
-   SHELL FAMILIES - --wf-chrome-mode on [data-theme] (mirrored as data-chrome-mode on html)
-   line   - strato-dark: visible borders (--wf-chrome-border-*), flat shadows, surface fills
-   relief - neo-light, neo-blue: borderless; depth from L/S box-shadow stacks only
+   STYLE AXES - Architectonic [data-style], mirrored as data-chrome-mode where Workframe needs it
+   lines   - hairline borders, flat shadows, surface fills
+   shadows - borderless high/low relief
+   glass   - translucent surfaces, blur, faint borders
 
    Custom themes (e.g. brutalist) may override shell tokens per-component without
    changing the base layer contract.

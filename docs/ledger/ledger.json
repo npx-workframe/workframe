@@ -1519,6 +1519,47 @@
       }
     },
     {
+      "id": "WF-044",
+      "title": "Adopt Architectonic design-system across Workframe surfaces",
+      "summary": "Make Architectonic the canonical styling substrate for Workframe while preserving Workframe's Dockview layout, rail gutters, interaction behavior, technical density, and product-specific compositions. Package Architectonic tokens, relief axes, theme identities, and a generated manifest; consume them through a compatibility bridge; then migrate primitives, auth, onboarding, settings, workspace, chat, navigator, browser, and activity surfaces without a cosmetic redesign.",
+      "status": "done",
+      "priority": "P0",
+      "owner_role": "designer",
+      "acceptance": [
+        "Architectonic ships deterministic package exports for structural tokens, lines/shadows/glass styles, individual themes, and a machine-readable theme manifest",
+        "Workframe resolves mode, relief style, texture, density, and theme metadata from the registry rather than hardcoded theme-name branches",
+        "Existing Workframe layout and behavior remain stable while shared buttons, fields, toggles, dialogs, overlays, cards, scroll areas, auth, onboarding, and settings consume the canonical semantic contract",
+        "Neo Light and Neo Dark use Architectonic's high/low relief grammar; lines, glass, Blueprint, Bauhaus, Leather, Notebook, and Newspaper identities are selectable without component-specific theme patches",
+        "Theme assets work in Docker web and Electron-compatible builds without mutable executable dependencies or runtime Google Font requirements",
+        "Build, focused tests, installer bundle parity, and browser regression across auth/onboarding/workspace representative states pass"
+      ],
+      "depends_on": [],
+      "evidence": [
+        "apps/web production build (2026-07-22)",
+        "focused ESLint pass for every changed React/TypeScript file (2026-07-22)",
+        "apps/desktop build and typecheck (2026-07-22)",
+        "create-workframe bundled UI and scaffold matrix (2026-07-22)",
+        "browser matrix: minimal-dark, neo-dark, liquid-glass-dark, newspaper, settings persistence (2026-07-22)",
+        "../architectonic/design-system npm test and npm pack --dry-run (2026-07-22)",
+        "personal theme profile migration pytest, API typecheck suite, reusable Appearance/onboarding theme grid, web/desktop builds, and create-workframe scaffold parity (2026-07-22)",
+        "DogFood secure-mode health plus browser verification of 18-theme Appearance grid, 20px control-radius cap, card-radius semantics, and per-bundle asset revision (2026-07-22)"
+      ],
+      "sources": [
+        "../architectonic/design-system/design.md",
+        "../architectonic/design-system/globals.css",
+        "../architectonic/design-system/modules/styles.module.css",
+        "apps/web/src/index.css",
+        "apps/web/src/lib/theme.ts",
+        "apps/web/src/styles/components/relief-surfaces.css",
+        "../abkb/projects/workframe/product-preferences.md"
+      ],
+      "completed_at": "2026-07-22",
+      "notes": "Implemented preservation-first: no Dockview topology change, no rail/gutter redesign, one scroll owner, existing panel density and interaction semantics retained. Architectonic now exports a deterministic 18-theme registry, source-owned preview palettes, and local Lucide asset; Workframe generates a committed standalone snapshot plus runtime bridge. The same visual theme grid is used by User Settings Appearance and an early optional admin/invitee onboarding step. Confirmed selections persist per authenticated user and restore after sign-in; old theme slugs remain only as persisted preference aliases. Pill geometry is capped at 40px-tall controls, taller choices and previews use card radii, and packaged entry assets receive a unique revision to prevent stale Docker UI caches.",
+      "extensions": {
+        "wave": "design-system"
+      }
+    },
+    {
       "id": "WF-SK-001",
       "title": "Adopt spec-kit workflow mapping",
       "summary": "Map constitution/spec/plan/tasks/implement to ledger + .harness without duplicating AGENTS.md.",

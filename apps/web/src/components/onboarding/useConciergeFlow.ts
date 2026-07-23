@@ -42,6 +42,8 @@ import {
 } from '@/lib/workframeAuthApi'
 import { fetchWorkframeMeta } from '@/lib/workframeMetaApi'
 import { syncSessionInstallScope } from '@/lib/workframeSession'
+import { useTheme } from '@/hooks/useTheme'
+import { getThemeDefinition } from '@/lib/theme'
 
 type UseConciergeFlowOptions = {
   projectName: string
@@ -56,8 +58,10 @@ export function useConciergeFlow({
   inviteEmail = '',
 }: UseConciergeFlowOptions) {
   const isInvitee = Boolean(inviteToken.trim())
+  const { theme, setTheme } = useTheme()
   const [inviteeAuthed, setInviteeAuthed] = useState(false)
-  const [step, setStep] = useState<ConciergeStep>(isInvitee ? 'profile' : 'intro')
+  const [themeConfirmed, setThemeConfirmed] = useState(false)
+  const [step, setStep] = useState<ConciergeStep>(isInvitee ? 'theme' : 'intro')
   const [busy, setBusy] = useState(false)
   const [smtpPhase, setSmtpPhase] = useState<SmtpProgressPhase | null>(null)
   const [error, setError] = useState<WorkframeNoticeInfo | null>(null)
@@ -259,7 +263,8 @@ export function useConciergeFlow({
       try {
         if (isInvitee) {
           try {
-            await workframeAuthApi.restoreSession()
+            const restored = await workframeAuthApi.restoreSession()
+            setThemeConfirmed(Boolean(restored.user.theme))
             try {
               await workframeAuthApi.acceptWorkspaceInvite(inviteToken)
             } catch {
@@ -323,7 +328,7 @@ export function useConciergeFlow({
         const deploymentChosen = Boolean(cfg?.deployment_mode)
         if (
           !deploymentChosen
-          && ['publish', 'smtp', 'admin_auth', 'workframe', 'billing', 'integrations', 'profile', 'agent', 'agent_model', 'invites'].includes(
+          && ['theme', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing', 'integrations', 'profile', 'agent', 'agent_model', 'invites'].includes(
             resumeStep,
           )
         ) {
@@ -333,7 +338,7 @@ export function useConciergeFlow({
           resumeStep = 'intro'
         }
         const allowedSteps: ConciergeStep[] = [
-          'intro', 'welcome', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing',
+          'intro', 'theme', 'welcome', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing',
           'integrations', 'profile', 'agent', 'agent_model', 'invites', 'done',
         ]
         if (allowedSteps.includes(resumeStep) && resumeStep !== 'intro') {
@@ -347,6 +352,7 @@ export function useConciergeFlow({
           setTagline(me.user.tagline ?? '')
           setBio(me.user.bio ?? '')
           if (me.user.avatar_url) setAvatarUrl(userAvatarPickerValue(me.user.avatar_url))
+          setThemeConfirmed(Boolean(me.user.theme))
           if (me.user.email) {
             setAdminEmail((prev) =>
               preferAdminEmailOverSmtpLogin(prev, me.user.email || '', cfg?.smtp?.user),
@@ -666,7 +672,7 @@ export function useConciergeFlow({
       )
       setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
       setHasAdminSession(true)
-      setStep('welcome')
+      setStep('theme')
     } catch (err) {
       setError(formatWorkframeError(err, 'Admin email'))
     } finally {
@@ -718,7 +724,8 @@ export function useConciergeFlow({
     const wsId = profile.current_workspace?.id || profile.default_workspace?.id || ''
     setWorkspaceId(wsId)
     setInviteeAuthed(true)
-    setStep('profile')
+    setThemeConfirmed(Boolean(profile.user.theme))
+    setStep('theme')
     if (wsId) {
       await reloadWorkspaceStatus(wsId)
     }
@@ -769,6 +776,20 @@ export function useConciergeFlow({
     }
   }
 
+  async function continueFromTheme() {
+    setBusy(true)
+    setError(null)
+    try {
+      await workframeAuthApi.updateMe({ theme })
+      setThemeConfirmed(true)
+      setStep(isInvitee ? 'profile' : 'welcome')
+    } catch (err) {
+      setError(formatWorkframeError(err, 'Save theme'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const wizardSteps = useMemo(() => {
     const base = buildWizardSteps(deploymentMode, modeChosen, isInvitee)
     return enrichWizardSteps(base, {
@@ -792,6 +813,8 @@ export function useConciergeFlow({
       agentPrimaryModel,
       inviteEmails,
       publicUrl,
+      themeLabel: getThemeDefinition(theme).label,
+      themeConfirmed,
     })
   }, [
     adminEmail,
@@ -808,6 +831,8 @@ export function useConciergeFlow({
     mission,
     modeChosen,
     publicUrl,
+    theme,
+    themeConfirmed,
     smtpHost,
     smtpUser,
     stack,
@@ -832,7 +857,7 @@ export function useConciergeFlow({
     const targetIdx = wizardSteps.findIndex((s) => s.id === railId)
     if (targetIdx < 0 || targetIdx > maxReachableIndex) return
     setError(null)
-    setStep(railStepToConciergeStep(railId, step, adminVerified))
+    setStep(railStepToConciergeStep(railId))
   }
   const meta = stepMeta(step, projectName, isInvitee)
   const title = meta.title
@@ -893,6 +918,7 @@ export function useConciergeFlow({
     inviteEmails,
     publicUrl,
     httpsStatus,
+    theme,
     wizardSteps,
     currentRailStep,
     showBrandLogo,
@@ -933,12 +959,14 @@ export function useConciergeFlow({
     setAgentFallbackChain,
     setInviteEmails,
     setPublicUrl,
+    setTheme,
     markSmtpDirty,
     pickMode,
     startGoogleSignIn,
     testSmtpOnly,
     continueFromSmtp,
     continueFromIntro,
+    continueFromTheme,
     persistAdminEmail,
     saveIntegrations,
     skipIntegrations,

@@ -226,6 +226,7 @@ def _zk_init_db(conn: sqlite3.Connection) -> None:
             avatar_url TEXT,
             tagline TEXT,
             bio TEXT,
+            theme TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -237,6 +238,10 @@ def _zk_init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_sessions_family ON sessions(token_family_id);
         CREATE INDEX IF NOT EXISTS idx_sessions_refresh ON sessions(refresh_token_hash);
     """)
+    profile_columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(profiles)").fetchall()}
+    if "theme" not in profile_columns:
+        conn.execute("ALTER TABLE profiles ADD COLUMN theme TEXT")
+        conn.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -566,13 +571,14 @@ def get_profile(user_id: str) -> dict | None:
             "avatar_url": row["avatar_url"],
             "tagline": row["tagline"],
             "bio": row["bio"],
+            "theme": row["theme"],
         }
     finally:
         conn.close()
 
 
 def update_profile(user_id: str, updates: dict) -> dict:
-    allowed = {"display_name", "avatar_url", "tagline", "bio"}
+    allowed = {"display_name", "avatar_url", "tagline", "bio", "theme"}
     fields = {k: v for k, v in updates.items() if k in allowed and v is not None}
     if not fields:
         return get_profile(user_id)

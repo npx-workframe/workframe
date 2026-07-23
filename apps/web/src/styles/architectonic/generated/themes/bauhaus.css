@@ -1,0 +1,26 @@
+/* =============================================================
+   ARCHI · THEME — BAUHAUS
+   light only · Mondrian primaries, hard geometry, thick strokes
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme="bauhaus"] {
+  --bg: #f6f1e7; --surface: #ffffff; --surface-2: #efe9db; --surface-3: #e5ddc9;
+  --fg: #16160f; --fg-muted: #44412f; --fg-subtle: #77735c;
+  --border-w: 2px; --ar-radius-scale: 0; --radius-control: 0; --radius-card: 0;
+  --line: #16160f; --line-strong: #16160f;
+  --primary: #2242c8; --primary-hover: #1b36a6; --primary-active: #152b85; --primary-fg: #ffffff;
+  --primary-soft: #dfe4f7; --accent-soft: #dfe4f7; --ring: #2242c8;
+  --ok: #2242c8; --ok-soft: #dfe4f7; --ok-fg: #ffffff;
+  --warn: #f7c948; --warn-soft: #fdf3d7; --warn-fg: #16160f;
+  --bad: #d33a2c; --bad-soft: #f9e0dd; --bad-fg: #ffffff;
+  --info: #2242c8; --info-soft: #dfe4f7;
+  --card-border: #16160f; --field-border: #16160f; --pop-border: #16160f;
+  --shadow-card: 4px 4px 0 #16160f; --card-shadow: 4px 4px 0 #16160f;
+  --pop-shadow: 5px 5px 0 #16160f; --shadow-pop: 5px 5px 0 #16160f; --shadow-modal: 8px 8px 0 #16160f;
+  --btn-weight: var(--ar-weight-bold);
+  --muted: #efe9db; --muted-hover: #e5ddc9;
+}
+html[data-arch-theme="bauhaus"] .btn { border: 2px solid #16160f; }
+html[data-arch-theme="bauhaus"] .btn--secondary { background: #f7c948; color: #16160f; }
+html[data-arch-theme="bauhaus"] .btn--secondary:hover { background: #d33a2c; color: #ffffff; }

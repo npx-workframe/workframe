@@ -110,6 +110,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
         })
       }
       onGetStarted={() => void flow.continueFromIntro()}
+      onContinueTheme={() => void flow.continueFromTheme()}
     />
   )
 
@@ -194,6 +195,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           inviteEmails={flow.inviteEmails}
           publicUrl={flow.publicUrl}
           httpsStatus={flow.httpsStatus}
+          theme={flow.theme}
           resolveWorkframeName={flow.resolveWorkframeName}
           onAdminEmailChange={flow.setAdminEmail}
           onAdminEmailBlur={() => void flow.persistAdminEmail()}
@@ -219,6 +221,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
           onPublicUrlChange={flow.setPublicUrl}
           onBindOAuthSave={flow.bindOAuthSave}
           onError={flow.setError}
+          onThemeChange={flow.setTheme}
         />
       )}
     </OnboardingWizardShell>

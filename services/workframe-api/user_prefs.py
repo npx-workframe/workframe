@@ -182,8 +182,13 @@ def validate_me_profile_updates(updates: dict[str, Any]) -> None:
 
 def apply_me_profile_updates(user_id: str, body: dict[str, Any]) -> dict[str, Any]:
     user_id = str(user_id or "").strip()
-    allowed = {"display_name", "avatar_url", "tagline", "bio"}
+    allowed = {"display_name", "avatar_url", "tagline", "bio", "theme"}
     updates = {k: v for k, v in body.items() if k in allowed}
+    if "theme" in updates:
+        theme = str(updates.get("theme") or "").strip()
+        if not theme or len(theme) > 64 or any(char not in "abcdefghijklmnopqrstuvwxyz0123456789-" for char in theme):
+            raise ValueError("invalid_theme")
+        updates["theme"] = theme
     validate_me_profile_updates(updates)
     if "avatar_url" in updates:
         updates["avatar_url"] = _srv()._normalize_user_avatar_url(str(updates.get("avatar_url") or ""))
@@ -414,6 +419,7 @@ def session_profile_payload(user_id: str) -> dict[str, Any] | None:
             "avatar_url": avatar_url,
             "tagline": (profile or {}).get("tagline"),
             "bio": (profile or {}).get("bio"),
+            "theme": (profile or {}).get("theme"),
             "platform_ids": platform_ids,
         },
         "workspaces": workspaces,

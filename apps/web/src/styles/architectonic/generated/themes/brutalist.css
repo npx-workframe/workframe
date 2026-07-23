@@ -1,0 +1,24 @@
+/* =============================================================
+   ARCHI · THEME — BRUTALIST
+   lines style · thick strokes, solid offset shadows, gumroad-fun
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme^="brutalist"] {
+  --border-w: 2px; --ar-radius-scale: 0.5;
+  --line: var(--fg); --line-strong: var(--fg); --line-soft: color-mix(in srgb, var(--fg) 10%, transparent);
+  --shadow-sm: 3px 3px 0 var(--fg); --shadow-md: 4px 4px 0 var(--fg);
+  --shadow-lg: 5px 5px 0 var(--fg); --shadow-xl: 6px 6px 0 var(--fg);
+  --shadow-card: 4px 4px 0 var(--fg); --card-shadow: 4px 4px 0 var(--fg);
+  --shadow-pop: 5px 5px 0 var(--fg); --pop-shadow: 5px 5px 0 var(--fg); --shadow-modal: 8px 8px 0 var(--fg);
+  --card-border: var(--fg); --field-border: var(--fg); --pop-border: var(--fg);
+  --btn-weight: var(--ar-weight-bold);
+  --primary: #ff90e8; --primary-hover: #ff7ae3; --primary-active: #f45fd3;
+  --primary-fg: #111111; --primary-soft: #ffe3f8; --accent-soft: #ffe3f8; --ring: #111111;
+}
+:root[data-arch-theme="brutalist-light"] { --bg: #fffdf7; --surface: #ffffff; --surface-2: #f6f2e8; --surface-3: #ede7d8; --fg: #111111; --fg-muted: #3d3d3d; --fg-subtle: #6e6e6e; --muted: #f6f2e8; --muted-hover: #ede7d8; }
+:root[data-arch-theme="brutalist-dark"] { --bg: #111111; --surface: #1a1a1a; --surface-2: #242424; --surface-3: #2f2f2f; --fg: #f5f2ea; --fg-muted: #c9c4b8; --fg-subtle: #8f8b80; --muted: #242424; --muted-hover: #2f2f2f; --primary-soft: #46173b; --accent-soft: #46173b; --ring: #ff90e8; }
+html[data-arch-theme^="brutalist"] .btn { border: 2px solid var(--fg); box-shadow: 3px 3px 0 var(--fg); transition: transform var(--motion-fast), box-shadow var(--motion-fast); }
+html[data-arch-theme^="brutalist"] .btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--fg); }
+html[data-arch-theme^="brutalist"] .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--fg); }
+html[data-arch-theme^="brutalist"] .btn--ghost, html[data-arch-theme^="brutalist"] .btn--link { border: none; box-shadow: none; }

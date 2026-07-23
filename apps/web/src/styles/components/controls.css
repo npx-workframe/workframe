@@ -1,5 +1,72 @@
 /* ── Shared interactive control chrome (rail, navigator, activity, wizard nav) ─ */
 
+.wf-input {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: var(--field-h, var(--wf-input-height));
+  padding: 0 var(--field-px, var(--wf-input-padding-x));
+  border-width: var(--field-border-width, var(--wf-border-width, 1px));
+  border-style: solid;
+  border-color: var(--field-border, var(--wf-input-border));
+  border-radius: var(--field-radius, var(--wf-radius-control));
+  outline: none;
+  background: var(--field-bg, var(--wf-input-bg));
+  box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm));
+  color: var(--field-fg, var(--wf-text));
+  font: inherit;
+  font-size: var(--field-font, var(--wf-type-body));
+  transition: border-color var(--motion-fast, 120ms ease), box-shadow var(--motion-fast, 120ms ease);
+}
+
+.wf-input::placeholder { color: var(--field-placeholder, var(--wf-muted)); }
+.wf-input:hover:not(:disabled) { border-color: var(--field-hover-border, var(--wf-border-strong)); }
+.wf-input:focus-visible {
+  border-color: var(--field-focus-border, var(--wf-primary));
+  box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm)), var(--wf-focus-ring);
+}
+.wf-input:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.wf-textarea {
+  min-height: 20px;
+  height: auto;
+  padding-block: var(--wf-space-2);
+  resize: none;
+}
+
+.wf-checkbox {
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  padding: 0;
+  border: var(--wf-border-width, 1px) solid var(--field-border, var(--wf-input-border));
+  border-radius: var(--ar-radius-sm, 4px);
+  outline: none;
+  background: var(--field-bg, var(--wf-input-bg));
+  box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm));
+  color: var(--primary-foreground);
+}
+
+.wf-checkbox:focus-visible {
+  box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm)), var(--wf-focus-ring);
+}
+.wf-checkbox:disabled { cursor: not-allowed; opacity: 0.5; }
+.wf-checkbox[data-state='checked'] {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: var(--wf-control-shadow-flush, none);
+}
+[data-style='shadows'] .wf-checkbox[data-state='checked'] {
+  border-color: transparent;
+  background: var(--bg);
+  color: var(--primary);
+  box-shadow: var(--wf-control-shadow-raised);
+}
+.wf-checkbox__indicator { display: grid; place-items: center; color: currentColor; }
+.wf-checkbox__indicator svg { width: 0.75rem; height: 0.75rem; stroke-width: 3; }
+
 :is(
   .wf-agent-rail__toggle,
   .wf-agent-rail__section-action--icon,

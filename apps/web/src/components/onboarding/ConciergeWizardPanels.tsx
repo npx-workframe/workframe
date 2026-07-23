@@ -2,12 +2,14 @@ import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIden
 import { PublicUrlWizardStep } from '@/components/onboarding/PublicUrlWizardStep'
 import { WorkframeIntegrationsStep } from '@/components/onboarding/WorkframeIntegrationsStep'
 import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
+import { ThemePickerGrid } from '@/components/settings/ThemePickerGrid'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
 import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { FallbackEntry } from '@/lib/hermesCatalogApi'
+import type { Theme } from '@/lib/theme'
 import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { DEPLOYMENT_MODES, DEPLOYMENT_MODES_PLANNED, defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
 import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
@@ -37,6 +39,7 @@ type ConciergeWizardPanelsProps = {
   inviteEmails: string
   publicUrl: string
   httpsStatus: string | null
+  theme: Theme
   resolveWorkframeName: () => string
   onAdminEmailChange: (value: string) => void
   onAdminEmailBlur: () => void
@@ -62,6 +65,7 @@ type ConciergeWizardPanelsProps = {
   onPublicUrlChange: (value: string) => void
   onBindOAuthSave: (save: (() => Promise<boolean>) | null) => void
   onError: (info: WorkframeNoticeInfo | null) => void
+  onThemeChange: (theme: Theme) => void
 }
 
 export function ConciergeWizardPanels({
@@ -89,6 +93,7 @@ export function ConciergeWizardPanels({
   inviteEmails,
   publicUrl,
   httpsStatus,
+  theme,
   resolveWorkframeName,
   onAdminEmailChange,
   onAdminEmailBlur,
@@ -114,7 +119,12 @@ export function ConciergeWizardPanels({
   onPublicUrlChange,
   onBindOAuthSave,
   onError,
+  onThemeChange,
 }: ConciergeWizardPanelsProps) {
+  if (step === 'theme') {
+    return <ThemePickerGrid value={theme} onChange={onThemeChange} compact disabled={busy} label="Choose your theme" />
+  }
+
   if (step === 'intro') {
     return (
       <SettingsPanelBody>

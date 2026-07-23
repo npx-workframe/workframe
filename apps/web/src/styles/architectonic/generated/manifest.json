@@ -1,0 +1,266 @@
+{
+  "package": "@architectonic/design-system",
+  "version": "0.4.0",
+  "sourceHash": "ac6abf7a039117be473453fa4099306e28e65acd0be2de9ccf6aaf8ddf23a5fa",
+  "schemaVersion": 1,
+  "defaultTheme": "neo-light",
+  "themes": [
+    {
+      "id": "mono",
+      "label": "Mono",
+      "mode": "light",
+      "style": "lines",
+      "texture": "none",
+      "family": "lines",
+      "preview": {
+        "canvas": "#f5f5f4",
+        "surface": "#ffffff",
+        "ink": "#111111",
+        "accent": "#111111"
+      }
+    },
+    {
+      "id": "minimal-light",
+      "label": "Minimal Light",
+      "mode": "light",
+      "style": "lines",
+      "texture": "none",
+      "family": "lines",
+      "preview": {
+        "canvas": "#f7f9fb",
+        "surface": "#ffffff",
+        "ink": "#171717",
+        "accent": "#6d5dfc"
+      }
+    },
+    {
+      "id": "minimal-dark",
+      "label": "Minimal Dark",
+      "mode": "dark",
+      "style": "lines",
+      "texture": "none",
+      "family": "lines",
+      "preview": {
+        "canvas": "#0d1117",
+        "surface": "#161b22",
+        "ink": "#f3f4f6",
+        "accent": "#8b7cff"
+      }
+    },
+    {
+      "id": "minimal-color",
+      "label": "Minimal Color",
+      "mode": "light",
+      "style": "lines",
+      "texture": "none",
+      "family": "lines",
+      "preview": {
+        "canvas": "#f7f4ff",
+        "surface": "#ffffff",
+        "ink": "#261f3d",
+        "accent": "#7c3aed"
+      }
+    },
+    {
+      "id": "neo-light",
+      "label": "Neo Light",
+      "mode": "light",
+      "style": "shadows",
+      "texture": "none",
+      "family": "neo",
+      "preview": {
+        "canvas": "#e6e9ef",
+        "surface": "#e6e9ef",
+        "ink": "#272a34",
+        "accent": "#7c5cff"
+      }
+    },
+    {
+      "id": "neo-dark",
+      "label": "Neo Dark",
+      "mode": "dark",
+      "style": "shadows",
+      "texture": "none",
+      "family": "neo",
+      "preview": {
+        "canvas": "#202936",
+        "surface": "#202936",
+        "ink": "#f4f7fb",
+        "accent": "#8ca3ff"
+      }
+    },
+    {
+      "id": "neo-color",
+      "label": "Neo Color",
+      "mode": "light",
+      "style": "shadows",
+      "texture": "none",
+      "family": "neo",
+      "preview": {
+        "canvas": "#dfe9ff",
+        "surface": "#dfe9ff",
+        "ink": "#1d3153",
+        "accent": "#366ed8"
+      }
+    },
+    {
+      "id": "brutalist-light",
+      "label": "Brutalist Light",
+      "mode": "light",
+      "style": "lines",
+      "texture": "none",
+      "family": "brutalist",
+      "preview": {
+        "canvas": "#fff8e7",
+        "surface": "#ffffff",
+        "ink": "#111111",
+        "accent": "#ff3b30"
+      }
+    },
+    {
+      "id": "brutalist-dark",
+      "label": "Brutalist Dark",
+      "mode": "dark",
+      "style": "lines",
+      "texture": "none",
+      "family": "brutalist",
+      "preview": {
+        "canvas": "#111111",
+        "surface": "#191919",
+        "ink": "#ffffff",
+        "accent": "#ffe500"
+      }
+    },
+    {
+      "id": "liquid-glass-light",
+      "label": "Liquid Glass Light",
+      "mode": "light",
+      "style": "glass",
+      "texture": "aurora",
+      "family": "glass",
+      "preview": {
+        "canvas": "#eaf4ff",
+        "surface": "#ffffff",
+        "ink": "#17233f",
+        "accent": "#6e61ff"
+      }
+    },
+    {
+      "id": "liquid-glass-dark",
+      "label": "Liquid Glass Dark",
+      "mode": "dark",
+      "style": "glass",
+      "texture": "aurora",
+      "family": "glass",
+      "preview": {
+        "canvas": "#090d1a",
+        "surface": "#161d33",
+        "ink": "#f4f7ff",
+        "accent": "#8e7cff"
+      }
+    },
+    {
+      "id": "frosted-glass-light",
+      "label": "Frosted Glass Light",
+      "mode": "light",
+      "style": "glass",
+      "texture": "frost",
+      "family": "glass",
+      "preview": {
+        "canvas": "#edf2f5",
+        "surface": "#f8fbfd",
+        "ink": "#1c252c",
+        "accent": "#4d7c8a"
+      }
+    },
+    {
+      "id": "frosted-glass-dark",
+      "label": "Frosted Glass Dark",
+      "mode": "dark",
+      "style": "glass",
+      "texture": "frost",
+      "family": "glass",
+      "preview": {
+        "canvas": "#161b20",
+        "surface": "#222a30",
+        "ink": "#f1f5f7",
+        "accent": "#8cb8c4"
+      }
+    },
+    {
+      "id": "bauhaus",
+      "label": "Bauhaus",
+      "mode": "light",
+      "style": "lines",
+      "texture": "none",
+      "family": "special",
+      "preview": {
+        "canvas": "#f4e8c1",
+        "surface": "#fff8dc",
+        "ink": "#151515",
+        "accent": "#e43d30"
+      }
+    },
+    {
+      "id": "leather-book",
+      "label": "Leather Book",
+      "mode": "light",
+      "style": "lines",
+      "texture": "leather",
+      "family": "special",
+      "preview": {
+        "canvas": "#3b2318",
+        "surface": "#6b3d24",
+        "ink": "#f4e3c1",
+        "accent": "#d0a85c"
+      }
+    },
+    {
+      "id": "newspaper",
+      "label": "Newspaper",
+      "mode": "light",
+      "style": "lines",
+      "texture": "paper",
+      "family": "special",
+      "preview": {
+        "canvas": "#f4f0e6",
+        "surface": "#faf7ef",
+        "ink": "#1e1e1b",
+        "accent": "#b22d21"
+      }
+    },
+    {
+      "id": "notebook",
+      "label": "Notebook",
+      "mode": "light",
+      "style": "lines",
+      "texture": "notebook",
+      "family": "special",
+      "preview": {
+        "canvas": "#f7f1dc",
+        "surface": "#fffaf0",
+        "ink": "#25324a",
+        "accent": "#d94c4c"
+      }
+    },
+    {
+      "id": "blueprint",
+      "label": "Blueprint",
+      "mode": "dark",
+      "style": "lines",
+      "texture": "blueprint",
+      "family": "special",
+      "preview": {
+        "canvas": "#0d3a66",
+        "surface": "#174f84",
+        "ink": "#e8f5ff",
+        "accent": "#69c6ff"
+      }
+    }
+  ],
+  "legacyAliases": {
+    "light": "neo-light",
+    "dark": "minimal-dark",
+    "neo": "neo-light"
+  }
+}

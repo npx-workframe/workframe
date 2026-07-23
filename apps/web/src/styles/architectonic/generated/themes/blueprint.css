@@ -1,0 +1,26 @@
+/* =============================================================
+   ARCHI · THEME — BLUEPRINT
+   fixed dark-blue · graph texture, white hairlines, technical sans
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme="blueprint"] {
+  --bg: #1d3d5c; --surface: #234666; --surface-2: #2a5071; --surface-3: #325a7d;
+  --fg: #eaf2f9; --fg-muted: #a9c3d8; --fg-subtle: #6e8fa9;
+  --line: rgba(234,242,249,0.28); --line-strong: rgba(234,242,249,0.5); --line-soft: rgba(234,242,249,0.12);
+  --font-sans: "IBM Plex Sans", ui-sans-serif, sans-serif; --font-display: "IBM Plex Sans", ui-sans-serif, sans-serif; --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --primary: #eaf2f9; --primary-hover: #ffffff; --primary-active: #d3e3f0; --primary-fg: #1d3d5c;
+  --primary-soft: rgba(234,242,249,0.14); --accent-soft: rgba(234,242,249,0.14); --ring: #eaf2f9;
+  --ok: #9fd4b3; --ok-soft: rgba(159,212,179,0.15); --warn: #ecd9a0; --warn-soft: rgba(236,217,160,0.15); --bad: #eba9a0; --bad-soft: rgba(235,169,160,0.15); --info: #a8cdea; --info-soft: rgba(168,205,234,0.15);
+  --muted: rgba(234,242,249,0.1); --muted-hover: rgba(234,242,249,0.16);
+  --card-bg: rgba(35,70,102,0.7); --card-border: rgba(234,242,249,0.35); --card-shadow: none; --shadow-card: none;
+  --field-bg: rgba(29,61,92,0.5); --field-border: rgba(234,242,249,0.4);
+  --pop-bg: #234666; --pop-border: rgba(234,242,249,0.4);
+  --overlay: rgba(8,20,32,0.6); --nav-bg: rgba(29,61,92,0.85);
+  --ar-radius-scale: 0.5; --border-w: 1px;
+  --theme-canvas-image:
+    linear-gradient(rgba(234,242,249,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(234,242,249,0.09) 1px, transparent 1px),
+    linear-gradient(rgba(234,242,249,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(234,242,249,0.045) 1px, transparent 1px);
+  --theme-canvas-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  --theme-canvas-position: -1px -1px;
+}

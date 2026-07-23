@@ -1,0 +1,18 @@
+/* =============================================================
+   ARCHI · THEME — MINIMAL
+   lines style · mono base; color variant adds a single accent
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+/* minimal-light + minimal-dark: pure mono — identity attrs only, no overrides */
+
+:root[data-arch-theme="minimal-color"] {
+  --primary: #0f766e; --primary-hover: #0d655e; --primary-active: #0b544e;
+  --primary-fg: #ffffff; --primary-soft: #e3f1ef; --accent-soft: #e3f1ef;
+  --ring: #0f766e; --info: #0f766e; --info-soft: #e3f1ef;
+}
+:root[data-arch-theme="minimal-color"][data-color-mode="dark"] {
+  --primary: #5eead4; --primary-hover: #7cf0dd; --primary-active: #99f4e5;
+  --primary-fg: #06211d; --primary-soft: #123b36; --accent-soft: #123b36;
+  --ring: #5eead4; --info: #5eead4; --info-soft: #123b36;
+}

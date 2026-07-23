@@ -23,6 +23,7 @@ import {
   WORKFRAME_DND_EDGES,
 } from '@/lib/workspaceDndPolicy'
 import { cn } from '@/lib/utils'
+import { isDarkTheme } from '@/lib/theme'
 
 function initWorkspace(event: DockviewReadyEvent, canvasEl: HTMLElement | null) {
   const api = event.api
@@ -118,7 +119,7 @@ export function DockviewWorkspace() {
         ref={workspaceRef}
         className={cn(
           'wf-workspace',
-          theme === 'strato-dark' ? 'dockview-theme-dark' : 'dockview-theme-light',
+          isDarkTheme(theme) ? 'dockview-theme-dark' : 'dockview-theme-light',
         )}
       >
         <DockviewReact
@@ -130,7 +131,7 @@ export function DockviewWorkspace() {
           theme={{
             dndTabIndicator: 'line',
             dndOverlayMounting: 'relative',
-            ...(theme === 'strato-dark'
+            ...(isDarkTheme(theme)
               ? { name: 'wf-dark', className: 'dockview-theme-dark' }
               : { name: 'wf-light', className: 'dockview-theme-light' }),
           }}

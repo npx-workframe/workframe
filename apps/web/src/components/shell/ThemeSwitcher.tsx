@@ -4,7 +4,7 @@ import { Check, ChevronDown } from 'lucide-react'
 import { WfActionButton } from '@/components/ui/WfActionButton'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
-import { THEME_OPTIONS } from '@/lib/themeOptions'
+import { THEME_OPTION_GROUPS, THEME_OPTIONS } from '@/lib/themeOptions'
 
 /** Compact header dropdown — prefer ThemeSettingsPanel in user settings. */
 export function ThemeSwitcher() {
@@ -43,21 +43,28 @@ export function ThemeSwitcher() {
 
         {open ? (
           <ul className="wf-theme-switcher__menu" role="listbox" aria-label="Theme">
-            {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
-              <li key={value} role="option" aria-selected={theme === value}>
-                <button
-                  type="button"
-                  className="wf-theme-switcher__item"
-                  aria-current={theme === value ? 'true' : undefined}
-                  onClick={() => {
-                    setTheme(value)
-                    setOpen(false)
-                  }}
-                >
-                  <Icon aria-hidden="true" />
-                  <span>{label}</span>
-                  {theme === value ? <Check aria-hidden="true" className="wf-theme-switcher__check" /> : null}
-                </button>
+            {THEME_OPTION_GROUPS.map((group) => (
+              <li className="wf-theme-switcher__group" role="presentation" key={group.family}>
+                <span className="wf-theme-switcher__group-label">{group.label}</span>
+                <ul className="wf-theme-switcher__group-list" role="group" aria-label={group.label}>
+                  {group.options.map(({ value, label, icon: Icon }) => (
+                    <li key={value} role="option" aria-selected={theme === value}>
+                      <button
+                        type="button"
+                        className="wf-theme-switcher__item"
+                        aria-current={theme === value ? 'true' : undefined}
+                        onClick={() => {
+                          setTheme(value)
+                          setOpen(false)
+                        }}
+                      >
+                        <Icon aria-hidden="true" />
+                        <span>{label}</span>
+                        {theme === value ? <Check aria-hidden="true" className="wf-theme-switcher__check" /> : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>

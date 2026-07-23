@@ -3,7 +3,7 @@ import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { useDocumentTheme } from '@/hooks/useDocumentTheme'
 import { BRAND_ICON } from '@/lib/brandAssets'
-import type { Theme } from '@/lib/theme'
+import { isDarkTheme, type Theme } from '@/lib/theme'
 
 export type WizardStepItem = {
   id: string
@@ -31,10 +31,9 @@ type OnboardingWizardShellProps = {
 }
 
 function defaultWizardRailLogo(theme: Theme): { src: string; mono: boolean } {
-  if (theme === 'neo-light' || theme === 'neo-blue') {
-    return { src: BRAND_ICON.workframeColor, mono: false }
-  }
-  return { src: BRAND_ICON.workframe, mono: true }
+  return isDarkTheme(theme)
+    ? { src: BRAND_ICON.workframe, mono: true }
+    : { src: BRAND_ICON.workframeColor, mono: false }
 }
 
 export function OnboardingWizardShell({

@@ -1,0 +1,25 @@
+/* =============================================================
+   ARCHI · THEME — LIQUID GLASS
+   glass style · high transparency, deep blur, pill geometry, aurora body
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme^="liquid-glass"] {
+  /* Controls may pill through 40px tall; larger elements keep visible side walls. */
+  --radius-control: min(var(--ar-radius-full), 1.25rem); --ar-radius-scale: 1.6;
+  --card-bg: color-mix(in srgb, var(--surface) 30%, transparent);
+  --field-bg: color-mix(in srgb, var(--surface) 24%, transparent);
+  --pop-bg: color-mix(in srgb, var(--surface) 45%, transparent);
+  --theme-canvas-image:
+    radial-gradient(42% 55% at 15% 18%, rgba(99,102,241,0.5), transparent 70%),
+    radial-gradient(45% 52% at 85% 24%, rgba(236,72,153,0.38), transparent 70%),
+    radial-gradient(55% 62% at 58% 98%, rgba(34,211,238,0.42), transparent 72%);
+  --theme-canvas-attachment: fixed;
+}
+:root[data-arch-theme="liquid-glass-light"] { --bg: #dfe6f2; }
+:root[data-arch-theme="liquid-glass-dark"] { --bg: #10131c; }
+html[data-arch-theme^="liquid-glass"] .archi-card,
+html[data-arch-theme^="liquid-glass"] .archi-dialog,
+html[data-arch-theme^="liquid-glass"] .archi-command {
+  backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+}

@@ -3,6 +3,7 @@ import {
   setStoredSessionTokens,
   workframeAuthHeaders,
 } from '@/lib/workframeSession'
+import { applyTheme, isTheme, persistTheme } from '@/lib/theme'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { noticeMessage, parseApiErrorResponse } from '@/lib/workframeErrors'
 
@@ -118,6 +119,7 @@ export type SessionUser = {
   email?: string | null
   tagline?: string | null
   bio?: string | null
+  theme?: string | null
   platform_ids?: Record<string, string>
 }
 
@@ -492,6 +494,11 @@ export function peekCachedSessionProfile(): SessionProfile | null {
 
 function rememberSessionProfile(profile: SessionProfile): SessionProfile {
   cachedSessionProfile = profile
+  const theme = profile.user?.theme
+  if (isTheme(theme)) {
+    persistTheme(theme)
+    applyTheme(theme)
+  }
   return profile
 }
 
@@ -629,7 +636,7 @@ export const workframeAuthApi = {
       if (data.session_id) {
         setStoredSessionTokens(data.session_id, data.refresh_token)
       }
-      return data
+      return rememberSessionProfile(data)
     })
   },
 
@@ -740,11 +747,12 @@ export const workframeAuthApi = {
     tagline?: string
     bio?: string
     platform_ids?: Record<string, string>
+    theme?: string
   }) {
     return request<SessionProfile>('/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
-    })
+    }).then(rememberSessionProfile)
   },
 
   linkTelegram(data: Record<string, string | number>) {
@@ -1124,7 +1132,7 @@ export const workframeAuthApi = {
       if (data.session_id) {
         setStoredSessionTokens(data.session_id, data.refresh_token)
       }
-      return data
+      return rememberSessionProfile(data)
     })
   },
 
@@ -1147,7 +1155,7 @@ export const workframeAuthApi = {
       if (data.session_id) {
         setStoredSessionTokens(data.session_id, data.refresh_token)
       }
-      return data
+      return rememberSessionProfile(data)
     })
   },
 

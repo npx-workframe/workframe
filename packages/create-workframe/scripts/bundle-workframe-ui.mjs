@@ -61,9 +61,19 @@ copyTree(dist, UI_DEST);
 
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
 const gitRef = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
+const bundledAt = new Date().toISOString();
+const assetRevision = `${pkgVersion}-${Date.parse(bundledAt).toString(36)}`;
+const bundledIndexPath = path.join(UI_DEST, 'index.html');
+const bundledIndex = fs.readFileSync(bundledIndexPath, 'utf8').replace(
+  /((?:src|href)=["']\/assets\/[^"'?]+)(["'])/g,
+  `$1?v=${assetRevision}$2`,
+);
+fs.writeFileSync(bundledIndexPath, bundledIndex);
+
 const buildStamp = {
   package_version: pkgVersion,
-  bundled_at: new Date().toISOString(),
+  bundled_at: bundledAt,
+  asset_revision: assetRevision,
   git_ref: gitRef.status === 0 ? gitRef.stdout.trim() : '',
 };
 fs.writeFileSync(path.join(UI_DEST, 'workframe-build.json'), `${JSON.stringify(buildStamp, null, 2)}\n`);

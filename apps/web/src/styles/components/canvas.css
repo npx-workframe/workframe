@@ -1,7 +1,7 @@
 /* Canvas stack — see lib/canvas-layers.ts + components/shell/canvas/*
-   Layer 1: AtmosphereBg (solid --wf-bg; neo relief = flat, no gradient/orbs)
-   Layer 2: DotGrid | MoleskineGrid (texture — strato-dark only; neo = none)
-   Shell UI stacks above wf-canvas; relief chrome paints solid --wf-bg. */
+   Layer 1: AtmosphereBg (theme canvas and optional atmosphere)
+   Layer 2: registry-selected .wf-theme-texture
+   Shell UI stacks above wf-canvas; product layout remains theme-agnostic. */
 
 .wf-canvas {
   position: fixed;
@@ -67,6 +67,18 @@
 [data-chrome-mode='relief'] .wf-atmosphere-bg__orb,
 [data-chrome-mode='relief'] .wf-atmosphere-bg__overlay {
   display: none;
+}
+
+.wf-theme-texture {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background-image: var(--theme-canvas-image, none);
+  background-size: var(--theme-canvas-size, auto);
+  background-position: var(--theme-canvas-position, 0 0);
+  background-attachment: var(--theme-canvas-attachment, scroll);
+  background-blend-mode: var(--theme-canvas-blend-mode, normal);
 }
 
 /* ── DotGrid — one dot per tile via mask (theme sets color + opacity only) ─ */

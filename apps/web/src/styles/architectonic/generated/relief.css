@@ -1,0 +1,247 @@
+/* =============================================================
+   ARCHI — STYLES (relief axis, orthogonal to colour themes)
+   A "style" defines HOW surfaces separate from one another:
+     lines   — hairline borders do the work; flat, minimal shadow
+     shadows — neumorphic relief; no borders, raised islands + inset wells
+     glass   — translucent surfaces, backdrop blur, faint borders
+   Applied via [data-style="…"] on <html> or any container; components
+   inherit through the role/component tokens they already read.
+   ============================================================= */
+
+/* ============================ LINES ============================ */
+[data-style="lines"] {
+  --shadow-xs: none; --shadow-sm: none;
+  --shadow-md: 0 1px 0 var(--line-strong);
+  --shadow-lg: 0 2px 0 var(--line-strong);
+  --shadow-xl: 0 3px 0 var(--line-strong);
+  --shadow-card: none; --shadow-pop: 0 2px 0 var(--line-strong);
+  --card-shadow: none; --btn-shadow: none;
+}
+[data-style="lines"] .archi-card,
+[data-style="lines"] .archi-shell { box-shadow: none; }
+
+/* ============================ SHADOWS (neumorphism) ============================ */
+[data-style="shadows"] {
+  /* surfaces collapse onto the body colour — separation is pure relief */
+  --surface: var(--bg); --surface-2: var(--bg); --surface-3: var(--bg);
+  --muted: var(--bg); --muted-hover: var(--bg);
+  --line: transparent; --line-strong: transparent; --line-soft: transparent;
+  /* true neumorphism — 3px offset, 6px blur, black 20% / white 80% */
+  --neu-d: var(--relief-shadow, rgba(0,0,0,0.15));
+  --neu-l: var(--relief-highlight, rgba(255,255,255,0.80));
+  --neu-raise: 3px 3px 6px var(--neu-d), -3px -3px 6px var(--neu-l);          /* high relief */
+  --neu-raise-sm: 2px 2px 5px var(--neu-d), -2px -2px 5px var(--neu-l);
+  --neu-inset: inset 3px 3px 6px var(--neu-d), inset -3px -3px 6px var(--neu-l); /* low relief / wells */
+  --neu-inset-sm: inset 2px 2px 4px var(--neu-d), inset -2px -2px 4px var(--neu-l);
+  --radius-card: 1.1rem; --radius-control: 0.85rem;
+  --card-bg: var(--bg); --card-border: transparent; --card-shadow: var(--neu-raise);
+  --field-bg: var(--bg); --field-border: transparent;
+  --pop-bg: var(--bg); --pop-border: transparent; --pop-shadow: var(--neu-raise);
+  --shadow-pop: var(--neu-raise); --shadow-modal: var(--neu-raise); --shadow-md: var(--neu-raise-sm);
+}
+/* cards / shells = raised islands */
+[data-style="shadows"] .archi-card,
+[data-style="shadows"] .archi-shell { border: none; box-shadow: var(--neu-raise); background: var(--bg); }
+[data-style="shadows"] .archi-shell--glass { backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* inputs / selects / textareas = inset wells */
+[data-style="shadows"] .archi-input,
+[data-style="shadows"] .archi-textarea,
+[data-style="shadows"] .archi-select,
+[data-style="shadows"] .archi-cselect__trigger {
+  border: none; background: var(--bg); box-shadow: var(--neu-inset);
+}
+[data-style="shadows"] .archi-input:focus,
+[data-style="shadows"] .archi-textarea:focus,
+[data-style="shadows"] .archi-cselect__trigger:focus-visible {
+  box-shadow: var(--neu-inset), 0 0 0 var(--ar-ring-w) color-mix(in srgb, var(--ring) 28%, transparent);
+}
+/* the dropdown list / menu / popover sit in a well with gutter, options are islands on hover */
+[data-style="shadows"] .archi-cselect__list,
+[data-style="shadows"] .archi-menu,
+[data-style="shadows"] .archi-command {
+  border: none; background: var(--bg); box-shadow: var(--neu-raise);
+}
+[data-style="shadows"] .archi-cselect__option:hover,
+[data-style="shadows"] .archi-menu__item:hover,
+[data-style="shadows"] .archi-command__item:hover { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+/* buttons stay the surface colour — they only change relief, never recolour.
+   Primary rests at HIGH relief and does NOT pop further on hover. */
+[data-style="shadows"] .btn { border: none; background: var(--bg); color: var(--primary); box-shadow: var(--neu-raise); }
+[data-style="shadows"] .btn:hover { box-shadow: var(--neu-raise); background: var(--bg); }
+[data-style="shadows"] .btn:active,
+[data-style="shadows"] .btn[aria-pressed="true"] { box-shadow: var(--neu-inset-sm); }
+/* secondary + outline rest FLUSH, rise to the SAME high relief only on hover */
+[data-style="shadows"] .btn--secondary,
+[data-style="shadows"] .btn--outline { box-shadow: none; background: var(--bg); color: var(--fg); }
+[data-style="shadows"] .btn--secondary:hover,
+[data-style="shadows"] .btn--outline:hover { box-shadow: var(--neu-raise); background: var(--bg); color: var(--fg); }
+[data-style="shadows"] .btn--danger { color: var(--bad); }
+[data-style="shadows"] .btn--ghost, [data-style="shadows"] .btn--link { box-shadow: none; background: transparent; }
+[data-style="shadows"] .btn--ghost:hover { box-shadow: var(--neu-inset-sm); background: var(--bg); }
+/* segmented + switch tracks = wells, thumbs/active = raised.
+   parent radius = child radius + track padding, so corners stay concentric */
+[data-style="shadows"] .archi-segmented { background: var(--bg); box-shadow: var(--neu-inset-sm); padding: var(--ar-space-2); border-radius: calc(var(--radius-control) + var(--ar-space-2)); }
+[data-style="shadows"] .archi-segmented__item { border-radius: var(--radius-control); }
+[data-style="shadows"] .archi-segmented__item[aria-selected="true"] { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+/* non-selected segments rise on hover, like secondary buttons */
+[data-style="shadows"] .archi-segmented__item:not([aria-selected="true"]):hover { box-shadow: var(--neu-raise-sm); }
+/* switch: track is a well, thumb is a raised island — no colour change on/off */
+[data-style="shadows"] .archi-switch__input { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-switch__input::after { top: 3px; left: 3px; width: calc(1.4rem - 6px); height: calc(1.4rem - 6px); }
+[data-style="shadows"] .archi-switch__input:checked::after { transform: translateX(1.0rem); }
+[data-style="shadows"] .archi-switch__input:checked { background: var(--bg); }
+[data-style="shadows"] .archi-switch__input::after { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-switch__track { box-shadow: var(--neu-inset-sm); }
+/* badges lose their hairline ring */
+[data-style="shadows"] .archi-badge { box-shadow: none; }
+/* solid badge (e.g. PRO) becomes a raised island — no dark fill, keeps surface colour */
+[data-style="shadows"] .archi-badge--solid { background: var(--bg); color: var(--fg); box-shadow: var(--neu-raise-sm); }
+/* tables / dividers have no lines — use faint fills instead */
+[data-style="shadows"] .archi-table th { border-bottom: none; }
+[data-style="shadows"] .archi-table tbody tr { border-bottom: none; }
+/* dark neumorphism — same geometry, inverted INTENSITY:
+   light: shadow black 20% / highlight white 80%
+   dark:  shadow black 80% / highlight white 20%
+   (finding shadow on dark needs intensity; finding light on light needs intensity) */
+/* ============================ GLASS ============================ */
+[data-style="glass"] {
+  --card-bg: color-mix(in srgb, var(--surface) 42%, transparent);
+  --card-border: color-mix(in srgb, #fff 14%, transparent);
+  --card-shadow: var(--shadow-lg);
+  --field-bg: color-mix(in srgb, var(--surface) 38%, transparent);
+  --field-border: color-mix(in srgb, #fff 16%, transparent);
+  --pop-bg: color-mix(in srgb, var(--surface) 60%, transparent);
+  --pop-border: color-mix(in srgb, #fff 14%, transparent);
+  --line: color-mix(in srgb, #fff 12%, transparent);
+  --line-strong: color-mix(in srgb, #fff 20%, transparent);
+  --muted: color-mix(in srgb, #fff 8%, transparent);
+  --muted-hover: color-mix(in srgb, #fff 14%, transparent);
+}
+[data-style="glass"] .archi-card,
+[data-style="glass"] .archi-shell,
+[data-style="glass"] .archi-input,
+[data-style="glass"] .archi-textarea,
+[data-style="glass"] .archi-select,
+[data-style="glass"] .archi-cselect__trigger,
+[data-style="glass"] .archi-cselect__list,
+[data-style="glass"] .archi-menu,
+[data-style="glass"] .archi-popover,
+[data-style="glass"] .archi-command,
+[data-style="glass"] .archi-dialog,
+[data-style="glass"] .archi-segmented {
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+[data-style="glass"] .archi-card,
+[data-style="glass"] .archi-shell { box-shadow: var(--shadow-lg), inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent); }
+[data-style="glass"] .btn--secondary,
+[data-style="glass"] .btn--outline {
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
+  border-color: color-mix(in srgb, #fff 18%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+[data-style="glass"] .btn--secondary:hover,
+[data-style="glass"] .btn--outline:hover { background: color-mix(in srgb, #fff 12%, transparent); color: var(--fg); border-color: color-mix(in srgb, #fff 26%, transparent); }
+[data-style="glass"] .archi-segmented__item[aria-selected="true"] { background: color-mix(in srgb, #fff 16%, transparent); }
+
+/* ============================ SHADOWS — full component relief pass ============
+   What goes DOWN (wells): tracks, fields, list containers, pressed states,
+   unchecked toggles, dropzones, icon plates.
+   What goes UP (islands): thumbs, cards, toasts, alerts, active tabs,
+   checked controls, avatars, kbd, hover states.
+   ============================================================================ */
+/* slider: track = well, thumb = island */
+[data-style="shadows"] .archi-slider { background: var(--bg); box-shadow: var(--neu-inset-sm); height: 0.65rem; }
+[data-style="shadows"] .archi-slider::-webkit-slider-thumb { background: var(--bg); border: none; box-shadow: var(--neu-raise-sm); width: 1.35rem; height: 1.35rem; }
+[data-style="shadows"] .archi-slider::-webkit-slider-thumb:hover { box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-slider::-moz-range-thumb { background: var(--bg); border: none; box-shadow: var(--neu-raise-sm); }
+/* progress: track = well, keep filled bar */
+[data-style="shadows"] .archi-progress { background: var(--bg); box-shadow: var(--neu-inset-sm); height: 0.65rem; }
+[data-style="shadows"] .archi-progress__bar { background: var(--primary); box-shadow: var(--neu-raise-sm); }
+/* number stepper: one well, buttons rise on hover */
+[data-style="shadows"] .archi-number { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-number:focus-within { box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-number__btn:hover { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-number__btn:active { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+/* checkbox / radio: unchecked = well, checked = island with accent mark */
+[data-style="shadows"] .archi-check__input { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-check__input:checked { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-check__input:checked::before { background: var(--primary); }
+/* chips: flat -> hover island -> pressed well */
+[data-style="shadows"] .archi-chip { border: none; background: var(--bg); }
+[data-style="shadows"] .archi-chip:hover { box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-chip[aria-pressed="true"] { background: var(--bg); color: var(--fg); box-shadow: var(--neu-inset-sm); font-weight: var(--ar-weight-semibold); }
+/* toggle + toggle group */
+[data-style="shadows"] .archi-toggle:hover { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-toggle[aria-pressed="true"] { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-toggle-group { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); padding: var(--ar-space-1); border-radius: calc(var(--radius-control) + var(--ar-space-1)); }
+[data-style="shadows"] .archi-toggle-group .archi-toggle { border: none; border-radius: var(--radius-control); }
+[data-style="shadows"] .archi-toggle-group .archi-toggle[aria-pressed="true"] { background: var(--bg); color: var(--fg); box-shadow: var(--neu-raise-sm); }
+/* tabs pills: list = well, active = island */
+[data-style="shadows"] .archi-tabs__list--pills { background: var(--bg); box-shadow: var(--neu-inset-sm); padding: var(--ar-space-2); border-radius: calc(var(--radius-control) + var(--ar-space-2)); }
+[data-style="shadows"] .archi-tabs__list--pills .archi-tabs__tab[aria-selected="true"] { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+/* OTP: each slot a well */
+[data-style="shadows"] .archi-otp__slot { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); border-radius: var(--ar-radius-md); margin-inline-end: 4px; }
+[data-style="shadows"] .archi-otp__slot:focus { box-shadow: var(--neu-inset-sm); }
+/* alerts & toasts & banner: raised islands */
+[data-style="shadows"] .archi-alert { border: none; background: var(--bg); box-shadow: var(--neu-raise-sm); border-radius: var(--radius-card); }
+[data-style="shadows"] .archi-toast { border: none; background: var(--bg); color: var(--fg); box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-toast__accent { background: var(--fg); }
+[data-style="shadows"] .archi-banner { border: none; background: var(--bg); color: var(--fg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-banner a { color: var(--fg); }
+/* empty / dropzone: icon plate + zone are wells */
+[data-style="shadows"] .archi-empty__icon { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-dropzone { border: none; background: var(--bg); box-shadow: var(--neu-inset); }
+[data-style="shadows"] .archi-dropzone:hover, [data-style="shadows"] .archi-dropzone.is-drag { background: var(--bg); box-shadow: var(--neu-inset); }
+/* kbd + avatar: small islands */
+[data-style="shadows"] .archi-kbd { border: none; background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-avatar { box-shadow: var(--neu-raise-sm); }
+/* pagination + steps */
+[data-style="shadows"] .archi-pagination__item:hover { box-shadow: var(--neu-raise-sm); background: var(--bg); }
+[data-style="shadows"] .archi-pagination__item[aria-current="page"] { background: var(--bg); color: var(--fg); box-shadow: var(--neu-inset-sm); font-weight: var(--ar-weight-semibold); }
+[data-style="shadows"] .archi-steps__dot { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-steps__step--done .archi-steps__dot,
+[data-style="shadows"] .archi-steps__step--active .archi-steps__dot { background: var(--bg); color: var(--primary); box-shadow: var(--neu-raise-sm); }
+/* containers: table, scrollarea, calendar, inbox, chat, prompt, navigator */
+[data-style="shadows"] .archi-table-wrap { border: none; box-shadow: var(--neu-raise-sm); border-radius: var(--radius-card); }
+[data-style="shadows"] .archi-scrollarea { box-shadow: var(--neu-inset-sm); border-color: transparent !important; }
+[data-style="shadows"] .archi-calendar { border: none; box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-calendar__day--today { box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-inbox { border: none; box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-notif__icon { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-chat { border: none; box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-chat__bubble { border: none; background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-chat__msg--out .archi-chat__bubble { box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-chat__typing { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-chat__reaction { border: none; background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-chat__reaction[aria-pressed="true"] { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-prompt { border: none; box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-prompt__tool { border: none; }
+[data-style="shadows"] .archi-prompt__tool:hover { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-navigator { border: none; box-shadow: var(--neu-raise); }
+/* button group + carousel controls + menubar */
+[data-style="shadows"] .archi-btn-group { box-shadow: var(--neu-raise-sm); border-radius: var(--radius-control); }
+[data-style="shadows"] .archi-btn-group .btn { box-shadow: none; border: none; }
+[data-style="shadows"] .archi-carousel__ctrl { border: none; box-shadow: var(--neu-raise); background: var(--bg); color: var(--fg); }
+[data-style="shadows"] .archi-carousel__ctrl:hover { background: var(--bg); color: var(--fg); box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-menubar { border: none; background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-menubar__trigger:hover, [data-style="shadows"] .archi-menubar__trigger[aria-expanded="true"] { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+/* charts: muted bars need a visible tone; donut sits in a well */
+[data-style="shadows"] .archi-barchart { border-bottom: none; }
+[data-style="shadows"] .archi-barchart__bar--muted { background: color-mix(in srgb, var(--fg) 14%, var(--bg)); }
+[data-style="shadows"] .archi-donut { box-shadow: var(--neu-raise); border-radius: 50%; }
+/* timeline dots as tiny islands */
+[data-style="shadows"] .archi-timeline__dot { box-shadow: var(--neu-raise-sm); border: none; background: var(--bg); }
+
+/* ---- neo charts: monochrome, relief-defined --------------- */
+[data-style="shadows"] .archi-barchart { border-bottom: none; }
+[data-style="shadows"] .archi-barchart__bar { background: var(--bg); box-shadow: var(--neu-raise-sm); }
+[data-style="shadows"] .archi-barchart__bar--muted { background: var(--bg); box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-donut { --chart-track: var(--fg); --chart-track2: color-mix(in srgb, var(--fg) 12%, var(--bg)); box-shadow: var(--neu-raise); }
+[data-style="shadows"] .archi-donut__hole { box-shadow: var(--neu-inset-sm); }
+[data-style="shadows"] .archi-linechart__area { fill: color-mix(in srgb, var(--fg) 8%, transparent); }
+[data-style="shadows"] .archi-linechart__line { stroke: var(--fg); }
+[data-style="shadows"] .archi-sparkline path { stroke: var(--fg); }
+[data-style="shadows"] .archi-sparkline--area path.fill { fill: color-mix(in srgb, var(--fg) 10%, transparent); }
+[data-style="shadows"] .archi-progress__bar { background: var(--fg); }
+[data-style="shadows"] .archi-chart__swatch { box-shadow: var(--neu-raise-sm); }

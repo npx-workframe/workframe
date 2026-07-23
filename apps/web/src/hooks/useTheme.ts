@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { applyTheme, getInitialTheme, persistTheme, type Theme } from '@/lib/theme'
+import { applyTheme, getInitialTheme, isDarkTheme, isTheme, persistTheme, type Theme } from '@/lib/theme'
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => getInitialTheme())
@@ -9,6 +9,16 @@ export function useTheme() {
     applyTheme(theme)
   }, [theme])
 
+  useEffect(() => {
+    const root = document.documentElement
+    const observer = new MutationObserver(() => {
+      const next = root.dataset.theme
+      if (isTheme(next)) setThemeState(next)
+    })
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
+
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next)
     persistTheme(next)
@@ -16,7 +26,7 @@ export function useTheme() {
   }, [])
 
   const toggleTheme = useCallback(() => {
-    setTheme(theme === 'strato-dark' ? 'neo-light' : 'strato-dark')
+    setTheme(isDarkTheme(theme) ? 'neo-light' : 'minimal-dark')
   }, [setTheme, theme])
 
   return { theme, setTheme, toggleTheme }

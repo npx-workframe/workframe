@@ -34,6 +34,7 @@ type ConciergeWizardFooterProps = {
   onTestPublicUrl: () => void
   onContinuePublish: () => void
   onGetStarted: () => void
+  onContinueTheme: () => void
 }
 
 export function ConciergeWizardFooter({
@@ -67,6 +68,7 @@ export function ConciergeWizardFooter({
   onTestPublicUrl,
   onContinuePublish,
   onGetStarted,
+  onContinueTheme,
 }: ConciergeWizardFooterProps): ReactNode {
   switch (step) {
     case 'intro':
@@ -79,6 +81,17 @@ export function ConciergeWizardFooter({
         >
           Get started
         </WfActionButton>
+      )
+    case 'theme':
+      return (
+        <>
+          <WfActionButton wizardSize disabled={busy} onClick={onContinueTheme}>
+            Skip for now
+          </WfActionButton>
+          <WfActionButton wizardSize tone="primary" disabled={busy} onClick={onContinueTheme}>
+            {busy ? 'Saving…' : 'Use this theme'}
+          </WfActionButton>
+        </>
       )
     case 'smtp':
       return (

@@ -1,4 +1,4 @@
-import { useCallback, useState, type HTMLAttributes, type PointerEvent } from 'react'
+import { createElement, useCallback, useState, type HTMLAttributes, type PointerEvent } from 'react'
 import { Move } from 'lucide-react'
 import type { IDockviewPanelHeaderProps } from 'dockview'
 
@@ -11,8 +11,12 @@ export function PanelDragTab({
   onPointerUp,
   onPointerLeave,
   className,
+  containerApi,
+  tabLocation,
   ...rest
 }: IDockviewPanelHeaderProps & HTMLAttributes<HTMLDivElement>) {
+  void containerApi
+  void tabLocation
   const panelId = api.id
   const dockable = isDockablePanelId(panelId)
   const Icon = panelDragIconFor(panelId)
@@ -68,11 +72,9 @@ export function PanelDragTab({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
     >
-      {showMoveIcon ? (
-        <Move className="wf-panel-drag-tab__icon" aria-hidden="true" />
-      ) : (
-        <Icon className="wf-panel-drag-tab__icon" aria-hidden="true" />
-      )}
+      {showMoveIcon
+        ? <Move className="wf-panel-drag-tab__icon" aria-hidden="true" />
+        : createElement(Icon, { className: 'wf-panel-drag-tab__icon', 'aria-hidden': true })}
       <span className="wf-panel-drag-tab__label">{api.title}</span>
     </div>
   )

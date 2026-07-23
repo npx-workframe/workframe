@@ -2,8 +2,6 @@ import { getThemeCanvasTexture } from '@/lib/canvas-layers'
 import { useDocumentTheme } from '@/hooks/useDocumentTheme'
 
 import { AtmosphereBg } from '@/components/shell/canvas/AtmosphereBg'
-import { DotGrid } from '@/components/shell/canvas/DotGrid'
-import { MoleskineGrid } from '@/components/shell/canvas/MoleskineGrid'
 
 /** Fixed canvas behind shell: atmosphere + per-theme texture component. */
 export function CanvasBackground() {
@@ -13,7 +11,7 @@ export function CanvasBackground() {
   return (
     <div className="wf-canvas" aria-hidden="true">
       <AtmosphereBg />
-      {texture === 'dots' ? <DotGrid /> : texture === 'moleskine' ? <MoleskineGrid /> : null}
+      {texture ? <div className="wf-theme-texture" data-texture={texture} /> : null}
     </div>
   )
 }

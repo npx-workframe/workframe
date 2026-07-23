@@ -1,0 +1,33 @@
+/* =============================================================
+   ARCHI · THEME — LEATHER BOOK
+   skeuomorphic · leather rail, aged paper body, humanist type
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme="leather-book"] {
+  --bg: #ede3cd; --surface: #f7f0de; --surface-2: #e6dabf; --surface-3: #dbcda9;
+  --fg: #3a2c1c; --fg-muted: #6b5949; --fg-subtle: #97836e;
+  --line: #d3c3a0; --line-strong: #b7a37c;
+  --font-sans: "EB Garamond", Georgia, serif; --font-display: "Caveat", cursive;
+  --primary: #7a4a21; --primary-hover: #663d1a; --primary-active: #533214; --primary-fg: #f7f0de;
+  --primary-soft: #e8d9c2; --accent-soft: #e8d9c2; --ring: #7a4a21;
+  --ok: #5c6e3f; --ok-soft: #e4e8d4; --warn: #a3722a; --warn-soft: #f0e4cb; --bad: #94402f; --bad-soft: #eeD7d1; --info: #58604f; --info-soft: #e4e6de;
+  --muted: #e6dabf; --muted-hover: #dbcda9;
+  --card-bg: #f7f0de; --card-border: #cbb98f;
+  --shadow-card: 0 1px 3px rgba(58,44,28,0.25); --card-shadow: 0 1px 3px rgba(58,44,28,0.25);
+  --ar-radius-scale: 0.75;
+  --theme-canvas-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --theme-canvas-size: 160px 160px;
+  --theme-canvas-blend-mode: multiply;
+}
+html[data-arch-theme="leather-book"] .doc-nav {
+  background-color: #4a3220;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  border-inline-end-color: #33220f;
+}
+html[data-arch-theme="leather-book"] .doc-nav .doc-navlink { color: #d9c6a8; }
+html[data-arch-theme="leather-book"] .doc-nav .doc-navlink:hover { background: rgba(0,0,0,0.25); color: #f3e8d2; }
+html[data-arch-theme="leather-book"] .doc-nav .doc-navlink.is-active { background: #ede3cd; color: #3a2c1c; }
+html[data-arch-theme="leather-book"] .doc-nav .doc-navgroup__title { color: #a98f68; }
+html[data-arch-theme="leather-book"] .doc-nav .doc-brand { color: #f3e8d2; }
+html[data-arch-theme="leather-book"] .doc-nav__head { border-bottom-color: #33220f; }

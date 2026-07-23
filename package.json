@@ -16,6 +16,7 @@
     "dev:api": "pnpm --filter @workframe/workframe-api dev",
     "desktop:dev": "pnpm --filter @workframe/desktop dev",
     "desktop:package": "pnpm --filter @workframe/desktop build && pnpm --filter @workframe/desktop package:win",
+    "sync:design-system": "node scripts/workframe/sync-architectonic-design-system.mjs",
     "verify:public": "node scripts/workframe/verify-public-repo.mjs",
     "verify:version": "node scripts/workframe/verify-version-agreement.mjs",
     "verify:docs": "node scripts/workframe/verify-docs-claims.mjs",

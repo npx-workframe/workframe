@@ -1,0 +1,34 @@
+/* =============================================================
+   ARCHI · THEME — NEWSPAPER
+   light only · serif, hairline black bottom-borders, ink buttons
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+:root[data-arch-theme="newspaper"] {
+  --bg: #faf7f0; --surface: #faf7f0; --surface-2: #f1ecdf; --surface-3: #e7e0cd;
+  --fg: #191817; --fg-muted: #45423c; --fg-subtle: #7c776c;
+  --line: #191817; --line-strong: #191817; --line-soft: #d9d3c2;
+  --font-sans: "Source Serif 4", Georgia, serif; --font-display: "Playfair Display", Georgia, serif;
+  --ar-radius-scale: 0; --radius-control: 0; --radius-card: 0;
+  --primary: #191817; --primary-hover: #000000; --primary-active: #000000; --primary-fg: #faf7f0;
+  --primary-soft: #eae4d4; --accent-soft: #eae4d4; --ring: #191817;
+  --ok: #2e5339; --ok-soft: #e2e9e0; --warn: #7a5c1e; --warn-soft: #f0e8d2; --bad: #7d2e20; --bad-soft: #eeddd8; --info: #191817; --info-soft: #eae4d4;
+  --muted: #f1ecdf; --muted-hover: #e7e0cd;
+  --card-bg: #faf7f0; --card-border: #191817; --card-shadow: none; --shadow-card: none;
+  --field-bg: transparent; --field-border: #191817;
+  --field-border-width: 0 0 1px 0;
+  --theme-canvas-image:
+    radial-gradient(circle at 20% 30%, rgba(25,24,23,0.035) 0 0.6px, transparent 0.8px),
+    radial-gradient(circle at 70% 65%, rgba(25,24,23,0.025) 0 0.5px, transparent 0.75px);
+  --theme-canvas-size: 7px 9px, 11px 13px;
+  --shadow-sm: none; --shadow-md: none; --shadow-lg: 0 2px 0 #191817; --pop-shadow: 4px 4px 0 rgba(25,24,23,0.15);
+}
+/* fields: bottom border only, like column rules */
+html[data-arch-theme="newspaper"] .archi-input,
+html[data-arch-theme="newspaper"] .archi-textarea,
+html[data-arch-theme="newspaper"] .archi-select,
+html[data-arch-theme="newspaper"] .archi-cselect__trigger { border-radius: 0; background: transparent; }
+html[data-arch-theme="newspaper"] .btn--secondary,
+html[data-arch-theme="newspaper"] .btn--outline { background: transparent; border: 1px solid #191817; color: #191817; }
+html[data-arch-theme="newspaper"] .btn--secondary:hover,
+html[data-arch-theme="newspaper"] .btn--outline:hover { background: #191817; color: #faf7f0; }

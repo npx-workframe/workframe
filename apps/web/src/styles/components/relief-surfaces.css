@@ -934,7 +934,7 @@
   border-bottom: var(--wf-border-width) solid var(--wf-divider-color);
 }
 
-[data-theme='neo-light'][data-chrome-mode='relief'] .wf-message-navigator .wf-message-navigator__marker {
+[data-style='shadows'][data-color-mode='light'] .wf-message-navigator .wf-message-navigator__marker {
   background: #fff;
   opacity: 1;
 }

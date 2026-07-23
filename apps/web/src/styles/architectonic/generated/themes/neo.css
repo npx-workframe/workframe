@@ -1,0 +1,33 @@
+/* =============================================================
+   ARCHI · THEME — NEO (neumorphic)
+   shadows style · monochrome status (no traffic lights)
+   Scoped to [data-arch-theme] so it layers over mono + a style axis.
+   ============================================================= */
+
+/* All neo variants: status collapses to fg with opacity — relief carries meaning */
+:root[data-arch-theme^="neo"] {
+  --ok: var(--fg); --warn: var(--fg); --bad: var(--fg); --info: var(--fg);
+  --ok-soft: color-mix(in srgb, var(--fg) 7%, transparent);
+  --warn-soft: color-mix(in srgb, var(--fg) 7%, transparent);
+  --bad-soft: color-mix(in srgb, var(--fg) 7%, transparent);
+  --info-soft: color-mix(in srgb, var(--fg) 7%, transparent);
+  --ok-fg: var(--bg); --warn-fg: var(--bg); --bad-fg: var(--bg);
+}
+:root[data-arch-theme="neo-light"] {
+  --bg: #e0e0e6; --bg-body: #e0e0e6;
+  --fg: #27272a; --fg-muted: #5d5d66; --fg-subtle: #85858f;
+  --primary: #51466f;
+  --relief-shadow: rgba(0,0,0,0.15);
+  --relief-highlight: rgba(255,255,255,0.80);
+}
+:root[data-arch-theme="neo-dark"] {
+  --bg: #2a2d34; --bg-body: #2a2d34;
+  --fg: #f4f4f5; --fg-muted: #b5b7bd; --fg-subtle: #81848c;
+  --primary: #d9d4ec;
+  --relief-shadow: rgba(0,0,0,0.50);
+  --relief-highlight: rgba(255,255,255,0.10);
+}
+/* neo-color: lavender surface, inverted to deep violet on dark */
+:root[data-arch-theme="neo-color"] { --neo-bg: #e6e1f2; --fg: #2f2a45; --fg-muted: #5c5479; --fg-subtle: #8d86a8; --primary: #5b4b8a; --relief-shadow: rgba(47,42,69,0.18); --relief-highlight: rgba(255,255,255,0.78); }
+:root[data-arch-theme="neo-color"][data-color-mode="dark"] { --neo-bg: #2c2740; --fg: #eeeaf8; --fg-muted: #b3abd0; --fg-subtle: #7d759c; --primary: #c9bdf0; --relief-shadow: rgba(0,0,0,0.50); --relief-highlight: rgba(255,255,255,0.10); }
+:root[data-arch-theme="neo-color"][data-style="shadows"] { --bg: var(--neo-bg); --bg-body: var(--neo-bg); }

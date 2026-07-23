@@ -40,10 +40,11 @@
 
 .wf-theme-showcase__card {
   margin-bottom: var(--wf-space-4);
-  padding: var(--wf-space-4);
-  border-radius: var(--wf-radius-surface, 12px);
-  background: color-mix(in srgb, var(--wf-surface) 88%, transparent);
-  border: 1px solid var(--wf-border-strong);
+  padding: var(--card-pad, var(--wf-space-4));
+  border: var(--border-w, 1px) solid var(--card-border, var(--wf-border-strong));
+  border-radius: var(--card-radius, var(--wf-radius-surface));
+  background: var(--card-bg, var(--wf-surface));
+  box-shadow: var(--card-shadow, none);
 }
 
 .wf-theme-showcase__card h2 {
@@ -69,7 +70,7 @@
 
 .wf-theme-showcase__swatch-chip {
   height: 44px;
-  border-radius: var(--wf-radius-knob-sm, 4px);
+  border-radius: var(--radius-control, var(--wf-radius-knob-sm));
 }
 
 .wf-theme-showcase__swatch code {
@@ -117,9 +118,9 @@
 
 .wf-theme-showcase__scroll-panel {
   height: 220px;
-  border: 1px solid var(--wf-border-strong);
-  border-radius: var(--wf-radius-knob-sm, 4px);
-  background: color-mix(in srgb, var(--wf-bg) 70%, transparent);
+  border: var(--border-w, 1px) solid var(--line, var(--wf-border-strong));
+  border-radius: var(--radius-control, var(--wf-radius-knob-sm));
+  background: var(--surface-1, var(--wf-bg));
 }
 
 .wf-theme-showcase__scroll-content p {
@@ -154,12 +155,6 @@
 }
 
 .wf-theme-showcase__live-field input {
-  height: var(--wf-input-height);
-  padding: 0 var(--wf-input-padding-x);
-  border: var(--wf-input-border);
-  border-radius: var(--wf-radius-knob-sm, 4px);
-  background: var(--wf-input-bg);
-  color: var(--wf-text);
   font-family: var(--wf-font-mono);
   font-size: var(--wf-type-ui);
 }
@@ -167,17 +162,6 @@
 .wf-theme-showcase__live-actions {
   display: flex;
   gap: var(--wf-gap);
-}
-
-.wf-theme-showcase__live-actions button {
-  height: var(--wf-input-height);
-  padding: 0 var(--wf-space-4);
-  border: 1px solid var(--wf-border-strong);
-  border-radius: var(--wf-radius-knob-sm, 4px);
-  background: color-mix(in srgb, var(--wf-surface) 90%, transparent);
-  color: var(--wf-text);
-  font-size: var(--wf-type-ui);
-  cursor: pointer;
 }
 
 @media (max-width: 900px) {

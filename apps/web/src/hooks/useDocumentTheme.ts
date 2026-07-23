@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import type { Theme } from '@/lib/theme'
-
-const VALID: Theme[] = ['strato-dark', 'neo-light', 'neo-blue']
+import { isTheme, type Theme } from '@/lib/theme'
 
 function readDomTheme(): Theme {
   const value = document.documentElement.dataset.theme
-  return VALID.includes(value as Theme) ? (value as Theme) : 'neo-light'
+  return isTheme(value) ? value : 'neo-light'
 }
 
 /** Sync React to data-theme on html (ThemeSwitcher / applyTheme). */

@@ -1,30 +1,27 @@
-import { Check } from 'lucide-react'
+import { useState } from 'react'
 
 import { useTheme } from '@/hooks/useTheme'
-import { THEME_OPTIONS } from '@/lib/themeOptions'
-import { cn } from '@/lib/utils'
+import type { Theme } from '@/lib/theme'
+import { workframeAuthApi } from '@/lib/workframeAuthApi'
+import { ThemePickerGrid } from '@/components/settings/ThemePickerGrid'
+import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 
 export function ThemeSettingsPanel() {
   const { theme, setTheme } = useTheme()
+  const [saveError, setSaveError] = useState('')
+
+  function selectTheme(next: Theme) {
+    setTheme(next)
+    setSaveError('')
+    void workframeAuthApi.updateMe({ theme: next }).catch((error) => {
+      setSaveError(error instanceof Error ? error.message : 'Could not save your theme.')
+    })
+  }
 
   return (
-    <ul className="wf-theme-settings" role="listbox" aria-label="Theme">
-        {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
-          const selected = theme === value
-          return (
-            <li key={value} role="option" aria-selected={selected}>
-              <button
-                type="button"
-                className={cn('wf-theme-settings__option', selected && 'is-active')}
-                onClick={() => setTheme(value)}
-              >
-                <Icon aria-hidden="true" className="wf-theme-settings__icon" />
-                <span className="wf-theme-settings__label">{label}</span>
-                {selected ? <Check aria-hidden="true" className="wf-theme-settings__check" /> : null}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+    <>
+      {saveError ? <WorkframeNotice message={saveError} className="wf-notice--wizard" /> : null}
+      <ThemePickerGrid value={theme} onChange={selectTheme} />
+    </>
   )
 }

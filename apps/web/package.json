@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sync-asset-catalogs.mjs && tsc -b && vite build --mode workframe && node scripts/copy-preset-assets.mjs",
+    "build": "node ../../scripts/workframe/sync-architectonic-design-system.mjs && node scripts/sync-asset-catalogs.mjs && tsc -b && vite build --mode workframe && node scripts/copy-preset-assets.mjs",
     "build:meta": "npm run build",
     "build:vite": "tsc -b && vite build",
     "build:aifred": "tsc -b && vite build --mode aifred",

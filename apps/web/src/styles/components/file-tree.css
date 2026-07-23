@@ -90,7 +90,7 @@
   box-shadow: var(--wf-control-shadow-flush);
 }
 
-[data-theme='neo-light'] .wf-file-tree__checkbox[data-state='checked'] {
+[data-style='shadows'][data-color-mode='light'] .wf-file-tree__checkbox[data-state='checked'] {
   color: var(--wf-violet) !important;
 }
 

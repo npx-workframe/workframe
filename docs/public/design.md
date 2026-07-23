@@ -1,221 +1,124 @@
 ---
 version: alpha
 name: Workframe UI
-description: Global semantic design system for apps/web — theme-invariant tokens and chrome contracts. Per-theme palettes live in strato-dark-design.md, neo-light-design.md, neo-blue-design.md.
+description: Workframe layout and behavior composed with the Architectonic design-system.
 source_truth:
+  - apps/web/src/styles/architectonic/
+  - apps/web/src/generated/architectonicThemes.ts
   - apps/web/src/styles/tokens/
-  - apps/web/src/styles/components/canvas.css
-  - apps/web/src/components/shell/canvas/
-  - apps/web/src/lib/canvas-layers.ts
-themes:
-  - strato-dark-design.md
-  - neo-light-design.md
-  - neo-blue-design.md
-typography:
-  body-md:
-    fontFamily: Inter Tight
-    fontSize: 13px
-    fontWeight: 400
-    lineHeight: 20px
-  ui:
-    fontFamily: Inter Tight
-    fontSize: 12px
-    fontWeight: 400
-    lineHeight: 16px
-  caption:
-    fontFamily: Inter Tight
-    fontSize: 11px
-spacing:
-  space-1: 4px
-  space-2: 8px
-  space-4: 16px
-rounded:
-  knob-sm: 4px
-  knob-md: 8px
-  knob-lg: 12px
-  pill: 999px
+  - apps/web/src/styles/components/
+  - scripts/workframe/sync-architectonic-design-system.mjs
 ---
 
-# Workframe UI — Global design system
+# Workframe UI design system
 
-**last_verified:** 2026-07-12 · **CSS truth:** `apps/web/src/styles/tokens/` + `themes/*.css` + `components/shell/canvas/`
+**Last verified:** 2026-07-22
 
-Agents doing cosmetic UI work: read this file first, then the active theme doc. Copy rules: [`docs/ledger/copy-style-notes.md`](../ledger/copy-style-notes.md). UI lane boundaries: [`docs/ledger/handoffs/cosmetic-ui-lane.md`](../ledger/handoffs/cosmetic-ui-lane.md).
+Workframe keeps its dense workspace layout, Dockview topology, panel gutters, scrolling rules, and product-specific compositions. Architectonic is the canonical source for visual identity: palettes, font roles, radii, elevation, style axes, and themed backgrounds.
 
-## Overview
+## Ownership boundary
 
-Workframe is a dense workspace shell (header, rails, docked panels, chat, activity). Visual identity is **token-driven**: components use `--wf-*` CSS variables, not hard-coded colors. Three shipped themes (`strato-dark`, `neo-light`, `neo-blue`) share the same semantic vocabulary; each theme file sets palette + chrome feel.
+| Concern | Owner | Source |
+|---|---|---|
+| Space, density, type scale, motion, radius geometry | Architectonic | `generated/globals.css` |
+| Palette and component role tokens | Architectonic | `generated/themes/*.css` |
+| Lines, shadows, and glass surface grammar | Architectonic | `generated/relief.css` |
+| Docking, rails, panels, message layout, navigator, browser | Workframe | `styles/components/*.css` |
+| Compatibility aliases | Workframe | `styles/architectonic/bridge.css` |
+| Theme selection and persistence | Generated registry + authenticated user profile | `generated/architectonicThemes.ts`, `lib/theme.ts`, `services/workframe-api/user_prefs.py` |
 
-Themes compose four layers (bottom → top):
+Component CSS must consume semantic roles. It must not branch on a concrete theme name. A new theme should normally require only an Architectonic theme definition and manifest entry.
 
-| Layer | What | Source |
-|-------|------|--------|
-| **1. Color** | Solid `--wf-bg` on `body` + `AtmosphereBg` (gradient/orbs/vignette only in line mode) | `base.css`, `AtmosphereBg.tsx`, per-theme canvas tokens |
-| **2. Texture** | Full-viewport repeating pattern (`DotGrid` or `MoleskineGrid`) | `canvas-layers.ts`, `DotGrid.tsx` / `MoleskineGrid.tsx`, `canvas.css` |
-| **3. Shell** | Borders + flat shadows (line) or solid `--wf-bg` surfaces with L/S shadow stacks (relief) | `--wf-chrome-mode`, `relief-primitives.css`, `relief-surfaces.css` |
-| **4. Theme** | Palette, texture ink, typography, shell family | `themes/*.css` |
+## Deterministic synchronization
 
-**Formula:** base color + optional texture + shell treatment = theme. Relief chrome uses solid `--wf-bg` fills and shadow geometry; relief mode also disables atmosphere gradients, orbs, overlays, and texture bleed. Neo Light and Neo Blue currently omit the texture layer; Strato Dark uses `DotGrid`.
+Run from the Workframe root:
 
-## Canvas stack
-
-`CanvasBackground` (`components/shell/canvas/CanvasBackground.tsx`) mounts on every route (workspace, onboarding, auth). Mapping in `lib/canvas-layers.ts`:
-
-| Theme | Texture component |
-|-------|-------------------|
-| `strato-dark` | `DotGrid` |
-| `neo-light`, `neo-blue` | *(none — flat solid canvas in relief mode)* |
-
-`DotGrid` and `MoleskineGrid` remain available components; wire them per theme via `getThemeCanvasTexture()` in `canvas-layers.ts`.
-
-```text
-.wf-canvas (fixed, z-index 0)
-├── AtmosphereBg     — color only
-└── DotGrid | MoleskineGrid   — texture only (z-index 4, above atmosphere)
+```powershell
+npm.cmd run sync:design-system
 ```
 
-**Dot grid mechanics** (`canvas.css`): theme sets ink (`--wf-dot-grid-rgb`, `--wf-dot-grid-opacity`, `--wf-dot-grid-tile`); CSS mask defines one dot per tile. Vignette belongs on `AtmosphereBg__overlay`, not on the dot layer.
+The sync command reads `../architectonic/design-system` by default, or `ARCHITECTONIC_DESIGN_SYSTEM_DIR` when supplied. It vendors:
 
-**Moleskine mechanics** (`canvas.css`): repeating 1px lines on `--wf-moleskine-grid-tile` with `--wf-moleskine-grid-line`.
+- structural globals;
+- the lines/shadows/glass style axis;
+- every theme stylesheet;
+- the machine-readable manifest;
+- a generated TypeScript registry;
+- the pre-paint theme bootstrap embedded in `apps/web/index.html`.
 
-`applyTheme()` in `lib/theme.ts` sets `data-theme` and `data-chrome-mode` on `<html>` (mirrored for CSS selectors).
+The snapshot records the Architectonic package version and a SHA-256 source hash. Workframe builds can use the committed snapshot when the sibling repository is absent, so CI, Docker, npm scaffolds, and the desktop bundle remain standalone and reproducible.
 
-## Chrome modes
+Never hand-edit files under `styles/architectonic/generated/` or `src/generated/architectonicThemes.ts`.
 
-| Mode | Themes | `--wf-chrome-fill` | Behavior |
-|------|--------|-------------------|----------|
-| `line` | `strato-dark` | `var(--wf-surface)` | Visible `--wf-border` lines; flat `--wf-shadow-*` |
-| `relief` | `neo-light`, `neo-blue` | `var(--wf-bg)` | Borderless; solid surfaces with depth via L/S relief stacks |
+## Runtime axes
 
-Relief primitives (`relief-primitives.css`):
+`applyTheme()` sets these independent attributes on `<html>`:
 
-| Size | Offset | Blur | Use |
-|------|--------|------|-----|
-| **L** | 4px | 8px | Wizard/dialog/auth shells, large wells |
-| **S** | 3px | 6px | Controls, tabs, buttons, fields |
+| Attribute | Values | Meaning |
+|---|---|---|
+| `data-arch-theme` | registry theme id | identity |
+| `data-color-mode` | `light`, `dark` | contrast and native color scheme |
+| `data-style` | `lines`, `shadows`, `glass` | surface separation |
+| `data-texture` | registry texture id | canvas recipe |
+| `data-density` | `technical` | Workframe's compact app density |
+| `data-space` | `default` | structural spacing scale |
+| `data-type-scale` | `compact` | dense workspace typography |
+| `data-chrome-mode` | `line`, `relief`, `glass` | Workframe compatibility axis |
 
-Per-theme tuning: `--wf-relief-shadow-rgb`, `--wf-relief-shadow-alpha`, `--wf-relief-highlight-rgb`, `--wf-relief-highlight-alpha`. Shared chrome overrides live in `relief-surfaces.css` (not duplicated per theme file).
+`data-theme` mirrors the canonical theme id for persistence and DOM observation; component CSS should prefer the semantic axes above.
 
-Legacy alias: `--wf-workspace-chrome-fill` → `--wf-chrome-fill`.
+## Available themes
 
-## Colors (semantic)
+The registry currently exposes 18 themes:
 
-Themes must define every token in `palette-contract.css`. Global wiring in `semantic.css`:
+- Lines: Mono, Minimal Light, Minimal Dark, Minimal Color
+- Neo: Neo Light, Neo Dark, Neo Color
+- Brutalist: Brutalist Light, Brutalist Dark
+- Glass: Liquid Glass Light/Dark, Frosted Glass Light/Dark
+- Specialized: Bauhaus, Leather Book, Newspaper, Notebook, Blueprint
 
-| Token | Role |
-|-------|------|
-| `--wf-bg`, `--wf-text`, `--wf-muted` | Page base and copy hierarchy |
-| `--wf-border`, `--wf-border-strong` | Structural edges (line mode) |
-| `--wf-surface`, `--wf-surface-soft` | Panel / card fills (line mode and solid relief chrome) |
-| `--wf-chrome-fill` | Interactive + shell surface fill above texture |
-| `--wf-primary`, `--wf-primary-foreground` | Primary actions and inverse |
-| `--wf-violet`, `--wf-violet-glow`, `--wf-cyan`, `--wf-mint`, `--wf-ring` | Accent family + focus ring |
-| `--wf-accent` | Alias → `--wf-violet` |
-| `--wf-error`, `--wf-success`, `--wf-warning` (+ soft variants) | Status (Neo Blue remaps some to white — see theme doc) |
-| `--wf-notice-*`, `--wf-status-fg` | Inline notices and status copy |
+Legacy stored values migrate once: `strato-dark` becomes `liquid-glass-dark`, and `neo-blue` becomes `neo-dark`. `dark`, `light`, and `neo` use the aliases from Architectonic's manifest.
 
-Texture tokens (per theme): `--wf-dot-grid-tile`, `--wf-dot-grid-rgb`, `--wf-dot-grid-opacity`; Neo Blue adds `--wf-moleskine-grid-tile`, `--wf-moleskine-grid-line`.
+Each registry entry also owns a four-role preview palette (`canvas`, `surface`, `ink`, and `accent`). The shared theme grid uses that metadata in both User Settings → Appearance and the early admin/invitee onboarding step, so preview cards cannot drift from the source package. A confirmed selection is stored on the authenticated user profile and restored after sign-in; local storage remains the pre-sign-in paint cache.
 
-Chrome border scale (`chrome-contract.css`) — each theme sets `--wf-chrome-border-solid` through `--wf-chrome-border-ghost` as mixes of `--wf-border` (Strato Dark) or `transparent` (relief themes).
+## Workframe semantic bridge
 
-## Typography
+Workframe components continue to read stable `--wf-*` roles. The bridge maps Architectonic roles such as:
 
-**Families** (`foundation.css`): `--wf-font-sans` = Inter Tight stack; `--wf-font-mono` = JetBrains Mono stack.
+| Architectonic | Workframe |
+|---|---|
+| `--bg`, `--surface*` | `--wf-bg`, `--wf-surface*` |
+| `--fg`, `--fg-muted` | `--wf-text`, `--wf-muted` |
+| `--line*` | `--wf-border*`, chrome border scale |
+| `--primary`, `--ring` | `--wf-primary`, `--wf-ring` |
+| `--ok`, `--warn`, `--bad`, `--info` | Workframe status and notice roles |
+| `--field-*` | shared Input/Textarea/Checkbox primitives |
+| `--shadow-*`, `--neu-*` | Workframe line/relief surface primitives |
+| `--theme-canvas-*` | the fixed Workframe canvas texture layer |
 
-**Scale** (theme-invariant):
+The bridge also supplies shadcn/Tailwind color variables so Radix/shadcn primitives use the same source of truth.
 
-| Token | Size | Leading |
-|-------|------|---------|
-| `--wf-type-micro` | 9px | 12px |
-| `--wf-type-meta` | 10px | 12px |
-| `--wf-type-caption` | 11px | 16px |
-| `--wf-type-ui` | 12px | 16px |
-| `--wf-type-body` | 13px | 20px |
+## Component rules
 
-Prefer `var(--wf-type-*)` in components; avoid raw `px` for workspace chrome.
+- Prefer the existing primitives: `Input`, `Textarea`, `Checkbox`, `Button`, `WfActionButton`, `Dialog`, `ScrollArea`, and panel primitives.
+- Put behavior and accessibility in React; put visual state in semantic CSS classes.
+- Keep one scroll owner per surface. Popovers may scroll internally; panels must not nest full-height scroll containers.
+- Preserve the 4px Workframe layout grid and technical density unless a product requirement changes them.
+- Use `--wf-*`, Architectonic role tokens, or structural `--ar-*` tokens. Do not add a component-specific theme-name selector.
+- Pill geometry ends at 40px control height: `--wf-radius-control` is capped at 20px, while taller cards, previews, and multiline surfaces use `--wf-radius-card` or `--wf-radius-surface`. Avatars and intentional circular indicators are exempt.
+- Relief uses high/low shadow state, not color changes. Line themes use borders. Glass uses translucent surfaces and blur.
+- Theme backgrounds belong to `--theme-canvas-*` and `CanvasBackground`, not individual panels.
 
-## Layout & spacing
+## Verification
 
-**Grid:** `--wf-space-1` (4px), `--wf-space-2` (8px), `--wf-space-4` (16px).
+For any design-system change:
 
-**Shell dimensions** (`foundation.css`):
+1. Run Architectonic `npm.cmd test`.
+2. Run Workframe `npm.cmd run sync:design-system` and the web build.
+3. Check at least one lines, shadows, glass, and specialized theme.
+4. Check workspace, auth, onboarding, settings, dialog, composer, navigator, browser, and activity surfaces.
+5. Verify selection persists after reload and the initial document attributes match before React mounts.
+6. Build the desktop shell after any theme asset or bootstrap change.
+7. Verify the packaged `index.html` carries the `workframe-build.json` asset revision on entry CSS and JavaScript URLs so Docker upgrades cannot reuse stale immutable assets.
 
-| Token | Value |
-|-------|-------|
-| `--wf-header-height` | 56px |
-| `--wf-footer-height` | 28px |
-| `--wf-panel-header-height` | 32px |
-| `--wf-rail-width-collapsed` / `expanded` | 52px / 200px |
-| `--wf-shell-width` / `--wf-shell-height` | 840px / 540px (onboarding + settings dialog) |
-| `--wf-blur` | 34px (backdrop blur surfaces) |
-
-**Scroll gutters** (`foundation.css`, `scroll-area.css`):
-
-- `--wf-scroll-gutter-inline` = 8px; `--wf-scroll-gutter-block` = 16px
-- `--wf-panel-scroll-inset` = 4px before scrollbar track
-- Scrollbar: 6px thumb + 2px inset each side → 10px track
-- Use class `wf-scroll` or `ScrollArea` — flush top/left; gutter on inline-end/block-end
-
-## Elevation & depth
-
-**Line mode (Strato Dark):** `--wf-shadow-sm` … `--wf-shadow-xl`, `--wf-shadow-inset`; controls use thin glass borders + hover fill on `--wf-chrome-fill` (surface).
-
-**Relief mode (Neo Light, Neo Blue):** dual shadow stacks from `--wf-relief-*` primitives over solid `--wf-bg` surfaces. Wizard shell uses inset **L**; modals/dialogs use outset **L**; controls use **S**.
-
-## Shapes
-
-**Radius knobs** (`radius.css`): `--wf-radius-knob-sm` (4px), `md` (8px default / 4px in themes), `lg` (12px).
-
-**Component mapping:** `--wf-radius-control`, `--wf-radius-surface`, `--wf-radius-tool-btn`, `--wf-radius-shell`, etc. derive from knobs.
-
-**Border width:** `--wf-border-width` — 1px (Strato Dark), 2px (Neo relief themes).
-
-## Components (global vocabulary)
-
-| Surface | Class / pattern | Notes |
-|---------|-----------------|-------|
-| App shell | `.wf-shell`, `.wf-shell__header` | Transparent over canvas |
-| Canvas | `.wf-canvas`, `CanvasBackground` | `AtmosphereBg` + texture component |
-| Onboarding | `.wf-onboarding-page`, `.wf-onboarding-wizard` | Page transparent; same canvas as workspace |
-| Panels | `.wf-panel`, `PanelShell` | Scroll via `wf-scroll` / `ScrollArea` |
-| Floating lists | `.wf-floating-menu` | Glass blur menus |
-| Composer tools | `.wf-composer`, `.wf-tool-btn` | 28px tool buttons |
-| Activity | `.wf-activity-tree`, `.wf-tool-run` | Tree rows + expandable tool runs |
-| Dialog | `Dialog` / `DialogContent` | Centered panel with header/close |
-| Modal | Backdrop blur full-screen | Not a centered dialog sheet |
-| Theme lab | `/dev/theme`, `?wf-dev=theme` | `ThemeShowcasePage` — token preview |
-
-**Product copy:** UI says **Workframe**, not "workspace" (except internal IDs). See `copy-style-notes.md`.
-
-**shadcn:** Neo Blue maps `--background`, `--card`, `--popover`, etc. to `--wf-*`; relief mode sets `--card` / `--popover` to `--wf-chrome-fill` (transparent).
-
-## Theme index
-
-| Theme | Slug | Doc | CSS | Chrome | Texture | Character |
-|-------|------|-----|-----|--------|---------|-----------|
-| Strato Dark | `strato-dark` | [strato-dark-design.md](strato-dark-design.md) | `themes/strato-dark.css` | `line` | `DotGrid` | Dark glass, violet/cyan orbs, visible borders |
-| Neo Light | `neo-light` | [neo-light-design.md](neo-light-design.md) | `themes/neo-light.css` | `relief` | — | Light soft UI, solid chrome, relief shadows |
-| Neo Blue | `neo-blue` | [neo-blue-design.md](neo-blue-design.md) | `themes/neo-blue.css` | `relief` | — | Engineering blue, solid relief chrome |
-
-Switch via `ThemeSwitcher`; options in `apps/web/src/lib/themeOptions.ts`.
-
-## Do's and Don'ts
-
-**Do**
-
-- Change colors via `themes/*.css` `[data-theme]` blocks — keep `palette-contract.css` parity across themes
-- Use existing `--wf-*` tokens before adding new ones
-- Keep texture on `DotGrid` / `MoleskineGrid` only — vignette on `AtmosphereBg`
-- Match chrome mode: don't add visible borders in relief themes or flat shadows in Strato Dark line mode
-- Keep scroll surfaces on `wf-scroll` gutter discipline
-- Preview token changes in Theme Showcase (`pnpm dev:web` → `/dev/theme`)
-
-**Don't**
-
-- Hard-code hex in component CSS when a semantic token exists
-- Assume atmosphere or texture shows through relief chrome (relief mode uses solid `--wf-bg` surfaces)
-- Put vignette masks on the dot grid layer (masks define dot shape only)
-- Mix behavioral/React wiring in cosmetic passes (see cosmetic-ui-lane off-limits)
-- Add themes without defining the full palette + chrome contract
-- Use full-screen sheets for settings — use `Dialog`/`DialogContent` in rails
-- Invent new accent hues outside the theme's violet/cyan/mint (Neo Blue uses white-on-blue)
+Use `/dev/theme` for token inspection, then verify real product surfaces; the showcase is not a substitute for Workframe visual regression.
