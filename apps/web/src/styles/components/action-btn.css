@@ -6,8 +6,8 @@
   justify-content: center;
   gap: var(--wf-gap);
   min-height: var(--wf-input-height);
-  padding: 0 12px;
-  border-radius: var(--wf-radius-control);
+  padding: 0 calc(var(--wf-input-height) / 2);
+  border-radius: var(--wf-radius-compact-control);
   border-width: var(--wf-btn-border-width);
   border-style: var(--wf-btn-border-style);
   border-color: var(--wf-btn-border-color);

@@ -85,17 +85,22 @@
   --wf-scrollbar-thumb: color-mix(in srgb, var(--fg-muted) 34%, transparent);
   --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
 
-  /* A full capsule is reserved for controls up to 40px tall. */
-  --wf-radius-control-cap: min(var(--radius-control), 1.25rem);
-  --wf-radius-control: var(--wf-radius-control-cap);
-  --wf-radius-row: var(--wf-radius-control-cap);
-  --wf-radius-surface: var(--radius-card);
-  --wf-radius-tool-btn: var(--wf-radius-control-cap);
-  --wf-radius-panel-control: var(--wf-radius-control-cap);
-  --wf-radius-browser-toolbar-btn: var(--wf-radius-control-cap);
-  --wf-rail-cell-radius: var(--wf-radius-control-cap);
+  /*
+   * Capsules belong only to compact, labelled controls. Structural rows,
+   * tabs, cards and icon buttons stay at 4–8px even when a theme exposes a
+   * large control radius.
+   */
+  --wf-radius-compact-control: min(var(--radius-control), 1.25rem);
+  --wf-radius-control: min(var(--radius-control), 0.5rem);
+  --wf-radius-row: min(var(--radius-card), 0.5rem);
+  --wf-radius-surface: min(var(--radius-card), 0.5rem);
+  --wf-radius-icon-btn: var(--wf-radius-xs);
+  --wf-radius-tool-btn: var(--wf-radius-compact-control);
+  --wf-radius-panel-control: var(--wf-radius-xs);
+  --wf-radius-browser-toolbar-btn: var(--wf-radius-xs);
+  --wf-rail-cell-radius: var(--wf-radius-row);
 
-  --radius: var(--wf-radius-control-cap);
+  --radius: var(--wf-radius-control);
   --border-width: var(--border-w);
   --background: var(--wf-bg);
   --foreground: var(--wf-text);

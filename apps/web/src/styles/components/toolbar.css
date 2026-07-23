@@ -55,6 +55,7 @@ button.wf-tool-btn.wf-tool-btn--icon {
 }
 
 button.wf-tool-btn.wf-tool-btn--text {
+  padding-inline: max(var(--wf-gap), calc(var(--wf-tool-btn-size) / 2));
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

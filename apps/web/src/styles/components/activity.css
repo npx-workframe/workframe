@@ -60,11 +60,11 @@
   box-sizing: border-box;
   min-height: 0;
   padding-block: var(--wf-gap-tight);
-  padding-inline: var(--wf-space-2) var(--wf-gap-tight);
+  padding-inline: var(--wf-space-2);
   border-width: var(--wf-control-border-width);
   border-style: var(--wf-control-border-style);
   border-color: var(--wf-control-border-color);
-  border-radius: var(--wf-radius-control);
+  border-radius: var(--wf-radius-row);
   background: var(--wf-control-bg);
   box-shadow: var(--wf-control-shadow);
   color: color-mix(in srgb, var(--wf-text) 88%, transparent);
@@ -85,6 +85,7 @@
 .wf-activity-tree__row--child {
   padding-block: var(--wf-gap-tight);
   padding-inline-start: var(--wf-space-1);
+  padding-inline-end: var(--wf-space-2);
   border: 0;
 }
 

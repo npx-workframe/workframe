@@ -11,13 +11,14 @@
   --wf-radius-md: var(--wf-radius-knob-lg);
 
   --wf-radius-avatar: var(--wf-radius-xs);
+  --wf-radius-compact-control: var(--wf-radius-sm);
   --wf-radius-control: var(--wf-radius-sm);
   --wf-radius-row: var(--wf-radius-knob-sm);
-  --wf-radius-icon-btn: 50%;
-  --wf-radius-surface: var(--wf-radius-md);
-  --wf-radius-tool-btn: var(--wf-radius-control);
-  --wf-radius-panel-control: var(--wf-radius-control);
-  --wf-radius-browser-toolbar-btn: var(--wf-radius-tool-btn);
+  --wf-radius-icon-btn: var(--wf-radius-xs);
+  --wf-radius-surface: var(--wf-radius-sm);
+  --wf-radius-tool-btn: var(--wf-radius-compact-control);
+  --wf-radius-panel-control: var(--wf-radius-xs);
+  --wf-radius-browser-toolbar-btn: var(--wf-radius-xs);
   --wf-radius-browser-tab: var(--wf-radius-row);
 
   /* Overlay shells (wizard, auth card, dialog content) */
@@ -29,7 +30,7 @@
 
   /* Legacy aliases */
   --wf-radius: var(--wf-radius-shell);
-  --wf-rail-cell-radius: var(--wf-radius-control);
+  --wf-rail-cell-radius: var(--wf-radius-row);
   --wf-tool-btn-radius: var(--wf-radius-tool-btn);
 
   /* CopyInput: chip matches control corner on squared themes; pill uses 50% */

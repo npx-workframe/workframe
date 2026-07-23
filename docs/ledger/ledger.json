@@ -1542,7 +1542,7 @@
         "browser matrix: minimal-dark, neo-dark, liquid-glass-dark, newspaper, settings persistence (2026-07-22)",
         "../architectonic/design-system npm test and npm pack --dry-run (2026-07-22)",
         "personal theme profile migration pytest, API typecheck suite, reusable Appearance/onboarding theme grid, web/desktop builds, and create-workframe scaffold parity (2026-07-22)",
-        "DogFood secure-mode health plus browser verification of 18-theme Appearance grid, 20px control-radius cap, card-radius semantics, and per-bundle asset revision (2026-07-22)"
+        "DogFood secure-mode health plus live packaged-CSS verification of semantic compact-control pills, 4–8px structural radii, transparent Browser chrome, and per-bundle asset revision (2026-07-23)"
       ],
       "sources": [
         "../architectonic/design-system/design.md",
@@ -1554,7 +1554,7 @@
         "../abkb/projects/workframe/product-preferences.md"
       ],
       "completed_at": "2026-07-22",
-      "notes": "Implemented preservation-first: no Dockview topology change, no rail/gutter redesign, one scroll owner, existing panel density and interaction semantics retained. Architectonic now exports a deterministic 18-theme registry, source-owned preview palettes, and local Lucide asset; Workframe generates a committed standalone snapshot plus runtime bridge. The same visual theme grid is used by User Settings Appearance and an early optional admin/invitee onboarding step. Confirmed selections persist per authenticated user and restore after sign-in; old theme slugs remain only as persisted preference aliases. Pill geometry is capped at 40px-tall controls, taller choices and previews use card radii, and packaged entry assets receive a unique revision to prevent stale Docker UI caches.",
+      "notes": "Implemented preservation-first: no Dockview topology change, no rail/gutter redesign, one scroll owner, existing panel density and interaction semantics retained. Architectonic now exports a deterministic 18-theme registry, source-owned preview palettes, and local Lucide asset; Workframe generates a committed standalone snapshot plus runtime bridge. The same visual theme grid is used by User Settings Appearance and an early optional admin/invitee onboarding step. Confirmed selections persist per authenticated user and restore after sign-in; old theme slugs remain only as persisted preference aliases. Pill geometry is reserved for compact labelled controls up to 40px, structural rows and surfaces cap at 8px, icon controls use 4px, and packaged entry assets receive a unique revision to prevent stale Docker UI caches.",
       "extensions": {
         "wave": "design-system"
       }

@@ -31,8 +31,8 @@
 }
 
 .wf-browser-tabs__tab--active {
-  --wf-tab-bg: color-mix(in srgb, var(--wf-surface) 65%, transparent);
-  background: var(--wf-tab-bg);
+  --wf-tab-bg: transparent;
+  background: transparent;
   border-color: var(--wf-chrome-border-strong);
   border-bottom-color: transparent;
 }
@@ -91,7 +91,7 @@
 .wf-browser-chrome {
   flex-shrink: 0;
   border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
-  background: color-mix(in srgb, var(--wf-bg) 40%, transparent);
+  background: transparent;
   padding-top: 0;
 }
 
@@ -109,7 +109,7 @@
   align-items: center;
   gap: var(--wf-gap-tight);
   padding: var(--wf-gap-tight) var(--wf-gap);
-  background: color-mix(in srgb, var(--wf-surface) 65%, transparent);
+  background: transparent;
   border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
 }
 
@@ -537,7 +537,7 @@
   min-height: var(--wf-control);
   padding-block: var(--wf-space-1);
   padding-inline: var(--wf-space-2) var(--wf-space-2);
-  border-radius: var(--wf-radius-control);
+  border-radius: var(--wf-radius-row);
   color: color-mix(in srgb, var(--wf-text) 88%, transparent);
   font-size: var(--wf-type-ui);
   line-height: var(--wf-leading-ui);
