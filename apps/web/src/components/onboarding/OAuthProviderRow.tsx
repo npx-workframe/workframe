@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { WfSwitch } from '@/components/ui/WfSwitch'
+
 type OAuthProviderRowProps = {
   label: string
   description: string
@@ -31,16 +33,13 @@ export function OAuthProviderRow({
           </div>
           <p className="wf-sign-in-app__desc">{description}</p>
         </div>
-        <label className="wf-provider-connect__switch">
-          <input
-            type="checkbox"
-            checked={enabled}
-            disabled={disabled}
-            aria-label={`Enable ${label}`}
-            onChange={(event) => onToggle(event.target.checked)}
-          />
-          <span className="wf-provider-connect__switch-ui" aria-hidden="true" />
-        </label>
+        <WfSwitch
+          wrapperClassName="wf-provider-connect__switch"
+          checked={enabled}
+          disabled={disabled}
+          aria-label={`Enable ${label}`}
+          onChange={(event) => onToggle(event.target.checked)}
+        />
       </div>
       {enabled && children ? <div className="wf-sign-in-app__body">{children}</div> : null}
     </li>

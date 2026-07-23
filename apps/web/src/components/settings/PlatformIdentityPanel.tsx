@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { SignInBrandIcon } from '@/components/settings/SignInBrandIcon'
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -166,9 +166,9 @@ export function PlatformIdentityPanel({
       configured: discordEnabled,
       action:
         discordEnabled && !discordId ? (
-          <Button type="button" size="sm" disabled={disabled || busy} onClick={() => void connectDiscord()}>
+          <WfActionButton type="button" tone="primary" disabled={disabled || busy} onClick={() => void connectDiscord()}>
             Connect with Discord
-          </Button>
+          </WfActionButton>
         ) : null,
     },
     {

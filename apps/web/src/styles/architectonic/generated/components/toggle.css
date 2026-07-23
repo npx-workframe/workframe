@@ -1,0 +1,73 @@
+/* =============================================================
+   ARCHI — TOGGLES (BEM)  checkbox · radio · switch
+   Built on native inputs so they stay accessible & form-bound.
+   ============================================================= */
+
+/* ---- Checkbox & Radio ------------------------------------ */
+.archi-check { display: inline-flex; align-items: flex-start; gap: var(--ar-space-3); cursor: pointer; }
+.archi-check__input {
+  appearance: none;
+  flex: none;
+  width: 1.15rem; height: 1.15rem;
+  margin-top: 0.12em;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: var(--ar-radius-sm);
+  display: grid; place-content: center;
+  transition: background var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+.archi-check__input--radio { border-radius: var(--ar-radius-full); }
+.archi-check__input:hover { border-color: var(--field-hover-border); }
+.archi-check__input:focus-visible { outline: none; box-shadow: 0 0 0 var(--ar-ring-w) color-mix(in srgb, var(--ring) 30%, transparent); }
+.archi-check__input::before {
+  content: "";
+  transform: scale(0);
+  transition: transform var(--ar-dur-1) var(--ar-ease);
+}
+.archi-check__input:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.archi-check__input:checked::before {
+  transform: scale(1);
+  width: 0.65rem; height: 0.65rem;
+}
+/* checkmark for checkbox */
+.archi-check__input:not(.archi-check__input--radio):checked::before {
+  width: 1.15rem; height: 1.15rem;
+  background: var(--primary-fg);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 72% no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 72% no-repeat;
+}
+/* dot for radio */
+.archi-check__input--radio:checked::before { background: var(--primary-fg); border-radius: 50%; }
+.archi-check__label { font-size: var(--text-small); line-height: var(--ar-leading-snug); }
+.archi-check__label small { display: block; color: var(--fg-muted); font-size: var(--text-caption); margin-top: 2px; }
+.archi-check:has(:disabled) { opacity: 0.55; cursor: not-allowed; }
+
+/* ---- Switch ---------------------------------------------- */
+.archi-switch { display: inline-flex; align-items: center; gap: var(--ar-space-3); cursor: pointer; }
+.archi-switch__input {
+  appearance: none;
+  flex: none;
+  width: 2.5rem; height: 1.4rem;
+  background: var(--switch-track-off);
+  border-radius: var(--ar-radius-full);
+  position: relative;
+  transition: background var(--motion-base);
+}
+.archi-switch__input::after {
+  content: "";
+  position: absolute; top: 2px; left: 2px;
+  width: calc(1.4rem - 4px); height: calc(1.4rem - 4px);
+  background: var(--switch-thumb);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--motion-base) ;
+  transition-timing-function: var(--ar-ease);
+}
+.archi-switch__input:checked { background: var(--switch-track-on); }
+.archi-switch__input:checked::after { transform: translateX(1.1rem); }
+.archi-switch__input:focus-visible { outline: none; box-shadow: 0 0 0 var(--ar-ring-w) color-mix(in srgb, var(--ring) 30%, transparent); }
+.archi-switch:has(:disabled) { opacity: 0.55; cursor: not-allowed; }
+.archi-switch__label { font-size: var(--text-small); }

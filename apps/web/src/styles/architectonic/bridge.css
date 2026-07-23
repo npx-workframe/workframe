@@ -129,6 +129,7 @@
   --wf-control-border-color-hover: var(--line-strong);
   --wf-control-border-color-active: var(--line-strong);
   --wf-control-border-color-inactive: var(--line-soft);
+  --wf-quiet-icon-border-hover: var(--line-strong);
   --wf-control-shadow: none;
   --wf-control-shadow-hover: var(--shadow-sm);
   --wf-control-shadow-active: var(--shadow-inset);
@@ -143,6 +144,7 @@
   --wf-btn-bg-hover: var(--muted-hover);
   --wf-btn-bg-primary: var(--primary);
   --wf-btn-fg: var(--fg);
+  --wf-btn-fg-primary: var(--primary-fg);
   --wf-btn-fg-inactive: var(--fg-subtle);
   --wf-btn-border-width: var(--border-w);
   --wf-btn-border-color: var(--line);
@@ -163,14 +165,20 @@
   --wf-border: transparent;
   --wf-border-strong: transparent;
   --wf-divider-color: transparent;
+  --wf-dock-divider-width: 2px;
+  --wf-dock-divider-color: #fff;
+  --wf-quiet-icon-border-hover: #fff;
   --wf-tool-chrome-border: transparent;
   --wf-border-width: 1px;
   --wf-control-border-ring-raised: var(--bg);
+  --wf-btn-fg-primary: var(--primary);
 }
 
 :root[data-style='shadows'][data-color-mode='dark'] {
   --wf-relief-shadow-alpha: 0.5;
   --wf-relief-highlight-alpha: 0.1;
+  --wf-dock-divider-color: rgb(255 255 255 / 10%);
+  --wf-quiet-icon-border-hover: rgb(255 255 255 / 10%);
 }
 
 :root[data-style='glass'] {
@@ -186,6 +194,7 @@
   --wf-control-border-color-hover: var(--line-strong);
   --wf-control-border-color-active: var(--line-strong);
   --wf-control-border-color-inactive: var(--line-soft);
+  --wf-quiet-icon-border-hover: var(--line-strong);
   --wf-control-shadow: none;
   --wf-control-shadow-hover: var(--shadow-sm);
   --wf-control-shadow-active: var(--shadow-inset);
@@ -198,6 +207,7 @@
   --wf-btn-bg: transparent;
   --wf-btn-bg-hover: color-mix(in srgb, var(--surface) 42%, transparent);
   --wf-btn-bg-primary: color-mix(in srgb, var(--primary) 18%, transparent);
+  --wf-btn-fg-primary: var(--primary-fg);
   --wf-btn-border-width: var(--border-w);
   --wf-btn-border-color: var(--line);
   --wf-btn-border-color-hover: var(--line-strong);

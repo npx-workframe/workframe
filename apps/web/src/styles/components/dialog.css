@@ -48,6 +48,11 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
   box-shadow: var(--wf-relief-surface);
 }
 
+.wf-dialog-content:focus,
+.wf-dialog-content:focus-visible {
+  outline: none;
+}
+
 /* ponytail: must follow base .wf-dialog-content so flex shell wins over grid defaults */
 .wf-dialog-content.wf-dialog-content--settings-shell {
   display: flex;

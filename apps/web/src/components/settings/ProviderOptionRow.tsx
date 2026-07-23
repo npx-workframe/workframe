@@ -2,6 +2,7 @@ import { WfActionButton } from '@/components/ui/WfActionButton'
 import { SecretInput } from '@/components/ui/SecretInput'
 import { Label } from '@/components/ui/label'
 import { BrandMark } from '@/components/ui/BrandMark'
+import { WfSwitch } from '@/components/ui/WfSwitch'
 import type { ProviderConnectRow } from '@/lib/workframeAuthApi'
 
 type ProviderOptionRowProps = {
@@ -54,16 +55,13 @@ export function ProviderOptionRow({
           </div>
           <span className="wf-provider-connect__desc">{row.description}</span>
         </div>
-        <label className="wf-provider-connect__switch">
-          <input
-            type="checkbox"
-            checked={row.connected}
-            disabled={disabled || isBusy || (lockSharedCredential && row.source === 'workspace')}
-            aria-label={`Connect ${row.label}`}
-            onChange={(event) => onToggle(event.target.checked)}
-          />
-          <span className="wf-provider-connect__switch-ui" aria-hidden="true" />
-        </label>
+        <WfSwitch
+          wrapperClassName="wf-provider-connect__switch"
+          checked={row.connected}
+          disabled={disabled || isBusy || (lockSharedCredential && row.source === 'workspace')}
+          aria-label={`Connect ${row.label}`}
+          onChange={(event) => onToggle(event.target.checked)}
+        />
       </div>
 
       {isExpanded && (row.connect_mode !== 'oauth' || showPatFallback) ? (

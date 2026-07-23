@@ -26,7 +26,7 @@
   position: relative;
   z-index: 2;
   /* ponytail: rail owns the canvas boundary — dockview sashes handle internal splits */
-  border-right: var(--wf-border-width, 1px) solid var(--wf-divider-color);
+  border-right: var(--wf-dock-divider-width, var(--wf-border-width, 1px)) solid var(--wf-dock-divider-color);
   background: color-mix(in srgb, var(--wf-surface) 35%, transparent);
   overflow: hidden;
   box-sizing: border-box;
@@ -43,7 +43,7 @@
   --dv-tabs-and-actions-container-background-color: transparent;
   --dv-group-view-background-color: transparent;
   --dv-paneview-background-color: transparent;
-  --dv-separator-border: var(--wf-divider-color);
+  --dv-separator-border: var(--wf-dock-divider-color);
   --dv-activegroup-visiblepanel-tab-background-color: transparent;
   --dv-activegroup-hiddenpanel-tab-background-color: transparent;
   --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
@@ -64,7 +64,7 @@
 .wf-workspace .dockview-theme-dark,
 .wf-workspace .dockview-theme-light,
 .wf-workspace [class*='dockview-theme-'] {
-  --dv-separator-border: var(--wf-divider-color);
+  --dv-separator-border: var(--wf-dock-divider-color);
   --dv-tab-divider-color: transparent;
   --dv-sash-color: transparent;
   --dv-active-sash-color: transparent;
@@ -189,17 +189,17 @@
 }
 
 .wf-workspace .dv-split-view-container.dv-separator-border .dv-view:not(:first-child)::before {
-  background-color: var(--wf-divider-color);
+  background-color: var(--wf-dock-divider-color);
   z-index: 10;
 }
 
 .wf-workspace .dv-split-view-container.dv-horizontal > .dv-view-container > .dv-view:not(:first-child)::before {
-  width: var(--wf-border-width, 1px);
+  width: var(--wf-dock-divider-width, var(--wf-border-width, 1px));
   height: 100%;
 }
 
 .wf-workspace .dv-split-view-container.dv-vertical > .dv-view-container > .dv-view:not(:first-child)::before {
-  height: var(--wf-border-width, 1px);
+  height: var(--wf-dock-divider-width, var(--wf-border-width, 1px));
   width: 100%;
 }
 

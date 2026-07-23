@@ -24,6 +24,7 @@ const required = [
   'package.json',
   'globals.css',
   join('modules', 'styles.module.css'),
+  join('modules', 'toggle.module.css'),
   join('themes', 'manifest.json'),
   join('themes', 'mono.css'),
 ]
@@ -48,10 +49,12 @@ if (!ids.includes(manifest.defaultTheme) || new Set(ids).size !== ids.length) {
 
 rmSync(outputRoot, { recursive: true, force: true })
 mkdirSync(join(outputRoot, 'themes'), { recursive: true })
+mkdirSync(join(outputRoot, 'components'), { recursive: true })
 mkdirSync(dirname(registryOutput), { recursive: true })
 
 copyFileSync(join(sourceRoot, 'globals.css'), join(outputRoot, 'globals.css'))
 copyFileSync(join(sourceRoot, 'modules', 'styles.module.css'), join(outputRoot, 'relief.css'))
+copyFileSync(join(sourceRoot, 'modules', 'toggle.module.css'), join(outputRoot, 'components', 'toggle.css'))
 
 const themeFiles = readdirSync(join(sourceRoot, 'themes'))
   .filter((name) => name.endsWith('.css'))
@@ -67,13 +70,20 @@ const imports = [
   "@import './globals.css';",
   "@import './themes/mono.css';",
   "@import './relief.css';",
+  "@import './components/toggle.css';",
   ...importedThemeFiles.slice(1).map((name) => `@import './themes/${name}';`),
   '',
 ].join('\n')
 writeFileSync(join(outputRoot, 'imports.css'), imports)
 
 const sourceHash = createHash('sha256')
-for (const path of ['globals.css', 'modules/styles.module.css', 'themes/manifest.json', ...themeFiles.map((name) => `themes/${name}`)]) {
+for (const path of [
+  'globals.css',
+  'modules/styles.module.css',
+  'modules/toggle.module.css',
+  'themes/manifest.json',
+  ...themeFiles.map((name) => `themes/${name}`),
+]) {
   sourceHash.update(path)
   sourceHash.update(readFileSync(join(sourceRoot, path)))
 }

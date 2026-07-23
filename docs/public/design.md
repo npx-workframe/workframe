@@ -12,7 +12,7 @@ source_truth:
 
 # Workframe UI design system
 
-**Last verified:** 2026-07-22
+**Last verified:** 2026-07-23
 
 Workframe keeps its dense workspace layout, Dockview topology, panel gutters, scrolling rules, and product-specific compositions. Architectonic is the canonical source for visual identity: palettes, font roles, radii, elevation, style axes, and themed backgrounds.
 
@@ -23,6 +23,7 @@ Workframe keeps its dense workspace layout, Dockview topology, panel gutters, sc
 | Space, density, type scale, motion, radius geometry | Architectonic | `generated/globals.css` |
 | Palette and component role tokens | Architectonic | `generated/themes/*.css` |
 | Lines, shadows, and glass surface grammar | Architectonic | `generated/relief.css` |
+| Native checkbox, radio, and switch structure | Architectonic | `generated/components/toggle.css` |
 | Docking, rails, panels, message layout, navigator, browser | Workframe | `styles/components/*.css` |
 | Compatibility aliases | Workframe | `styles/architectonic/bridge.css` |
 | Theme selection and persistence | Generated registry + authenticated user profile | `generated/architectonicThemes.ts`, `lib/theme.ts`, `services/workframe-api/user_prefs.py` |
@@ -41,6 +42,7 @@ The sync command reads `../architectonic/design-system` by default, or `ARCHITEC
 
 - structural globals;
 - the lines/shadows/glass style axis;
+- the native toggle component module;
 - every theme stylesheet;
 - the machine-readable manifest;
 - a generated TypeScript registry;
@@ -92,7 +94,7 @@ Workframe components continue to read stable `--wf-*` roles. The bridge maps Arc
 | `--line*` | `--wf-border*`, chrome border scale |
 | `--primary`, `--ring` | `--wf-primary`, `--wf-ring` |
 | `--ok`, `--warn`, `--bad`, `--info` | Workframe status and notice roles |
-| `--field-*` | shared Input/Textarea/Checkbox primitives |
+| `--field-*`, `--switch-*` | shared Input/Textarea/Checkbox/Switch primitives |
 | `--shadow-*`, `--neu-*` | Workframe line/relief surface primitives |
 | `--theme-canvas-*` | the fixed Workframe canvas texture layer |
 
@@ -100,13 +102,15 @@ The bridge also supplies shadcn/Tailwind color variables so Radix/shadcn primiti
 
 ## Component rules
 
-- Prefer the existing primitives: `Input`, `Textarea`, `Checkbox`, `Button`, `WfActionButton`, `Dialog`, `ScrollArea`, and panel primitives.
+- Prefer the existing primitives: `Input`, `Textarea`, `Checkbox`, `WfSwitch`, `Button`, `WfActionButton`, `Dialog`, `ScrollArea`, and panel primitives.
 - Put behavior and accessibility in React; put visual state in semantic CSS classes.
 - Keep one scroll owner per surface. Popovers may scroll internally; panels must not nest full-height scroll containers.
 - Preserve the 4px Workframe layout grid and technical density unless a product requirement changes them.
 - Use `--wf-*`, Architectonic role tokens, or structural `--ar-*` tokens. Do not add a component-specific theme-name selector.
 - Pill geometry is semantic, not inherited: only compact labelled buttons and single-line inputs up to 40px may use `--wf-radius-compact-control`. Rows, tabs, cards, multiline inputs, dialog and wizard surfaces cap at 8px; square icon controls use 4px. Panel-header controls are circular, stay visually flush at rest, and reveal their border/shadow only on hover or focus. Compact pill buttons receive half-height inline padding. Avatars and intentional circular indicators are exempt.
 - Relief uses high/low shadow state, not color changes. Line themes use borders. Glass uses translucent surfaces and blur.
+- Keep Dockview boundaries separate from ordinary component borders: Neo Light uses a 2px white boundary and Neo Dark uses the same 2px boundary at 10% white. Browser tabs and their toolbar use dedicated asymmetric relief roles instead of the generic selected-control shadow.
+- Settings and wizard actions use `WfActionButton`; provider toggles use `WfSwitch`. Product components own behavior and copy while Architectonic owns the visual state grammar.
 - Theme backgrounds belong to `--theme-canvas-*` and `CanvasBackground`, not individual panels.
 
 ## Verification

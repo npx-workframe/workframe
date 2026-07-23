@@ -4,7 +4,8 @@
   display: flex;
   width: 100%;
   min-width: 0;
-  height: var(--field-h, var(--wf-input-height));
+  height: max(var(--wf-input-height), var(--field-h, 0px));
+  min-height: var(--wf-input-height);
   padding: 0 var(--field-px, var(--wf-input-padding-x));
   border-width: var(--field-border-width, var(--wf-border-width, 1px));
   border-style: solid;
@@ -26,6 +27,12 @@
   box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm)), var(--wf-focus-ring);
 }
 .wf-input:disabled { cursor: not-allowed; opacity: 0.5; }
+
+:is(.wf-dialog-content, .wf-onboarding-wizard, .wf-onboarding-page, .wf-auth)
+  input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file']):not([type='button']):not([type='submit']):not([type='reset']):not(.archi-switch__input) {
+  min-height: var(--wf-input-height);
+  padding-block: 0;
+}
 
 .wf-textarea {
   min-height: 20px;
@@ -107,6 +114,14 @@ button.wf-panel__control-btn {
   box-shadow: none;
 }
 
+button.wf-agent-rail__section-action--icon,
+button.wf-agent-rail__toggle {
+  border: var(--wf-border-width, 1px) solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
 :is(
   .wf-file-tree__row,
   .wf-activity-tree__row--clickable,
@@ -137,6 +152,15 @@ button.wf-panel__control-btn {
 
 button.wf-panel__control-btn:hover:not(:disabled):not([aria-disabled='true']):not([aria-expanded='true']) {
   background: transparent;
+}
+
+button.wf-agent-rail__section-action--icon:hover:not(:disabled),
+button.wf-agent-rail__toggle:hover:not(:disabled),
+button.wf-agent-rail__section-action--icon:focus-visible,
+button.wf-agent-rail__toggle:focus-visible {
+  background: transparent;
+  border-color: var(--wf-quiet-icon-border-hover);
+  box-shadow: var(--wf-control-shadow-hover);
 }
 
 .wf-onboarding-wizard__steps li.is-clickable:not(.is-current) .wf-onboarding-wizard__step-btn:hover {

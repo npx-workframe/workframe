@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { SignInAppField } from '@/components/settings/SignInAppField'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PanelInlineNotice } from '@/components/ui/PanelPrimitives'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { applySiteMeta, fetchPublicSiteMeta } from '@/lib/siteMeta'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -147,9 +147,9 @@ export function SiteBrandingFields({ disabled, onStatus }: SiteBrandingFieldsPro
         </SignInAppField>
       </div>
       <div className="flex justify-end">
-        <Button type="button" variant="default" disabled={disabled} onClick={() => void saveText()}>
+        <WfActionButton type="button" tone="primary" disabled={disabled} onClick={() => void saveText()}>
           Save web presence
-        </Button>
+        </WfActionButton>
       </div>
     </div>
   )

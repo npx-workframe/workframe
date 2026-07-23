@@ -664,6 +664,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                   <ReducedProfileCard
                     name={dmPeerLabel}
                     tagline={dmPeerEmail || ''}
+                    avatarUrl={resolveUserAvatarUrl(dmPeer.avatar_url) || null}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">Human direct message — no agent in this thread.</p>

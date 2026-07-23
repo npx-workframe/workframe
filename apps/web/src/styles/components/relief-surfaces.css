@@ -180,6 +180,23 @@
   box-shadow: var(--wf-control-shadow-raised);
 }
 
+[data-chrome-mode='relief'] button.wf-agent-rail__section-action--icon,
+[data-chrome-mode='relief'] button.wf-agent-rail__toggle {
+  border: var(--wf-border-width, 1px) solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-chrome-mode='relief'] button.wf-agent-rail__section-action--icon:hover:not(:disabled),
+[data-chrome-mode='relief'] button.wf-agent-rail__toggle:hover:not(:disabled),
+[data-chrome-mode='relief'] button.wf-agent-rail__section-action--icon:focus-visible,
+[data-chrome-mode='relief'] button.wf-agent-rail__toggle:focus-visible {
+  border-color: var(--wf-quiet-icon-border-hover);
+  background: transparent;
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
 [data-chrome-mode='relief'] .wf-browser-chrome {
   background: var(--wf-control-bg-flush);
   border-bottom: none;
@@ -190,7 +207,7 @@
   z-index: 1;
   background: var(--wf-control-bg-raised);
   border-top: none;
-  box-shadow: var(--wf-relief-toolbar);
+  box-shadow: var(--wf-browser-toolbar-shadow);
 }
 
 [data-chrome-mode='relief'] .wf-browser-chrome__address {
@@ -239,7 +256,7 @@
   margin: 0;
   background: var(--wf-control-bg-flush);
   border: none;
-  box-shadow: var(--wf-control-shadow-flush);
+  box-shadow: var(--wf-browser-tab-shadow-rest);
   border-radius: var(--wf-radius-browser-tab) var(--wf-radius-browser-tab) 0 0;
   transition: box-shadow 0.12s ease, background 0.12s ease;
 }
@@ -249,7 +266,7 @@
   z-index: 2;
   background: var(--wf-control-bg-raised);
   border: none;
-  box-shadow: var(--wf-control-shadow-highlight);
+  box-shadow: var(--wf-browser-tab-shadow-active);
 }
 
 [data-chrome-mode='relief'] .wf-browser-tabs__label,
@@ -820,39 +837,16 @@
   box-shadow: var(--wf-control-shadow-inset);
 }
 
+[data-chrome-mode='relief'] .wf-profile-entity-card {
+  background: var(--wf-chrome-fill);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
 [data-chrome-mode='relief'] .wf-profile-entity-card--interactive:not(:disabled):hover,
 [data-chrome-mode='relief'] .wf-profile-entity-card--interactive:not(:disabled):focus-visible {
   border: none;
   box-shadow: var(--wf-control-shadow-highlight);
-}
-
-[data-chrome-mode='relief'] .wf-sign-in-app .wf-provider-connect__switch-ui {
-  background: var(--wf-control-bg-flush);
-  box-shadow: var(--wf-control-shadow-inset);
-}
-
-[data-chrome-mode='relief'] .wf-sign-in-app .wf-provider-connect__switch input:checked + .wf-provider-connect__switch-ui {
-  background: color-mix(in srgb, var(--wf-cyan) 38%, var(--wf-control-bg-raised));
-  box-shadow: var(--wf-control-shadow-flush);
-}
-
-[data-chrome-mode='relief'] .wf-sign-in-app .wf-provider-connect__switch-ui::after {
-  background: var(--wf-text);
-  box-shadow: var(--wf-control-shadow-elevated);
-}
-
-[data-chrome-mode='relief'] .wf-provider-connect__switch-ui {
-  background: var(--wf-control-bg-flush);
-  box-shadow: var(--wf-control-shadow-inset);
-}
-
-[data-chrome-mode='relief'] .wf-provider-connect__switch input:checked + .wf-provider-connect__switch-ui {
-  background: color-mix(in srgb, var(--wf-cyan) 38%, var(--wf-control-bg-raised));
-  box-shadow: var(--wf-control-shadow-flush);
-}
-
-[data-chrome-mode='relief'] .wf-provider-connect__switch-ui::after {
-  box-shadow: var(--wf-control-shadow-elevated);
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard :is(
@@ -867,14 +861,14 @@
 
 /* ponytail: neo ? dockview separators/sashes use themed divider (panel edge borders removed below) */
 [data-chrome-mode='relief'] .wf-workspace [class*='dockview-theme-'] {
-  --dv-separator-border: var(--wf-divider-color) !important;
+  --dv-separator-border: var(--wf-dock-divider-color) !important;
   --dv-sash-color: transparent !important;
   --dv-active-sash-color: transparent !important;
 }
 
 [data-chrome-mode='relief'] .wf-rail-fallback {
   border: none;
-  border-inline-end: var(--wf-border-width, 1px) solid var(--wf-divider-color);
+  border-inline-end: var(--wf-dock-divider-width, var(--wf-border-width, 1px)) solid var(--wf-dock-divider-color);
 }
 
 [data-chrome-mode='relief'] .wf-rail-fallback .wf-panel--rail {

@@ -101,6 +101,9 @@
   --wf-control-shadow-elevated: var(--wf-relief-outset-l);
   --wf-control-shadow-right: var(--wf-relief-tab);
   --wf-control-shadow-footer: var(--wf-relief-footer);
+  --wf-browser-tab-shadow-rest: var(--wf-relief-flat);
+  --wf-browser-tab-shadow-active: var(--wf-relief-tab);
+  --wf-browser-toolbar-shadow: var(--wf-relief-toolbar);
   --wf-control-shadow: var(--wf-relief-flat);
   --wf-control-shadow-hover: var(--wf-relief-outset-s);
   --wf-control-shadow-active: var(--wf-relief-outset-s);
@@ -141,4 +144,7 @@
   --wf-relief-tab: var(--wf-shadow-sm);
   --wf-relief-toolbar: var(--wf-shadow-sm);
   --wf-relief-footer: none;
+  --wf-browser-tab-shadow-rest: none;
+  --wf-browser-tab-shadow-active: var(--wf-shadow-sm);
+  --wf-browser-toolbar-shadow: var(--wf-shadow-sm);
 }

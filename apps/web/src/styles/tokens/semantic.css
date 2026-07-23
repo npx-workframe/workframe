@@ -29,12 +29,14 @@
   --wf-control-border-color-hover: transparent;
   --wf-control-border-color-active: transparent;
   --wf-control-border-color-inactive: transparent;
+  --wf-quiet-icon-border-hover: var(--wf-control-border-color-hover);
   --wf-control-shadow: none;
   --wf-control-shadow-hover: none;
   --wf-control-shadow-active: none;
 
   /* Dialog / wizard action buttons — themes set neo relief vs dark glass */
   --wf-btn-fg: var(--wf-text);
+  --wf-btn-fg-primary: var(--wf-primary-foreground);
   --wf-btn-fg-inactive: var(--wf-muted);
   --wf-btn-bg: transparent;
   --wf-btn-bg-hover: transparent;
@@ -57,4 +59,8 @@
   --wf-scrollbar-thumb-size: 6px;
   --wf-scrollbar-thumb: var(--wf-divider-color);
   --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
+
+  /* Dock boundaries stay distinct from component borders. */
+  --wf-dock-divider-width: var(--wf-border-width);
+  --wf-dock-divider-color: var(--wf-divider-color);
 }

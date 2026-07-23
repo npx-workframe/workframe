@@ -1084,6 +1084,15 @@
   gap: 16px;
 }
 
+.wf-settings-section {
+  display: grid;
+  gap: var(--wf-space-3);
+}
+
+.wf-settings-section .wf-wizard-section__hint {
+  margin-bottom: 0;
+}
+
 .wf-settings-stack .wf-settings-section {
   padding: 16px 18px;
   border-radius: var(--wf-radius-card);

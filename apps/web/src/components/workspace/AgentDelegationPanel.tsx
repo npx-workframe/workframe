@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AgentListItem } from '@/components/settings/AgentListItem'
 import { DialogSelect } from '@/components/dialogs/DialogSelect'
 import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveAgentAvatarUrl } from '@/lib/avatarResolve'
@@ -192,13 +193,14 @@ export function AgentDelegationPanel({
               placeholder="Workspace member"
               disabled={showLoading || Boolean(busyId)}
             />
-            <Button
+            <WfActionButton
               type="button"
+              tone="primary"
               disabled={!granteeUserId || Boolean(busyId)}
               onClick={() => void createDelegation()}
             >
               Grant
-            </Button>
+            </WfActionButton>
           </div>
         </section>
       ) : null}

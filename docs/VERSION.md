@@ -19,6 +19,7 @@ Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admi
 - Add recursive Navigator selection/download archives, safe batch deletion, bounded filenames, and in-browser image, audio, video, PDF, and CSV previews.
 - Add persistent reactions, compact replies, avatar-backed mentions, upload routing, rich attachment rendering, and a smooth message navigator without competing with the chat scrollbar.
 - Reconcile Thinking/tool disclosures, Markdown artifacts, panel headers, borders, and scrollbars with the existing neumorphic theme system.
+- Align settings and onboarding with shared Architectonic switches and Workframe action roles; restore Neo Dockview boundaries, browser-tab relief, 32px fields, quiet circular icon controls, and profile avatars.
 
 ## 0.1.19
 

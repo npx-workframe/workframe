@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { WorkframeNotice } from '@/components/ui/WorkframeNotice'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
@@ -110,12 +110,12 @@ export function AdminIntegrationsOnboarding({ workspaceId, onComplete }: AdminIn
       </div>
 
       <div className="flex flex-wrap gap-2 justify-end pt-1">
-        <Button type="button" variant="outline" disabled={busy} onClick={() => void saveAndContinue(true)}>
+        <WfActionButton type="button" disabled={busy} onClick={() => void saveAndContinue(true)}>
           Skip
-        </Button>
-        <Button type="button" disabled={busy} onClick={() => void saveAndContinue(false)}>
+        </WfActionButton>
+        <WfActionButton type="button" tone="primary" disabled={busy} onClick={() => void saveAndContinue(false)}>
           Continue
-        </Button>
+        </WfActionButton>
       </div>
     </div>
   )

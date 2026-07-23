@@ -62,6 +62,7 @@
   background: var(--wf-btn-bg-primary);
   border-color: var(--wf-btn-border-color-primary);
   box-shadow: var(--wf-btn-shadow-primary);
+  color: var(--wf-btn-fg-primary);
 }
 
 .wf-action-btn[data-tone='primary']:hover:not(:disabled) {
@@ -97,7 +98,7 @@ button.wf-action-btn[data-tone='primary'].bg-primary {
   background: var(--wf-btn-bg-primary);
   border-color: var(--wf-btn-border-color-primary);
   box-shadow: var(--wf-btn-shadow-primary);
-  color: var(--wf-btn-fg);
+  color: var(--wf-btn-fg-primary);
 }
 
 button.wf-action-btn[data-tone='primary'].bg-primary:hover:not(:disabled) {
