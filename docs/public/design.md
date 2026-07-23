@@ -105,7 +105,7 @@ The bridge also supplies shadcn/Tailwind color variables so Radix/shadcn primiti
 - Keep one scroll owner per surface. Popovers may scroll internally; panels must not nest full-height scroll containers.
 - Preserve the 4px Workframe layout grid and technical density unless a product requirement changes them.
 - Use `--wf-*`, Architectonic role tokens, or structural `--ar-*` tokens. Do not add a component-specific theme-name selector.
-- Pill geometry is semantic, not inherited: only compact labelled buttons and single-line inputs up to 40px may use `--wf-radius-compact-control`. Rows, tabs, cards, multiline inputs, dialog and wizard surfaces cap at 8px; square icon controls use 4px. Compact pill buttons receive half-height inline padding. Avatars and intentional circular indicators are exempt.
+- Pill geometry is semantic, not inherited: only compact labelled buttons and single-line inputs up to 40px may use `--wf-radius-compact-control`. Rows, tabs, cards, multiline inputs, dialog and wizard surfaces cap at 8px; square icon controls use 4px. Panel-header controls are circular, stay visually flush at rest, and reveal their border/shadow only on hover or focus. Compact pill buttons receive half-height inline padding. Avatars and intentional circular indicators are exempt.
 - Relief uses high/low shadow state, not color changes. Line themes use borders. Glass uses translucent surfaces and blur.
 - Theme backgrounds belong to `--theme-canvas-*` and `CanvasBackground`, not individual panels.
 

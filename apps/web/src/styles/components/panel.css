@@ -280,7 +280,7 @@
   width: var(--wf-panel-header-control-size);
   height: var(--wf-panel-header-control-size);
   padding: 0;
-  border-radius: var(--wf-radius-panel-control);
+  border-radius: 50%;
   color: var(--wf-muted);
   cursor: pointer;
   transition:

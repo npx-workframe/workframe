@@ -27,7 +27,8 @@
   width: 100%;
   min-width: 0;
   min-height: var(--wf-control);
-  padding: var(--wf-gap-tight) var(--wf-space-2);
+  padding-block: var(--wf-gap-tight);
+  padding-inline: var(--wf-gap-tight) var(--wf-space-2);
   border-radius: var(--wf-radius-row);
   background: transparent;
   border-width: var(--wf-control-border-width);

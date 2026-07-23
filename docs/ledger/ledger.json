@@ -1542,7 +1542,7 @@
         "browser matrix: minimal-dark, neo-dark, liquid-glass-dark, newspaper, settings persistence (2026-07-22)",
         "../architectonic/design-system npm test and npm pack --dry-run (2026-07-22)",
         "personal theme profile migration pytest, API typecheck suite, reusable Appearance/onboarding theme grid, web/desktop builds, and create-workframe scaffold parity (2026-07-22)",
-        "DogFood secure-mode health plus live packaged-CSS verification of semantic compact-control pills, 4–8px structural radii, transparent Browser chrome, and per-bundle asset revision (2026-07-23)"
+        "DogFood secure-mode health plus live packaged-CSS verification of semantic compact-control pills, 4–8px structural radii, transparent panel tabs, 4px rail starts, hover-only circular header controls, transparent Browser chrome, and per-bundle asset revision (2026-07-23)"
       ],
       "sources": [
         "../architectonic/design-system/design.md",

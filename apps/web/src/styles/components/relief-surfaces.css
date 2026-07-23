@@ -169,6 +169,17 @@
   color: var(--wf-text);
 }
 
+[data-chrome-mode='relief'] button.wf-panel__control-btn {
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-chrome-mode='relief'] button.wf-panel__control-btn:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: var(--wf-control-shadow-raised);
+}
+
 [data-chrome-mode='relief'] .wf-browser-chrome {
   background: var(--wf-control-bg-flush);
   border-bottom: none;
@@ -882,7 +893,7 @@
 
 [data-chrome-mode='line'] .wf-workspace .dv-tab.dv-active-tab .wf-panel-drag-tab,
 [data-chrome-mode='line'] .wf-workspace .dv-tab.dv-active-tab .wf-panel-drag-tab--interacting {
-  background: var(--wf-surface) !important;
+  background: transparent !important;
 }
 
 [data-chrome-mode='relief'] .wf-panel-drag-tab {
@@ -892,7 +903,7 @@
 
 /* Single-tab groups stay flush at rest. */
 [data-chrome-mode='relief'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab.wf-shadow-right-only {
-  background: var(--wf-control-bg-flush) !important;
+  background: transparent !important;
   box-shadow: none !important;
   color: var(--wf-text);
 }
@@ -903,7 +914,7 @@
 
 /* Stacked active tabs also stay flush at rest. */
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab.wf-shadow-right-only {
-  background: var(--wf-control-bg-flush) !important;
+  background: transparent !important;
   box-shadow: none !important;
   color: var(--wf-text);
 }
@@ -914,7 +925,7 @@
 
 /* Stacked tabs â€” inactive siblings */
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only {
-  background: var(--wf-control-bg-flush) !important;
+  background: transparent !important;
   box-shadow: none !important;
   color: var(--wf-control-fg-inactive);
 }
@@ -926,7 +937,7 @@
 [data-chrome-mode='relief'] .dv-tabs-container:not(:has(.dv-tab:nth-child(2))) .wf-panel-drag-tab.wf-shadow-right-only:hover,
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-active-tab .wf-panel-drag-tab.wf-shadow-right-only:hover,
 [data-chrome-mode='relief'] .dv-tabs-container:has(.dv-tab:nth-child(2)) .dv-tab.dv-inactive-tab .wf-panel-drag-tab.wf-shadow-right-only:hover {
-  background: var(--wf-control-bg-raised) !important;
+  background: transparent !important;
   box-shadow: var(--wf-control-shadow-right) !important;
 }
 
