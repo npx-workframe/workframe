@@ -19,7 +19,7 @@
   --wf-radius-tool-btn: var(--wf-radius-compact-control);
   --wf-radius-panel-control: var(--wf-radius-xs);
   --wf-radius-browser-toolbar-btn: var(--wf-radius-xs);
-  --wf-radius-browser-tab: var(--wf-radius-row);
+  --wf-radius-browser-tab: 4px;
 
   /* Overlay shells (wizard, auth card, dialog content) */
   --wf-radius-shell: var(--wf-radius-surface);

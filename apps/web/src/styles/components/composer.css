@@ -140,6 +140,15 @@
   flex: 1;
 }
 
+.wf-composer__toolbar button.wf-tool-btn.wf-tool-btn--icon,
+.wf-composer__toolbar button.wf-tool-btn.wf-tool-btn--send {
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-radius: 50%;
+}
+
 .wf-composer__slash-menus {
   display: flex;
   align-items: center;

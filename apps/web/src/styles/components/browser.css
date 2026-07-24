@@ -159,10 +159,14 @@
 [data-chrome-mode='relief'] :is(
   .wf-browser-chrome__toolbar,
   .wf-file-explorer__selection-actions
-) button.wf-tool-btn.wf-tool-btn--icon.wf-tool-btn--active {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
+) button.wf-tool-btn.wf-tool-btn--icon.wf-tool-btn--active,
+[data-chrome-mode='relief'] :is(
+  .wf-browser-chrome__toolbar,
+  .wf-file-explorer__selection-actions
+) button.wf-tool-btn.wf-tool-btn--icon.wf-tool-btn--active:hover:not(:disabled) {
+  border: none;
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
   color: var(--wf-primary);
 }
 
@@ -170,7 +174,7 @@
   .wf-browser-chrome__toolbar,
   .wf-file-explorer__selection-actions
 ) button.wf-tool-btn.wf-tool-btn--icon:hover:not(:disabled) {
-  border-color: var(--wf-quiet-icon-border-hover);
+  border: none;
   background: transparent;
   box-shadow: none;
 }

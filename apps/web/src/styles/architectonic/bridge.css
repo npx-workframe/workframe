@@ -82,8 +82,6 @@
   --wf-tool-chrome-border: var(--line);
   --wf-dnd-indicator-bg: color-mix(in srgb, var(--primary) 14%, transparent);
   --wf-dnd-indicator-border: var(--primary);
-  --wf-scrollbar-thumb: color-mix(in srgb, var(--fg-muted) 34%, transparent);
-  --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
 
   /*
    * Capsules belong only to compact, labelled controls. Structural rows,

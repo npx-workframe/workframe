@@ -19,6 +19,7 @@ button.wf-tool-btn {
   letter-spacing: 0.02em;
   line-height: 1;
   box-shadow: none;
+  cursor: pointer;
   transition:
     background 0.12s ease,
     color 0.12s ease,

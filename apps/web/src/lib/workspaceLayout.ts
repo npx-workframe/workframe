@@ -88,11 +88,16 @@ function setGroupWidth(panel: IDockviewPanel | undefined, width: number) {
   panel.group.api.setSize({ width: rounded })
 }
 
-function configureMainPanel(panel: IDockviewPanel, panelId: MainPanelId, width: number) {
+function configureMainPanel(
+  panel: IDockviewPanel,
+  panelId: MainPanelId,
+  width: number,
+  alone = false,
+) {
   const rule = panelRule(panelId)
   panel.group.api.setConstraints({
     minimumWidth: rule.min,
-    maximumWidth: Number.isFinite(rule.max) ? rule.max : undefined,
+    maximumWidth: alone || !Number.isFinite(rule.max) ? undefined : rule.max,
   })
   setGroupWidth(panel, width)
 }
@@ -195,11 +200,12 @@ export class WorkspaceLayoutController {
 
   private apply(measureCtx: LayoutMeasure, targets: Partial<Record<MainPanelId, number>>) {
     this.applying = true
+    const alone = measureCtx.visible.length === 1
     try {
       for (const id of measureCtx.visible) {
         const panel = getPanel(this.api, id)
         if (!panel) continue
-        configureMainPanel(panel, id, targets[id] ?? panelRule(id).min)
+        configureMainPanel(panel, id, targets[id] ?? panelRule(id).min, alone)
       }
     } finally {
       this.applying = false

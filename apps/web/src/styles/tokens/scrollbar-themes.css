@@ -1,0 +1,27 @@
+/* Scrollbar thumb per theme — must load after architectonic/bridge.css.
+ * semantic.css wires thumb → divider; bridge must not blanket-override thumb.
+ * Pre-architectonic neo-light: divider #fff → white thumb (ce6bddb~1).
+ * Post-66893da relief: divider transparent, thumb explicit on neo relief light. */
+
+:root[data-arch-theme] {
+  --wf-scrollbar-thumb: var(--wf-divider-color);
+  --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
+}
+
+/* Neo relief light — solid white thumb (100% opacity). */
+:root[data-arch-theme^='neo'][data-style='shadows'][data-color-mode='light'] {
+  --wf-scrollbar-thumb: #ffffff;
+  --wf-scrollbar-thumb-hover: #ffffff;
+}
+
+/* Other relief (shadows) — dock divider carries contrast (neo-dark = 10% white). */
+:root[data-arch-theme][data-style='shadows'][data-color-mode='dark'] {
+  --wf-scrollbar-thumb: var(--wf-dock-divider-color);
+  --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
+}
+
+/* Dark line/glass — muted mix when divider is too faint. */
+:root[data-arch-theme][data-color-mode='dark']:not([data-style='shadows']) {
+  --wf-scrollbar-thumb: color-mix(in srgb, var(--fg-muted) 34%, transparent);
+  --wf-scrollbar-thumb-hover: var(--wf-scrollbar-thumb);
+}

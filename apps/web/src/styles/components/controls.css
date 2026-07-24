@@ -55,6 +55,7 @@
   background: var(--field-bg, var(--wf-input-bg));
   box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm));
   color: var(--primary-foreground);
+  cursor: pointer;
 }
 
 .wf-checkbox:focus-visible {
@@ -78,6 +79,7 @@
 :is(
   .wf-agent-rail__toggle,
   .wf-agent-rail__section-action--icon,
+  .wf-agent-rail__item,
   .wf-browser-tabs__close,
   .wf-file-tree__row,
   .wf-activity-tree__row--clickable,
@@ -92,7 +94,9 @@
   .wf-panel__control-btn,
   .wf-popover__row,
   .wf-dialog-select-list__option,
-  .wf-dialog__option
+  .wf-dialog__option,
+  .wf-message-navigator__marker,
+  .wf-action-btn
 ) {
   background: var(--wf-control-bg);
   border-width: var(--wf-control-border-width);
@@ -100,6 +104,7 @@
   border-color: var(--wf-control-border-color);
   box-shadow: var(--wf-control-shadow);
   color: var(--wf-control-fg, inherit);
+  cursor: pointer;
 }
 
 :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
@@ -145,7 +150,7 @@ button.wf-agent-rail__toggle {
 
 :is(.wf-panel__control-btn, .wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled):not([aria-disabled='true']):not([aria-expanded='true']) {
   background: var(--wf-control-bg-hover);
-  border-color: var(--wf-control-border-color-hover);
+  border: none;
   box-shadow: var(--wf-control-shadow-hover);
   color: var(--wf-control-fg-hover, var(--wf-text));
 }
@@ -159,7 +164,7 @@ button.wf-agent-rail__toggle:hover:not(:disabled),
 button.wf-agent-rail__section-action--icon:focus-visible,
 button.wf-agent-rail__toggle:focus-visible {
   background: transparent;
-  border-color: var(--wf-quiet-icon-border-hover);
+  border: none;
   box-shadow: var(--wf-control-shadow-hover);
 }
 
@@ -173,6 +178,7 @@ button.wf-agent-rail__toggle:focus-visible {
 :is(
   .wf-file-tree__row--selected,
   .wf-activity-tree__row--active,
+  .wf-agent-rail__item--active,
   .wf-popover__row[data-selected='true'],
   button.wf-tool-btn.wf-tool-btn--active,
   .wf-settings-shell__nav-btn[aria-selected='true'],
@@ -200,6 +206,7 @@ button.wf-agent-rail__toggle:focus-visible {
 :is(
   .wf-file-tree__row--selected,
   .wf-activity-tree__row--active,
+  .wf-agent-rail__item--active,
   .wf-popover__row[data-selected='true'],
   button.wf-tool-btn.wf-tool-btn--active,
   .wf-settings-shell__nav-btn[aria-selected='true'],

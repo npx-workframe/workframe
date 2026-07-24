@@ -102,7 +102,8 @@
   --wf-control-shadow-right: var(--wf-relief-tab);
   --wf-control-shadow-footer: var(--wf-relief-footer);
   --wf-browser-tab-shadow-rest: var(--wf-relief-flat);
-  --wf-browser-tab-shadow-active: var(--wf-relief-tab);
+  /* highlight (-3,-3), shadow (+3,-3) — browser tabs only; dockview keeps --wf-relief-tab */
+  --wf-browser-tab-shadow-active: var(--wf-relief-toolbar);
   --wf-browser-toolbar-shadow: var(--wf-relief-toolbar);
   --wf-control-shadow: var(--wf-relief-flat);
   --wf-control-shadow-hover: var(--wf-relief-outset-s);
@@ -111,6 +112,21 @@
   --wf-btn-shadow: var(--wf-relief-flat);
   --wf-btn-shadow-hover: var(--wf-relief-outset-s);
   --wf-btn-shadow-primary: var(--wf-relief-outset-s);
+
+  /* ponytail: relief interactive chrome — shadow depth only, no border rings */
+  --wf-control-border-width: 0;
+  --wf-icon-control-border-width: 0;
+  --wf-control-border-color: transparent;
+  --wf-control-border-color-hover: transparent;
+  --wf-control-border-color-active: transparent;
+  --wf-control-border-color-inactive: transparent;
+  --wf-quiet-icon-border-hover: transparent;
+  --wf-control-border-ring-raised: transparent;
+  --wf-btn-border-width: 0;
+  --wf-btn-border-color: transparent;
+  --wf-btn-border-color-hover: transparent;
+  --wf-btn-border-color-primary: transparent;
+  --wf-btn-border-color-inactive: transparent;
 
   /* Legacy aliases */
   --wf-neo-flat: var(--wf-relief-outset-s);

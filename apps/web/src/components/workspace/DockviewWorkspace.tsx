@@ -51,13 +51,17 @@ function initWorkspace(event: DockviewReadyEvent, canvasEl: HTMLElement | null) 
     ...getInitialPanelOptions(PANEL_IDS.browser),
   })
 
-  api.addPanel({
+  const activityPanel = api.addPanel({
     id: PANEL_IDS.activity,
     component: 'activity',
     title: 'Activity',
     position: { referencePanel: browserPanel, direction: 'right' },
     ...getInitialPanelOptions(PANEL_IDS.activity),
   })
+
+  // ponytail: navigator + activity start closed; rail shortcuts restore them
+  filesPanel.api.close()
+  activityPanel.api.close()
 
   setupWorkspaceDnd(api, canvasEl)
 }
