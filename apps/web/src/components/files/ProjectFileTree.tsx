@@ -317,40 +317,42 @@ export function ProjectFileTree({ projectName = 'Workframe' }: ProjectFileTreePr
             <span className="wf-file-explorer__selection-count" aria-live="polite">
               {selectedPaths.size} selected
             </span>
-            <Button
-              type="button"
-              variant="toolbar"
-              size="toolbarIcon"
-              onClick={() => void handleDownload()}
-              disabled={!selectedPaths.size || busyAction !== null}
-              aria-label="Download selected files"
-              title="Download selected files"
-            >
-              {busyAction === 'download' ? <LoaderCircle className="wf-spin" /> : <Download />}
-            </Button>
-            <Button
-              type="button"
-              variant="toolbar"
-              size="toolbarIcon"
-              className="wf-file-explorer__delete-btn"
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={!selectedFilePaths.length || hasSelectedFolders || busyAction !== null}
-              aria-label="Delete selected files"
-              title={hasSelectedFolders ? 'Folders can be downloaded, not deleted' : 'Delete selected files'}
-            >
-              {busyAction === 'delete' ? <LoaderCircle className="wf-spin" /> : <Trash2 />}
-            </Button>
-            <Button
-              type="button"
-              variant="toolbar"
-              size="toolbarIcon"
-              onClick={exitSelectionMode}
-              disabled={busyAction !== null}
-              aria-label="Exit file selection"
-              title="Exit file selection"
-            >
-              <X />
-            </Button>
+            <div className="wf-file-explorer__selection-actions">
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                onClick={() => void handleDownload()}
+                disabled={!selectedPaths.size || busyAction !== null}
+                aria-label="Download selected files"
+                title="Download selected files"
+              >
+                {busyAction === 'download' ? <LoaderCircle className="wf-spin" /> : <Download />}
+              </Button>
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                className="wf-file-explorer__delete-btn"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={!selectedFilePaths.length || hasSelectedFolders || busyAction !== null}
+                aria-label="Delete selected files"
+                title={hasSelectedFolders ? 'Folders can be downloaded, not deleted' : 'Delete selected files'}
+              >
+                {busyAction === 'delete' ? <LoaderCircle className="wf-spin" /> : <Trash2 />}
+              </Button>
+              <Button
+                type="button"
+                variant="toolbar"
+                size="toolbarIcon"
+                onClick={exitSelectionMode}
+                disabled={busyAction !== null}
+                aria-label="Exit file selection"
+                title="Exit file selection"
+              >
+                <X />
+              </Button>
+            </div>
           </>
         ) : (
           <Button

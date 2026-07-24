@@ -69,8 +69,12 @@
   transition:
     background 0.12s ease,
     color 0.12s ease,
-    border-color 0.12s ease,
     box-shadow 0.12s ease;
+}
+
+.wf-browser-tabs__close,
+.wf-browser-tabs__close:hover:not(:disabled) {
+  border: none;
 }
 
 .wf-browser-tabs__close svg {
@@ -138,6 +142,37 @@
   gap: var(--wf-gap-tight);
   padding-inline: var(--wf-gap-tight);
   border-inline: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
+}
+
+/* Neo toolbar icons stay quiet and circular. State is carried by icon color;
+   the only resting chrome appears on hover. */
+[data-chrome-mode='relief'] :is(
+  .wf-browser-chrome__toolbar,
+  .wf-file-explorer__selection-actions
+) button.wf-tool-btn.wf-tool-btn--icon {
+  border: var(--wf-border-width, 1px) solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-chrome-mode='relief'] :is(
+  .wf-browser-chrome__toolbar,
+  .wf-file-explorer__selection-actions
+) button.wf-tool-btn.wf-tool-btn--icon.wf-tool-btn--active {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--wf-primary);
+}
+
+[data-chrome-mode='relief'] :is(
+  .wf-browser-chrome__toolbar,
+  .wf-file-explorer__selection-actions
+) button.wf-tool-btn.wf-tool-btn--icon:hover:not(:disabled) {
+  border-color: var(--wf-quiet-icon-border-hover);
+  background: transparent;
+  box-shadow: none;
 }
 
 .wf-browser__viewport {

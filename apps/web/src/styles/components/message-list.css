@@ -1092,7 +1092,7 @@
 }
 
 .wf-tool-run {
-  border: 0;
+  border: var(--wf-border-width, 1px) solid var(--wf-tool-chrome-border);
   border-radius: var(--wf-radius);
   background: color-mix(in srgb, var(--wf-bg) 30%, transparent);
   overflow: hidden;
