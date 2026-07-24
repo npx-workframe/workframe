@@ -1,17 +1,24 @@
-# Workframe v0.1.20
+# Workframe v0.1.21
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.20 |
+| create-workframe | 0.1.21 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.20 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.21 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.20 MyProject
+npx create-workframe@0.1.21 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.21
+
+- Converge settings, authentication, onboarding, and wizard surfaces on the shared design-system field, action, switch, avatar, and Neo relief contracts.
+- Restore Neo Dockview boundaries and browser-tab relief while keeping panel chrome quiet, compact, and consistent across light and dark themes.
+- Normalize settings gutters, rail titles, 32px fields, button contrast, profile avatars, and hover-only circular icon-control borders.
+- Replace the remaining workspace-specific Architectonic source pointer with a portable repository-relative reference.
 
 ## 0.1.20
 
