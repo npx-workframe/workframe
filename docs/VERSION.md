@@ -1,17 +1,24 @@
-# Workframe v0.1.21
+# Workframe v0.1.22
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.21 |
+| create-workframe | 0.1.22 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.21 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.22 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.21 MyProject
+npx create-workframe@0.1.22 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.22
+
+- Fix neo-light scrollbar thumb color via per-theme tokens (restore solid white thumb; remove architectonic bridge blanket override).
+- Collapse navigator and activity panels by default; clear solo-panel max-width so single panels fill the workspace.
+- Refine neo relief chrome: high-relief active rail items, circular attach/send controls, 4px browser tab radius, pointer cursors, and shadow-only interactive depth without white border rings.
+- Improve browser toolbar active-mode relief, tab chrome, navigator controls, and file-tree selection affordances.
 
 ## 0.1.21
 
