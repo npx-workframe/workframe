@@ -1961,8 +1961,8 @@
     {
       "id": "WF-UI-004",
       "title": "Cross-theme visual QA matrix (ABX)",
-      "summary": "Audit wizard, auth, shell, settings, modals across 18 themes at desktop and mobile breakpoints; file findings in docs/ledger/audits/.",
-      "status": "backlog",
+      "summary": "Audit wizard, auth, shell, settings, modals across 14 visible picker themes at desktop and mobile breakpoints; file findings in docs/ledger/audits/.",
+      "status": "in_progress",
       "priority": "P0",
       "owner_role": "designer",
       "acceptance": [
@@ -1974,7 +1974,12 @@
       "depends_on": [
         "WF-UI-003"
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/ledger/audits/2026-07-25-abx-visual-qa.md",
+        "docs/ledger/audits/theme-smoke-checklist.json",
+        "commit d84f34a fix(web): wizard high relief, theme 2-col grid, inactive CTA",
+        "commit 24509ca docs(ledger): ABX visual QA audit and harness"
+      ],
       "sources": [
         "apps/web/src/generated/architectonicThemes.ts",
         "docs/public/design.md"
@@ -2031,8 +2036,8 @@
     {
       "id": "WF-UI-007",
       "title": "Final ABX reinstall and publish sign-off",
-      "summary": "After fix rounds, bump 0.1.27 if needed, reinstall ABX from npm, smoke six themes on key screens, close campaign.",
-      "status": "backlog",
+      "summary": "After fix rounds, bump 0.1.27, reinstall ABX from npm, smoke six themes on key screens, close campaign.",
+      "status": "in_progress",
       "priority": "P0",
       "owner_role": "tests",
       "acceptance": [
@@ -2045,7 +2050,9 @@
         "WF-UI-005",
         "WF-UI-006"
       ],
-      "evidence": [],
+      "evidence": [
+        "tag v0.1.27 publish via .github/workflows/publish-npm.yml (pending CI)"
+      ],
       "extensions": {
         "wave": "release-truth"
       }

@@ -2,7 +2,7 @@
 
 **Campaign:** WF-UI-004 / WF-UI-005 / WF-UI-006  
 **Install:** ABX slot 2 — UI `http://127.0.0.1:28644`, API `http://127.0.0.1:29120`  
-**Package:** `create-workframe@0.1.26` (API reports `workframe-api-0.1.0`)  
+**Package:** `create-workframe@0.1.27` (pending publish; built from commits through `d84f34a`, `24509ca`)  
 **Scope:** UI/CSS/tokens only — no LLM chat, no backend changes, no credentials in files.
 
 ## Environment
