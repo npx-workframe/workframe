@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project": "workframe",
-  "updated": "2026-07-22",
+  "updated": "2026-07-25",
   "roadmap_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "items": [
     {
@@ -1867,6 +1867,171 @@
           "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
         }
       }
+    },
+    {
+      "id": "WF-UI-001",
+      "title": "Reconcile ledger with post-0.1.25 git tree",
+      "summary": "Record shipped 0.1.24/0.1.25 theme work and in-progress mobile workspace layout so ledger matches git; fix stale backlog.json references in secondary artifacts.",
+      "status": "in_progress",
+      "priority": "P0",
+      "owner_role": "designer",
+      "acceptance": [
+        "ledger.json updated field and WF-UI campaign items committed",
+        "Post-0.1.22 theme releases documented in ledger notes or WF-044 follow-on",
+        "WF-CLI-001 campaign.json source_of_truth_target points at ledger.json"
+      ],
+      "depends_on": [],
+      "evidence": [],
+      "sources": [
+        "docs/VERSION.md",
+        "git log since 2026-07-22"
+      ],
+      "claim": {
+        "assignee": "cursor-orchestrator",
+        "claimed_at": "2026-07-25"
+      },
+      "extensions": {
+        "wave": "design-system",
+        "stage": "meta"
+      }
+    },
+    {
+      "id": "WF-UI-002",
+      "title": "Publish create-workframe 0.1.26 (mobile workspace + tree commit)",
+      "summary": "Commit dirty UI tree, bump version agreement to 0.1.26, run install-gate, tag and publish via GitHub Action.",
+      "status": "ready",
+      "priority": "P0",
+      "owner_role": "tests",
+      "acceptance": [
+        "pnpm build:web and bundle-workframe-ui green",
+        "pnpm verify:version agrees on 0.1.26",
+        "tag v0.1.26 pushed and create-workframe@0.1.26 on npm registry"
+      ],
+      "depends_on": [
+        "WF-UI-001"
+      ],
+      "evidence": [],
+      "sources": [
+        "scripts/workframe/publish-npm.ps1",
+        ".github/workflows/publish-npm.yml"
+      ],
+      "extensions": {
+        "wave": "release-truth",
+        "stage": "meta"
+      }
+    },
+    {
+      "id": "WF-UI-003",
+      "title": "Fresh ABX dogfood install from published pack",
+      "summary": "Wipe ABX install root, npx create-workframe@0.1.26 ABX, complete trusted_team wizard with SMTP and admin OTP for alan@click.blue.",
+      "status": "backlog",
+      "priority": "P0",
+      "owner_role": "tests",
+      "acceptance": [
+        "Prior ABX/MyBusiness containers on slot 18644 stopped",
+        "Clean install from npm pack with no preserved Agents Files or data",
+        "Wizard completes through shell at http://127.0.0.1:18644"
+      ],
+      "depends_on": [
+        "WF-UI-002"
+      ],
+      "evidence": [],
+      "extensions": {
+        "wave": "release-truth",
+        "stage": "C"
+      }
+    },
+    {
+      "id": "WF-UI-004",
+      "title": "Cross-theme visual QA matrix (ABX)",
+      "summary": "Audit wizard, auth, shell, settings, modals across 18 themes at desktop and mobile breakpoints; file findings in docs/ledger/audits/.",
+      "status": "backlog",
+      "priority": "P0",
+      "owner_role": "designer",
+      "acceptance": [
+        "All 18 themes exercised on representative screens",
+        "Desktop and mobile breakpoints checked for shell and settings",
+        "Audit doc lists pass/fail per theme-family with screenshot or evidence refs",
+        "No LLM chat or agent invocation required"
+      ],
+      "depends_on": [
+        "WF-UI-003"
+      ],
+      "evidence": [],
+      "sources": [
+        "apps/web/src/generated/architectonicThemes.ts",
+        "docs/public/design.md"
+      ],
+      "extensions": {
+        "wave": "design-system",
+        "stage": "meta"
+      }
+    },
+    {
+      "id": "WF-UI-005",
+      "title": "Provider and model screen polish with brand SVGs",
+      "summary": "Ensure provider connect, OAuth rows, model picker, and settings connect tab use brandAssets.ts SVGs consistently across themes.",
+      "status": "backlog",
+      "priority": "P1",
+      "owner_role": "designer",
+      "acceptance": [
+        "All listed providers render logo not placeholder across light and dark themes",
+        "Provider rows share sizing and relief with design-system controls",
+        "No duplicate broken paths between brands/ and new-brands/"
+      ],
+      "depends_on": [
+        "WF-UI-003"
+      ],
+      "evidence": [],
+      "sources": [
+        "apps/web/src/lib/brandAssets.ts",
+        "apps/web/src/components/settings/ProviderOptionRow.tsx"
+      ],
+      "extensions": {
+        "wave": "design-system"
+      }
+    },
+    {
+      "id": "WF-UI-006",
+      "title": "Upstream design-system sync for structural token fixes",
+      "summary": "When audit finds structural token gaps, fix in architectonic/design-system then sync:design-system; Workframe bridge only for product aliases.",
+      "status": "backlog",
+      "priority": "P1",
+      "owner_role": "designer",
+      "acceptance": [
+        "No new per-theme hex in apps/web product chrome without bridge alias",
+        "sync-architectonic-design-system.mjs run when upstream themes change",
+        "Bauhaus grouping lesson applied: fewer per-theme knobs in Workframe"
+      ],
+      "depends_on": [
+        "WF-UI-004"
+      ],
+      "evidence": [],
+      "extensions": {
+        "wave": "design-system"
+      }
+    },
+    {
+      "id": "WF-UI-007",
+      "title": "Final ABX reinstall and publish sign-off",
+      "summary": "After fix rounds, bump 0.1.27 if needed, reinstall ABX from npm, smoke six themes on key screens, close campaign.",
+      "status": "backlog",
+      "priority": "P0",
+      "owner_role": "tests",
+      "acceptance": [
+        "ABX reinstall from published pack succeeds",
+        "Representative theme smoke pass documented",
+        "WF-UI-001 through WF-UI-006 done or explicitly deferred with reason"
+      ],
+      "depends_on": [
+        "WF-UI-004",
+        "WF-UI-005",
+        "WF-UI-006"
+      ],
+      "evidence": [],
+      "extensions": {
+        "wave": "release-truth"
+      }
     }
   ],
   "extensions": {
@@ -1945,7 +2110,11 @@
         ],
         "meta": [
           "WF-040",
-          "WF-SK-001"
+          "WF-SK-001",
+          "WF-UI-001",
+          "WF-UI-002",
+          "WF-UI-004",
+          "WF-UI-006"
         ]
       }
     }

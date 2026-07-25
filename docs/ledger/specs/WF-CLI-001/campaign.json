@@ -1,7 +1,7 @@
 {
   "campaign": "WF-CLI",
   "scope": "packages/workframe/**",
-  "source_of_truth_target": "docs/ledger/backlog.json",
+  "source_of_truth_target": "docs/ledger/ledger.json",
   "status": "todo",
   "items": [
     {
