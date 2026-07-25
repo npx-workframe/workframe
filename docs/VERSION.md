@@ -1,17 +1,23 @@
-# Workframe v0.1.24
+# Workframe v0.1.25
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.24 |
+| create-workframe | 0.1.25 |
 | workframe CLI (`npx workframe`) | 0.2.2 |
-| Workframe API / UI | 0.1.24 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.25 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.24 MyProject
+npx create-workframe@0.1.25 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.25
+
+- Bauhaus Mondrian theme: unified ink/paper anchors (`#111111` / `#eeeeee`), panel accent fields, centered chat column, black composer shell, and Mondrian browser/rail/files/activity chrome.
+- Sync Architectonic design-system structural contrast scale, Bauhaus RGB relief tokens, and manifest preview alignment.
+- Brutalist shared chrome layer; bridge aliases theme palette without hex drift in product CSS.
 
 ## 0.1.24
 

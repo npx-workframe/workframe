@@ -37,7 +37,7 @@ npx workframe version
 To scaffold the complete multi-user Workframe + Hermes environment (UI, API, Docker Compose, onboarding), use the installer package instead:
 
 ```bash
-npx create-workframe@0.1.24 MyProject
+npx create-workframe@0.1.25 MyProject
 ```
 
 `workframe` and `create-workframe` are complementary: this CLI inspects your local machine; `create-workframe` installs the product cell.
