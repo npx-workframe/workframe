@@ -3,12 +3,12 @@
 | Component | Version |
 |-----------|---------|
 | create-workframe | 0.1.23 |
-| workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
-| @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
+| workframe CLI (`npx workframe`) | 0.2.2 |
 | Workframe API / UI | 0.1.23 (bundled in create-workframe) |
 
 ```bash
 npx create-workframe@0.1.23 MyProject
+npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
@@ -19,6 +19,11 @@ Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admi
 - Theme picker: page-adapted card contour, faithful per-theme previews from Architectonic manifest, checkmark-only selection.
 - Sync Architectonic chrome tokens (`chrome-fill`, theme swatch pattern) and generated preview map.
 - Settings dialog relief clip fix, rail nav label alignment, and assorted neo/relief chrome polish.
+
+### workframe CLI 0.2.2
+
+- Align package README and `docs/VERSION.md` with the published `0.2.x` local-link console (read-only discovery + optional consent-gated provider test).
+- Point installers to `create-workframe@0.1.23` for the full product cell.
 
 ## 0.1.22
 
