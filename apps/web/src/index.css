@@ -12,6 +12,8 @@
 @import './styles/tokens/relief-primitives.css';
 @import './styles/architectonic/bridge.css';
 @import './styles/tokens/scrollbar-themes.css';
+@import './styles/tokens/message-nav-themes.css';
+@import './styles/tokens/elevated-surfaces.css';
 
 /* ── Content / vendor adapters ──────────────────────────────────────────── */
 @import './styles/highlight-themes.css';

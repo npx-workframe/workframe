@@ -1,16 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
+import {
+  advanceUpdateSteps,
+  completeUpdateSteps,
+  initialUpdateSteps,
+  isStackRestartError,
+  stackUpdateTitle,
+  waitForStackHealth,
+  type StackUpdateTarget,
+} from '@/lib/stackUpdateProgress'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { workframeAuthApi, type StackProductUpdateStatus, type StackUpdatesStatus } from '@/lib/workframeAuthApi'
 
-type UpdateTarget = 'hermes' | 'workframe' | 'all'
+type UpdateTarget = StackUpdateTarget
 
 type StackUpdatesPanelProps = {
   onBadgeChange?: (count: number) => void
 }
+
+const APPLY_TIMEOUT_MS = 920_000
 
 function readDesktopVersion(): Promise<string> {
   if (typeof window === 'undefined') return Promise.resolve('')
@@ -122,6 +134,12 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
   const [applying, setApplying] = useState<UpdateTarget | ''>('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [updateSteps, setUpdateSteps] = useState<OperationStep[]>([])
+  const [updateTarget, setUpdateTarget] = useState<UpdateTarget | ''>('')
+  const waitAbortRef = useRef<AbortController | null>(null)
+
+  const updating = updateSteps.length > 0
+  const updateFailed = updateSteps.some((step) => step.status === 'error')
 
   const updateCount = useMemo(() => {
     if (!status) return 0
@@ -148,7 +166,14 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
     onBadgeChange?.(updateCount)
   }, [onBadgeChange, updateCount])
 
+  useEffect(() => {
+    return () => {
+      waitAbortRef.current?.abort()
+    }
+  }, [])
+
   const load = useCallback(async () => {
+    if (updating) return
     setLoading(true)
     setError('')
     try {
@@ -160,44 +185,97 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [updating])
 
   useEffect(() => {
     void load()
   }, [load])
 
   const apply = async (target: UpdateTarget) => {
+    waitAbortRef.current?.abort()
+    const waitAbort = new AbortController()
+    waitAbortRef.current = waitAbort
+
     setApplying(target)
+    setUpdateTarget(target)
     setError('')
     setMessage('')
+    setUpdateSteps(initialUpdateSteps(target))
+
+    const advance = (stepId: string, detail?: string) => {
+      setUpdateSteps((current) => advanceUpdateSteps(current, stepId, detail))
+    }
+
     try {
-      const result = await workframeAuthApi.applyAdminUpdate(target)
-      if (!result.ok) {
-        throw new Error(result.error || 'Update failed')
+      let applyAccepted = false
+      try {
+        const result = await workframeAuthApi.applyAdminUpdate(target, { timeoutMs: APPLY_TIMEOUT_MS })
+        if (!result.ok) {
+          throw new Error(result.error || 'Update failed')
+        }
+        applyAccepted = true
+      } catch (err) {
+        if (!isStackRestartError(err)) {
+          throw err
+        }
       }
-      setMessage(target === 'hermes' ? 'Hermes updated.' : target === 'workframe' ? 'Workframe updated.' : 'Stack updated.')
-      await load()
-      if (target === 'hermes' || target === 'all') {
-        await new Promise((r) => setTimeout(r, 1500))
-        await load()
+
+      advance('rebuild', applyAccepted ? 'Update accepted' : 'Stack is restarting…')
+      await new Promise((resolve) => window.setTimeout(resolve, 450))
+      advance('health', 'Waiting for stack…')
+
+      const healthy = await waitForStackHealth({
+        signal: waitAbort.signal,
+        onPoll: (attempt) => {
+          setUpdateSteps((current) =>
+            advanceUpdateSteps(
+              current,
+              'health',
+              attempt === 1 ? 'Waiting for stack…' : `Still waiting… (${attempt})`,
+            ),
+          )
+        },
+      })
+
+      if (!healthy) {
+        throw new Error('request_timeout')
       }
+
+      advance('refresh')
+      setUpdateSteps((current) => completeUpdateSteps(current))
+      await new Promise((resolve) => window.setTimeout(resolve, 500))
+      window.location.reload()
     } catch (err) {
-      setError(formatWorkframeErrorMessage(err, 'Apply update'))
+      const notice = formatWorkframeErrorMessage(err, 'Apply update')
+      setError(notice)
+      setUpdateSteps((current) =>
+        current.map((entry) =>
+          entry.status === 'active' ? { ...entry, status: 'error', detail: notice } : entry,
+        ),
+      )
     } finally {
       setApplying('')
     }
   }
 
   const dockerOk = applyReady
-  const applyDisabled = !dockerOk || Boolean(applying)
+  const applyDisabled = !dockerOk || Boolean(applying) || updating
 
   return (
     <div className="wf-stack-updates space-y-3" role="tabpanel">
-      {error ? <WorkframeNotice message={error} tone="neutral" /> : null}
+      {error && (!updating || updateFailed) ? <WorkframeNotice message={error} tone="neutral" /> : null}
       {message ? <WorkframeStatusNotice message={message} /> : null}
-      {loading && !status ? <p className="wf-user-settings__hint">Checking for updates…</p> : null}
+      {loading && !status && !updating ? <p className="wf-user-settings__hint">Checking for updates…</p> : null}
 
-      {status && !applyReady ? (
+      {updating ? (
+        <OperationProgress
+          steps={updateSteps}
+          title={updateTarget ? stackUpdateTitle(updateTarget) : 'Updating stack'}
+          className="wf-stack-updates__progress"
+        />
+      ) : null}
+
+      {status && !applyReady && !updating ? (
         <WorkframeNotice
           message={
             status.supervisor_configured
@@ -208,11 +286,11 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
         />
       ) : null}
 
-      {status && applyReady && applyChannel === 'supervisor' ? (
+      {status && applyReady && applyChannel === 'supervisor' && !updating ? (
         <p className="wf-user-settings__hint">Updates apply via the stack supervisor (runtime data and configs are preserved).</p>
       ) : null}
 
-      {status ? (
+      {status && !updating ? (
         <>
           <UpdateRow
             name="Workframe"

@@ -5,6 +5,7 @@ html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
   .wf-browser-tabs__add,
   .wf-browser-tabs__close,
   .wf-browser-chrome__toolbar button.wf-tool-btn,
+  .wf-browser-markdown-toolbar button.wf-tool-btn,
   .wf-browser-chrome__address,
   .wf-composer__input,
   .wf-composer__toolbar button.wf-tool-btn,
@@ -47,14 +48,33 @@ html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
   .wf-popover,
   .wf-dialog-select__menu
 ) {
-  background: var(--wf-bg);
+  background: var(--wf-surface-floating-bg);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: none;
+  box-shadow: var(--wf-surface-floating-shadow);
 }
 
 html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-popover__header {
-  background: var(--wf-bg);
+  background: var(--wf-surface-floating-header-bg);
+}
+
+/* Modal shells — solid fill + hairline border; shadow-lg even when floating has none. */
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
+  .wf-dialog-content,
+  .wf-dialog-content.wf-dialog-content--settings-shell,
+  .wf-onboarding-wizard,
+  .wf-auth__card,
+  .wf-onboarding-launch__card,
+  .wf-settings-stack .wf-settings-section,
+  .wf-settings-card,
+  .wf-wizard-mode-card,
+  .wf-wizard-choice-card
+) {
+  background: var(--wf-surface-modal-bg);
+  border-color: var(--wf-surface-modal-border);
+  box-shadow: var(--wf-surface-modal-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Solid theme bg on filled surfaces (grid must not show through). */

@@ -34,11 +34,6 @@ button.wf-tool-btn svg {
   flex-shrink: 0;
 }
 
-button.wf-tool-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--wf-surface) 72%, transparent);
-  color: var(--wf-text);
-}
-
 button.wf-tool-btn:focus-visible {
   outline: 2px solid var(--wf-ring);
   outline-offset: 1px;

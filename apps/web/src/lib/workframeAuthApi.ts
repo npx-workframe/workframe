@@ -1182,12 +1182,17 @@ export const workframeAuthApi = {
     return request<WorkframeApiHealth>('/health', { cache: 'no-store' })
   },
 
-  applyAdminUpdate(target: 'hermes' | 'workframe' | 'all') {
-    return request<{ ok: boolean; target?: string; log?: string; error?: string }>('/admin/updates/apply', {
-      method: 'POST',
-      headers: { 'X-Workframe-Local': '1' },
-      body: JSON.stringify({ target, user_ack: true }),
-    })
+  applyAdminUpdate(target: 'hermes' | 'workframe' | 'all', options?: { timeoutMs?: number }) {
+    return request<{ ok: boolean; target?: string; log?: string; error?: string }>(
+      '/admin/updates/apply',
+      {
+        method: 'POST',
+        headers: { 'X-Workframe-Local': '1' },
+        body: JSON.stringify({ target, user_ack: true }),
+      },
+      true,
+      options?.timeoutMs ?? 0,
+    )
   },
 
   restartAdminGateway() {

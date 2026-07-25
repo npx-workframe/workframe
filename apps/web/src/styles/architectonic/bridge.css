@@ -84,6 +84,24 @@
   --wf-dnd-indicator-bg: color-mix(in srgb, var(--primary) 14%, transparent);
   --wf-dnd-indicator-border: var(--primary);
 
+  --wf-icon-control-size: var(--icon-control-size, 1.75rem);
+  --wf-icon-control-icon: var(--icon-control-icon, 1rem);
+  --wf-tool-btn-size: var(--wf-icon-control-size);
+  --wf-tool-btn-icon: var(--wf-icon-control-icon);
+
+  --wf-surface-floating-bg: var(--surface-floating-bg);
+  --wf-surface-floating-border: var(--surface-floating-border);
+  --wf-surface-floating-shadow: var(--surface-floating-shadow);
+  --wf-surface-floating-backdrop: var(--surface-floating-backdrop);
+  --wf-surface-floating-header-bg: var(--surface-floating-header-bg);
+  --wf-surface-floating-tooltip-bg: var(--surface-floating-tooltip-bg);
+  --wf-surface-floating-tooltip-fg: var(--surface-floating-tooltip-fg);
+
+  --wf-surface-modal-bg: var(--surface-modal-bg);
+  --wf-surface-modal-border: var(--surface-modal-border);
+  --wf-surface-modal-shadow: var(--surface-modal-shadow);
+  --wf-surface-modal-backdrop: var(--surface-modal-backdrop);
+
   /*
    * Capsules belong only to compact, labelled controls. Structural rows,
    * tabs, cards and icon buttons stay at 4–8px even when a theme exposes a
@@ -91,10 +109,12 @@
    */
   --wf-radius-compact-control: min(var(--radius-control), 1.25rem);
   --wf-radius-control: min(var(--radius-control), 0.5rem);
-  --wf-radius-row: min(var(--radius-card), 0.5rem);
   --wf-radius-surface: min(var(--radius-card), 0.5rem);
-  --wf-radius-icon-btn: var(--wf-radius-xs);
-  --wf-radius-tool-btn: var(--wf-radius-compact-control);
+  --wf-radius-shell: var(--wf-radius-surface);
+  --wf-radius-card: var(--wf-radius-surface);
+  --wf-radius-row: min(var(--radius-card), 0.5rem);
+  --wf-radius-icon-btn: var(--icon-control-radius, var(--wf-radius-xs));
+  --wf-radius-tool-btn: var(--labeled-control-radius, var(--wf-radius-compact-control));
   --wf-radius-panel-control: var(--wf-radius-xs);
   --wf-radius-browser-toolbar-btn: var(--wf-radius-xs);
   --wf-rail-cell-radius: var(--wf-radius-row);
@@ -262,8 +282,8 @@
 }
 
 :root[data-style='glass'] :is(.wf-dialog-content, .wf-auth-card, .wf-auth, .wf-onboarding-wizard) {
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: var(--wf-surface-modal-backdrop);
+  -webkit-backdrop-filter: var(--wf-surface-modal-backdrop);
 }
 
 body {

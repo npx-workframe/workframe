@@ -111,8 +111,9 @@
   --text-overline: var(--ar-text-2xs);
 
   --radius-control: var(--ar-radius-md);
-  /* containers cap at 16px — cards never pill even when controls do */
-  --radius-card: min(var(--ar-radius-lg), 1rem);
+  /* Structural surfaces (cards, dialogs, panels) — max 8px; controls may stay rounder. */
+  --radius-surface: min(var(--ar-radius-lg), 0.5rem);
+  --radius-card: var(--radius-surface);
   --radius-pill: var(--ar-radius-full);
 
   --motion-fast: var(--ar-dur-1) var(--ar-ease);

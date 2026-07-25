@@ -70,6 +70,10 @@
 
   /* Semantic */
   --wf-relief-surface: var(--wf-relief-outset-l);
+  --wf-surface-modal-bg: var(--wf-chrome-fill);
+  --wf-surface-modal-border: transparent;
+  --wf-surface-modal-shadow: var(--wf-relief-outset-l);
+  --wf-surface-modal-backdrop: none;
   --wf-relief-well-l: var(--wf-relief-inset-l);
   --wf-relief-field: var(--wf-relief-inset-s);
   --wf-relief-high: var(--wf-relief-outset-l);
@@ -155,6 +159,7 @@
   --wf-relief-high: var(--wf-shadow-lg);
   --wf-relief-low: var(--wf-shadow-inset);
   --wf-relief-surface: var(--wf-shadow-lg);
+  --wf-surface-modal-shadow: var(--surface-modal-shadow, var(--wf-shadow-lg));
   --wf-relief-well-l: var(--wf-shadow-inset);
   --wf-relief-field: var(--wf-shadow-inset);
   --wf-relief-tab: var(--wf-shadow-sm);

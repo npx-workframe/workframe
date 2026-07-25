@@ -69,3 +69,28 @@ workframe_compose_host_bindings() {
   fi
   workframe_compose "$@"
 }
+
+# After compose build/pull + recreate, drop stopped project containers and dangling images.
+workframe_docker_cleanup_after_update() {
+  if ! command -v docker >/dev/null 2>&1; then
+    return 0
+  fi
+  workframe_compose_prepare || return 0
+  local project=""
+  if [[ -f "${compose_cd}/docker-compose.yml" ]]; then
+    cd "${compose_cd}"
+    project="$(docker compose "${compose_files[@]}" config --format '{{.name}}' 2>/dev/null || true)"
+  fi
+  echo "=== Docker cleanup after update ==="
+  if [[ -n "$project" ]]; then
+    echo "Removing stopped containers for compose project: ${project}"
+    docker container prune -f --filter "label=com.docker.compose.project=${project}" 2>/dev/null \
+      || docker container prune -f 2>/dev/null \
+      || true
+  else
+    docker container prune -f 2>/dev/null || true
+  fi
+  echo "Removing dangling images from rebuild/pull"
+  docker image prune -f 2>/dev/null || true
+  echo "=== Docker cleanup complete ==="
+}

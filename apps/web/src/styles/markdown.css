@@ -143,7 +143,7 @@
 .wf-markdown address {
   margin: 0 0 var(--wf-md-gap);
   padding: 16px 20px;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   font-style: normal;
   line-height: 1.55;
   background: var(--wf-md-quote-bg);
@@ -242,7 +242,7 @@
 .wf-markdown dl {
   margin: 0 0 var(--wf-md-gap);
   padding: 18px 22px;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 75%, transparent);
   background: color-mix(in srgb, var(--wf-md-pre-bg) 55%, transparent);
 }
@@ -268,7 +268,7 @@
   margin: 0 0 var(--wf-md-gap);
   padding: 14px 18px 14px 20px;
   border-left: 3px solid var(--wf-md-quote-border);
-  border-radius: 0 12px 12px 0;
+  border-radius: 0 var(--wf-radius-surface) var(--wf-radius-surface) 0;
   color: var(--wf-md-muted);
   background: var(--wf-md-quote-bg);
 }
@@ -341,7 +341,7 @@
 .wf-markdown pre {
   margin: 0 0 var(--wf-md-gap);
   padding: 0;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   border: 1px solid var(--wf-md-pre-border);
   background: var(--wf-md-pre-bg);
 }
@@ -416,7 +416,7 @@
   font-size: 0.94em;
   line-height: 1.5;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 85%, transparent);
 }
 
@@ -485,7 +485,7 @@
   display: block;
   max-width: 100%;
   margin: 0 0 var(--wf-md-gap);
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
 }
 
 /* Details / summary ──────────────────────────────────────────────────────── */
@@ -493,7 +493,7 @@
 .wf-markdown details {
   margin: 0 0 var(--wf-md-gap);
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 80%, transparent);
   background: color-mix(in srgb, var(--wf-md-pre-bg) 50%, transparent);
 }
@@ -543,7 +543,7 @@
 .wf-markdown .wf-md-callout {
   margin: 0 0 var(--wf-md-gap);
   padding: 16px 20px;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   border: 1px solid color-mix(in srgb, var(--wf-md-pre-border) 75%, transparent);
   background: color-mix(in srgb, var(--wf-cyan) 8%, transparent);
 }

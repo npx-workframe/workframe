@@ -14,4 +14,6 @@ SERVICES=(gateway dashboard)
 workframe_compose pull "${SERVICES[@]}"
 workframe_compose up -d --force-recreate --no-deps "${SERVICES[@]}"
 
+workframe_docker_cleanup_after_update
+
 echo "=== Hermes update complete ==="

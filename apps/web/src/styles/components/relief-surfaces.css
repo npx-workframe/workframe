@@ -151,12 +151,16 @@
   color: var(--wf-cyan);
 }
 
-[data-chrome-mode='relief'] .wf-popover {
-  background: var(--wf-control-bg-raised);
-  border: none;
-  box-shadow: var(--wf-control-shadow-raised);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+[data-chrome-mode='relief'] :is(
+  .wf-popover,
+  .wf-floating-menu,
+  .wf-dialog-select__menu
+) {
+  background: var(--wf-surface-floating-bg);
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-floating-border);
+  box-shadow: var(--wf-surface-floating-shadow);
+  backdrop-filter: var(--wf-surface-floating-backdrop);
+  -webkit-backdrop-filter: var(--wf-surface-floating-backdrop);
 }
 
 [data-chrome-mode='relief'] :is(.wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
@@ -759,7 +763,7 @@
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard {
-  background: var(--wf-chrome-fill);
+  background: var(--wf-surface-modal-bg, var(--wf-chrome-fill));
   border: none;
   box-shadow: var(--wf-relief-inset-l);
   padding: var(--wf-space-4);
@@ -789,14 +793,14 @@
 }
 
 [data-chrome-mode='relief'] .wf-dialog-content.wf-dialog-content--settings-shell {
-  border: var(--wf-border-width, 1px) solid var(--wf-border);
-  box-shadow: none;
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-modal-border, var(--wf-border));
+  box-shadow: var(--wf-surface-modal-shadow, none);
 }
 
 [data-chrome-mode='relief'] .wf-dialog-content {
-  background: var(--wf-chrome-fill);
+  background: var(--wf-surface-modal-bg, var(--wf-chrome-fill));
   border: none;
-  box-shadow: var(--wf-relief-outset-l);
+  box-shadow: var(--wf-surface-modal-shadow, var(--wf-relief-outset-l));
 }
 
 [data-chrome-mode='relief'] .wf-dialog-content.wf-dialog-content--device-oauth {
@@ -968,13 +972,10 @@
   border-bottom: var(--wf-border-width) solid var(--wf-divider-color);
 }
 
-[data-style='shadows'][data-color-mode='light'] .wf-message-navigator .wf-message-navigator__marker {
-  background: #fff;
-  opacity: 1;
-}
-
 [data-chrome-mode='relief'] .wf-message-navigator__preview {
-  background: var(--wf-bg);
+  background: var(--wf-surface-floating-bg);
+  border-color: var(--wf-surface-floating-border);
+  box-shadow: var(--wf-surface-floating-shadow);
 }
 
 [data-chrome-mode='relief'] .wf-divider {

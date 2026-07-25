@@ -10,6 +10,8 @@
 .wf-message-list-shell {
   --wf-message-nav-width: 26px;
   --wf-message-scrollbar-width: 10px;
+  --wf-message-nav-track-gap: var(--wf-space-1);
+  --wf-message-nav-outer-gap: var(--wf-space-2);
   position: relative;
   display: flex;
   flex: 1 1 auto;
@@ -20,7 +22,7 @@
 
 .wf-message-list-shell .wf-message-list {
   --wf-scroll-gutter-inline: calc(
-    var(--wf-message-nav-width) + var(--wf-message-scrollbar-width) + var(--wf-space-3)
+    var(--wf-message-nav-width) + var(--wf-message-scrollbar-width) + var(--wf-message-nav-outer-gap)
   );
   flex: 1 1 auto;
   min-width: 0;
@@ -242,9 +244,11 @@
 }
 
 .wf-message-reaction-tooltip {
-  border: 0;
-  background: color-mix(in srgb, var(--wf-bg) 94%, transparent);
-  box-shadow: var(--wf-relief-raised, var(--wf-shadow-md));
+  background: var(--wf-surface-floating-bg);
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-floating-border);
+  box-shadow: var(--wf-surface-floating-shadow);
+  backdrop-filter: var(--wf-surface-floating-backdrop);
+  -webkit-backdrop-filter: var(--wf-surface-floating-backdrop);
 }
 
 .wf-message-reaction-tooltip__people {
@@ -349,7 +353,7 @@
   position: absolute;
   z-index: 2;
   top: 50%;
-  right: calc(var(--wf-message-scrollbar-width) + var(--wf-space-2));
+  right: calc(var(--wf-message-scrollbar-width) + var(--wf-message-nav-track-gap));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -377,9 +381,9 @@
   padding: 0;
   border: 0;
   border-radius: var(--wf-radius-pill);
-  background: color-mix(in srgb, var(--wf-muted) 58%, transparent);
+  background: var(--wf-message-nav-marker);
   cursor: pointer;
-  opacity: 0.55;
+  opacity: var(--wf-message-nav-marker-opacity);
   pointer-events: auto;
   transform: translateY(var(--wf-message-marker-shift, 0));
   transition:
@@ -397,40 +401,40 @@
 
 .wf-message-navigator__marker--user {
   width: 8px;
-  background: color-mix(in srgb, var(--wf-violet-glow) 38%, var(--wf-muted));
+  background: var(--wf-message-nav-marker-user);
 }
 
 /* Dock-like proximity response with stable hit geometry and two soft falloff steps. */
 .wf-message-navigator__marker[data-proximity='2']:not([aria-current='true']) {
   width: 10px;
-  background: color-mix(in srgb, var(--wf-text) 46%, var(--wf-muted));
-  opacity: 0.72;
+  background: var(--wf-message-nav-marker-prox2);
+  opacity: var(--wf-message-nav-marker-prox2-opacity);
 }
 
 .wf-message-navigator__marker[data-proximity='1']:not([aria-current='true']) {
   width: 14px;
-  background: color-mix(in srgb, var(--wf-text) 70%, var(--wf-muted));
-  opacity: 0.88;
+  background: var(--wf-message-nav-marker-prox1);
+  opacity: var(--wf-message-nav-marker-prox1-opacity);
 }
 
 .wf-message-navigator__marker[aria-current='true'] {
   width: 18px;
-  background: var(--wf-cyan);
+  background: var(--wf-message-nav-marker-active);
   opacity: 1;
 }
 
 .wf-message-navigator__marker[data-proximity='0'] {
   width: 22px;
-  background: var(--wf-text);
+  background: var(--wf-message-nav-marker-emphasis);
   opacity: 1;
 }
 
 .wf-message-navigator__marker[aria-current='true'][data-proximity='0'] {
-  background: var(--wf-cyan);
+  background: var(--wf-message-nav-marker-active);
 }
 
 .wf-message-navigator__marker:focus-visible {
-  outline: 1px solid color-mix(in srgb, var(--wf-violet-glow) 72%, transparent);
+  outline: 1px solid var(--wf-message-nav-marker-focus);
   outline-offset: 1px;
 }
 
@@ -445,10 +449,12 @@
   width: clamp(210px, 22vw, 280px);
   padding: var(--wf-space-3);
   overflow: hidden;
-  border: 0;
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-floating-border);
   border-radius: var(--wf-radius-surface);
-  background: color-mix(in srgb, var(--wf-bg) 94%, transparent);
-  box-shadow: var(--wf-relief-raised, var(--wf-shadow-md));
+  background: var(--wf-surface-floating-bg);
+  box-shadow: var(--wf-surface-floating-shadow);
+  backdrop-filter: var(--wf-surface-floating-backdrop);
+  -webkit-backdrop-filter: var(--wf-surface-floating-backdrop);
   color: var(--wf-text);
   opacity: 0;
   visibility: hidden;

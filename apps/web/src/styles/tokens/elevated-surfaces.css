@@ -1,0 +1,27 @@
+/* Floating overlays — popovers, menus, tooltips, nav previews, toasts.
+   Opacity + blur rules live on the Architectonic style axis; Workframe maps them here. */
+
+.wf-elevated-surface {
+  background: var(--wf-surface-floating-bg);
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-floating-border);
+  border-radius: var(--wf-radius-surface);
+  box-shadow: var(--wf-surface-floating-shadow);
+  color: var(--wf-text);
+  backdrop-filter: var(--wf-surface-floating-backdrop);
+  -webkit-backdrop-filter: var(--wf-surface-floating-backdrop);
+}
+
+.wf-elevated-surface--tooltip {
+  padding: var(--wf-space-1) var(--wf-space-2);
+  font-size: var(--wf-type-caption, 0.75rem);
+  line-height: 1.35;
+}
+
+/* Modal shells — dialogs, wizard, settings cards (not floating menus). */
+.wf-modal-surface {
+  background: var(--wf-surface-modal-bg);
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-modal-border);
+  box-shadow: var(--wf-surface-modal-shadow);
+  backdrop-filter: var(--wf-surface-modal-backdrop);
+  -webkit-backdrop-filter: var(--wf-surface-modal-backdrop);
+}

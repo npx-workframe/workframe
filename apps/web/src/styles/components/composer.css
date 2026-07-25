@@ -168,19 +168,16 @@
 }
 
 /* -----------------------------------------------------------------
-   Glass floating menus — dropdowns, selects, composer popovers, theme picker.
-   Blur + higher-opacity fill so lists don't bleed through underlying UI. */
+   Floating menus — dropdowns, selects, composer popovers, theme picker. */
 .wf-floating-menu,
 .wf-popover,
 .wf-dialog-select__menu {
-  background: color-mix(in srgb, var(--wf-bg) 88%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid color-mix(in srgb, var(--wf-border-strong) 80%, transparent);
+  background: var(--wf-surface-floating-bg);
+  -webkit-backdrop-filter: var(--wf-surface-floating-backdrop);
+  backdrop-filter: var(--wf-surface-floating-backdrop);
+  border: var(--wf-border-width, 1px) solid var(--wf-surface-floating-border);
   border-radius: var(--wf-radius-surface);
-  box-shadow:
-    var(--wf-relief-raised, var(--wf-shadow-md)),
-    0 0 0 1px color-mix(in srgb, var(--wf-text) 4%, transparent) inset;
+  box-shadow: var(--wf-surface-floating-shadow);
   color: var(--wf-text);
 }
 
@@ -200,7 +197,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
-  background: color-mix(in srgb, var(--wf-bg) 35%, transparent);
+  background: var(--wf-surface-floating-header-bg);
   border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border-subtle);
 }
 

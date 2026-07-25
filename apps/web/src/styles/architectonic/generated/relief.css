@@ -8,8 +8,34 @@
    inherit through the role/component tokens they already read.
    ============================================================= */
 
+/* Icon controls + floating overlays — one contract per style axis. */
+:root[data-arch-theme] {
+  --icon-control-size: 1.75rem;
+  --icon-control-icon: 1rem;
+  --icon-control-radius: var(--radius-control);
+  --labeled-control-radius: var(--radius-control);
+  --surface-floating-bg: var(--pop-bg);
+  --surface-floating-border: var(--pop-border);
+  --surface-floating-shadow: var(--pop-shadow);
+  --surface-floating-backdrop: none;
+  --surface-floating-header-bg: var(--surface-floating-bg);
+  --surface-floating-tooltip-bg: var(--tooltip-bg);
+  --surface-floating-tooltip-fg: var(--tooltip-fg);
+  --surface-modal-bg: var(--card-bg, var(--chrome-fill, var(--bg)));
+  --surface-modal-border: var(--card-border, var(--line-strong));
+  --surface-modal-shadow: var(--shadow-modal, var(--card-shadow, var(--shadow-lg)));
+  --surface-modal-backdrop: none;
+}
+
 /* ============================ LINES ============================ */
 [data-style="lines"] {
+  --surface-floating-bg: var(--chrome-fill, var(--pop-bg));
+  --surface-floating-border: var(--line-strong);
+  --surface-floating-shadow: var(--shadow-pop);
+  --surface-floating-header-bg: var(--surface-floating-bg);
+  --surface-modal-bg: var(--chrome-fill, var(--card-bg));
+  --surface-modal-border: var(--line-strong);
+  --surface-modal-shadow: var(--shadow-lg);
   --shadow-xs: none; --shadow-sm: none;
   --shadow-md: 0 1px 0 var(--line-strong);
   --shadow-lg: 0 2px 0 var(--line-strong);
@@ -32,6 +58,15 @@
   --pop-bg: var(--chrome-fill);
   --card-shadow: none;
   --shadow-pop: none;
+  --icon-control-radius: 0;
+  --labeled-control-radius: 0;
+  --surface-floating-bg: var(--chrome-fill, var(--bg));
+  --surface-floating-border: var(--line-strong);
+  --surface-floating-shadow: none;
+  --surface-floating-header-bg: var(--surface-floating-bg);
+  --surface-modal-bg: var(--chrome-fill, var(--card-bg));
+  --surface-modal-border: var(--line-strong);
+  --surface-modal-shadow: var(--shadow-lg);
 }
 :is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-card,
 :is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-input,
@@ -56,6 +91,10 @@
   --surface: var(--bg); --surface-2: var(--bg); --surface-3: var(--bg);
   --muted: var(--bg); --muted-hover: var(--bg);
   --line: transparent; --line-strong: transparent; --line-soft: transparent;
+  --surface-floating-bg: var(--bg);
+  --surface-floating-border: transparent;
+  --surface-floating-shadow: var(--neu-raise);
+  --surface-floating-header-bg: var(--bg);
   /* true neumorphism — 3px offset, 6px blur, black 20% / white 80% */
   --neu-d: var(--relief-shadow, rgba(0,0,0,0.15));
   --neu-l: var(--relief-highlight, rgba(255,255,255,0.80));
@@ -63,11 +102,14 @@
   --neu-raise-sm: 2px 2px 5px var(--neu-d), -2px -2px 5px var(--neu-l);
   --neu-inset: inset 3px 3px 6px var(--neu-d), inset -3px -3px 6px var(--neu-l); /* low relief / wells */
   --neu-inset-sm: inset 2px 2px 4px var(--neu-d), inset -2px -2px 4px var(--neu-l);
-  --radius-card: 1.1rem; --radius-control: 0.85rem;
+  --radius-card: min(var(--ar-radius-lg), 0.5rem); --radius-control: 0.85rem;
   --card-bg: var(--bg); --card-border: transparent; --card-shadow: var(--neu-raise);
   --field-bg: var(--bg); --field-border: transparent;
   --pop-bg: var(--bg); --pop-border: transparent; --pop-shadow: var(--neu-raise);
   --shadow-pop: var(--neu-raise); --shadow-modal: var(--neu-raise); --shadow-md: var(--neu-raise-sm);
+  --surface-modal-bg: var(--bg);
+  --surface-modal-border: transparent;
+  --surface-modal-shadow: var(--shadow-modal);
 }
 /* cards / shells = raised islands */
 [data-style="shadows"] .archi-card,
@@ -146,6 +188,15 @@
   --line-strong: color-mix(in srgb, #fff 20%, transparent);
   --muted: color-mix(in srgb, #fff 8%, transparent);
   --muted-hover: color-mix(in srgb, #fff 14%, transparent);
+  --surface-floating-bg: color-mix(in srgb, var(--bg) 88%, transparent);
+  --surface-floating-border: color-mix(in srgb, var(--line-strong) 80%, transparent);
+  --surface-floating-shadow: var(--shadow-lg), 0 0 0 1px color-mix(in srgb, var(--fg) 4%, transparent) inset;
+  --surface-floating-backdrop: blur(20px) saturate(180%);
+  --surface-floating-header-bg: color-mix(in srgb, var(--bg) 35%, transparent);
+  --surface-modal-bg: var(--card-bg);
+  --surface-modal-border: var(--card-border);
+  --surface-modal-shadow: var(--shadow-modal, var(--card-shadow));
+  --surface-modal-backdrop: blur(24px) saturate(160%);
 }
 [data-style="glass"] .archi-card,
 [data-style="glass"] .archi-shell,

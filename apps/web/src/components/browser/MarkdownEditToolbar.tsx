@@ -8,7 +8,6 @@ import {
   Quote,
 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
@@ -63,9 +62,14 @@ function ToolbarButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" className="wf-browser-markdown-toolbar__btn" onClick={onClick}>
+        <button
+          type="button"
+          className="wf-tool-btn wf-tool-btn--icon"
+          aria-label={label}
+          onClick={onClick}
+        >
           {children}
-        </Button>
+        </button>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>

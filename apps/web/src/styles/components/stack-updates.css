@@ -49,6 +49,10 @@
   white-space: nowrap;
 }
 
+.wf-stack-updates__progress {
+  margin-block: 0.5rem 1rem;
+}
+
 .wf-stack-updates__reason {
   color: var(--wf-muted);
   font-size: var(--wf-type-ui);

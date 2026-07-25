@@ -1,6 +1,6 @@
 /* =============================================================
    ARCHI — THEME SWATCH (gallery / picker cards)
-   Shell = host page (--line, --radius-card). Interior = target
+   Shell = host page (--line, --radius-surface). Interior = target
    theme preview tokens (--preview-*). Selection is an indicator
    only — no extra border, shadow, or translate on hover/active.
    ============================================================= */
@@ -12,7 +12,7 @@
   padding: 0;
   overflow: hidden;
   border: var(--border-w) solid var(--line);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-surface, var(--radius-card));
   background: transparent;
   box-shadow: none;
   color: inherit;

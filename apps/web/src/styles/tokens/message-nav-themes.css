@@ -1,0 +1,53 @@
+/* Message navigator markers — per-theme contrast (mirrors scrollbar-themes). */
+
+:root[data-arch-theme] {
+  --wf-message-nav-marker: color-mix(in srgb, var(--wf-muted) 70%, transparent);
+  --wf-message-nav-marker-opacity: 0.72;
+  --wf-message-nav-marker-user: color-mix(in srgb, var(--wf-violet-glow) 42%, var(--wf-muted));
+  --wf-message-nav-marker-prox2: color-mix(in srgb, var(--wf-text) 50%, var(--wf-muted));
+  --wf-message-nav-marker-prox2-opacity: 0.78;
+  --wf-message-nav-marker-prox1: color-mix(in srgb, var(--wf-text) 72%, var(--wf-muted));
+  --wf-message-nav-marker-prox1-opacity: 0.92;
+  --wf-message-nav-marker-active: var(--wf-cyan);
+  --wf-message-nav-marker-emphasis: var(--wf-text);
+  --wf-message-nav-marker-focus: color-mix(in srgb, var(--wf-violet-glow) 72%, transparent);
+}
+
+/* Neo relief light — white ticks (same family as scrollbar thumb). */
+:root[data-arch-theme^='neo'][data-style='shadows'][data-color-mode='light'] {
+  --wf-message-nav-marker: #ffffff;
+  --wf-message-nav-marker-opacity: 1;
+  --wf-message-nav-marker-user: color-mix(in srgb, var(--primary) 44%, #ffffff);
+  --wf-message-nav-marker-prox2: color-mix(in srgb, var(--fg) 40%, #ffffff);
+  --wf-message-nav-marker-prox1: color-mix(in srgb, var(--fg) 62%, #ffffff);
+  --wf-message-nav-marker-prox2-opacity: 1;
+  --wf-message-nav-marker-prox1-opacity: 1;
+  --wf-message-nav-marker-active: var(--fg);
+  --wf-message-nav-marker-emphasis: var(--fg);
+}
+
+/* Neo relief dark — soft white ticks (scrollbar uses dock divider). */
+:root[data-arch-theme^='neo'][data-style='shadows'][data-color-mode='dark'] {
+  --wf-message-nav-marker: rgb(255 255 255 / 16%);
+  --wf-message-nav-marker-opacity: 1;
+  --wf-message-nav-marker-user: color-mix(in srgb, var(--primary) 55%, rgb(255 255 255 / 16%));
+  --wf-message-nav-marker-prox2: rgb(255 255 255 / 26%);
+  --wf-message-nav-marker-prox1: rgb(255 255 255 / 40%);
+  --wf-message-nav-marker-prox2-opacity: 1;
+  --wf-message-nav-marker-prox1-opacity: 1;
+  --wf-message-nav-marker-active: var(--fg);
+  --wf-message-nav-marker-emphasis: var(--fg);
+}
+
+/* Dark line/glass — stronger muted ticks when divider is faint. */
+:root[data-arch-theme][data-color-mode='dark']:not([data-style='shadows']) {
+  --wf-message-nav-marker: color-mix(in srgb, var(--fg-muted) 55%, transparent);
+  --wf-message-nav-marker-opacity: 0.88;
+  --wf-message-nav-marker-user: color-mix(in srgb, var(--primary) 50%, var(--fg-muted));
+}
+
+/* Light glass — slightly stronger base on translucent panels. */
+:root[data-arch-theme][data-style='glass'][data-color-mode='light'] {
+  --wf-message-nav-marker: color-mix(in srgb, var(--wf-muted) 82%, transparent);
+  --wf-message-nav-marker-opacity: 0.82;
+}

@@ -24,6 +24,7 @@
   /* Overlay shells (wizard, auth card, dialog content) */
   --wf-radius-shell: var(--wf-radius-surface);
   --wf-radius-card: var(--wf-radius-surface);
+  /* Small brand mark only — not for cards or panels. */
   --wf-radius-logo: var(--wf-radius-control);
   --wf-radius-tab-strip: var(--wf-radius-control) var(--wf-radius-control) 0 0;
   --wf-radius-inset: var(--wf-radius-sm);

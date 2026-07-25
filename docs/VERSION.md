@@ -1,17 +1,24 @@
-# Workframe v0.1.23
+# Workframe v0.1.24
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.23 |
+| create-workframe | 0.1.24 |
 | workframe CLI (`npx workframe`) | 0.2.2 |
-| Workframe API / UI | 0.1.23 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.24 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.23 MyProject
+npx create-workframe@0.1.24 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.24
+
+- Unify control/surface tokens: floating vs modal split, icon controls, elevated surfaces across composer, dialogs, toasts, tooltips, and browser chrome.
+- Cap large container radius at 8px; keep pills, rail items, and circular controls intentionally round.
+- Sync Architectonic design-system 0.4.1 (floating/modal surface tokens, surface radius cap).
+- Stack updates panel progress helper and message-nav theme tokens.
 
 ## 0.1.23
 
@@ -23,7 +30,7 @@ Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admi
 ### workframe CLI 0.2.2
 
 - Align package README and `docs/VERSION.md` with the published `0.2.x` local-link console (read-only discovery + optional consent-gated provider test).
-- Point installers to `create-workframe@0.1.23` for the full product cell.
+- Point installers to `create-workframe@0.1.24` for the full product cell.
 
 ## 0.1.22
 

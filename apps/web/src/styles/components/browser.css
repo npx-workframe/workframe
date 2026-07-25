@@ -158,7 +158,8 @@
    the only resting chrome appears on hover. */
 [data-chrome-mode='relief'] :is(
   .wf-browser-chrome__toolbar,
-  .wf-file-explorer__selection-actions
+  .wf-file-explorer__selection-actions,
+  .wf-browser-markdown-toolbar
 ) button.wf-tool-btn.wf-tool-btn--icon {
   border: var(--wf-border-width, 1px) solid transparent;
   border-radius: 50%;
@@ -393,14 +394,14 @@
 .wf-browser-preview__image {
   max-width: 100%;
   max-height: 100%;
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
   box-shadow: var(--wf-shadow-lg);
 }
 
 .wf-browser-preview__media {
   max-width: 100%;
   max-height: calc(100% - 48px);
-  border-radius: 12px;
+  border-radius: var(--wf-radius-surface);
 }
 
 .wf-browser-preview__audio {
@@ -546,12 +547,6 @@
   padding: 6px 8px;
   border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
   flex-shrink: 0;
-}
-
-.wf-browser-markdown-toolbar__btn {
-  width: 28px;
-  height: 28px;
-  color: var(--wf-muted);
 }
 
 .wf-browser-edit__textarea:focus-visible {

@@ -96,7 +96,6 @@
   .wf-popover__row,
   .wf-dialog-select-list__option,
   .wf-dialog__option,
-  .wf-message-navigator__marker,
   .wf-action-btn
 ) {
   background: var(--wf-control-bg);

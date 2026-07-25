@@ -124,13 +124,14 @@ html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-message
 
 html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
   .wf-message-reaction-menu.wf-floating-menu,
-  .wf-message-reaction-tooltip
+  .wf-message-reaction-tooltip,
+  .wf-message-navigator__preview
 ) {
-  background: var(--wf-bg);
+  background: var(--wf-surface-floating-bg);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: var(--wf-border-width, 1px) solid var(--wf-line-chrome-soft);
-  box-shadow: none;
+  box-shadow: var(--wf-surface-floating-shadow);
 }
 
 html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-message-reaction-menu__item {

@@ -178,6 +178,7 @@ fi
 
 echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
+SUPERVISOR_RESTART_PID=""
 if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
   # ponytail: supervisor cannot recreate itself inside the stack.apply request — defer after handler returns
   workframe_compose_host_bindings up -d --no-build --no-deps workframe-api
@@ -185,6 +186,7 @@ if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
     sleep 3
     workframe_compose_host_bindings up -d --no-build --no-deps workframe-supervisor
   ) >/tmp/workframe-supervisor-restart.log 2>&1 &
+  SUPERVISOR_RESTART_PID=$!
 else
   workframe_compose up -d --build --no-deps workframe-api workframe-supervisor
 fi
@@ -195,6 +197,12 @@ elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
   workframe_compose_host_bindings up -d --no-build --no-deps workframe || workframe_compose_host_bindings restart workframe || true
 fi
 
+if [[ -n "${SUPERVISOR_RESTART_PID}" ]]; then
+  wait "${SUPERVISOR_RESTART_PID}" 2>/dev/null || true
+fi
+
 _wf_record_package_version "${TARGET_VERSION:-}"
+
+workframe_docker_cleanup_after_update
 
 echo "=== Workframe update complete ==="
