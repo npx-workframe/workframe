@@ -1,17 +1,24 @@
-# Workframe v0.1.22
+# Workframe v0.1.23
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.22 |
+| create-workframe | 0.1.23 |
 | workframe CLI | 0.1.11 (stub removed WF-038; use create-workframe) |
 | @workframe/workframe | 0.1.11 (stub removed WF-038; use create-workframe) |
-| Workframe API / UI | 0.1.22 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.23 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.22 MyProject
+npx create-workframe@0.1.23 MyProject
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.23
+
+- Blueprint and Notebook square line chrome: opaque grid-mask fills, border-only hover, square scrollbar thumbs.
+- Theme picker: page-adapted card contour, faithful per-theme previews from Architectonic manifest, checkmark-only selection.
+- Sync Architectonic chrome tokens (`chrome-fill`, theme swatch pattern) and generated preview map.
+- Settings dialog relief clip fix, rail nav label alignment, and assorted neo/relief chrome polish.
 
 ## 0.1.22
 
