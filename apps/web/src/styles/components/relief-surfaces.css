@@ -793,9 +793,7 @@
 [data-chrome-mode='relief'] .wf-onboarding-wizard {
   background: var(--wf-surface-modal-bg, var(--wf-chrome-fill));
   border: none;
-  box-shadow: var(--wf-relief-inset-l);
-  padding: var(--wf-space-4);
-  padding-inline-start: var(--wf-space-2);
+  box-shadow: var(--wf-relief-outset-l);
   overflow: hidden;
 }
 

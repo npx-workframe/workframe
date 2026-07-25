@@ -32,7 +32,7 @@
 }
 
 .wf-theme-settings--compact .wf-theme-settings__group-list {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 /* Interior layout + mock UI — shell/contour from .archi-theme-swatch (synced). */
@@ -227,12 +227,6 @@
   margin-bottom: 1px;
   color: var(--wf-primary);
   align-self: end;
-}
-
-@media (max-width: 760px) {
-  .wf-theme-settings--compact .wf-theme-settings__group-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 480px) {

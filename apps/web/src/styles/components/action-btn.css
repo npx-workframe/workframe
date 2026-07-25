@@ -32,8 +32,12 @@
   box-shadow: var(--wf-btn-shadow), var(--wf-focus-ring);
 }
 
-.wf-action-btn:disabled {
+.wf-action-btn:disabled:not([data-tone='inactive']) {
   opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wf-action-btn[data-tone='inactive']:disabled {
   cursor: not-allowed;
 }
 

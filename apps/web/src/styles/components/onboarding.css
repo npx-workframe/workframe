@@ -35,7 +35,7 @@
   border-radius: var(--wf-radius-shell);
   border: var(--wf-border-width, 1px) solid var(--wf-surface-modal-border, var(--wf-chrome-border-strong));
   background: var(--wf-surface-modal-bg, var(--wf-chrome-fill, var(--wf-surface)));
-  box-shadow: var(--wf-surface-modal-shadow, var(--wf-relief-well-l, var(--wf-relief-surface)));
+  box-shadow: var(--wf-surface-modal-shadow, var(--wf-relief-surface));
   backdrop-filter: var(--wf-surface-modal-backdrop);
   -webkit-backdrop-filter: var(--wf-surface-modal-backdrop);
   overflow: hidden;
