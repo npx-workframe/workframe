@@ -1903,7 +1903,7 @@
       "id": "WF-UI-002",
       "title": "Publish create-workframe 0.1.26 (mobile workspace + tree commit)",
       "summary": "Commit dirty UI tree, bump version agreement to 0.1.26, run install-gate, tag and publish via GitHub Action.",
-      "status": "ready",
+      "status": "done",
       "priority": "P0",
       "owner_role": "tests",
       "acceptance": [
@@ -1914,7 +1914,12 @@
       "depends_on": [
         "WF-UI-001"
       ],
-      "evidence": [],
+      "evidence": [
+        "npm view create-workframe version 0.1.26",
+        "gh workflow publish-npm v0.1.26 success",
+        "scripts/workframe/install-gate.ps1 exit 0"
+      ],
+      "completed_at": "2026-07-25",
       "sources": [
         "scripts/workframe/publish-npm.ps1",
         ".github/workflows/publish-npm.yml"

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "campaign": "ABX visual QA",
-  "generated_at": "2026-07-25T09:07:38.099Z",
+  "generated_at": "2026-07-25T09:09:33.812Z",
   "source": {
     "theme_registry": "apps/web/src/generated/architectonicThemes.ts",
     "visible_filter": "apps/web/src/lib/themeOptions.ts HIDDEN_THEME_PICKER_IDS",
@@ -175,27 +175,27 @@
   ],
   "health": {
     "ok": true,
-    "url": "http://127.0.0.1:18644/api/meta",
+    "url": "http://127.0.0.1:28644/api/meta",
     "status": 200,
-    "latency_ms": 2807,
+    "latency_ms": 231,
     "meta": {
       "ok": true,
-      "project_name": "DogFood",
-      "install_id": "wf_acbb42c3eb12",
-      "native_profile": "dogfood-agent",
-      "native_agent_name": "AIbert",
-      "native_model": "gpt-5.4-mini",
-      "app_base_url": "http://127.0.0.1:18644",
+      "project_name": "ABX",
+      "install_id": "wf_47b600370331",
+      "native_profile": "abx-agent",
+      "native_agent_name": "ABX Agent",
+      "native_model": "google/gemini-2.5-flash",
+      "app_base_url": "http://127.0.0.1:28644",
       "deployment_mode": "trusted_team",
-      "package_version": "0.1.23",
+      "package_version": "0.1.26",
       "workspace": {
         "content_root": "/workspace",
         "root": "/workspace"
       },
       "ui_build": {
-        "package_version": "0.1.25",
-        "bundled_at": "2026-07-25T08:33:29.731Z",
-        "git_ref": "32f7c4a"
+        "package_version": "0.1.26",
+        "bundled_at": "2026-07-25T09:03:49.958Z",
+        "git_ref": "cd3fd89"
       }
     },
     "parse_error": null

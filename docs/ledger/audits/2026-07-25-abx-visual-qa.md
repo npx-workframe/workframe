@@ -1,7 +1,7 @@
 # ABX visual QA audit — 2026-07-25
 
 **Campaign:** WF-UI-004 / WF-UI-005 / WF-UI-006  
-**Install:** `npx create-workframe@0.1.26 ABX` at `http://127.0.0.1:18644`  
+**Install:** `npx create-workframe@0.1.26 ABX` → `http://127.0.0.1:28644` (slot 2; API `29120`)  
 **Scope:** UI/CSS/tokens only — no LLM chat, no backend changes.
 
 ## Themes
