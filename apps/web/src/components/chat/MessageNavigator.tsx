@@ -80,7 +80,7 @@ export function MessageNavigator({ messages, activeMessageId, onJump }: MessageN
         const shift =
           interactionIndex === null || signedDistance === 0
             ? 0
-            : Math.sign(signedDistance) * (Math.abs(signedDistance) === 1 ? 4 : 6)
+            : Math.sign(signedDistance) * (Math.abs(signedDistance) === 1 ? 2 : 3)
         return (
           <button
             key={message.id}

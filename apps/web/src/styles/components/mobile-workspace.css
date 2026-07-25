@@ -1,0 +1,253 @@
+/* ── Mobile workspace (< 940px): bottom rail + one panel screen ─────────── */
+
+/* iPhone Add-to-Home-Screen: inset shell chrome below island + above home bar */
+html[data-iphone-standalone] {
+  --wf-safe-area-top: env(safe-area-inset-top, 0px);
+  --wf-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html[data-iphone-standalone] .wf-shell--chromeless {
+  box-sizing: border-box;
+  padding-top: var(--wf-safe-area-top);
+  padding-bottom: var(--wf-safe-area-bottom);
+}
+
+.wf-workspace-shell--mobile {
+  flex-direction: column;
+}
+
+.wf-workspace-shell--mobile > .wf-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  order: 1;
+}
+
+.wf-workspace-shell--mobile > .wf-rail-fallback {
+  order: 2;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 0;
+  /* Edge stroke on the shell aside — padding lives on .wf-agent-rail-scroll--mobile */
+  border: none !important;
+  border-top: var(--wf-dock-divider-width, var(--wf-border-width, 1px)) solid var(--wf-mobile-workspace-edge-color) !important;
+  border-inline-end: none !important;
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-rail-fallback .wf-panel--rail-mobile {
+  width: 100%;
+  height: auto;
+}
+
+.wf-workspace-shell--mobile .wf-panel--rail-mobile {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* Beat collapsed-rail desktop rules (width: 100% on track) */
+.wf-workspace-shell--mobile .wf-panel--rail-mobile.wf-panel--rail-collapsed .wf-agent-rail-scroll {
+  width: 100%;
+  max-width: none;
+}
+
+.wf-workspace-shell--mobile .wf-panel--rail-mobile.wf-panel--rail-collapsed .wf-agent-rail,
+.wf-workspace-shell--mobile .wf-panel--rail-mobile.wf-panel--rail-collapsed .wf-agent-rail--collapsed {
+  width: max-content;
+  max-width: none;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  gap: var(--wf-gap-tight);
+}
+
+/* Bottom rail: side padding, no scrollbar, center when fits (margin auto), scroll when overflow */
+.wf-workspace-shell--mobile .wf-agent-rail-scroll--mobile {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-top: var(--wf-mobile-rail-padding-block-start);
+  padding-bottom: var(--wf-mobile-rail-padding-block-end);
+  padding-inline: var(--wf-mobile-rail-padding-inline);
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail-scroll--mobile::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail-scroll--mobile.wf-scroll--horizontal {
+  --wf-scroll-gutter-inline: 0;
+  --wf-scroll-gutter-inline-h: 0;
+  --wf-scroll-gutter-block-h: 0;
+  padding-inline-end: var(--wf-mobile-rail-padding-inline);
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--wf-gap-tight);
+  width: max-content;
+  flex: 0 0 auto;
+  margin-inline: auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__section,
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__bottom {
+  display: contents;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__item {
+  flex: 0 0 auto;
+  width: var(--wf-control);
+  min-width: var(--wf-control);
+  padding-inline: 0;
+  justify-content: center;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__shortcuts {
+  display: contents;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__shortcuts-divider {
+  display: none;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__item--shortcut {
+  width: var(--wf-control);
+  min-width: var(--wf-control);
+  padding-inline: 0;
+  justify-content: center;
+}
+
+.wf-workspace-shell--mobile .wf-agent-rail--mobile .wf-agent-rail__shortcut-icon {
+  width: var(--wf-control);
+  height: var(--wf-control);
+}
+
+/* Panel chrome: keep header + controls; hide split sashes only */
+.wf-workspace-shell--mobile .wf-panel__header,
+.wf-workspace-shell--mobile .wf-workspace .dv-tabs-and-actions-container {
+  border-bottom: var(--wf-dock-divider-width, var(--wf-border-width, 1px)) solid var(--wf-mobile-workspace-edge-color) !important;
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-chat-split__composer {
+  border-top: var(--wf-dock-divider-width, var(--wf-border-width, 1px)) solid var(--wf-mobile-workspace-edge-color) !important;
+  border-bottom: none;
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-composer {
+  padding-inline: var(--wf-mobile-shell-padding-inline);
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .dv-tabs-and-actions-container {
+  display: flex !important;
+  width: 100%;
+  max-width: none;
+  pointer-events: none;
+}
+
+.wf-workspace-shell--mobile .dv-tabs-container {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  padding-inline-start: var(--wf-gap);
+}
+
+.wf-workspace-shell--mobile .dv-tabs-and-actions-container .dv-right-actions-container {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.wf-workspace-shell--mobile .wf-panel-drag-tab {
+  cursor: default;
+  max-width: none;
+}
+
+.wf-workspace-shell--mobile .wf-panel-drag-tab__label {
+  max-width: none;
+}
+
+.wf-workspace-shell--mobile .dv-tab {
+  cursor: default;
+}
+
+.wf-workspace-shell--mobile .dv-sash-container {
+  display: none !important;
+}
+
+/* Full-width single-screen panels */
+.wf-workspace-shell--mobile .dv-view,
+.wf-workspace-shell--mobile .dv-groupview,
+.wf-workspace-shell--mobile .dv-content-container,
+.wf-workspace-shell--mobile .dv-react-part,
+.wf-workspace-shell--mobile .wf-panel--dockable {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.wf-workspace-shell--mobile .wf-chat-column,
+.wf-workspace-shell--mobile .wf-chat-column--messages,
+.wf-workspace-shell--mobile .wf-chat-column--composer {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.wf-workspace-shell--mobile .wf-message-list > .wf-message-row,
+.wf-workspace-shell--mobile .wf-message-list > .wf-message-list__empty {
+  max-width: none;
+  margin-inline: 0;
+  width: 100%;
+}
+
+/* Navigator + activity: narrow centered column on mobile */
+.wf-workspace-shell--mobile .wf-panel--activity .wf-activity-tree.wf-scroll-host,
+.wf-workspace-shell--mobile .wf-panel--activity .wf-activity-tree--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.wf-workspace-shell--mobile .wf-panel--activity .wf-activity-tree__list {
+  width: 100%;
+  max-width: var(--wf-mobile-narrow-column-max);
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-panel--files .wf-file-explorer {
+  align-items: center;
+}
+
+.wf-workspace-shell--mobile .wf-panel--files .wf-file-explorer__toolbar,
+.wf-workspace-shell--mobile .wf-panel--files .wf-file-explorer__scroll,
+.wf-workspace-shell--mobile .wf-panel--files .wf-file-explorer__notice,
+.wf-workspace-shell--mobile .wf-panel--files .wf-file-explorer__status {
+  width: 100%;
+  max-width: var(--wf-mobile-narrow-column-max);
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.wf-workspace-shell--mobile .wf-panel--files .wf-file-tree {
+  width: 100%;
+}

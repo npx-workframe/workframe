@@ -74,7 +74,7 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   const { crew, error, reload: reloadCrew } = useCrew(projectName)
   const { activeProfile, setActiveRoute } = useAgentRoute()
-  const { activeRoom, closedPanelIds, openPanel, railExpanded, setRailExpanded, setActiveRoom, userSettingsOpen, userSettingsTab, userSettingsConnectTab, openUserSettings, closeUserSettings, registerOpenAgentSettings, openChatSettings } = useWorkspacePanels()
+  const { activeRoom, closedPanelIds, openPanel, mobileLayout, activeWorkspacePanelId, railExpanded, setRailExpanded, setActiveRoom, userSettingsOpen, userSettingsTab, userSettingsConnectTab, openUserSettings, closeUserSettings, registerOpenAgentSettings, openChatSettings } = useWorkspacePanels()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [createAgentOpen, setCreateAgentOpen] = useState(false)
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
@@ -105,6 +105,8 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
   const openChatPanel = useCallback(() => {
     openPanel(PANEL_IDS.chat)
   }, [openPanel])
+
+  const railCollapsed = mobileLayout ? true : !railExpanded
 
   const reloadWorkspace = useCallback(async (): Promise<void> => {
     setWorkspaceLoading(true)
@@ -381,49 +383,71 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
 
   return (
     <>
-      <PanelShell className={cn('wf-panel--rail', railExpanded ? 'wf-panel--rail-expanded' : 'wf-panel--rail-collapsed')}>
-        {railExpanded ? (
-          <PanelHeader
-            label={WORKFRAME_RAIL_LABEL}
-            panelId={PANEL_IDS.crew}
-            api={api}
-            trailing={railToggle}
-            renderSettings={({ open, onClose }) => (
-              <WorkframeSettingsSheet
-                open={open}
-                onClose={onClose}
-                workspaceId={currentWorkspace?.id ?? ''}
-                workspaceSlug={currentWorkspace?.slug}
-                currentUserId={currentUserId}
-                canManage={canInvite}
-                onInviteClick={() => {
-                  onClose()
-                  setInviteOpen(true)
-                }}
-                onChanged={scheduleReload}
-              />
-            )}
-          />
-        ) : (
-          <div className="wf-panel__header">{railToggle}</div>
+      <PanelShell
+        className={cn(
+          'wf-panel--rail',
+          mobileLayout
+            ? 'wf-panel--rail-mobile wf-panel--rail-collapsed'
+            : railExpanded
+              ? 'wf-panel--rail-expanded'
+              : 'wf-panel--rail-collapsed',
         )}
+      >
+        {!mobileLayout ? (
+          railExpanded ? (
+            <PanelHeader
+              label={WORKFRAME_RAIL_LABEL}
+              panelId={PANEL_IDS.crew}
+              api={api}
+              trailing={railToggle}
+              renderSettings={({ open, onClose }) => (
+                <WorkframeSettingsSheet
+                  open={open}
+                  onClose={onClose}
+                  workspaceId={currentWorkspace?.id ?? ''}
+                  workspaceSlug={currentWorkspace?.slug}
+                  currentUserId={currentUserId}
+                  canManage={canInvite}
+                  onInviteClick={() => {
+                    onClose()
+                    setInviteOpen(true)
+                  }}
+                  onChanged={scheduleReload}
+                />
+              )}
+            />
+          ) : (
+            <div className="wf-panel__header">{railToggle}</div>
+          )
+        ) : null}
 
-        <ScrollArea axis="vertical" inset="rail" className="wf-agent-rail-scroll">
-          <nav className={cn('wf-agent-rail', !railExpanded && 'wf-agent-rail--collapsed')} aria-label="Workspace rail">
-            {error && railExpanded ? <WorkframeNotice message={error} /> : null}
+        <ScrollArea
+          axis={mobileLayout ? 'horizontal' : 'vertical'}
+          inset={mobileLayout ? undefined : 'rail'}
+          className={cn('wf-agent-rail-scroll', mobileLayout && 'wf-agent-rail-scroll--mobile')}
+        >
+          <nav
+            className={cn(
+              'wf-agent-rail',
+              railCollapsed && 'wf-agent-rail--collapsed',
+              mobileLayout && 'wf-agent-rail--mobile',
+            )}
+            aria-label="Workspace rail"
+          >
+            {error && railExpanded && !mobileLayout ? <WorkframeNotice message={error} /> : null}
 
             <RailSection
               title="Projects"
-              expanded={railExpanded}
+              expanded={!railCollapsed}
               count={projects.length}
               emptyLabel={workspaceLoading ? 'Loading projects…' : 'No projects yet'}
               addLabel="Create project"
-              onAdd={() => setCreateProjectOpen(true)}
+              onAdd={mobileLayout ? undefined : () => setCreateProjectOpen(true)}
             >
               {projects.map((room) => (
                 <RailItem
                   key={room.id}
-                  expanded={railExpanded}
+                  expanded={!railCollapsed}
                   active={activeRoom?.id === room.id}
                   ariaLabel={`Open project ${room.name}`}
                     primary={room.name}
@@ -438,11 +462,11 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
 
             <RailSection
               title="Contacts"
-              expanded={railExpanded}
+              expanded={!railCollapsed}
               count={contacts.length}
               emptyLabel={workspaceLoading ? 'Loading contacts…' : 'No contacts yet'}
               addLabel="Add contact"
-              onAdd={canInvite ? () => setInviteOpen(true) : undefined}
+              onAdd={mobileLayout ? undefined : canInvite ? () => setInviteOpen(true) : undefined}
             >
               {contacts.map(({ member, room }) => {
                 const label = member.display_name || member.email || 'Contact'
@@ -450,7 +474,7 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
                 return (
                   <RailItem
                     key={member.membership_id}
-                    expanded={railExpanded}
+                    expanded={!railCollapsed}
                     active={isActive}
                     ariaLabel={`Open direct message with ${label}`}
                     primary={label}
@@ -465,11 +489,11 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
 
             <RailSection
               title="Agents"
-              expanded={railExpanded}
+              expanded={!railCollapsed}
               count={crew.length}
               emptyLabel="No agents available"
               addLabel="Create agent"
-              onAdd={canInvite ? () => setCreateAgentOpen(true) : undefined}
+              onAdd={mobileLayout ? undefined : canInvite ? () => setCreateAgentOpen(true) : undefined}
             >
               {crew.map((member) => {
                 const isActive = Boolean(
@@ -483,7 +507,7 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
                 return (
                   <RailItem
                     key={member.key}
-                    expanded={railExpanded}
+                    expanded={!railCollapsed}
                     active={isActive}
                     ariaLabel={member.display_name}
                     primary={member.display_name}
@@ -498,26 +522,49 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
               })}
             </RailSection>
 
-            {workspaceError && railExpanded ? (
+            {workspaceError && railExpanded && !mobileLayout ? (
               <WorkframeNotice message={workspaceError} />
             ) : null}
 
-            <RailShortcutButtons projectName={projectName} closedPanelIds={closedPanelIds} expanded={railExpanded} onOpen={openPanel} />
+            <RailShortcutButtons
+              projectName={projectName}
+              closedPanelIds={closedPanelIds}
+              expanded={!railCollapsed}
+              mobile={mobileLayout}
+              activePanelId={activeWorkspacePanelId}
+              showDivider={!mobileLayout}
+              onOpen={openPanel}
+            />
+
+            {mobileLayout ? (
+              <RailItem
+                expanded={false}
+                active={userSettingsOpen}
+                ariaLabel="Open user profile and settings"
+                primary={profileName}
+                secondary={profileEmail}
+                avatarSrc={resolveUserAvatarUrl(me?.user?.avatar_url)}
+                avatarName={profileName}
+                onClick={() => openUserSettings('profile')}
+              />
+            ) : null}
           </nav>
         </ScrollArea>
 
-        <div className="wf-agent-rail__bottom">
-          <RailItem
-            expanded={railExpanded}
-            active={userSettingsOpen}
-            ariaLabel="Open user profile and settings"
-            primary={profileName}
-            secondary={profileEmail}
-            avatarSrc={resolveUserAvatarUrl(me?.user?.avatar_url)}
-            avatarName={profileName}
-            onClick={() => openUserSettings('profile')}
-          />
-        </div>
+        {!mobileLayout ? (
+          <div className="wf-agent-rail__bottom">
+            <RailItem
+              expanded={railExpanded}
+              active={userSettingsOpen}
+              ariaLabel="Open user profile and settings"
+              primary={profileName}
+              secondary={profileEmail}
+              avatarSrc={resolveUserAvatarUrl(me?.user?.avatar_url)}
+              avatarName={profileName}
+              onClick={() => openUserSettings('profile')}
+            />
+          </div>
+        ) : null}
 
         <UserProfileSheet
           open={userSettingsOpen}

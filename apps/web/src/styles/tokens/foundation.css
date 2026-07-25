@@ -53,6 +53,15 @@
   --wf-space-4: 16px;
   --wf-shell-width: 840px;
   --wf-chat-column-max: 800px;
+  --wf-mobile-narrow-column-max: 360px;
+  --wf-mobile-rail-padding-inline: 28px;
+  --wf-mobile-rail-padding-block-start: var(--wf-space-1);
+  --wf-mobile-rail-padding-block-end: var(--wf-space-2);
+  --wf-mobile-workspace-edge-color: var(--wf-dock-divider-color);
+  --wf-mobile-shell-padding-inline: 16px;
+  --wf-mobile-shell-rail-padding-inline: 20px;
+  --wf-safe-area-top: 0px;
+  --wf-safe-area-bottom: 0px;
   --wf-shell-height: 540px;
   --wf-shell-margin: 16px;
   --wf-type-meta: 10px;

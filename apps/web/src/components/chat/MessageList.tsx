@@ -231,10 +231,14 @@ export function MessageList({
 
   return (
     <div className="wf-message-list-shell">
+      <MessageNavigator
+        messages={displayMessages}
+        activeMessageId={activeMessageId}
+        onJump={jumpToMessage}
+      />
       <ScrollArea
         ref={scrollRef}
         axis="vertical"
-        inset="md"
         className="wf-message-list"
         role="log"
         aria-live="polite"
@@ -278,11 +282,6 @@ export function MessageList({
         ))}
         <div ref={bottomRef} className="wf-message-list__anchor" aria-hidden="true" />
       </ScrollArea>
-      <MessageNavigator
-        messages={displayMessages}
-        activeMessageId={activeMessageId}
-        onJump={jumpToMessage}
-      />
     </div>
   )
 }

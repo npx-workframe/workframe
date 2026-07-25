@@ -356,6 +356,7 @@
   --wf-relief-highlight-rgb: var(--bauhaus-white-rgb);
   --wf-dot-grid-rgb: var(--bauhaus-black-rgb);
   --wf-dock-divider-color: var(--bauhaus-black);
+  --wf-mobile-workspace-edge-color: var(--wf-bauhaus-on-dark);
   --wf-quiet-icon-border-hover: var(--bauhaus-black);
 }
 

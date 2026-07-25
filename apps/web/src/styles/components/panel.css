@@ -204,7 +204,8 @@
 
 /* ponytail: dockview clips scrollbar at cell edge — margin on scroll host only (not panel/header) */
 .wf-panel--activity .wf-activity-tree,
-.wf-panel--files .wf-file-explorer {
+.wf-panel--files .wf-file-explorer,
+.wf-panel--chat .wf-message-list.wf-scroll-host {
   margin-inline-end: var(--wf-scrollbar-inset);
 }
 
@@ -593,6 +594,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--wf-rail-list-gap);
+}
+
+.wf-settings-shell__nav-track {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wf-rail-list-gap);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .wf-settings-shell__nav.wf-scroll--inset-rail.wf-scroll--vertical {

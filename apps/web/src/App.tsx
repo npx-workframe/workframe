@@ -13,6 +13,7 @@ import { BrowserWorkspaceProvider } from '@/contexts/BrowserWorkspaceContext'
 import { HermesSessionProvider } from '@/contexts/HermesSessionContext'
 import { WorkspacePanelsProvider } from '@/contexts/WorkspacePanelsContext'
 import { useSiteMeta } from '@/hooks/useSiteMeta'
+import { useIphoneStandalonePwa } from '@/hooks/useIphoneStandalonePwa'
 import { useWorkspaceBranding } from '@/hooks/useWorkspaceBranding'
 import { getInitialTheme, applyTheme } from '@/lib/theme'
 import { isElectronRuntime } from '@/lib/runtime'
@@ -71,6 +72,8 @@ function isThemeShowcasePath(): boolean {
 }
 
 function App() {
+  useIphoneStandalonePwa()
+
   if (isButtonShowcasePath()) {
     return <ButtonShowcasePage />
   }

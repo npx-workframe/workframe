@@ -11,6 +11,8 @@ type RailShortcutButtonsProps = {
   onOpen: (panelId: string) => void
   className?: string
   showDivider?: boolean
+  mobile?: boolean
+  activePanelId?: string | null
 }
 
 export function RailShortcutButtons({
@@ -20,9 +22,11 @@ export function RailShortcutButtons({
   onOpen,
   className,
   showDivider = true,
+  mobile = false,
+  activePanelId = null,
 }: RailShortcutButtonsProps) {
   const shortcuts = railPanelShortcuts(projectName).filter((shortcut) =>
-    closedPanelIds.has(shortcut.id),
+    mobile ? true : closedPanelIds.has(shortcut.id),
   )
 
   if (shortcuts.length === 0) return null
@@ -37,6 +41,7 @@ export function RailShortcutButtons({
           label={shortcut.label}
           icon={shortcut.icon}
           expanded={expanded}
+          active={mobile && activePanelId === shortcut.id}
           onOpen={() => onOpen(shortcut.id)}
         />
       ))}
@@ -49,14 +54,18 @@ type RailShortcutButtonProps = {
   label: string
   icon: LucideIcon
   expanded: boolean
+  active?: boolean
   onOpen: () => void
 }
 
-function RailShortcutButton({ panelId, label, icon: Icon, expanded, onOpen }: RailShortcutButtonProps) {
+function RailShortcutButton({ panelId, label, icon: Icon, expanded, active, onOpen }: RailShortcutButtonProps) {
   return (
     <button
       type="button"
-      className="wf-agent-rail__item wf-agent-rail__item--shortcut"
+      className={cn(
+        'wf-agent-rail__item wf-agent-rail__item--shortcut',
+        active && 'wf-agent-rail__item--active',
+      )}
       data-panel-id={panelId}
       aria-label={`Open ${label} panel`}
       title={expanded ? undefined : label}

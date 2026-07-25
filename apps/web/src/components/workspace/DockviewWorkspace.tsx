@@ -19,6 +19,7 @@ import { PANEL_IDS } from '@/lib/panelControlConfig'
 import { panelDisplayTitle } from '@/lib/panelDisplayLabels'
 import { useTheme } from '@/hooks/useTheme'
 import { getInitialPanelOptions } from '@/lib/workspaceLayout'
+import { tryRestorePersistedWorkspaceLayout } from '@/lib/workspaceLayoutPersist'
 import {
   setupWorkspaceDnd,
   WORKFRAME_DND_EDGES,
@@ -26,8 +27,13 @@ import {
 import { cn } from '@/lib/utils'
 import { isDarkTheme } from '@/lib/theme'
 
-function initWorkspace(event: DockviewReadyEvent, canvasEl: HTMLElement | null) {
+function initWorkspace(event: DockviewReadyEvent, canvasEl: HTMLElement | null): boolean {
   const api = event.api
+
+  if (tryRestorePersistedWorkspaceLayout(api)) {
+    setupWorkspaceDnd(api, canvasEl)
+    return true
+  }
 
   const chatPanel = api.addPanel({
     id: PANEL_IDS.chat,
@@ -65,6 +71,7 @@ function initWorkspace(event: DockviewReadyEvent, canvasEl: HTMLElement | null) 
   activityPanel.api.close()
 
   setupWorkspaceDnd(api, canvasEl)
+  return false
 }
 
 function projectNameFromEnv() {
@@ -73,8 +80,8 @@ function projectNameFromEnv() {
 
 export function DockviewWorkspace() {
   const { theme } = useTheme()
-  const { railExpanded, registerWorkspaceApi } = useWorkspacePanels()
-  const railWidth = railExpanded ? RAIL_WIDTH.expanded : RAIL_WIDTH.collapsed
+  const { railExpanded, mobileLayout, registerWorkspaceApi } = useWorkspacePanels()
+  const railWidth = mobileLayout ? RAIL_WIDTH.collapsed : railExpanded ? RAIL_WIDTH.expanded : RAIL_WIDTH.collapsed
 
   const apiRef = useRef<DockviewApi | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
@@ -93,13 +100,14 @@ export function DockviewWorkspace() {
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
-      initWorkspace(event, workspaceRef.current)
+      const restoredLayout = initWorkspace(event, workspaceRef.current)
       apiRef.current = event.api
       teardownRef.current?.()
       teardownRef.current = registerWorkspaceApi(
         event.api,
         projectNameFromEnv(),
         workspaceRef.current,
+        { restoredLayout },
       )
     },
     [registerWorkspaceApi],
@@ -114,7 +122,7 @@ export function DockviewWorkspace() {
 
   return (
     <div
-      className="wf-workspace-shell"
+      className={cn('wf-workspace-shell', mobileLayout && 'wf-workspace-shell--mobile')}
       style={{ '--wf-rail-width': `${railWidth}px` } as CSSProperties}
     >
       <aside className="wf-rail-fallback" aria-label="Workspace rail">

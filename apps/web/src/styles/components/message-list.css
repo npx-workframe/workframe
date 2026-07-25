@@ -8,25 +8,46 @@
 }
 
 .wf-message-list-shell {
-  --wf-message-nav-width: 26px;
+  --wf-message-chrome-inset: 28px;
+  --wf-message-scrollbar-gap: var(--wf-space-4);
+  --wf-message-nav-edge-gap: var(--wf-space-1);
+  --wf-message-nav-width: 14px;
   --wf-message-scrollbar-width: 10px;
   --wf-message-nav-track-gap: var(--wf-space-1);
-  --wf-message-nav-outer-gap: var(--wf-space-2);
-  position: relative;
   display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   height: 100%;
+  padding-block: var(--wf-message-chrome-inset);
 }
 
 .wf-message-list-shell .wf-message-list {
-  --wf-scroll-gutter-inline: calc(
-    var(--wf-message-nav-width) + var(--wf-message-scrollbar-width) + var(--wf-message-nav-outer-gap)
-  );
+  /* Gutter = content ↔ scrollbar track only; thumb + edge gap are outside this. */
+  --wf-scroll-gutter-inline: var(--wf-message-scrollbar-gap);
+  --wf-scroll-gutter-block: 0;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
+  /* ponytail: never `padding: 0` here — it zeroes .wf-scroll--vertical inline-end gutter */
+  padding-block: 0;
+  padding-inline-start: 0;
+}
+
+.wf-message-list-shell:not(:has(.wf-message-navigator)) .wf-message-list {
+  padding-inline-start: var(--wf-message-chrome-inset);
+}
+
+/* Text column matches composer (wf-chat-column); chrome band is full panel width. */
+.wf-message-list > .wf-message-row,
+.wf-message-list > .wf-message-list__empty {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--wf-chat-column-max);
+  margin-inline: auto;
 }
 
 .wf-message-row {
@@ -270,7 +291,7 @@
   font-size: 8px;
 }
 
-.wf-message__reply-context.wf-tool-btn {
+button.wf-message__reply-context.wf-tool-btn {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) 14px;
   align-items: center;
@@ -279,8 +300,9 @@
   height: auto;
   min-height: 42px;
   min-width: 0;
-  padding: var(--wf-space-2);
-  padding-inline-start: var(--wf-space-1);
+  padding-block: var(--wf-space-2);
+  padding-inline-end: max(var(--wf-gap), calc(var(--wf-tool-btn-size) / 2));
+  padding-inline-start: calc(max(var(--wf-gap), calc(var(--wf-tool-btn-size) / 2)) / 2);
   border: 0;
   border-radius: var(--wf-radius-control);
   background: var(--wf-control-bg);
@@ -350,30 +372,29 @@
 }
 
 .wf-message-navigator {
-  position: absolute;
+  position: relative;
   z-index: 2;
-  top: 50%;
-  right: calc(var(--wf-message-scrollbar-width) + var(--wf-message-nav-track-gap));
+  flex: 0 0 var(--wf-message-chrome-inset);
+  align-self: center;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: center;
-  gap: 3px;
-  width: var(--wf-message-nav-width);
+  gap: 2px;
+  width: var(--wf-message-chrome-inset);
   max-height: min(54%, 20rem);
-  padding: var(--wf-space-2) 4px;
+  padding-inline-start: var(--wf-message-nav-edge-gap);
   overflow: visible;
   border: 0;
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
-  transform: translateY(-50%);
 }
 
 .wf-message-navigator__marker {
   position: relative;
   z-index: 1;
-  width: 6px;
+  width: 4px;
   height: 2px;
   flex: 1 1 2px;
   min-height: 1px;
@@ -395,36 +416,36 @@
 
 .wf-message-navigator__marker::before {
   position: absolute;
-  inset: -3px -4px;
+  inset: -3px -3px;
   content: '';
 }
 
 .wf-message-navigator__marker--user {
-  width: 8px;
+  width: 5px;
   background: var(--wf-message-nav-marker-user);
 }
 
 /* Dock-like proximity response with stable hit geometry and two soft falloff steps. */
 .wf-message-navigator__marker[data-proximity='2']:not([aria-current='true']) {
-  width: 10px;
+  width: 7px;
   background: var(--wf-message-nav-marker-prox2);
   opacity: var(--wf-message-nav-marker-prox2-opacity);
 }
 
 .wf-message-navigator__marker[data-proximity='1']:not([aria-current='true']) {
-  width: 14px;
+  width: 9px;
   background: var(--wf-message-nav-marker-prox1);
   opacity: var(--wf-message-nav-marker-prox1-opacity);
 }
 
 .wf-message-navigator__marker[aria-current='true'] {
-  width: 18px;
+  width: 11px;
   background: var(--wf-message-nav-marker-active);
   opacity: 1;
 }
 
 .wf-message-navigator__marker[data-proximity='0'] {
-  width: 22px;
+  width: 13px;
   background: var(--wf-message-nav-marker-emphasis);
   opacity: 1;
 }
@@ -442,7 +463,8 @@
   position: absolute;
   z-index: 4;
   top: 50%;
-  right: calc(100% + var(--wf-space-2));
+  left: calc(100% + var(--wf-message-nav-track-gap));
+  right: auto;
   display: flex;
   flex-direction: column;
   gap: var(--wf-space-2);

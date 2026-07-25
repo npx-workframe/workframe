@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useMobileWorkspaceLayout } from '@/hooks/useMobileWorkspaceLayout'
 import { cn } from '@/lib/utils'
 
 type SettingsTab = {
@@ -67,6 +68,7 @@ export function SettingsSheetFrame({
   )
   const effectiveActiveTab = activeTab ?? effectiveTabs[0]?.id
   const contentScrollRef = useRef<HTMLDivElement>(null)
+  const narrowShell = useMobileWorkspaceLayout()
   const panelTitle =
     effectiveTabs.find((tab) => tab.id === effectiveActiveTab)?.label || shellTitle
 
@@ -77,12 +79,45 @@ export function SettingsSheetFrame({
     contentScrollRef.current?.scrollTo({ top: 0, left: 0 })
   }, [effectiveActiveTab, open])
 
+  const navTrack = (
+    <nav
+      className="wf-settings-shell__nav-track"
+      role="tablist"
+      aria-label="Settings sections"
+    >
+      {effectiveTabs.map((tab) =>
+        soloRail ? (
+          <span
+            key={tab.id}
+            role="tab"
+            aria-selected
+            className="wf-settings-shell__nav-btn wf-settings-shell__nav-btn--solo"
+          >
+            {tab.label}
+          </span>
+        ) : (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={effectiveActiveTab === tab.id}
+            className="wf-settings-shell__nav-btn"
+            onClick={() => onTabChange?.(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ),
+      )}
+    </nav>
+  )
+
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
       <DialogContent
         showClose
         className={cn(
           'wf-dialog-content--settings-shell',
+          narrowShell && 'wf-dialog-content--settings-shell-mobile',
           contentFill && 'wf-dialog-content--settings-fill',
           sheetClassName,
         )}
@@ -91,36 +126,20 @@ export function SettingsSheetFrame({
           <div className="wf-settings-shell__rail-head">
             <h2 className="wf-settings-shell__rail-title">{shellTitle}</h2>
           </div>
-          <nav
-            className="wf-settings-shell__nav wf-scroll wf-scroll--vertical wf-scroll--inset-rail"
-            role="tablist"
-            aria-label="Settings sections"
-          >
-            {effectiveTabs.map((tab) =>
-              soloRail ? (
-                <span
-                  key={tab.id}
-                  role="tab"
-                  aria-selected
-                  className="wf-settings-shell__nav-btn wf-settings-shell__nav-btn--solo"
-                >
-                  {tab.label}
-                </span>
-              ) : (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={effectiveActiveTab === tab.id}
-                  className="wf-settings-shell__nav-btn"
-                  onClick={() => onTabChange?.(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ),
-            )}
-          </nav>
-          {footer ? <div className="wf-settings-shell__rail-footer">{footer}</div> : null}
+          {narrowShell ? (
+            <div className="wf-settings-shell__nav wf-settings-shell__nav--mobile">
+              {navTrack}
+            </div>
+          ) : (
+            <ScrollArea
+              axis="vertical"
+              inset="rail"
+              className="wf-settings-shell__nav"
+            >
+              {navTrack}
+            </ScrollArea>
+          )}
+          {!narrowShell && footer ? <div className="wf-settings-shell__rail-footer">{footer}</div> : null}
         </aside>
 
         <div className="wf-settings-shell__main">
@@ -141,7 +160,16 @@ export function SettingsSheetFrame({
             </div>
           </ScrollArea>
 
-          {actions ? <div className="wf-settings-shell__actions">{actions}</div> : null}
+          {narrowShell ? (
+            actions || footer ? (
+              <div className="wf-settings-shell__footer-bar">
+                {footer ? <div className="wf-settings-shell__footer-bar-start">{footer}</div> : null}
+                {actions ? <div className="wf-settings-shell__footer-bar-end">{actions}</div> : null}
+              </div>
+            ) : null
+          ) : actions ? (
+            <div className="wf-settings-shell__actions">{actions}</div>
+          ) : null}
 
           {loading ? (
             <div

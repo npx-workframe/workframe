@@ -28,6 +28,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* ponytail: chrome (nav + scrollbar) spans panel; only composer/text use max-width column */
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
 }
 
 .wf-chat-column--composer {
@@ -52,8 +56,11 @@
 
 .wf-chat-split__sash {
   flex-shrink: 0;
+  align-self: center;
+  width: 80%;
+  max-width: 80%;
   height: 16px;
-  margin: 0 16px;
+  margin-inline: auto;
   border-radius: 999px;
   cursor: row-resize;
   background: transparent;

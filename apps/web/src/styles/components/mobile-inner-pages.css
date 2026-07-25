@@ -1,0 +1,410 @@
+/* ── Mobile inner pages: settings, dialogs, wizard rails, tab gutters ─────── */
+/* Settings shell mobile layout is class-driven (939px, matches workspace). */
+/* Wizard / other dialogs use 720px media queries below. */
+
+/* Class-driven overrides (synced with useMobileWorkspaceLayout in SettingsSheetFrame) */
+.wf-dialog-content.wf-dialog-content--settings-shell-mobile {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch;
+  width: min(calc(100vw - var(--wf-mobile-shell-padding-inline)), 100%);
+  height: min(calc(100dvh - var(--wf-mobile-shell-padding-inline)), 100dvh);
+  min-height: 0;
+  max-height: calc(100dvh - var(--wf-mobile-shell-padding-inline));
+  overflow: hidden;
+}
+
+.wf-dialog-content.wf-dialog-content--settings-shell-mobile > .wf-settings-shell__rail {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none;
+  flex: 0 0 auto !important;
+}
+
+.wf-dialog-content.wf-dialog-content--settings-shell-mobile > .wf-settings-shell__main {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden;
+}
+
+.wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__nav {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+}
+
+/* Settings shell — stacked layout (939px, matches mobile workspace) */
+@media (max-width: 939px) {
+  .wf-dialog-content.wf-dialog-content--settings-shell,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: min(calc(100vw - var(--wf-mobile-shell-padding-inline)), 100%);
+    height: min(calc(100dvh - var(--wf-mobile-shell-padding-inline)), 100dvh);
+    min-height: 0;
+    max-height: calc(100dvh - var(--wf-mobile-shell-padding-inline));
+    overflow: hidden;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__rail,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__rail {
+    width: 100%;
+    height: auto !important;
+    max-height: none;
+    flex: 0 0 auto !important;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-right: none;
+    border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border-accent);
+    padding: 0;
+    overflow: visible;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__rail-head,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__rail-head {
+    flex: 0 0 auto;
+    padding: 12px var(--wf-mobile-shell-rail-padding-inline) 8px;
+    padding-inline-end: 2.75rem;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__rail-title,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__rail-title {
+    padding-inline-start: 0;
+    font-size: var(--wf-type-ui);
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__nav:has(.wf-settings-shell__nav-btn--solo),
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__nav:has(.wf-settings-shell__nav-btn--solo) {
+    display: none;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__nav,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__nav {
+    flex: 0 0 auto !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--wf-gap);
+    width: 100%;
+    min-height: 0 !important;
+    max-height: none;
+    overflow: visible;
+    padding: var(--wf-rail-inset-gutter) var(--wf-mobile-shell-rail-padding-inline) 12px;
+    box-sizing: border-box;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__nav-track,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__nav-track {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--wf-gap);
+    width: 100%;
+    min-width: 0;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__nav-btn,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__nav-btn {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 2rem;
+    padding: 6px 10px;
+    font-size: var(--wf-type-ui);
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__main,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__main {
+    flex: 1 1 auto !important;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__header,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__header {
+    flex-shrink: 0;
+    min-height: auto;
+    padding: 12px var(--wf-mobile-shell-padding-inline);
+    padding-inline-end: 2.75rem;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__scroll,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__scroll {
+    flex: 1 1 auto !important;
+    min-height: 0;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__body,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__body {
+    padding: 1rem var(--wf-mobile-shell-padding-inline) 1.25rem;
+    max-width: none;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--wf-gap);
+    padding: 0.75rem var(--wf-mobile-shell-padding-inline) 1rem;
+    border-top: var(--wf-border-width, 1px) solid var(--wf-border);
+    background: var(--wf-chrome-fill, var(--wf-surface));
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar-start,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar-start {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar-end,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar-end {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar-start .wf-action-btn,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar-start .wf-action-btn,
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar-end .wf-action-btn,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar-end .wf-action-btn {
+    width: auto;
+    flex: 0 1 auto;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar:not(:has(.wf-settings-shell__footer-bar-end)),
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar:not(:has(.wf-settings-shell__footer-bar-end)) {
+    justify-content: flex-start;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__footer-bar:not(:has(.wf-settings-shell__footer-bar-start)),
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__footer-bar:not(:has(.wf-settings-shell__footer-bar-start)) {
+    justify-content: flex-end;
+  }
+
+  .wf-dialog-content.wf-dialog-content--settings-shell .wf-settings-shell__rail-footer,
+  .wf-dialog-content.wf-dialog-content--settings-shell-mobile .wf-settings-shell__rail-footer {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .wf-dialog-content.wf-dialog-content--settings,
+  .wf-dialog-content.wf-dialog-content--settings-wide,
+  .wf-dialog-content.wf-dialog-content--settings-profile {
+    width: min(calc(100vw - var(--wf-mobile-shell-padding-inline)), 100%);
+    max-height: calc(100dvh - var(--wf-mobile-shell-padding-inline));
+  }
+
+  .wf-dialog-content--settings .wf-settings-dialog__header {
+    padding: 0.875rem 2.75rem 0 var(--wf-mobile-shell-padding-inline);
+  }
+
+  .wf-settings-dialog__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: var(--wf-gap);
+    padding: 0.75rem var(--wf-mobile-shell-rail-padding-inline) 0;
+  }
+
+  .wf-settings-dialog__tabs::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .wf-settings-dialog__scroll {
+    padding: 1rem 0 0 var(--wf-mobile-shell-padding-inline);
+  }
+
+  .wf-settings-dialog__footer {
+    padding: 0.75rem var(--wf-mobile-shell-padding-inline) 1rem;
+  }
+
+  /* ── Onboarding wizard: reinforce horizontal rail gutters (neo / brutalist) ─ */
+  .wf-onboarding-wizard__nav.wf-scroll--inset-rail {
+    padding-inline: var(--wf-rail-inset-gutter);
+    padding-block: var(--wf-rail-inset-gutter) 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .wf-onboarding-wizard__nav.wf-scroll--inset-rail::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .wf-onboarding-wizard__step-btn {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* ── In-panel tab strips — shadow breathing room + horizontal scroll ─── */
+  .wf-wizard-subtabs,
+  .wf-provider-connect__tabs,
+  .wf-dialog-tabs,
+  .wf-identity-split__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: var(--wf-gap);
+    margin-inline: calc(-1 * var(--wf-rail-inset-gutter));
+    padding-inline: var(--wf-rail-inset-gutter);
+    scroll-padding-inline: var(--wf-rail-inset-gutter);
+  }
+
+  .wf-wizard-subtabs::-webkit-scrollbar,
+  .wf-provider-connect__tabs::-webkit-scrollbar,
+  .wf-dialog-tabs::-webkit-scrollbar,
+  .wf-identity-split__tabs::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .wf-wizard-subtabs__btn,
+  .wf-provider-connect__tab,
+  .wf-dialog-tab,
+  .wf-settings-dialog__tab,
+  .wf-identity-split__tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* ── Wide / split dialogs ─────────────────────────────────────────────── */
+  .wf-dialog-content--create-agent,
+  .wf-dialog-content.wf-dialog-content--identity-split {
+    width: min(calc(100vw - var(--wf-mobile-shell-padding-inline)), 100%);
+    height: min(calc(100dvh - var(--wf-mobile-shell-padding-inline)), 100dvh);
+    min-height: 0;
+    max-height: calc(100dvh - var(--wf-mobile-shell-padding-inline));
+  }
+
+  .wf-identity-split__form-head,
+  .wf-identity-split__form-body,
+  .wf-identity-split__form-footer {
+    padding-inline: var(--wf-mobile-shell-padding-inline);
+  }
+
+  .wf-identity-split__tabs {
+    padding-inline: var(--wf-mobile-shell-rail-padding-inline);
+    margin-inline: 0;
+    gap: var(--wf-gap);
+  }
+
+  .wf-dialog-content--create-agent .wf-dialog-body {
+    padding-inline: var(--wf-mobile-shell-padding-inline);
+  }
+
+  /* ── Default dialogs ─────────────────────────────────────────────────── */
+  .wf-dialog-content:not(.wf-dialog-content--settings-shell):not(.wf-auth-dialog):not(.wf-onboarding-wizard) {
+    width: min(calc(100vw - var(--wf-mobile-shell-padding-inline)), 26rem);
+    max-height: calc(100dvh - var(--wf-mobile-shell-padding-inline));
+    padding: 1rem var(--wf-mobile-shell-padding-inline) 0.875rem;
+  }
+
+  .wf-dialog-header,
+  .wf-dialog-body,
+  .wf-dialog-footer {
+    padding-inline: 0;
+  }
+
+  /* ── Forms / grids inside sheets ─────────────────────────────────────── */
+  .wf-user-settings__grid,
+  .wf-user-settings__two-col,
+  .wf-user-settings__quick-grid,
+  .wf-onboarding-form__row--2col,
+  .wf-platform-identity__grid,
+  .wf-model-slots,
+  .wf-llm-models__slots {
+    grid-template-columns: 1fr;
+  }
+
+  .wf-user-settings__avatar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .wf-user-settings__avatar-preview {
+    align-self: center;
+  }
+
+  .wf-provider-connect__editor {
+    padding: 0 var(--wf-mobile-shell-padding-inline) 12px;
+  }
+
+  .wf-provider-connect__row {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 7px 8px;
+  }
+
+  .wf-onboarding-compact .wf-provider-connect__editor {
+    padding: 0 var(--wf-mobile-shell-padding-inline) 10px;
+  }
+
+  .wf-wizard-form-actions,
+  .wf-wizard-form-actions--split {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    gap: var(--wf-gap);
+  }
+
+  .wf-wizard-form-actions .wf-wizard-btn,
+  .wf-wizard-form-actions .wf-action-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .wf-wizard-form-actions--split > :first-child {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .wf-dialog-content.wf-dialog-content--settings-shell {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .wf-onboarding-wizard {
+    width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .wf-settings-shell__header .wf-dialog-title {
+    font-size: 1rem;
+  }
+
+  .wf-provider-connect__row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .wf-provider-connect__row > :last-child:not(.wf-provider-connect__switch) {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

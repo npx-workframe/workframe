@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -10,6 +11,7 @@ import {
 import type { DockviewApi } from 'dockview'
 
 import { PANEL_IDS } from '@/lib/panelControlConfig'
+import { readPersistedRailExpanded } from '@/lib/workspaceLayoutPersist'
 import { restoreWorkspacePanel, setupWorkspacePanelTracking } from '@/lib/workspacePanelRestore'
 import {
   createWorkspaceLayoutController,
@@ -17,17 +19,26 @@ import {
   type ApplyLayoutOptions,
 } from '@/lib/workspaceLayout'
 import { WORKSPACE_PANEL_ORDER } from '@/lib/workspaceLayoutTokens'
+import {
+  enforceSingleWorkspacePanel,
+  focusWorkspacePanel,
+  getFocusedWorkspacePanelId,
+} from '@/lib/workspaceMobileLayout'
+import { useMobileWorkspaceLayout } from '@/hooks/useMobileWorkspaceLayout'
 import type { WorkspaceRoom } from '@/lib/workframeAuthApi'
 
 type WorkspacePanelsContextValue = {
   closedPanelIds: ReadonlySet<string>
   railExpanded: boolean
+  mobileLayout: boolean
+  activeWorkspacePanelId: string | null
   activeRoom: WorkspaceRoom | null
   userSettingsOpen: boolean
   userSettingsTab: 'profile' | 'connect' | 'agents' | 'appearance'
   userSettingsConnectTab: 'providers' | 'messaging'
   onLogout?: () => void | Promise<void>
   openPanel: (panelId: string) => void
+  focusWorkspacePanel: (panelId: string) => void
   openUserSettings: (
     tab?: 'profile' | 'connect' | 'agents' | 'appearance',
     connectTab?: 'providers' | 'messaging',
@@ -44,6 +55,7 @@ type WorkspacePanelsContextValue = {
     api: DockviewApi,
     projectName: string,
     root?: HTMLElement | null,
+    options?: { restoredLayout?: boolean },
   ) => () => void
 }
 
@@ -56,12 +68,17 @@ export function WorkspacePanelsProvider({
   children: ReactNode
   onLogout?: () => void | Promise<void>
 }) {
+  const mobileLayout = useMobileWorkspaceLayout()
   const [closedPanelIds, setClosedPanelIds] = useState<ReadonlySet<string>>(() => new Set())
-  const [railExpanded, setRailExpandedState] = useState(
-    () => typeof window === 'undefined' || window.innerWidth >= 1280,
-  )
+  const [railExpanded, setRailExpandedState] = useState(() => {
+    const persisted = readPersistedRailExpanded()
+    if (persisted !== undefined) return persisted
+    return typeof window === 'undefined' || window.innerWidth >= 1280
+  })
   const [workspaceApi, setWorkspaceApi] = useState<DockviewApi | null>(null)
   const [projectName, setProjectName] = useState('Workframe')
+  const [activeWorkspacePanelId, setActiveWorkspacePanelId] = useState<string | null>(PANEL_IDS.chat)
+  const prevMobileLayoutRef = useRef(mobileLayout)
   const [activeRoom, setActiveRoomState] = useState<WorkspaceRoom | null>(null)
   const [userSettingsOpen, setUserSettingsOpen] = useState(false)
   const [userSettingsTab, setUserSettingsTab] = useState<'profile' | 'connect' | 'agents' | 'appearance'>('profile')
@@ -105,17 +122,27 @@ export function WorkspacePanelsProvider({
   }, [])
 
   const registerWorkspaceApi = useCallback(
-    (api: DockviewApi, name: string, root?: HTMLElement | null) => {
+    (
+      api: DockviewApi,
+      name: string,
+      root?: HTMLElement | null,
+      options?: { restoredLayout?: boolean },
+    ) => {
       setWorkspaceApi(api)
       setProjectName(name)
       setClosedPanelIds(
         new Set(WORKSPACE_PANEL_ORDER.filter((panelId) => !api.getPanel(panelId))),
       )
-      setRailExpandedState(typeof window === 'undefined' || window.innerWidth >= 1280)
 
       const controller = createWorkspaceLayoutController(api, root ?? null)
-      controller.layout('init')
-      requestAnimationFrame(() => controller.layout('init'))
+      controller.state.railExpanded = railExpanded
+
+      if (options?.restoredLayout) {
+        requestAnimationFrame(() => controller.hydrateFromDockview())
+      } else {
+        controller.layout('init')
+        requestAnimationFrame(() => controller.layout('init'))
+      }
 
       const unwatch = controller.watch()
       const untrack = setupWorkspacePanelTracking(api, {
@@ -144,7 +171,7 @@ export function WorkspacePanelsProvider({
         controller.dispose()
       }
     },
-    [],
+    [railExpanded],
   )
 
   const rebalanceLayout = useCallback((options?: ApplyLayoutOptions) => {
@@ -160,24 +187,69 @@ export function WorkspacePanelsProvider({
     setActiveRoomState(room)
   }, [])
 
-  const openPanel = useCallback(
+  const focusWorkspacePanelById = useCallback(
     (panelId: string) => {
       if (!workspaceApi || panelId === PANEL_IDS.crew) return
+      if (mobileLayout) {
+        const focused = focusWorkspacePanel(workspaceApi, panelId, projectName)
+        if (focused) setActiveWorkspacePanelId(focused)
+        return
+      }
       restoreWorkspacePanel(workspaceApi, panelId, projectName)
+      setActiveWorkspacePanelId(panelId)
     },
-    [projectName, workspaceApi],
+    [mobileLayout, projectName, workspaceApi],
   )
+
+  const openPanel = useCallback(
+    (panelId: string) => {
+      focusWorkspacePanelById(panelId)
+    },
+    [focusWorkspacePanelById],
+  )
+
+  useEffect(() => {
+    if (!workspaceApi) return
+
+    if (mobileLayout) {
+      setRailExpandedState(false)
+      getWorkspaceLayoutController()?.setRailExpanded(false)
+    }
+
+    const enteredMobile = mobileLayout && !prevMobileLayoutRef.current
+    const leftMobile = !mobileLayout && prevMobileLayoutRef.current
+    prevMobileLayoutRef.current = mobileLayout
+
+    if (enteredMobile) {
+      const focused = enforceSingleWorkspacePanel(workspaceApi, projectName, activeWorkspacePanelId)
+      if (focused) setActiveWorkspacePanelId(focused)
+      return
+    }
+
+    if (leftMobile) {
+      getWorkspaceLayoutController()?.layout('viewport')
+      setActiveWorkspacePanelId(getFocusedWorkspacePanelId(workspaceApi))
+    }
+  }, [activeWorkspacePanelId, mobileLayout, projectName, workspaceApi])
+
+  useEffect(() => {
+    if (!workspaceApi || !mobileLayout) return
+    setActiveWorkspacePanelId(getFocusedWorkspacePanelId(workspaceApi))
+  }, [closedPanelIds, mobileLayout, workspaceApi])
 
   const value = useMemo(
     () => ({
       closedPanelIds,
       railExpanded,
+      mobileLayout,
+      activeWorkspacePanelId,
       activeRoom,
       userSettingsOpen,
       userSettingsTab,
       userSettingsConnectTab,
       onLogout,
       openPanel,
+      focusWorkspacePanel: focusWorkspacePanelById,
       openUserSettings,
       closeUserSettings,
       openAgentSettings,
@@ -189,7 +261,7 @@ export function WorkspacePanelsProvider({
       setActiveRoom,
       registerWorkspaceApi,
     }),
-    [closedPanelIds, railExpanded, activeRoom, userSettingsOpen, userSettingsTab, userSettingsConnectTab, onLogout, openPanel, openUserSettings, closeUserSettings, openAgentSettings, registerOpenAgentSettings, registerOpenChatSettings, openChatSettings, rebalanceLayout, registerWorkspaceApi, setActiveRoom, setRailExpanded],
+    [closedPanelIds, railExpanded, mobileLayout, activeWorkspacePanelId, activeRoom, userSettingsOpen, userSettingsTab, userSettingsConnectTab, onLogout, openPanel, focusWorkspacePanelById, openUserSettings, closeUserSettings, openAgentSettings, registerOpenAgentSettings, registerOpenChatSettings, openChatSettings, rebalanceLayout, registerWorkspaceApi, setActiveRoom, setRailExpanded],
   )
 
   return (

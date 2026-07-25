@@ -22,6 +22,7 @@ import {
   WF_PANEL_RULES,
   type MainPanelId,
 } from '@/lib/workspaceLayoutTokens'
+import { schedulePersistWorkspaceLayout } from '@/lib/workspaceLayoutPersist'
 
 export { PANEL_IDS }
 export {
@@ -128,6 +129,41 @@ export class WorkspaceLayoutController {
     this.layout('rail')
   }
 
+  /** After dockview fromJSON — keep sash geometry; only sync constraints + state. */
+  hydrateFromDockview() {
+    const measureCtx = measure(this.api, this.state, this.root)
+    if (!measureCtx) return false
+
+    const readings = readMainWidths(this.api)
+    const alone = measureCtx.visible.length === 1
+
+    this.applying = true
+    try {
+      for (const id of measureCtx.visible) {
+        const panel = getPanel(this.api, id)
+        if (!panel) continue
+        const rule = panelRule(id)
+        panel.group.api.setConstraints({
+          minimumWidth: rule.min,
+          maximumWidth: alone || !Number.isFinite(rule.max) ? undefined : rule.max,
+        })
+        const width = readings[id]
+        if (width) {
+          this.state.widths[id] = width
+          if (!rule.stretchable) {
+            this.state.manual[id] = width
+          }
+        }
+      }
+    } finally {
+      this.applying = false
+    }
+
+    this.lastCanvasWidth = measureCtx.canvas
+    schedulePersistWorkspaceLayout(this.api, this.state.railExpanded)
+    return true
+  }
+
   layout(reason: LayoutReason, options: ApplyLayoutOptions = {}) {
     if (this.applying) return false
 
@@ -147,6 +183,7 @@ export class WorkspaceLayoutController {
     this.apply(measureCtx, targets)
     this.state.widths = { ...targets }
     this.lastCanvasWidth = measureCtx.canvas
+    schedulePersistWorkspaceLayout(this.api, this.state.railExpanded)
     return true
   }
 
@@ -196,6 +233,7 @@ export class WorkspaceLayoutController {
     const targets = reconcileSashWidths(measureCtx, readings, this.state)
     this.state.widths = { ...targets }
     this.lastCanvasWidth = measureCtx.canvas
+    schedulePersistWorkspaceLayout(this.api, this.state.railExpanded)
   }
 
   private apply(measureCtx: LayoutMeasure, targets: Partial<Record<MainPanelId, number>>) {

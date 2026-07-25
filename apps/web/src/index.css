@@ -51,6 +51,8 @@
 @import './styles/components/line-monochrome-chrome.css';
 @import './styles/components/brutalist-chrome.css';
 @import './styles/components/bauhaus-chrome.css';
+@import './styles/components/mobile-workspace.css';
+@import './styles/components/mobile-inner-pages.css';
 
 /* Single-line truncation inside flex/grid rows */
 .wf-truncate {

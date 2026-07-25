@@ -18,8 +18,63 @@ html[data-arch-theme='bauhaus'] .wf-rail-fallback {
   border-inline-end-color: var(--wf-bauhaus-black) !important;
 }
 
+/* Mobile: dark chrome edges use on-dark ink; desktop Mondrian splits stay black. */
+html[data-arch-theme='bauhaus'] .wf-workspace-shell--mobile > .wf-rail-fallback {
+  border: none !important;
+  border-top: var(--wf-dock-divider-width) solid var(--wf-mobile-workspace-edge-color) !important;
+  border-inline-end: none !important;
+}
+
+html[data-arch-theme='bauhaus'] .wf-workspace-shell--mobile :is(
+  .wf-panel__header,
+  .wf-workspace .dv-tabs-and-actions-container
+) {
+  border-bottom: var(--wf-dock-divider-width) solid var(--wf-mobile-workspace-edge-color) !important;
+}
+
+html[data-arch-theme='bauhaus'] .wf-workspace-shell--mobile .wf-chat-split__composer {
+  border-top: var(--wf-dock-divider-width) solid var(--wf-mobile-workspace-edge-color) !important;
+  border-bottom: none !important;
+}
+
 html[data-arch-theme='bauhaus'] .wf-workspace .dv-split-view-container.dv-separator-border .dv-view:not(:first-child)::before {
   background-color: var(--wf-bauhaus-black) !important;
+}
+
+/* Dockview DnD — Mondrian drop bands (flat, 100% opaque). */
+html[data-arch-theme='bauhaus'] .wf-workspace {
+  --wf-dnd-indicator-bg: var(--wf-bauhaus-red);
+  --wf-dnd-indicator-border: var(--wf-bauhaus-red);
+  --dv-drag-over-background-color: var(--wf-bauhaus-red);
+  --dv-drag-over-border-color: var(--wf-bauhaus-red);
+}
+
+html[data-arch-theme='bauhaus'] .wf-workspace :is(.dv-drop-target-selection, .dv-drop-target-anchor) {
+  background: var(--wf-bauhaus-red) !important;
+  background-color: var(--wf-bauhaus-red) !important;
+  border: none !important;
+  opacity: 1 !important;
+}
+
+/* 16px outer layout edges (dndEdges). */
+html[data-arch-theme='bauhaus'] .wf-workspace .dv-drop-target-anchor.dv-drop-target-edge {
+  background: var(--wf-bauhaus-blue) !important;
+  background-color: var(--wf-bauhaus-blue) !important;
+}
+
+/* 40px panel split bands (content overlay model). */
+html[data-arch-theme='bauhaus'] .wf-workspace .dv-drop-target-anchor.dv-drop-target-content {
+  background: var(--wf-bauhaus-red) !important;
+  background-color: var(--wf-bauhaus-red) !important;
+}
+
+/* Tab strip / header — secondary-tab drop (anchored + in-place). */
+html[data-arch-theme='bauhaus'] .wf-workspace .dv-drop-target-anchor:not(.dv-drop-target-edge, .dv-drop-target-content),
+html[data-arch-theme='bauhaus'] .wf-workspace .dv-tab.dv-drop-target .dv-drop-target-selection,
+html[data-arch-theme='bauhaus'] .wf-workspace .dv-void-container.dv-drop-target .dv-drop-target-selection,
+html[data-arch-theme='bauhaus'] .wf-workspace .dv-tab-group-chip.dv-drop-target .dv-drop-target-selection {
+  background: var(--wf-bauhaus-yellow) !important;
+  background-color: var(--wf-bauhaus-yellow) !important;
 }
 
 /* Colored panel shells — kill white scrollbar-gutter strip at panel edge. */
