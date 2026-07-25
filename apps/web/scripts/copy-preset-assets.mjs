@@ -18,7 +18,7 @@ for (const dir of presetDirs) {
   for (const name of fs.readdirSync(src)) {
     const from = path.join(src, name);
     if (!fs.statSync(from).isFile()) continue;
-    if (name.endsWith('.png') || name === 'catalog.json') {
+    if (name.endsWith('.png') || name.endsWith('.svg') || name === 'catalog.json') {
       fs.copyFileSync(from, path.join(dest, name));
     }
   }

@@ -11,10 +11,22 @@ import stack_config
 
 DEFAULT_TITLE = "Workframe"
 DEFAULT_SHORT_NAME = "Workframe"
-DEFAULT_DESCRIPTION = "Project chat and workspace for Hermes agent crews"
-DEFAULT_THEME_COLOR = "#0A0A0F"
+DEFAULT_DESCRIPTION = (
+    "The Social OS for Autonomous Businesses — humans and persistent AI coworkers "
+    "share chat, boards, and files."
+)
+DEFAULT_THEME_COLOR = "#79689D"
 DEFAULT_OG_IMAGE = "/assets/branding/og-default.png"
 DEFAULT_FAVICON = "/favicon.svg"
+DEFAULT_APPLE_TOUCH_ICON = "/apple-touch-icon.png"
+
+DEFAULT_PWA_ICONS = [
+    {"src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "./icon-32.png", "sizes": "32x32", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+]
 
 BRANDING_DIR_NAME = "site-branding"
 OG_FILENAME = "og-image"
@@ -169,8 +181,10 @@ def resolve_site_meta(
     fav_path = _branding_asset_path("favicon")
     if fav_path.is_file():
         favicon = _browser_asset_url(app_base_url, f"/api/public/branding/favicon{fav_path.suffix}")
+        apple_touch = favicon
     else:
         favicon = _browser_asset_url(app_base_url, DEFAULT_FAVICON)
+        apple_touch = _browser_asset_url(app_base_url, DEFAULT_APPLE_TOUCH_ICON)
 
     short_name = title if len(title) <= 16 else title[:15].rstrip() + "…"
     canonical = app_base_url.rstrip("/") + "/" if app_base_url else "/"
@@ -185,6 +199,7 @@ def resolve_site_meta(
         "theme_color": theme_color,
         "og_image": og_image,
         "favicon": favicon,
+        "apple_touch_icon": apple_touch,
         "canonical_url": canonical,
         "manifest_url": _browser_asset_url(app_base_url, "/manifest.webmanifest"),
         "source": {
@@ -197,10 +212,10 @@ def resolve_site_meta(
 
 
 def manifest_payload(meta: dict[str, Any]) -> dict[str, Any]:
-    icons = []
     favicon = str(meta.get("favicon") or "").strip()
-    if favicon:
-        icons.append(
+    custom_icons = []
+    if favicon and favicon != _browser_asset_url("", DEFAULT_FAVICON):
+        custom_icons.append(
             {
                 "src": favicon,
                 "sizes": "any",
@@ -208,16 +223,17 @@ def manifest_payload(meta: dict[str, Any]) -> dict[str, Any]:
                 "purpose": "any",
             },
         )
+    icons = custom_icons or DEFAULT_PWA_ICONS
     return {
         "name": meta.get("title") or DEFAULT_TITLE,
         "short_name": meta.get("short_name") or DEFAULT_SHORT_NAME,
         "description": meta.get("description") or DEFAULT_DESCRIPTION,
         "start_url": "./",
         "display": "standalone",
-        "background_color": meta.get("theme_color") or DEFAULT_THEME_COLOR,
+        "background_color": "#ffffff",
         "theme_color": meta.get("theme_color") or DEFAULT_THEME_COLOR,
         "orientation": "any",
-        "icons": icons or [{"src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}],
+        "icons": icons,
     }
 
 

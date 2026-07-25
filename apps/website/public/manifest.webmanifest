@@ -4,8 +4,8 @@
   "description": "Install a private workspace where humans and agents collaborate through chat, boards, and files.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#e0e0e6",
-  "theme_color": "#e0e0e6",
+  "background_color": "#ffffff",
+  "theme_color": "#79689D",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -13,6 +13,36 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

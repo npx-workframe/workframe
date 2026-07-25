@@ -8,6 +8,7 @@ export type PublicSiteMeta = {
   theme_color: string
   og_image: string
   favicon: string
+  apple_touch_icon?: string
   canonical_url: string
   manifest_url: string
   source?: {
@@ -67,7 +68,7 @@ export function applySiteMeta(meta: PublicSiteMeta) {
   upsertMeta('name', 'twitter:description', meta.description)
   upsertMeta('name', 'twitter:image', meta.og_image)
   upsertLink('icon', meta.favicon)
-  upsertLink('apple-touch-icon', meta.favicon)
+  upsertLink('apple-touch-icon', meta.apple_touch_icon || '/apple-touch-icon.png')
   upsertLink('manifest', meta.manifest_url || '/manifest.webmanifest')
 }
 
