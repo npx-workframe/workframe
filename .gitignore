@@ -92,6 +92,9 @@ scripts/workframe/e2e-smtp.local.env
 scripts/workframe/vps-*-chat*.py
 scripts/workframe/verify-public-patterns.local.json
 
+# visual QA screenshots (local only)
+.harness/qa-screenshots/
+
 # OS/editor
 .DS_Store
 Thumbs.db

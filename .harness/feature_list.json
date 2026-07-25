@@ -65,6 +65,13 @@
       "verify": ".\\scripts\\workframe\\sign-off-install.ps1 -SkipGate; then browser wizard + chat",
       "passes": true,
       "owner": "cursor-local"
+    },
+    {
+      "id": "theme-smoke-health",
+      "description": "ABX theme smoke: visible theme registry + /api/meta health",
+      "verify": "node scripts/workframe/theme-smoke-matrix.mjs --url http://127.0.0.1:18644",
+      "passes": false,
+      "owner": "cursor-local"
     }
   ]
 }
