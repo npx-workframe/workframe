@@ -36,7 +36,7 @@ Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admi
 ### workframe CLI 0.2.2
 
 - Align package README and `docs/VERSION.md` with the published `0.2.x` local-link console (read-only discovery + optional consent-gated provider test).
-- Point installers to `create-workframe@0.1.24` for the full product cell.
+- Point installers to create-workframe 0.1.24 for the full product cell.
 
 ## 0.1.22
 
