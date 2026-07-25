@@ -1,17 +1,23 @@
-# Workframe v0.1.25
+# Workframe v0.1.26
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.25 |
+| create-workframe | 0.1.26 |
 | workframe CLI (`npx workframe`) | 0.2.2 |
-| Workframe API / UI | 0.1.25 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.26 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.25 MyProject
+npx create-workframe@0.1.26 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.26
+
+- Mobile workspace layout: responsive Dockview, settings sheet tabs, inner-page gutters, iPhone standalone PWA hooks.
+- Panel header chrome normalization, compact pill controls, message navigator polish.
+- Bridge and foundation token tweaks for mobile breakpoints.
 
 ## 0.1.25
 

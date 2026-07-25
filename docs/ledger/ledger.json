@@ -1872,7 +1872,7 @@
       "id": "WF-UI-001",
       "title": "Reconcile ledger with post-0.1.25 git tree",
       "summary": "Record shipped 0.1.24/0.1.25 theme work and in-progress mobile workspace layout so ledger matches git; fix stale backlog.json references in secondary artifacts.",
-      "status": "in_progress",
+      "status": "done",
       "priority": "P0",
       "owner_role": "designer",
       "acceptance": [
@@ -1881,7 +1881,11 @@
         "WF-CLI-001 campaign.json source_of_truth_target points at ledger.json"
       ],
       "depends_on": [],
-      "evidence": [],
+      "evidence": [
+        "docs/ledger/ledger.json WF-UI campaign",
+        "docs/ledger/audits/2026-07-25-abx-visual-qa.md visible-theme scope",
+        "docs/ledger/specs/WF-CLI-001/campaign.json"
+      ],
       "sources": [
         "docs/VERSION.md",
         "git log since 2026-07-22"
@@ -1949,7 +1953,7 @@
       "priority": "P0",
       "owner_role": "designer",
       "acceptance": [
-        "All 18 themes exercised on representative screens",
+        "All 14 visible picker themes exercised on representative screens (see themeOptions.ts HIDDEN_THEME_PICKER_IDS)",
         "Desktop and mobile breakpoints checked for shell and settings",
         "Audit doc lists pass/fail per theme-family with screenshot or evidence refs",
         "No LLM chat or agent invocation required"
