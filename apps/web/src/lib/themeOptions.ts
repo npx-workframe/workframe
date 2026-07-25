@@ -3,6 +3,14 @@ import { BookOpen, Layers, Moon, Newspaper, Notebook, Palette, Ruler, Sparkles, 
 
 import { THEME_DEFINITIONS, type Theme } from '@/lib/theme'
 
+/** Hidden from header switcher + settings appearance grid; themes stay valid if already selected. */
+const HIDDEN_THEME_PICKER_IDS = new Set<Theme>([
+  'mono',
+  'neo-color',
+  'minimal-color',
+  'leather-book',
+])
+
 export type ThemeOption = {
   value: Theme
   label: string
@@ -40,7 +48,9 @@ const THEME_ICON: Partial<Record<Theme, LucideIcon>> = {
   notebook: Notebook,
 }
 
-export const THEME_OPTIONS: ThemeOption[] = THEME_DEFINITIONS.map((definition) => ({
+export const THEME_OPTIONS: ThemeOption[] = THEME_DEFINITIONS.filter(
+  (definition) => !HIDDEN_THEME_PICKER_IDS.has(definition.id),
+).map((definition) => ({
   value: definition.id,
   label: definition.label,
   family: definition.family,
@@ -58,10 +68,10 @@ export const THEME_FAMILY_LABELS: Record<string, string> = {
   special: 'Specialized',
 }
 
-export const THEME_OPTION_GROUPS = [...new Set(THEME_OPTIONS.map((option) => option.family))].map(
-  (family) => ({
+export const THEME_OPTION_GROUPS = [...new Set(THEME_OPTIONS.map((option) => option.family))]
+  .map((family) => ({
     family,
     label: THEME_FAMILY_LABELS[family] ?? family,
     options: THEME_OPTIONS.filter((option) => option.family === family),
-  }),
-)
+  }))
+  .filter((group) => group.options.length > 0)

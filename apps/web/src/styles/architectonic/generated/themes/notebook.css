@@ -7,12 +7,17 @@
 :root[data-arch-theme="notebook"] {
   --bg: #fcfcfa; --surface: #ffffff; --surface-2: #f4f4f0; --surface-3: #e9e9e2;
   --fg: #26262b; --fg-muted: #5a5a61; --fg-subtle: #97979e;
-  --line: #e3e3dc; --line-strong: #c9c9c0;
+  --line: #d4d4cc; --line-strong: #b8b8ae; --line-soft: #e8e8e2;
   --primary: #26262b; --primary-hover: #111114; --primary-active: #000000; --primary-fg: #ffffff;
   --primary-soft: #ececE6; --accent-soft: #ececE6; --ring: #26262b;
   --ok: #4b5a4e; --ok-soft: #e8ece9; --warn: #6e6248; --warn-soft: #efece2; --bad: #6e4b45; --bad-soft: #eee4e2; --info: #4a4a52; --info-soft: #e9e9ee;
   --muted: #f4f4f0; --muted-hover: #e9e9e2;
-  --ar-radius-scale: 0.75;
+  --ar-radius-scale: 0; --radius-control: 0; --radius-card: 0; --border-w: 1px;
+  --scrollbar-radius: 0;
+  --chrome-fill: var(--bg);
+  --chrome-border-soft: var(--line-soft);
+  --chrome-border-strong: var(--line-strong);
+  --card-bg: var(--bg); --card-border: var(--line); --field-bg: var(--bg); --pop-bg: var(--bg);
   --theme-canvas-image: linear-gradient(rgba(38,38,43,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(38,38,43,0.055) 1px, transparent 1px);
   --theme-canvas-size: 24px 24px;
   --theme-canvas-position: -1px -1px;

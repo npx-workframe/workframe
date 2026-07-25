@@ -12,7 +12,7 @@
   --wf-focus-offset: 1px;
 
   --wf-input-height: 32px;
-  --wf-input-padding-x: 10px;
+  --wf-input-padding-x: 16px;
   --wf-input-border: var(--wf-chrome-border-solid);
   --wf-input-bg: color-mix(in srgb, var(--wf-bg) 80%, transparent);
 

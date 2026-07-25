@@ -571,7 +571,7 @@
 
 .wf-settings-shell__rail-title {
   margin: 0;
-  padding-inline-start: var(--wf-space-2);
+  padding-inline-start: var(--wf-rail-nav-label-inset);
   font-size: var(--wf-type-body);
   font-weight: 650;
   letter-spacing: -0.02em;
@@ -624,7 +624,7 @@
   flex-shrink: 0;
   padding: 0.75rem 1rem 1rem;
   padding-inline-start: var(--wf-space-2);
-  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
+  border-top: var(--wf-border-width, 1px) solid var(--wf-border);
 }
 
 .wf-settings-shell__main {
@@ -643,14 +643,22 @@
   border-bottom: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
 }
 
+.wf-settings-shell__header > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wf-space-1);
+}
+
 .wf-settings-shell__header .wf-dialog-title {
   font-size: 1.0625rem;
   font-weight: 650;
+  line-height: 1.2;
 }
 
 .wf-settings-shell__header .wf-dialog-description {
-  margin-top: 0.125rem;
+  margin-top: 0;
   font-size: var(--wf-type-body);
+  line-height: 1.25;
 }
 
 .wf-settings-shell__scroll {
@@ -729,8 +737,8 @@
   justify-content: flex-end;
   gap: 8px;
   padding: 0.75rem 2rem 1rem;
-  border-top: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
-  background: color-mix(in srgb, var(--wf-surface) 96%, var(--wf-bg));
+  border-top: var(--wf-border-width, 1px) solid var(--wf-border);
+  background: var(--wf-chrome-fill, var(--wf-surface));
 }
 
 .wf-dialog-content.wf-dialog-content--settings-compact {
@@ -1490,7 +1498,6 @@
   overflow: hidden;
   transition:
     box-shadow 0.15s ease,
-    transform 0.15s ease,
     border-color 0.15s ease,
     background 0.15s ease;
 }
@@ -1500,7 +1507,6 @@
   background: var(--wf-control-bg-active, color-mix(in srgb, var(--wf-bg) 88%, var(--wf-surface)));
   border-color: var(--wf-control-border-color-active, var(--wf-chrome-border-strong));
   box-shadow: var(--wf-control-shadow-active, var(--wf-control-shadow-raised));
-  transform: translateY(-1px);
 }
 
 .wf-provider-connect__row {

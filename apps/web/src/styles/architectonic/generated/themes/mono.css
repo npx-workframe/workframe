@@ -95,7 +95,7 @@
 
   --field-bg: var(--surface); --field-fg: var(--fg); --field-placeholder: var(--fg-subtle);
   --field-border: var(--line-strong); --field-border-width: var(--border-w); --field-hover-border: var(--fg-subtle); --field-focus-border: var(--primary);
-  --field-radius: var(--radius-control); --field-h: var(--ar-size-md); --field-px: calc(var(--ar-space-3) + min(var(--radius-control), 1.25rem) * 0.3); --field-font: var(--text-small);
+  --field-radius: var(--radius-control); --field-h: var(--ar-size-md); --field-px: 16px; --field-font: var(--text-small);
 
   --card-bg: var(--surface); --card-fg: var(--fg); --card-border: var(--line);
   --card-radius: var(--radius-card); --card-pad: var(--ar-space-6); --card-shadow: var(--shadow-card);
@@ -115,6 +115,12 @@
 
   --nav-bg: color-mix(in srgb, var(--surface) 85%, transparent);
   --nav-border: var(--line); --nav-h: calc(4rem * var(--ar-density));
+
+  /* Chrome on canvas/textured backgrounds — apps alias to local control tokens */
+  --chrome-fill: var(--surface);
+  --chrome-border-soft: var(--line-soft);
+  --chrome-border-strong: var(--line-strong);
+  --scrollbar-radius: var(--ar-radius-full);
 }
 
 /* =============================================================

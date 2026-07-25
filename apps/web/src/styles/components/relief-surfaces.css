@@ -596,7 +596,6 @@
   background: var(--wf-control-bg-raised);
   box-shadow: var(--wf-control-shadow-raised);
   color: var(--wf-text);
-  transform: translateY(-1px);
 }
 
 [data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked) .wf-sign-in-app__icon,
@@ -610,7 +609,6 @@
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-control-shadow-raised);
-  transform: translateY(-1px);
 }
 
 /* Step number badges — keep contrast on solid chrome-fill rail (neo-solid sweep must not flatten these). */
@@ -788,6 +786,11 @@
     padding-block: 6px;
     padding-inline: 0;
   }
+}
+
+[data-chrome-mode='relief'] .wf-dialog-content.wf-dialog-content--settings-shell {
+  border: var(--wf-border-width, 1px) solid var(--wf-border);
+  box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-dialog-content {

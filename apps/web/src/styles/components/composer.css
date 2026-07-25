@@ -30,6 +30,7 @@
   font-size: var(--wf-type-body);
   line-height: var(--wf-leading-body);
   padding-block: var(--wf-space-2);
+  padding-inline: var(--wf-input-padding-x);
 }
 
 .wf-composer__input:focus-visible {
@@ -47,7 +48,7 @@
   min-height: 22px;
   padding: 0 2px;
   border: 0;
-  background: transparent;
+  background: var(--wf-control-bg);
 }
 
 .wf-composer__reply-context-icon {
@@ -88,7 +89,7 @@
 }
 
 [data-chrome-mode='relief'] .wf-composer__reply-context {
-  background: transparent;
+  background: var(--wf-control-bg);
   box-shadow: none;
 }
 

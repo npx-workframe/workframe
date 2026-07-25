@@ -18,6 +18,7 @@
   --wf-surface-elevated: var(--card-bg, var(--surface));
   --wf-surface-sunken: var(--field-bg, var(--surface-2));
   --wf-input-bg: var(--field-bg);
+  --field-px: var(--wf-input-padding-x);
   --wf-input-border: var(--field-border);
   --wf-primary: var(--primary);
   --wf-primary-foreground: var(--primary-fg);
@@ -215,6 +216,49 @@
   --wf-btn-shadow-hover: var(--shadow-sm);
   --wf-btn-shadow-primary: var(--shadow-sm);
   --wf-icon-control-border-width: 0;
+}
+
+/* Blueprint + Notebook: square chrome; hairlines read above canvas texture. */
+:root:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) {
+  --wf-radius-knob-sm: 0;
+  --wf-radius-knob-md: 0;
+  --wf-radius-knob-lg: 0;
+  --wf-radius-browser-tab: 0;
+  --wf-scrollbar-radius: var(--scrollbar-radius, 0);
+  --wf-chrome-border-whisper: var(--chrome-border-soft, var(--line-soft));
+  --wf-chrome-border-subtle: var(--chrome-border-soft, var(--line-soft));
+  --wf-chrome-border-weak: var(--line);
+  --wf-chrome-border-light: var(--line);
+  --wf-chrome-border: var(--line);
+  --wf-chrome-border-dim: var(--line);
+  --wf-chrome-border-accent: var(--chrome-border-strong, var(--line-strong));
+  --wf-chrome-border-solid: var(--line);
+  --wf-chrome-border-strong: var(--chrome-border-strong, var(--line-strong));
+  --wf-chrome-border-drag: var(--chrome-border-strong, var(--line-strong));
+  --wf-chrome-border-heavy: var(--chrome-border-strong, var(--line-strong));
+  --wf-chrome-border-soft: var(--line);
+  --wf-chrome-border-faint: var(--chrome-border-soft, var(--line-soft));
+  --wf-chrome-border-ghost: var(--chrome-border-soft, var(--line-soft));
+  --wf-divider-color: var(--line);
+  --wf-tool-chrome-border: var(--line);
+  --wf-line-chrome-soft: var(--chrome-border-soft, var(--line-soft));
+  --wf-line-chrome-strong: var(--chrome-border-strong, var(--line-strong));
+  /* Opaque grid-mask fills — hover stays flat; borders carry interaction. */
+  --wf-control-bg: var(--chrome-fill, var(--bg));
+  --wf-control-bg-hover: var(--chrome-fill, var(--bg));
+  --wf-control-bg-active: var(--chrome-fill, var(--bg));
+  --wf-control-shadow-hover: none;
+}
+
+/* Neo: texture-soft / chrome-strong hairlines for line-based controls. */
+:root[data-arch-theme^='neo'][data-color-mode='light'] {
+  --wf-line-chrome-soft: color-mix(in srgb, var(--fg) 12%, transparent);
+  --wf-line-chrome-strong: color-mix(in srgb, var(--fg) 28%, transparent);
+}
+
+:root[data-arch-theme^='neo'][data-color-mode='dark'] {
+  --wf-line-chrome-soft: color-mix(in srgb, var(--fg) 10%, transparent);
+  --wf-line-chrome-strong: color-mix(in srgb, var(--fg) 24%, transparent);
 }
 
 :root[data-style='glass'] :is(.wf-dialog-content, .wf-auth-card, .wf-auth, .wf-onboarding-wizard) {

@@ -73,8 +73,12 @@
 }
 
 .wf-browser-tabs__close,
-.wf-browser-tabs__close:hover:not(:disabled) {
+.wf-browser-tabs__close:hover:not(:disabled),
+.wf-browser-tabs__close:focus-visible,
+.wf-browser-tabs__close:active {
   border: none;
+  border-width: 0;
+  border-color: transparent;
 }
 
 .wf-browser-tabs__close svg {
@@ -134,6 +138,12 @@
   font-family: var(--wf-font-mono);
   font-size: 11px;
   height: 28px;
+  min-height: 28px;
+}
+
+.wf-browser-chrome__address.wf-input {
+  height: 28px;
+  min-height: 28px;
 }
 
 .wf-browser-chrome__modes {

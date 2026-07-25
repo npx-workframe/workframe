@@ -22,6 +22,8 @@
   --wf-rail-list-gap: var(--wf-gap);
   /* Leaves the 3px/6px relief shadow room to resolve without clipping. */
   --wf-rail-inset-gutter: var(--wf-space-3);
+  /* Nav label text inset from rail outer edge (gutter + button padding-inline). */
+  --wf-rail-nav-label-inset: calc(var(--wf-rail-inset-gutter) + 0.625rem);
   --wf-rail-cell-gap: var(--wf-gap-tight);
 
   /* Scrollbar track = thumb + 2×inset (2+6+2 = 10px; rail 2+2+2 = 6px) */

@@ -2,8 +2,8 @@
 export const ARCHITECTONIC_THEME_REGISTRY = {
   "package": "@architectonic/design-system",
   "version": "0.4.0",
-  "sourceHash": "b30b4e8750724dcb6f0703ef8aec173260433578c8d0121e18536f2f6d1a7ffa",
-  "schemaVersion": 1,
+  "sourceHash": "3a7194cedf96e7b170b3ab85e1f09cd4bf3adc7e1662ee658b5a929007726a7c",
+  "schemaVersion": 2,
   "defaultTheme": "neo-light",
   "themes": [
     {
@@ -14,10 +14,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "lines",
       "preview": {
-        "canvas": "#f5f5f4",
+        "canvas": "#f7f9fb",
         "surface": "#ffffff",
-        "ink": "#111111",
-        "accent": "#111111"
+        "ink": "#0f172a",
+        "inkMuted": "#55637a",
+        "accent": "#0f172a",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "8px",
+        "border": "1px solid #d5dbe6",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "none"
       }
     },
     {
@@ -30,8 +38,16 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "preview": {
         "canvas": "#f7f9fb",
         "surface": "#ffffff",
-        "ink": "#171717",
-        "accent": "#6d5dfc"
+        "ink": "#0f172a",
+        "inkMuted": "#55637a",
+        "accent": "#0f172a",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "8px",
+        "border": "1px solid #d5dbe6",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "none"
       }
     },
     {
@@ -42,10 +58,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "lines",
       "preview": {
-        "canvas": "#0d1117",
-        "surface": "#161b22",
-        "ink": "#f3f4f6",
-        "accent": "#8b7cff"
+        "canvas": "#0b1120",
+        "surface": "#121a2b",
+        "ink": "#eef2f8",
+        "inkMuted": "#9aa7bd",
+        "accent": "#eef2f8",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "8px",
+        "border": "1px solid #33425e",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "none"
       }
     },
     {
@@ -56,10 +80,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "lines",
       "preview": {
-        "canvas": "#f7f4ff",
+        "canvas": "#f7f9fb",
         "surface": "#ffffff",
-        "ink": "#261f3d",
-        "accent": "#7c3aed"
+        "ink": "#0f172a",
+        "inkMuted": "#55637a",
+        "accent": "#0f766e",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "8px",
+        "border": "1px solid #d5dbe6",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "none"
       }
     },
     {
@@ -70,10 +102,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "neo",
       "preview": {
-        "canvas": "#e6e9ef",
-        "surface": "#e6e9ef",
-        "ink": "#272a34",
-        "accent": "#7c5cff"
+        "canvas": "#e0e0e6",
+        "surface": "#e0e0e6",
+        "ink": "#27272a",
+        "inkMuted": "#5d5d66",
+        "accent": "#51466f",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "12px",
+        "border": "none",
+        "cardShadow": "3px 3px 6px rgba(0,0,0,0.15), -3px -3px 6px rgba(255,255,255,0.8)",
+        "panelShadow": "3px 3px 6px rgba(0,0,0,0.15), -3px -3px 6px rgba(255,255,255,0.8)",
+        "panelInsetShadow": "inset 3px 3px 6px rgba(0,0,0,0.15), inset -3px -3px 6px rgba(255,255,255,0.8)",
+        "panelBorder": "none"
       }
     },
     {
@@ -84,10 +124,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "neo",
       "preview": {
-        "canvas": "#202936",
-        "surface": "#202936",
-        "ink": "#f4f7fb",
-        "accent": "#8ca3ff"
+        "canvas": "#2a2d34",
+        "surface": "#2a2d34",
+        "ink": "#f4f4f5",
+        "inkMuted": "#b5b7bd",
+        "accent": "#d9d4ec",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "12px",
+        "border": "none",
+        "cardShadow": "3px 3px 6px rgba(0,0,0,0.5), -3px -3px 6px rgba(255,255,255,0.1)",
+        "panelShadow": "3px 3px 6px rgba(0,0,0,0.5), -3px -3px 6px rgba(255,255,255,0.1)",
+        "panelInsetShadow": "inset 3px 3px 6px rgba(0,0,0,0.5), inset -3px -3px 6px rgba(255,255,255,0.1)",
+        "panelBorder": "none"
       }
     },
     {
@@ -98,10 +146,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "neo",
       "preview": {
-        "canvas": "#dfe9ff",
-        "surface": "#dfe9ff",
-        "ink": "#1d3153",
-        "accent": "#366ed8"
+        "canvas": "#e6e1f2",
+        "surface": "#e6e1f2",
+        "ink": "#2f2a45",
+        "inkMuted": "#5c5479",
+        "accent": "#5b4b8a",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "12px",
+        "border": "none",
+        "cardShadow": "3px 3px 6px rgba(47,42,69,0.18), -3px -3px 6px rgba(255,255,255,0.78)",
+        "panelShadow": "3px 3px 6px rgba(47,42,69,0.18), -3px -3px 6px rgba(255,255,255,0.78)",
+        "panelInsetShadow": "inset 3px 3px 6px rgba(47,42,69,0.18), inset -3px -3px 6px rgba(255,255,255,0.78)",
+        "panelBorder": "none"
       }
     },
     {
@@ -112,10 +168,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "brutalist",
       "preview": {
-        "canvas": "#fff8e7",
+        "canvas": "#fffdf7",
         "surface": "#ffffff",
         "ink": "#111111",
-        "accent": "#ff3b30"
+        "inkMuted": "#3d3d3d",
+        "accent": "#ff90e8",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "4px",
+        "border": "2px solid #111111",
+        "cardShadow": "3px 3px 0 #111111",
+        "panelShadow": "3px 3px 0 #111111",
+        "panelInsetShadow": "none",
+        "panelBorder": "2px solid #111111"
       }
     },
     {
@@ -127,9 +191,17 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "family": "brutalist",
       "preview": {
         "canvas": "#111111",
-        "surface": "#191919",
-        "ink": "#ffffff",
-        "accent": "#ffe500"
+        "surface": "#1a1a1a",
+        "ink": "#f5f2ea",
+        "inkMuted": "#c9c4b8",
+        "accent": "#ff90e8",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "4px",
+        "border": "2px solid #f5f2ea",
+        "cardShadow": "3px 3px 0 #f5f2ea",
+        "panelShadow": "3px 3px 0 #f5f2ea",
+        "panelInsetShadow": "none",
+        "panelBorder": "2px solid #f5f2ea"
       }
     },
     {
@@ -140,10 +212,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "aurora",
       "family": "glass",
       "preview": {
-        "canvas": "#eaf4ff",
-        "surface": "#ffffff",
+        "canvas": "#dfe6f2",
+        "surface": "color-mix(in srgb, #ffffff 30%, transparent)",
         "ink": "#17233f",
-        "accent": "#6e61ff"
+        "inkMuted": "#4a5a78",
+        "accent": "#6e61ff",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "16px",
+        "border": "1px solid rgb(255 255 255 / 34%)",
+        "cardShadow": "0 8px 24px rgb(15 23 42 / 12%)",
+        "panelShadow": "0 5px 12px rgb(0 0 0 / 12%)",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid rgb(255 255 255 / 34%)"
       }
     },
     {
@@ -154,10 +234,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "aurora",
       "family": "glass",
       "preview": {
-        "canvas": "#090d1a",
-        "surface": "#161d33",
+        "canvas": "#10131c",
+        "surface": "color-mix(in srgb, #161d33 30%, transparent)",
         "ink": "#f4f7ff",
-        "accent": "#8e7cff"
+        "inkMuted": "#9aa8c7",
+        "accent": "#8e7cff",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "16px",
+        "border": "1px solid rgb(255 255 255 / 14%)",
+        "cardShadow": "0 10px 28px rgb(0 0 0 / 45%)",
+        "panelShadow": "0 5px 12px rgb(0 0 0 / 35%)",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid rgb(255 255 255 / 14%)"
       }
     },
     {
@@ -168,10 +256,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "frost",
       "family": "glass",
       "preview": {
-        "canvas": "#edf2f5",
-        "surface": "#f8fbfd",
+        "canvas": "#e4e8ef",
+        "surface": "color-mix(in srgb, #f8fbfd 62%, transparent)",
         "ink": "#1c252c",
-        "accent": "#4d7c8a"
+        "inkMuted": "#5c6b75",
+        "accent": "#4d7c8a",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "10px",
+        "border": "1px solid rgb(255 255 255 / 40%)",
+        "cardShadow": "0 6px 18px rgb(15 23 42 / 10%)",
+        "panelShadow": "0 4px 10px rgb(0 0 0 / 8%)",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid rgb(255 255 255 / 40%)"
       }
     },
     {
@@ -182,10 +278,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "frost",
       "family": "glass",
       "preview": {
-        "canvas": "#161b20",
-        "surface": "#222a30",
+        "canvas": "#14161d",
+        "surface": "color-mix(in srgb, #222a30 62%, transparent)",
         "ink": "#f1f5f7",
-        "accent": "#8cb8c4"
+        "inkMuted": "#9aa5ad",
+        "accent": "#8cb8c4",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "10px",
+        "border": "1px solid rgb(255 255 255 / 12%)",
+        "cardShadow": "0 8px 22px rgb(0 0 0 / 40%)",
+        "panelShadow": "0 4px 10px rgb(0 0 0 / 30%)",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid rgb(255 255 255 / 12%)"
       }
     },
     {
@@ -196,10 +300,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "none",
       "family": "special",
       "preview": {
-        "canvas": "#f4e8c1",
-        "surface": "#fff8dc",
-        "ink": "#151515",
-        "accent": "#e43d30"
+        "canvas": "#f6f1e7",
+        "surface": "#ffffff",
+        "ink": "#16160f",
+        "inkMuted": "#44412f",
+        "accent": "#2242c8",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "0",
+        "border": "2px solid #16160f",
+        "cardShadow": "4px 4px 0 #16160f",
+        "panelShadow": "3px 3px 0 #16160f",
+        "panelInsetShadow": "none",
+        "panelBorder": "2px solid #16160f"
       }
     },
     {
@@ -210,10 +322,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "leather",
       "family": "special",
       "preview": {
-        "canvas": "#3b2318",
-        "surface": "#6b3d24",
-        "ink": "#f4e3c1",
-        "accent": "#d0a85c"
+        "canvas": "#ede3cd",
+        "surface": "#f7f0de",
+        "ink": "#3a2c1c",
+        "inkMuted": "#6b5949",
+        "accent": "#7a4a21",
+        "fontFamily": "\"EB Garamond\", Georgia, serif",
+        "radius": "6px",
+        "border": "1px solid #d3c3a0",
+        "cardShadow": "0 1px 3px rgba(58,44,28,0.25)",
+        "panelShadow": "0 1px 3px rgba(58,44,28,0.25)",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid #cbb98f"
       }
     },
     {
@@ -224,10 +344,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "paper",
       "family": "special",
       "preview": {
-        "canvas": "#f4f0e6",
-        "surface": "#faf7ef",
-        "ink": "#1e1e1b",
-        "accent": "#b22d21"
+        "canvas": "#faf7f0",
+        "surface": "#faf7f0",
+        "ink": "#191817",
+        "inkMuted": "#45423c",
+        "accent": "#191817",
+        "fontFamily": "\"Source Serif 4\", Georgia, serif",
+        "radius": "0",
+        "border": "1px solid #191817",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "none"
       }
     },
     {
@@ -238,10 +366,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "notebook",
       "family": "special",
       "preview": {
-        "canvas": "#f7f1dc",
-        "surface": "#fffaf0",
-        "ink": "#25324a",
-        "accent": "#d94c4c"
+        "canvas": "#fcfcfa",
+        "surface": "#ffffff",
+        "ink": "#26262b",
+        "inkMuted": "#5a5a61",
+        "accent": "#26262b",
+        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "radius": "0",
+        "border": "1px solid #d4d4cc",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid #d4d4cc"
       }
     },
     {
@@ -252,10 +388,18 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "texture": "blueprint",
       "family": "special",
       "preview": {
-        "canvas": "#0d3a66",
-        "surface": "#174f84",
-        "ink": "#e8f5ff",
-        "accent": "#69c6ff"
+        "canvas": "#1d3d5c",
+        "surface": "#234666",
+        "ink": "#eaf2f9",
+        "inkMuted": "#a9c3d8",
+        "accent": "#eaf2f9",
+        "fontFamily": "\"IBM Plex Sans\", ui-sans-serif, sans-serif",
+        "radius": "0",
+        "border": "1px solid rgba(234,242,249,0.38)",
+        "cardShadow": "none",
+        "panelShadow": "none",
+        "panelInsetShadow": "none",
+        "panelBorder": "1px solid rgba(234,242,249,0.38)"
       }
     }
   ],

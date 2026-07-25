@@ -45,6 +45,8 @@
 @import './styles/components/btn-showcase.css';
 @import './styles/components/theme-showcase.css';
 @import './styles/components/relief-surfaces.css';
+@import './styles/components/special-theme-chrome.css';
+@import './styles/components/line-monochrome-chrome.css';
 
 /* Single-line truncation inside flex/grid rows */
 .wf-truncate {

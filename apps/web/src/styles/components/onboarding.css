@@ -56,7 +56,7 @@
   align-items: center;
   gap: var(--wf-gap);
   margin-block-start: var(--wf-space-2);
-  margin-inline-start: var(--wf-space-2);
+  margin-inline-start: var(--wf-rail-inset-gutter);
 }
 
 .wf-onboarding-wizard__logo {
@@ -180,6 +180,7 @@
 .wf-onboarding-wizard__group-label {
   display: block;
   margin-bottom: 6px;
+  padding-inline-start: var(--wf-space-2);
   font-size: var(--wf-type-micro);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -452,9 +453,9 @@
 }
 
 .wf-onboarding-wizard__description {
-  margin: 8px 0 0;
+  margin: var(--wf-space-1) 0 0;
   font-size: var(--wf-type-body);
-  line-height: 1.5;
+  line-height: 1.35;
   color: color-mix(in srgb, var(--wf-text) 70%, var(--wf-muted));
 }
 

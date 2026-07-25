@@ -1,0 +1,133 @@
+/* Blueprint + Notebook - square chrome on Workframe surfaces (radius knobs -> 0 in bridge). */
+
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
+  .wf-browser-tabs__tab,
+  .wf-browser-tabs__add,
+  .wf-browser-tabs__close,
+  .wf-browser-chrome__toolbar button.wf-tool-btn,
+  .wf-browser-chrome__address,
+  .wf-composer__input,
+  .wf-composer__toolbar button.wf-tool-btn,
+  .wf-agent-rail__item,
+  .wf-agent-rail__toggle,
+  .wf-agent-rail__section-action,
+  .wf-agent-rail__section-action--icon,
+  .wf-message-actions__button,
+  .wf-message-reaction,
+  .wf-message__reply-context,
+  .wf-message__reply-context-icon,
+  .wf-tool-run,
+  button.wf-tool-btn,
+  .wf-input,
+  .wf-action-btn,
+  .wf-popover,
+  .wf-popover__row,
+  .wf-floating-menu
+) {
+  border-radius: 0;
+}
+
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) button.wf-agent-rail__section-action--icon,
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) button.wf-agent-rail__toggle {
+  border-radius: 0;
+}
+
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-browser-chrome,
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-browser-chrome__toolbar {
+  border-color: var(--wf-border);
+}
+
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-composer__input {
+  border-color: var(--wf-border);
+}
+
+/* No glass: solid theme bg or transparent only. */
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
+  .wf-floating-menu,
+  .wf-popover,
+  .wf-dialog-select__menu
+) {
+  background: var(--wf-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) .wf-popover__header {
+  background: var(--wf-bg);
+}
+
+/* Solid theme bg on filled surfaces (grid must not show through). */
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
+  .wf-agent-rail__item,
+  .wf-agent-rail__item:hover:not(:disabled):not([aria-disabled='true']),
+  .wf-agent-rail__item--active,
+  .wf-agent-rail__item--active:hover,
+  .wf-composer__input,
+  .wf-composer__input:focus-visible,
+  .wf-composer__reply-context,
+  .wf-composer__working-context,
+  .wf-composer__toolbar button.wf-tool-btn,
+  .wf-composer__toolbar button.wf-tool-btn:hover:not(:disabled),
+  .wf-message__reply-context.wf-tool-btn,
+  .wf-message__reply-context.wf-tool-btn:not(:disabled):hover,
+  .wf-message-reaction.wf-tool-btn,
+  .wf-message-reaction.wf-tool-btn:hover:not(:disabled),
+  .wf-message-reaction.wf-tool-btn[aria-pressed='true'],
+  .wf-tool-run,
+  .wf-tool-run--running,
+  .wf-tool-run--error,
+  .wf-browser-chrome,
+  .wf-browser-chrome__toolbar,
+  .wf-browser-chrome__address,
+  .wf-browser-chrome__address:focus-visible,
+  .wf-browser-tabs__tab--active,
+  .wf-browser-tabs__tab--active:hover,
+  .wf-popover,
+  .wf-popover__header,
+  .wf-popover__row,
+  .wf-popover__row:hover:not(:disabled),
+  .wf-popover__row[data-selected='true']
+) {
+  background: var(--wf-bg);
+}
+
+/* Tab strip stays transparent; only the active tab link is filled. */
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook']) :is(
+  .wf-browser-tabs,
+  .wf-browser-tabs__tab:not(.wf-browser-tabs__tab--active),
+  .wf-browser-tabs__add
+) {
+  background: transparent;
+}
+
+html:is([data-arch-theme='blueprint'], [data-arch-theme='notebook'])[data-chrome-mode='relief'] :is(
+  .wf-agent-rail__item,
+  .wf-agent-rail__item:hover:not(:disabled):not([aria-disabled='true']),
+  .wf-agent-rail__item--active,
+  .wf-agent-rail__item--active:hover,
+  .wf-composer__input,
+  .wf-composer__input:focus-visible,
+  .wf-composer__reply-context,
+  .wf-composer__toolbar button.wf-tool-btn,
+  .wf-composer__toolbar button.wf-tool-btn:hover:not(:disabled),
+  .wf-tool-run,
+  .wf-tool-run--running,
+  .wf-tool-run--error,
+  .wf-tool-run:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])),
+  .wf-tool-run:has(.wf-tool-run__header--button):not(:has(.wf-tool-run__header--button[aria-expanded='true'])):hover,
+  .wf-tool-run:has(.wf-tool-run__header--button[aria-expanded='true']),
+  .wf-browser-chrome,
+  .wf-browser-chrome__toolbar,
+  .wf-browser-chrome__address,
+  .wf-browser-chrome__address:focus-visible,
+  .wf-popover,
+  .wf-popover__header,
+  .wf-popover__row,
+  .wf-popover__row:hover:not(:disabled),
+  .wf-popover__row[data-selected='true']
+) {
+  background: var(--wf-bg);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

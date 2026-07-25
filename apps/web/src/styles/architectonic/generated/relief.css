@@ -20,6 +20,36 @@
 [data-style="lines"] .archi-card,
 [data-style="lines"] .archi-shell { box-shadow: none; }
 
+/* Textured line identities — grid canvas must not bleed through filled controls. */
+:root:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] {
+  --surface: var(--bg);
+  --surface-2: var(--bg);
+  --surface-3: var(--bg);
+  --muted: var(--bg);
+  --muted-hover: var(--bg);
+  --field-bg: var(--chrome-fill);
+  --card-bg: var(--chrome-fill);
+  --pop-bg: var(--chrome-fill);
+  --card-shadow: none;
+  --shadow-pop: none;
+}
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-card,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-input,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-textarea,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-select,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-cselect__trigger,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .btn--secondary,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .btn--outline {
+  background: var(--chrome-fill);
+}
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .archi-card--interactive:hover,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .btn--secondary:hover,
+:is([data-arch-theme="blueprint"], [data-arch-theme="notebook"])[data-style="lines"] .btn--outline:hover {
+  background: var(--chrome-fill);
+  border-color: var(--chrome-border-strong);
+  box-shadow: none;
+}
+
 /* ============================ SHADOWS (neumorphism) ============================ */
 [data-style="shadows"] {
   /* surfaces collapse onto the body colour — separation is pure relief */
