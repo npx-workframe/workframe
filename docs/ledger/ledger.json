@@ -1927,7 +1927,7 @@
     {
       "id": "WF-UI-003",
       "title": "Fresh ABX dogfood install from published pack",
-      "summary": "Wipe ABX install root, npx create-workframe@0.1.26 ABX, complete trusted_team wizard with SMTP and admin OTP for alan@click.blue.",
+      "summary": "Wipe ABX install root, npx create-workframe@0.1.26 ABX, complete trusted_team wizard with SMTP and admin OTP.",
       "status": "backlog",
       "priority": "P0",
       "owner_role": "tests",
