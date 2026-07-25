@@ -1,26 +1,125 @@
 /* =============================================================
    ARCHI · THEME — BAUHAUS
-   light only · Mondrian primaries, hard geometry, thick strokes
+   Clone of brutalist-light · 2px strokes, solid offset shadows on hover/active
    Scoped to [data-arch-theme] so it layers over mono + a style axis.
    ============================================================= */
 
 :root[data-arch-theme="bauhaus"] {
-  --bg: #f6f1e7; --surface: #ffffff; --surface-2: #efe9db; --surface-3: #e5ddc9;
-  --fg: #16160f; --fg-muted: #44412f; --fg-subtle: #77735c;
-  --border-w: 2px; --ar-radius-scale: 0; --radius-control: 0; --radius-card: 0;
-  --line: #16160f; --line-strong: #16160f;
-  --primary: #2242c8; --primary-hover: #1b36a6; --primary-active: #152b85; --primary-fg: #ffffff;
-  --primary-soft: #dfe4f7; --accent-soft: #dfe4f7; --ring: #2242c8;
-  --ok: #2242c8; --ok-soft: #dfe4f7; --ok-fg: #ffffff;
-  --warn: #f7c948; --warn-soft: #fdf3d7; --warn-fg: #16160f;
-  --bad: #d33a2c; --bad-soft: #f9e0dd; --bad-fg: #ffffff;
-  --info: #2242c8; --info-soft: #dfe4f7;
-  --card-border: #16160f; --field-border: #16160f; --pop-border: #16160f;
-  --shadow-card: 4px 4px 0 #16160f; --card-shadow: 4px 4px 0 #16160f;
-  --pop-shadow: 5px 5px 0 #16160f; --shadow-pop: 5px 5px 0 #16160f; --shadow-modal: 8px 8px 0 #16160f;
+  --border-w: 2px;
+  --font-sans: "Helvetica Neue", Helvetica, Futura, "Century Gothic", Avenir, "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  --font-display: Futura, "Century Gothic", "Helvetica Neue", Helvetica, Avenir, Arial, sans-serif;
+  --font-mono: "Helvetica Neue", Helvetica, Futura, "Century Gothic", Avenir, "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+  --ar-radius-scale: 0;
+  --radius-control: 0;
+  --radius-card: 0;
+  --scrollbar-radius: 0;
+  --brutalist-ink: var(--structural-ink);
+  --brutalist-paper: var(--structural-paper);
+  --brutalist-shadow: 3px 3px 0 var(--brutalist-ink);
+  --line: var(--brutalist-ink);
+  --line-strong: var(--brutalist-ink);
+  --line-soft: color-mix(in srgb, var(--brutalist-ink) 35%, transparent);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 5px 5px 0 var(--brutalist-ink);
+  --shadow-xl: 6px 6px 0 var(--brutalist-ink);
+  --shadow-card: 4px 4px 0 var(--brutalist-ink);
+  --card-shadow: var(--shadow-card);
+  --shadow-pop: 5px 5px 0 var(--brutalist-ink);
+  --pop-shadow: var(--shadow-pop);
+  --shadow-modal: 8px 8px 0 var(--brutalist-ink);
+  --card-border: var(--brutalist-ink);
+  --field-border: var(--brutalist-ink);
+  --pop-border: var(--brutalist-ink);
   --btn-weight: var(--ar-weight-bold);
-  --muted: #efe9db; --muted-hover: #e5ddc9;
+  --bauhaus-blue: #0b3d91;
+  --bauhaus-red: #d40920;
+  --bauhaus-black: #111111;
+  --bauhaus-white: #eeeeee;
+  --bauhaus-yellow: #fecc00;
+  --bauhaus-black-rgb: 17 17 17;
+  --bauhaus-white-rgb: 238 238 238;
+  --bauhaus-on-dark: var(--bauhaus-white);
+  --structural-ink: var(--bauhaus-black);
+  --structural-paper: var(--bauhaus-white);
+  --accent-panel-yellow: var(--bauhaus-yellow);
+  --accent-panel-blue: var(--bauhaus-blue);
+  --accent-panel-red: var(--bauhaus-red);
+  --accent-chrome: var(--bauhaus-black);
+  --accent-chrome-fg: var(--bauhaus-on-dark);
+  --primary: var(--bauhaus-blue);
+  --primary-hover: #082d6e;
+  --primary-active: #061f4d;
+  --primary-fg: var(--bauhaus-on-dark);
+  --primary-soft: #dce8f5;
+  --bad: var(--bauhaus-red);
+  --bad-fg: var(--bauhaus-on-dark);
+  --accent-soft: #dce8f5;
+  --ring: var(--brutalist-ink);
+  --chrome-fill: var(--bg);
+  --chrome-border-soft: var(--brutalist-ink);
+  --chrome-border-strong: var(--brutalist-ink);
+  --card-bg: var(--bg);
+  --field-bg: var(--bg);
+  --pop-bg: var(--bg);
+  --bg: var(--bauhaus-white);
+  --surface: var(--bauhaus-white);
+  --surface-2: color-mix(in srgb, var(--bauhaus-white) 94%, var(--bauhaus-black));
+  --surface-3: color-mix(in srgb, var(--bauhaus-white) 88%, var(--bauhaus-black));
+  --fg: var(--bauhaus-black);
+  --fg-muted: var(--fg);
+  --fg-subtle: var(--fg);
+  --muted: var(--surface-2);
+  --muted-hover: var(--surface-3);
 }
-html[data-arch-theme="bauhaus"] .btn { border: 2px solid #16160f; }
-html[data-arch-theme="bauhaus"] .btn--secondary { background: #f7c948; color: #16160f; }
-html[data-arch-theme="bauhaus"] .btn--secondary:hover { background: #d33a2c; color: #ffffff; }
+
+/* Buttons — square, 2px ink stroke; solid shadow on hover/active only. */
+html[data-arch-theme="bauhaus"] .btn:not(.btn--ghost):not(.btn--link) {
+  border: 2px solid var(--brutalist-ink);
+  border-radius: 0;
+  background: var(--brutalist-paper);
+  color: var(--brutalist-ink);
+  box-shadow: none;
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+html[data-arch-theme="bauhaus"] .btn:not(.btn--ghost):not(.btn--link):hover {
+  background: var(--brutalist-paper);
+  color: var(--brutalist-ink);
+  border-color: var(--brutalist-ink);
+  box-shadow: var(--brutalist-shadow);
+  transform: translate(-1px, -1px);
+}
+
+html[data-arch-theme="bauhaus"] .btn:not(.btn--ghost):not(.btn--link):active,
+html[data-arch-theme="bauhaus"] .btn:not(.btn--ghost):not(.btn--link)[aria-pressed="true"] {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--brutalist-ink);
+}
+
+html[data-arch-theme="bauhaus"] .btn--primary:not(.btn--ghost):not(.btn--link) {
+  background: var(--brutalist-paper);
+  color: var(--brutalist-ink);
+  border-color: var(--brutalist-ink);
+}
+
+html[data-arch-theme="bauhaus"] .btn--ghost,
+html[data-arch-theme="bauhaus"] .btn--link {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+html[data-arch-theme="bauhaus"] .btn--ghost:hover,
+html[data-arch-theme="bauhaus"] .btn--link:hover {
+  background: transparent;
+  color: var(--brutalist-ink);
+  box-shadow: none;
+}
+
+/* Icon-only buttons stay circular; labelled controls stay square. */
+html[data-arch-theme="bauhaus"] .btn--icon {
+  border-radius: 50%;
+}

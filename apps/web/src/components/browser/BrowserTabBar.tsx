@@ -42,7 +42,7 @@ export function BrowserTabBar() {
       <Button
         type="button"
         variant="ghost"
-        size="icon"
+        size="toolbarIcon"
         className="wf-browser-tabs__add"
         onClick={openNewTab}
         aria-label="New tab"

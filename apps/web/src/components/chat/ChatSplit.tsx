@@ -697,6 +697,7 @@ export function ChatSplit() {
           </div>
         ) : null}
         <div className="wf-chat-split__messages">
+          <div className="wf-chat-column wf-chat-column--messages">
           {roomLoading && roomMessages === null ? (
             <p className="wf-message-list__empty">Loading {humanRoom.name}…</p>
           ) : null}
@@ -707,6 +708,7 @@ export function ChatSplit() {
             interactionScope={chatInteractionScope}
             onReply={beginReply}
           />
+          </div>
         </div>
 
         <div
@@ -721,6 +723,7 @@ export function ChatSplit() {
         />
 
         <div className="wf-chat-split__composer" style={{ height: composerHeight }}>
+          <div className="wf-chat-column wf-chat-column--composer">
           <Composer
             ref={composerRef}
             onMinHeightChange={setComposerMinPx}
@@ -739,6 +742,7 @@ export function ChatSplit() {
                 : `Message ${humanRoom.name}…`
             }
           />
+          </div>
         </div>
       </div>
       <CommandModelPickerMount />
@@ -756,6 +760,7 @@ export function ChatSplit() {
         onConnected={() => setProviderDialogOpen(false)}
       />
       <div className="wf-chat-split__messages">
+        <div className="wf-chat-column wf-chat-column--messages">
         <MessageList
           nativeAgentName={agentDisplayName}
           messagesOverride={displayAgentMessages}
@@ -763,6 +768,7 @@ export function ChatSplit() {
           interactionScope={chatInteractionScope}
           onReply={beginReply}
         />
+        </div>
       </div>
 
       <div
@@ -777,6 +783,7 @@ export function ChatSplit() {
       />
 
       <div className="wf-chat-split__composer" style={{ height: composerHeight }}>
+        <div className="wf-chat-column wf-chat-column--composer">
         <Composer
           ref={composerRef}
           onMinHeightChange={setComposerMinPx}
@@ -789,6 +796,7 @@ export function ChatSplit() {
           onCancelReply={() => setReplyState(null)}
           placeholder={`Message ${agentDisplayName}…`}
         />
+        </div>
       </div>
     </div>
     <CommandModelPickerMount />

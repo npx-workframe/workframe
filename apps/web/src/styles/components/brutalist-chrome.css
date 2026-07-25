@@ -1,0 +1,371 @@
+/* Brutalist — square tiles (shadow on hover) vs small icons (border on hover only). */
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) {
+  --wf-brutalist-ink: var(--fg);
+  --wf-brutalist-paper: var(--bg);
+  --wf-brutalist-shadow: 3px 3px 0 var(--wf-brutalist-ink);
+  --wf-brutalist-small-icon-border: 2px solid var(--wf-brutalist-ink);
+  --wf-muted: var(--wf-brutalist-ink);
+  color: var(--wf-brutalist-ink);
+}
+
+/* Structural chrome — square corners on tiles and shells. */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-browser-tabs__tab,
+  .wf-browser-chrome__address,
+  .wf-composer__input,
+  .wf-agent-rail__item,
+  .wf-composer__reply-context,
+  .wf-message__reply-context.wf-tool-btn,
+  .wf-composer__working-context,
+  .wf-tool-run,
+  .wf-input,
+  .wf-action-btn,
+  .wf-popover,
+  .wf-popover__row,
+  .wf-floating-menu,
+  .wf-onboarding-wizard__step-btn,
+  .wf-settings-shell__nav-btn,
+  .wf-theme-switcher__item,
+  .wf-wizard-choice-card,
+  .wf-dialog__option,
+  .wf-dialog-select-list__option,
+  .wf-composer,
+  .wf-composer__shell,
+  .wf-browser-chrome,
+  .wf-panel__header,
+  .wf-scroll__thumb,
+  .wf-message-reaction.wf-tool-btn
+) {
+  border-radius: 0 !important;
+}
+
+/* Large tiles — 2px border at rest; solid shadow on hover/active. */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-agent-rail__item,
+  .wf-composer__reply-context,
+  .wf-message__reply-context.wf-tool-btn,
+  .wf-composer__working-context,
+  .wf-tool-run,
+  .wf-browser-tabs__tab,
+  .wf-popover__row,
+  .wf-message-reaction-menu__item,
+  .wf-onboarding-wizard__step-btn,
+  .wf-settings-shell__nav-btn,
+  .wf-theme-switcher__item,
+  .wf-wizard-choice-card,
+  .wf-dialog__option,
+  .wf-dialog-select-list__option
+) {
+  background: var(--wf-brutalist-paper);
+  color: var(--wf-brutalist-ink);
+  border: 2px solid var(--wf-brutalist-ink);
+  box-shadow: none;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-browser-tabs,
+  .wf-browser-tabs__tab:not(.wf-browser-tabs__tab--active):not(:hover)
+) {
+  background: transparent;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-agent-rail__item:hover:not(:disabled):not([aria-disabled='true']):not(.wf-agent-rail__item--active),
+  .wf-composer__reply-context:hover,
+  .wf-message__reply-context.wf-tool-btn:not(:disabled):hover,
+  .wf-composer__working-context:hover,
+  .wf-tool-run:hover,
+  .wf-tool-run:has(.wf-tool-run__header--button:hover),
+  .wf-browser-tabs__tab:not(.wf-browser-tabs__tab--active):hover,
+  .wf-popover__row:hover:not(:disabled),
+  .wf-message-reaction-menu__item:hover,
+  .wf-message-reaction-menu__item:focus,
+  .wf-message-reaction-menu__item[data-highlighted],
+  .wf-onboarding-wizard__step-btn:hover,
+  .wf-settings-shell__nav-btn:hover:not([aria-selected='true']),
+  .wf-theme-switcher__item:hover:not([aria-current='true']),
+  .wf-wizard-choice-card:hover,
+  .wf-dialog__option:hover,
+  .wf-dialog-select-list__option:hover
+) {
+  background: var(--wf-brutalist-paper);
+  color: var(--wf-brutalist-ink);
+  border-color: var(--wf-brutalist-ink);
+  box-shadow: var(--wf-brutalist-shadow);
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-agent-rail__item--active,
+  .wf-agent-rail__item--active:hover,
+  .wf-browser-tabs__tab--active,
+  .wf-browser-tabs__tab--active:hover,
+  .wf-popover__row[data-selected='true'],
+  .wf-popover__row[data-selected='true']:hover,
+  .wf-settings-shell__nav-btn[aria-selected='true'],
+  .wf-settings-shell__nav-btn--solo,
+  .wf-theme-switcher__item[aria-current='true'],
+  .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn,
+  .wf-dialog__option.is-selected,
+  .wf-dialog__option[data-current='true'],
+  .wf-dialog-select-list__option.is-selected,
+  .wf-tool-run:has(.wf-tool-run__header--button[aria-expanded='true'])
+) {
+  background: var(--wf-brutalist-paper);
+  color: var(--wf-brutalist-ink);
+  border-color: var(--wf-brutalist-ink);
+  box-shadow: var(--wf-brutalist-shadow);
+}
+
+/* Inputs */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-composer__input,
+  .wf-browser-chrome__address,
+  .wf-input,
+  .wf-textarea
+) {
+  border: 2px solid var(--wf-brutalist-ink);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--wf-brutalist-paper);
+}
+
+/* Floating + modal shells */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-floating-menu,
+  .wf-popover,
+  .wf-dialog-select__menu,
+  .wf-message-reaction-menu.wf-floating-menu,
+  .wf-message-reaction-tooltip,
+  .wf-message-navigator__preview
+) {
+  background: var(--wf-surface-floating-bg);
+  border: 2px solid var(--wf-brutalist-ink);
+  box-shadow: var(--wf-brutalist-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  .wf-dialog-content,
+  .wf-dialog-content.wf-dialog-content--settings-shell,
+  .wf-onboarding-wizard,
+  .wf-auth__card,
+  .wf-onboarding-launch__card,
+  .wf-settings-stack .wf-settings-section,
+  .wf-settings-card,
+  .wf-wizard-mode-card
+) {
+  background: var(--wf-surface-modal-bg);
+  border: 2px solid var(--wf-brutalist-ink);
+  box-shadow: var(--wf-surface-modal-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+}
+
+/*
+ * Small icons — one contract everywhere:
+ * rest: no border, no shadow; hover/active/pressed: border only, no shadow.
+ * Default tool buttons are square; only locked 1:1 targets go circular.
+ */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) button.wf-tool-btn {
+  border-radius: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Reply / react message actions — square (22×22), never stadium/oval. */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) .wf-message-actions__button.wf-tool-btn {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  flex-shrink: 0;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  button.wf-tool-btn.wf-tool-btn--icon:not(.wf-message-actions__button),
+  button.wf-panel__control-btn,
+  button.wf-agent-rail__toggle,
+  .wf-composer__toolbar button.wf-tool-btn:not(.wf-tool-btn--send):not(.wf-tool-btn--text),
+  .wf-composer__reply-context-close.wf-tool-btn,
+  .wf-browser-chrome__toolbar button.wf-tool-btn,
+  .wf-browser-markdown-toolbar button.wf-tool-btn,
+  .wf-browser-tabs__close
+) {
+  background: transparent;
+  color: var(--wf-brutalist-ink);
+  border: 2px solid transparent;
+  box-shadow: none !important;
+  width: var(--wf-panel-header-control-size) !important;
+  height: var(--wf-panel-header-control-size) !important;
+  min-width: var(--wf-panel-header-control-size) !important;
+  min-height: var(--wf-panel-header-control-size) !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) .wf-browser-tabs__add {
+  background: transparent;
+  color: var(--wf-brutalist-ink);
+  border: 2px solid transparent;
+  box-shadow: none !important;
+  width: var(--wf-browser-tab-add-size) !important;
+  height: var(--wf-browser-tab-add-size) !important;
+  min-width: var(--wf-browser-tab-add-size) !important;
+  min-height: var(--wf-browser-tab-add-size) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) button.wf-agent-rail__section-action--icon {
+  width: var(--wf-rail-section-action-size) !important;
+  height: var(--wf-rail-section-action-size) !important;
+  min-width: var(--wf-rail-section-action-size) !important;
+  min-height: var(--wf-rail-section-action-size) !important;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) .wf-browser-tabs__close {
+  width: var(--wf-panel-header-control-size) !important;
+  height: var(--wf-panel-header-control-size) !important;
+  min-width: var(--wf-panel-header-control-size) !important;
+  min-height: var(--wf-panel-header-control-size) !important;
+}
+
+/* Emoji reaction chips — square rectangles, never pills/ovals. */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) .wf-message-reaction.wf-tool-btn {
+  background: transparent;
+  color: var(--wf-brutalist-ink);
+  border: 2px solid transparent;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  min-height: 20px;
+  height: auto;
+  width: auto;
+  max-width: none;
+  max-height: none;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) :is(
+  button.wf-tool-btn.wf-tool-btn--icon:hover:not(:disabled),
+  button.wf-tool-btn.wf-tool-btn--icon:focus-visible,
+  button.wf-panel__control-btn:hover:not(:disabled),
+  button.wf-panel__control-btn:focus-visible,
+  button.wf-agent-rail__section-action--icon:hover:not(:disabled),
+  button.wf-agent-rail__section-action--icon:focus-visible,
+  button.wf-agent-rail__toggle:hover:not(:disabled),
+  button.wf-agent-rail__toggle:focus-visible,
+  .wf-message-actions__button.wf-tool-btn:hover:not(:disabled),
+  .wf-message-actions__button.wf-tool-btn:focus-visible,
+  .wf-message-reaction.wf-tool-btn:hover:not(:disabled),
+  .wf-message-reaction.wf-tool-btn:focus-visible,
+  .wf-message-reaction.wf-tool-btn[aria-pressed='true'],
+  .wf-message-reaction.wf-tool-btn[aria-pressed='true']:hover,
+  .wf-composer__toolbar button.wf-tool-btn:not(.wf-tool-btn--send):not(.wf-tool-btn--text):hover:not(:disabled),
+  .wf-composer__toolbar button.wf-tool-btn:not(.wf-tool-btn--send):not(.wf-tool-btn--text):focus-visible,
+  .wf-composer__reply-context-close.wf-tool-btn:hover:not(:disabled),
+  .wf-browser-chrome__toolbar button.wf-tool-btn:hover:not(:disabled),
+  .wf-browser-chrome__toolbar button.wf-tool-btn:focus-visible,
+  .wf-browser-markdown-toolbar button.wf-tool-btn:hover:not(:disabled),
+  .wf-browser-markdown-toolbar button.wf-tool-btn:focus-visible,
+  .wf-browser-tabs__close:hover:not(:disabled),
+  .wf-browser-tabs__close:focus-visible,
+  .wf-browser-tabs__add:hover:not(:disabled),
+  .wf-browser-tabs__add:focus-visible,
+  button.wf-tool-btn.wf-tool-btn--icon.wf-tool-btn--active,
+  button.wf-tool-btn.wf-tool-btn--icon.wf-tool-btn--active:hover:not(:disabled),
+  button.wf-panel__control-btn[aria-expanded='true'],
+  .wf-browser-chrome__toolbar button.wf-tool-btn.wf-tool-btn--active,
+  .wf-browser-chrome__toolbar button.wf-tool-btn.wf-tool-btn--active:hover:not(:disabled),
+  .wf-browser-markdown-toolbar button.wf-tool-btn.wf-tool-btn--active,
+  .wf-browser-markdown-toolbar button.wf-tool-btn.wf-tool-btn--active:hover:not(:disabled)
+) {
+  background: transparent;
+  color: var(--wf-brutalist-ink);
+  border: var(--wf-brutalist-small-icon-border);
+  box-shadow: none !important;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) .wf-composer__toolbar button.wf-tool-btn.wf-tool-btn--text {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: var(--wf-tool-btn-size) !important;
+  padding-inline: max(var(--wf-gap), calc(var(--wf-tool-btn-size) / 2)) !important;
+  border-radius: 0 !important;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) .wf-message__reply-context.wf-tool-btn {
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 42px !important;
+  border-radius: 0 !important;
+}
+
+/* Send / stop — composer tile (not a ghost icon). */
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) button.wf-tool-btn.wf-tool-btn--send {
+  border-radius: 50% !important;
+  width: var(--wf-tool-btn-size) !important;
+  height: var(--wf-tool-btn-size) !important;
+  min-width: var(--wf-tool-btn-size) !important;
+  min-height: var(--wf-tool-btn-size) !important;
+  padding: 0 !important;
+  background: var(--wf-brutalist-paper);
+  color: var(--wf-brutalist-ink);
+  border: 2px solid var(--wf-brutalist-ink);
+  box-shadow: none;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) button.wf-tool-btn.wf-tool-btn--send:hover:not(:disabled),
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) button.wf-tool-btn.wf-tool-btn--send.wf-tool-btn--stop:hover:not(:disabled) {
+  background: var(--wf-brutalist-paper);
+  color: var(--wf-brutalist-ink);
+  border-color: var(--wf-brutalist-ink);
+  box-shadow: var(--wf-brutalist-shadow);
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) button.wf-tool-btn.wf-tool-btn--send:disabled {
+  opacity: 0.38;
+  box-shadow: none;
+}
+
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus'])[data-chrome-mode='relief'] :is(
+  button.wf-tool-btn.wf-tool-btn--icon,
+  button.wf-panel__control-btn,
+  button.wf-agent-rail__section-action--icon,
+  button.wf-agent-rail__toggle,
+  .wf-message-actions__button.wf-tool-btn,
+  .wf-message-reaction.wf-tool-btn,
+  .wf-composer__toolbar button.wf-tool-btn:not(.wf-tool-btn--send):not(.wf-tool-btn--text),
+  .wf-composer__reply-context-close.wf-tool-btn,
+  .wf-browser-chrome__toolbar button.wf-tool-btn,
+  .wf-browser-markdown-toolbar button.wf-tool-btn,
+  .wf-browser-tabs__close,
+  .wf-browser-tabs__add
+),
+html:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus'])[data-chrome-mode='relief'] :is(
+  button.wf-tool-btn.wf-tool-btn--icon:hover:not(:disabled),
+  button.wf-panel__control-btn:hover:not(:disabled),
+  button.wf-panel__control-btn:focus-visible,
+  button.wf-panel__control-btn[aria-expanded='true'],
+  button.wf-agent-rail__section-action--icon:hover:not(:disabled),
+  button.wf-agent-rail__toggle:hover:not(:disabled),
+  .wf-message-actions__button.wf-tool-btn:hover:not(:disabled),
+  .wf-message-reaction.wf-tool-btn:hover:not(:disabled),
+  .wf-composer__toolbar button.wf-tool-btn:not(.wf-tool-btn--send):not(.wf-tool-btn--text):hover:not(:disabled),
+  .wf-browser-chrome__toolbar button.wf-tool-btn:hover:not(:disabled),
+  .wf-browser-markdown-toolbar button.wf-tool-btn:hover:not(:disabled),
+  .wf-browser-tabs__close:hover:not(:disabled),
+  .wf-browser-tabs__add:hover:not(:disabled)
+) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none !important;
+}

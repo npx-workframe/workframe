@@ -270,6 +270,95 @@
   --wf-control-shadow-hover: none;
 }
 
+/* Brutalist — 2px ink borders, solid offset shadows, square/circle chrome only. */
+:root:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus']) {
+  --wf-radius-knob-sm: 0;
+  --wf-radius-knob-md: 0;
+  --wf-radius-knob-lg: 0;
+  --wf-radius-xs: 0;
+  --wf-radius-sm: 0;
+  --wf-radius-md: 0;
+  --wf-radius-compact-control: 0;
+  --wf-radius-control: 0;
+  --wf-radius-row: 0;
+  --wf-radius-surface: 0;
+  --wf-radius-tool-btn: 0;
+  --wf-radius-panel-control: 0;
+  --wf-radius-browser-toolbar-btn: 0;
+  --wf-radius-browser-tab: 0;
+  --wf-radius-shell: 0;
+  --wf-radius-card: 0;
+  --wf-radius-pill: 0;
+  --wf-rail-cell-radius: 0;
+  --wf-radius-icon-btn: 0;
+  --wf-radius-inset: 0;
+  --wf-radius-tab-strip: 0;
+  --wf-radius-logo: 0;
+  --wf-scrollbar-radius: var(--scrollbar-radius, 0);
+  --wf-brutalist-ink: var(--fg);
+  --wf-brutalist-paper: var(--bg);
+  --wf-brutalist-shadow: 3px 3px 0 var(--wf-brutalist-ink);
+  --wf-muted: var(--wf-brutalist-ink);
+  --wf-muted-fg: var(--wf-brutalist-ink);
+  --wf-notice-muted: var(--wf-brutalist-ink);
+  --wf-status-fg: var(--wf-brutalist-ink);
+  --wf-control-fg-inactive: var(--wf-brutalist-ink);
+  --wf-btn-fg-inactive: var(--wf-brutalist-ink);
+  --wf-chrome-border-whisper: var(--wf-brutalist-ink);
+  --wf-chrome-border-subtle: var(--wf-brutalist-ink);
+  --wf-chrome-border-weak: var(--wf-brutalist-ink);
+  --wf-chrome-border-light: var(--wf-brutalist-ink);
+  --wf-chrome-border: var(--wf-brutalist-ink);
+  --wf-chrome-border-dim: var(--wf-brutalist-ink);
+  --wf-chrome-border-accent: var(--wf-brutalist-ink);
+  --wf-chrome-border-solid: var(--wf-brutalist-ink);
+  --wf-chrome-border-strong: var(--wf-brutalist-ink);
+  --wf-chrome-border-drag: var(--wf-brutalist-ink);
+  --wf-chrome-border-heavy: var(--wf-brutalist-ink);
+  --wf-chrome-border-soft: var(--wf-brutalist-ink);
+  --wf-divider-color: var(--wf-brutalist-ink);
+  --wf-tool-chrome-border: var(--wf-brutalist-ink);
+  --wf-line-chrome-soft: var(--wf-brutalist-ink);
+  --wf-line-chrome-strong: var(--wf-brutalist-ink);
+  --wf-control-bg: var(--wf-brutalist-paper);
+  --wf-control-bg-hover: var(--wf-brutalist-paper);
+  --wf-control-bg-active: var(--wf-brutalist-paper);
+  --wf-control-fg-hover: var(--wf-brutalist-ink);
+  --wf-control-border-width: 2px;
+  --wf-control-border-color: var(--wf-brutalist-ink);
+  --wf-control-border-color-hover: var(--wf-brutalist-ink);
+  --wf-control-border-color-active: var(--wf-brutalist-ink);
+  --wf-control-shadow: none;
+  --wf-control-shadow-hover: none;
+  --wf-control-shadow-active: none;
+  --wf-control-shadow-raised: none;
+  --wf-control-shadow-flush: none;
+  --wf-icon-control-border-width: 2px;
+  --wf-btn-border-width: 2px;
+  --wf-btn-shadow: none;
+  --wf-btn-shadow-hover: var(--wf-brutalist-shadow);
+}
+
+:root:is([data-arch-theme^='brutalist'], [data-arch-theme='bauhaus'])[data-style='lines'] {
+  --wf-btn-shadow-hover: var(--wf-brutalist-shadow);
+  --wf-btn-shadow-primary: var(--wf-brutalist-shadow);
+}
+
+/* Bauhaus — anchor aliases + relief RGB from architectonic theme (no hex in chrome). */
+:root[data-arch-theme='bauhaus'] {
+  --wf-bauhaus-black: var(--bauhaus-black);
+  --wf-bauhaus-white: var(--bauhaus-white);
+  --wf-bauhaus-blue: var(--bauhaus-blue);
+  --wf-bauhaus-red: var(--bauhaus-red);
+  --wf-bauhaus-yellow: var(--bauhaus-yellow);
+  --wf-bauhaus-on-dark: var(--bauhaus-on-dark);
+  --wf-relief-shadow-rgb: var(--bauhaus-black-rgb);
+  --wf-relief-highlight-rgb: var(--bauhaus-white-rgb);
+  --wf-dot-grid-rgb: var(--bauhaus-black-rgb);
+  --wf-dock-divider-color: var(--bauhaus-black);
+  --wf-quiet-icon-border-hover: var(--bauhaus-black);
+}
+
 /* Neo: texture-soft / chrome-strong hairlines for line-based controls. */
 :root[data-arch-theme^='neo'][data-color-mode='light'] {
   --wf-line-chrome-soft: color-mix(in srgb, var(--fg) 12%, transparent);

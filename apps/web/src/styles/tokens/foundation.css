@@ -9,10 +9,16 @@
   --wf-header-height: 56px;
   --wf-desktop-titlebar-height: 40px;
   --wf-footer-height: 28px;
-  --wf-panel-header-height: 32px;
+  --wf-panel-header-control-size: 28px;
+  --wf-rail-section-action-size: 20px;
+  --wf-browser-tab-add-size: 20px;
+  /* 2px inset each side → 32px row; +1px border-bottom inside the box. */
+  --wf-panel-header-control-inset: 2px;
+  --wf-panel-header-inner-height: calc(
+    var(--wf-panel-header-control-size) + 2 * var(--wf-panel-header-control-inset)
+  );
+  --wf-panel-header-height: calc(var(--wf-panel-header-inner-height) + var(--wf-border-width, 1px));
   --wf-panel-header-height-rail-collapsed: 44px;
-  --wf-panel-header-control-size: 22px;
-  --wf-panel-header-inner-height: calc(var(--wf-panel-header-height) - var(--wf-border-width, 1px));
   --wf-rail-width-collapsed: 52px;
   --wf-rail-width-expanded: 200px;
   --wf-rail-cell: 32px;
@@ -46,6 +52,7 @@
   --wf-space-3: 12px;
   --wf-space-4: 16px;
   --wf-shell-width: 840px;
+  --wf-chat-column-max: 800px;
   --wf-shell-height: 540px;
   --wf-shell-margin: 16px;
   --wf-type-meta: 10px;

@@ -149,7 +149,7 @@ export function ActivityPanel({ api }: IDockviewPanelProps) {
 
   return (
     <PanelShell className="wf-panel--activity wf-panel--dockable">
-      <PanelHeader label="Activity" panelId={PANEL_IDS.activity} api={api} showLabel={false} />
+      <PanelHeader label="Activity" panelId={PANEL_IDS.activity} api={api} showLabel={false} showControls={false} />
 
       <ActivityTree
         nodes={nodes}

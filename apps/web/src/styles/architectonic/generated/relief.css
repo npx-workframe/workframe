@@ -85,6 +85,48 @@
   box-shadow: none;
 }
 
+/* Brutalist + Bauhaus (lines) — solid offset shadows; square chrome; shadow on hover/active only. */
+:root:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] {
+  --icon-control-radius: 0;
+  --labeled-control-radius: 0;
+  --surface-floating-bg: var(--chrome-fill, var(--bg));
+  --surface-floating-border: var(--brutalist-ink, var(--fg));
+  --surface-floating-shadow: var(--brutalist-shadow, 3px 3px 0 var(--fg));
+  --surface-modal-bg: var(--chrome-fill, var(--card-bg));
+  --surface-modal-border: var(--brutalist-ink, var(--fg));
+  --surface-modal-shadow: var(--shadow-modal, 8px 8px 0 var(--fg));
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 5px 5px 0 var(--fg);
+  --shadow-xl: 6px 6px 0 var(--fg);
+  --shadow-card: 4px 4px 0 var(--fg);
+  --shadow-pop: 5px 5px 0 var(--fg);
+  --card-shadow: var(--shadow-card);
+  --btn-shadow: none;
+}
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-card,
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-shell {
+  box-shadow: var(--shadow-card);
+  border-radius: 0;
+}
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-input,
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-textarea,
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-select,
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-cselect__trigger {
+  border-width: 2px;
+  border-radius: 0;
+  box-shadow: none;
+}
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .archi-card--interactive:hover,
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .btn--secondary:hover,
+:is([data-arch-theme^="brutalist"], [data-arch-theme="bauhaus"])[data-style="lines"] .btn--outline:hover {
+  background: var(--brutalist-paper, var(--bg));
+  color: var(--brutalist-ink, var(--fg));
+  border-color: var(--brutalist-ink, var(--fg));
+  box-shadow: var(--brutalist-shadow, 3px 3px 0 var(--fg));
+}
+
 /* ============================ SHADOWS (neumorphism) ============================ */
 [data-style="shadows"] {
   /* surfaces collapse onto the body colour — separation is pure relief */

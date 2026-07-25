@@ -13,6 +13,7 @@ import { FilesExplorerPanel } from '@/components/workspace/panels/FilesExplorerP
 import { ActivityPanel } from '@/components/workspace/panels/ActivityPanel'
 import { BrowserPanel } from '@/components/workspace/panels/BrowserPanel'
 import { PanelDragTab } from '@/components/workspace/PanelDragTab'
+import { PanelDockviewRightActions } from '@/components/workspace/PanelDockviewRightActions'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { PANEL_IDS } from '@/lib/panelControlConfig'
 import { panelDisplayTitle } from '@/lib/panelDisplayLabels'
@@ -130,6 +131,7 @@ export function DockviewWorkspace() {
           className="wf-workspace__dock"
           components={components}
           defaultTabComponent={PanelDragTab}
+          rightHeaderActionsComponent={PanelDockviewRightActions}
           onReady={onReady}
           dndEdges={WORKFRAME_DND_EDGES}
           theme={{

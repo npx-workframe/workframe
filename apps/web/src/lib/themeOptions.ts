@@ -31,7 +31,7 @@ const FAMILY_ICON: Record<string, LucideIcon> = {
   neo: Layers,
   brutalist: Ruler,
   glass: Sparkles,
-  special: Palette,
+  custom: Palette,
 }
 
 const THEME_ICON: Partial<Record<Theme, LucideIcon>> = {
@@ -65,7 +65,7 @@ export const THEME_FAMILY_LABELS: Record<string, string> = {
   neo: 'Neo',
   brutalist: 'Brutalist',
   glass: 'Glass',
-  special: 'Specialized',
+  custom: 'Custom',
 }
 
 export const THEME_OPTION_GROUPS = [...new Set(THEME_OPTIONS.map((option) => option.family))]

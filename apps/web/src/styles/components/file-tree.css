@@ -96,7 +96,7 @@
 [data-chrome-mode='relief'] .wf-file-tree__checkbox[data-state='checked'] {
   border-color: transparent !important;
   background: var(--wf-control-bg-flush) !important;
-  color: #ffffff !important;
+  color: var(--fg) !important;
   box-shadow: var(--wf-control-shadow-flush);
 }
 

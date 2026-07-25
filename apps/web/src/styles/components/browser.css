@@ -56,8 +56,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--wf-icon-control-size);
-  height: var(--wf-icon-control-size);
+  width: var(--wf-panel-header-control-size);
+  height: var(--wf-panel-header-control-size);
   margin-right: 2px;
   padding: 0;
   border: none;
@@ -87,13 +87,25 @@
 }
 
 .wf-browser-tabs__add {
-  width: 28px;
-  height: 28px;
-  margin: 0 6px 0 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wf-panel-header-control-size);
+  height: var(--wf-panel-header-control-size);
+  min-width: var(--wf-panel-header-control-size);
+  min-height: var(--wf-panel-header-control-size);
+  margin: 0;
+  padding: 0;
   flex-shrink: 0;
+  align-self: center;
   color: var(--wf-muted);
   cursor: pointer;
-  border-radius: var(--wf-radius-browser-tab) var(--wf-radius-browser-tab) 0 0;
+  border-radius: 0;
+}
+
+.wf-browser-tabs__add svg {
+  width: var(--wf-tool-btn-icon);
+  height: var(--wf-tool-btn-icon);
 }
 
 .wf-browser-chrome {

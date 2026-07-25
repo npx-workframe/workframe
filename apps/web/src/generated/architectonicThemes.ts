@@ -2,7 +2,7 @@
 export const ARCHITECTONIC_THEME_REGISTRY = {
   "package": "@architectonic/design-system",
   "version": "0.4.1",
-  "sourceHash": "08ff345ae968c897f2bb246ded81601a450d812f896d1e3d606b842638b6fda6",
+  "sourceHash": "aa92de98129715d14c3570166be4ba4ebe5a933a25130eb9c844fce19a03ba6f",
   "schemaVersion": 2,
   "defaultTheme": "neo-light",
   "themes": [
@@ -298,20 +298,20 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "mode": "light",
       "style": "lines",
       "texture": "none",
-      "family": "special",
+      "family": "custom",
       "preview": {
-        "canvas": "#f6f1e7",
-        "surface": "#ffffff",
-        "ink": "#16160f",
-        "inkMuted": "#44412f",
-        "accent": "#2242c8",
-        "fontFamily": "\"Archivo\", ui-sans-serif, system-ui, sans-serif",
+        "canvas": "#eeeeee",
+        "surface": "#eeeeee",
+        "ink": "#111111",
+        "inkMuted": "#111111",
+        "accent": "#0b3d91",
+        "fontFamily": "\"Helvetica Neue\", Helvetica, Futura, \"Century Gothic\", Avenir, Arial, sans-serif",
         "radius": "0",
-        "border": "2px solid #16160f",
-        "cardShadow": "4px 4px 0 #16160f",
-        "panelShadow": "3px 3px 0 #16160f",
+        "border": "2px solid #111111",
+        "cardShadow": "3px 3px 0 #111111",
+        "panelShadow": "3px 3px 0 #111111",
         "panelInsetShadow": "none",
-        "panelBorder": "2px solid #16160f"
+        "panelBorder": "2px solid #111111"
       }
     },
     {
@@ -320,7 +320,7 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "mode": "light",
       "style": "lines",
       "texture": "leather",
-      "family": "special",
+      "family": "custom",
       "preview": {
         "canvas": "#ede3cd",
         "surface": "#f7f0de",
@@ -342,7 +342,7 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "mode": "light",
       "style": "lines",
       "texture": "paper",
-      "family": "special",
+      "family": "custom",
       "preview": {
         "canvas": "#faf7f0",
         "surface": "#faf7f0",
@@ -364,7 +364,7 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "mode": "light",
       "style": "lines",
       "texture": "notebook",
-      "family": "special",
+      "family": "custom",
       "preview": {
         "canvas": "#fcfcfa",
         "surface": "#ffffff",
@@ -386,7 +386,7 @@ export const ARCHITECTONIC_THEME_REGISTRY = {
       "mode": "dark",
       "style": "lines",
       "texture": "blueprint",
-      "family": "special",
+      "family": "custom",
       "preview": {
         "canvas": "#1d3d5c",
         "surface": "#234666",

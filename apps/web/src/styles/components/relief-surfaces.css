@@ -163,9 +163,9 @@
   -webkit-backdrop-filter: var(--wf-surface-floating-backdrop);
 }
 
-[data-chrome-mode='relief'] :is(.wf-agent-rail__section-action--icon, .wf-browser-tabs__close) {
-  width: 22px;
-  height: 22px;
+[data-chrome-mode='relief'] .wf-agent-rail__section-action--icon {
+  width: var(--wf-rail-section-action-size);
+  height: var(--wf-rail-section-action-size);
   padding: 0;
   border-radius: var(--wf-radius-icon-btn);
   background: var(--wf-control-bg-flush);
@@ -174,7 +174,25 @@
   color: var(--wf-muted);
 }
 
-[data-chrome-mode='relief'] :is(.wf-agent-rail__section-action--icon, .wf-browser-tabs__close):hover:not(:disabled) {
+[data-chrome-mode='relief'] .wf-agent-rail__section-action--icon:hover:not(:disabled) {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+[data-chrome-mode='relief'] .wf-browser-tabs__close {
+  width: var(--wf-panel-header-control-size);
+  height: var(--wf-panel-header-control-size);
+  padding: 0;
+  border-radius: var(--wf-radius-icon-btn);
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  color: var(--wf-muted);
+}
+
+[data-chrome-mode='relief'] .wf-browser-tabs__close:hover:not(:disabled) {
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-control-shadow-raised);
@@ -182,8 +200,8 @@
 }
 
 [data-chrome-mode='relief'] button.wf-panel__control-btn {
-  width: 22px;
-  height: 22px;
+  width: var(--wf-panel-header-control-size);
+  height: var(--wf-panel-header-control-size);
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -202,8 +220,18 @@
   color: var(--wf-text);
 }
 
-[data-chrome-mode='relief'] button.wf-agent-rail__section-action--icon,
+[data-chrome-mode='relief'] button.wf-agent-rail__section-action--icon {
+  width: var(--wf-rail-section-action-size);
+  height: var(--wf-rail-section-action-size);
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
 [data-chrome-mode='relief'] button.wf-agent-rail__toggle {
+  width: var(--wf-panel-header-control-size);
+  height: var(--wf-panel-header-control-size);
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -328,17 +356,17 @@
 [data-chrome-mode='relief'] .wf-browser-tabs__add {
   position: relative;
   z-index: 0;
-  align-self: flex-end;
+  align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  min-height: 28px;
-  margin: 0 6px 0 2px;
+  width: var(--wf-panel-header-control-size);
+  height: var(--wf-panel-header-control-size);
+  min-height: var(--wf-panel-header-control-size);
+  margin: 0;
   padding: 0;
   border: none;
-  border-radius: var(--wf-radius-browser-tab) var(--wf-radius-browser-tab) 0 0;
+  border-radius: 0;
   background: var(--wf-control-bg-flush);
   box-shadow: var(--wf-control-shadow-flush);
   color: var(--wf-muted);

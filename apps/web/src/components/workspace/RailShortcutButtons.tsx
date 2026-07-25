@@ -33,6 +33,7 @@ export function RailShortcutButtons({
       {shortcuts.map((shortcut) => (
         <RailShortcutButton
           key={shortcut.id}
+          panelId={shortcut.id}
           label={shortcut.label}
           icon={shortcut.icon}
           expanded={expanded}
@@ -44,17 +45,19 @@ export function RailShortcutButtons({
 }
 
 type RailShortcutButtonProps = {
+  panelId: string
   label: string
   icon: LucideIcon
   expanded: boolean
   onOpen: () => void
 }
 
-function RailShortcutButton({ label, icon: Icon, expanded, onOpen }: RailShortcutButtonProps) {
+function RailShortcutButton({ panelId, label, icon: Icon, expanded, onOpen }: RailShortcutButtonProps) {
   return (
     <button
       type="button"
       className="wf-agent-rail__item wf-agent-rail__item--shortcut"
+      data-panel-id={panelId}
       aria-label={`Open ${label} panel`}
       title={expanded ? undefined : label}
       onClick={onOpen}

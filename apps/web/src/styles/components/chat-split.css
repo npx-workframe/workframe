@@ -15,6 +15,35 @@
   flex-direction: column;
 }
 
+.wf-chat-column {
+  width: 100%;
+  max-width: var(--wf-chat-column-max);
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.wf-chat-column--messages {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.wf-chat-column--composer {
+  height: 100%;
+  min-height: 0;
+}
+
+.wf-chat-column--composer .wf-composer {
+  height: 100%;
+}
+
+.wf-chat-column--messages .wf-message-list-shell {
+  flex: 1;
+  min-height: 0;
+}
+
 .wf-chat-split__messages .wf-message-list {
   flex: 1;
   min-height: 0;
@@ -65,7 +94,7 @@
   margin: 0 8px 4px;
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
   border-radius: var(--wf-radius);
-  background: color-mix(in srgb, var(--wf-bg) 55%, #0a0a0f);
+  background: color-mix(in srgb, var(--wf-bg) 55%, var(--wf-text));
   overflow: hidden;
 }
 

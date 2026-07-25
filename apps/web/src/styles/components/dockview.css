@@ -83,6 +83,7 @@
 
 .wf-workspace .dv-tabs-and-actions-container {
   display: flex !important;
+  align-items: center;
   position: absolute;
   top: 0;
   left: 0;
@@ -100,9 +101,27 @@
   overflow: visible;
 }
 
+.wf-workspace .dv-tabs-and-actions-container .dv-right-actions-container {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--wf-gap-tight);
+  margin-inline-end: var(--wf-gap);
+  pointer-events: auto;
+}
+
+.wf-workspace .dv-tabs-and-actions-container .dv-right-actions-container .wf-panel__header-actions--dockview {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+}
+
 .wf-workspace .dv-tabs-container {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   width: auto;
   max-width: 100%;
   height: var(--wf-panel-header-inner-height);
@@ -258,7 +277,6 @@
 
 .wf-panel-drag-tab__label {
   display: block;
-  padding-top: 1px;
   font-family: var(--wf-font-mono);
   font-size: var(--wf-type-meta);
   font-weight: 800;

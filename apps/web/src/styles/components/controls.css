@@ -121,10 +121,13 @@ button.wf-panel__control-btn {
 
 button.wf-agent-rail__section-action--icon,
 button.wf-agent-rail__toggle {
-  border: var(--wf-border-width, 1px) solid transparent;
-  border-radius: 50%;
-  background: transparent;
   box-shadow: none;
+}
+
+button.wf-agent-rail__section-action--icon {
+  border-color: var(--wf-text);
+  background: var(--wf-bg);
+  color: var(--wf-text);
 }
 
 :is(

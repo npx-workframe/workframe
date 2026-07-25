@@ -1,24 +1,123 @@
 /* =============================================================
    ARCHI · THEME — BRUTALIST
-   lines style · thick strokes, solid offset shadows, gumroad-fun
+   lines style · 2px strokes, solid offset shadows on hover/active
    Scoped to [data-arch-theme] so it layers over mono + a style axis.
    ============================================================= */
 
 :root[data-arch-theme^="brutalist"] {
-  --border-w: 2px; --ar-radius-scale: 0.5;
-  --line: var(--fg); --line-strong: var(--fg); --line-soft: color-mix(in srgb, var(--fg) 10%, transparent);
-  --shadow-sm: 3px 3px 0 var(--fg); --shadow-md: 4px 4px 0 var(--fg);
-  --shadow-lg: 5px 5px 0 var(--fg); --shadow-xl: 6px 6px 0 var(--fg);
-  --shadow-card: 4px 4px 0 var(--fg); --card-shadow: 4px 4px 0 var(--fg);
-  --shadow-pop: 5px 5px 0 var(--fg); --pop-shadow: 5px 5px 0 var(--fg); --shadow-modal: 8px 8px 0 var(--fg);
-  --card-border: var(--fg); --field-border: var(--fg); --pop-border: var(--fg);
+  --border-w: 2px;
+  --ar-radius-scale: 0;
+  --radius-control: 0;
+  --radius-card: 0;
+  --scrollbar-radius: 0;
+  --brutalist-ink: var(--fg);
+  --brutalist-paper: var(--bg);
+  --brutalist-shadow: 3px 3px 0 var(--brutalist-ink);
+  --line: var(--brutalist-ink);
+  --line-strong: var(--brutalist-ink);
+  --line-soft: color-mix(in srgb, var(--brutalist-ink) 35%, transparent);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 5px 5px 0 var(--brutalist-ink);
+  --shadow-xl: 6px 6px 0 var(--brutalist-ink);
+  --shadow-card: 4px 4px 0 var(--brutalist-ink);
+  --card-shadow: var(--shadow-card);
+  --shadow-pop: 5px 5px 0 var(--brutalist-ink);
+  --pop-shadow: var(--shadow-pop);
+  --shadow-modal: 8px 8px 0 var(--brutalist-ink);
+  --card-border: var(--brutalist-ink);
+  --field-border: var(--brutalist-ink);
+  --pop-border: var(--brutalist-ink);
   --btn-weight: var(--ar-weight-bold);
-  --primary: #ff90e8; --primary-hover: #ff7ae3; --primary-active: #f45fd3;
-  --primary-fg: #111111; --primary-soft: #ffe3f8; --accent-soft: #ffe3f8; --ring: #111111;
+  --primary: #ff90e8;
+  --primary-hover: #ff7ae3;
+  --primary-active: #f45fd3;
+  --primary-fg: #111111;
+  --primary-soft: #ffe3f8;
+  --accent-soft: #ffe3f8;
+  --ring: var(--brutalist-ink);
+  --chrome-fill: var(--bg);
+  --chrome-border-soft: var(--brutalist-ink);
+  --chrome-border-strong: var(--brutalist-ink);
+  --card-bg: var(--bg);
+  --field-bg: var(--bg);
+  --pop-bg: var(--bg);
 }
-:root[data-arch-theme="brutalist-light"] { --bg: #fffdf7; --surface: #ffffff; --surface-2: #f6f2e8; --surface-3: #ede7d8; --fg: #111111; --fg-muted: #3d3d3d; --fg-subtle: #6e6e6e; --muted: #f6f2e8; --muted-hover: #ede7d8; }
-:root[data-arch-theme="brutalist-dark"] { --bg: #111111; --surface: #1a1a1a; --surface-2: #242424; --surface-3: #2f2f2f; --fg: #f5f2ea; --fg-muted: #c9c4b8; --fg-subtle: #8f8b80; --muted: #242424; --muted-hover: #2f2f2f; --primary-soft: #46173b; --accent-soft: #46173b; --ring: #ff90e8; }
-html[data-arch-theme^="brutalist"] .btn { border: 2px solid var(--fg); box-shadow: 3px 3px 0 var(--fg); transition: transform var(--motion-fast), box-shadow var(--motion-fast); }
-html[data-arch-theme^="brutalist"] .btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--fg); }
-html[data-arch-theme^="brutalist"] .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--fg); }
-html[data-arch-theme^="brutalist"] .btn--ghost, html[data-arch-theme^="brutalist"] .btn--link { border: none; box-shadow: none; }
+
+:root[data-arch-theme="brutalist-light"] {
+  --bg: #fffdf7;
+  --surface: #ffffff;
+  --surface-2: #f6f2e8;
+  --surface-3: #ede7d8;
+  --fg: #111111;
+  --fg-muted: var(--fg);
+  --fg-subtle: var(--fg);
+  --muted: #f6f2e8;
+  --muted-hover: #ede7d8;
+}
+
+:root[data-arch-theme="brutalist-dark"] {
+  --bg: #111111;
+  --surface: #1a1a1a;
+  --surface-2: #242424;
+  --surface-3: #2f2f2f;
+  --fg: #f5f2ea;
+  --fg-muted: var(--fg);
+  --fg-subtle: var(--fg);
+  --muted: #242424;
+  --muted-hover: #2f2f2f;
+  --primary-soft: #46173b;
+  --accent-soft: #46173b;
+  --ring: #f5f2ea;
+}
+
+/* Buttons — square, 2px ink stroke; solid shadow on hover/active only. */
+html[data-arch-theme^="brutalist"] .btn:not(.btn--ghost):not(.btn--link) {
+  border: 2px solid var(--brutalist-ink);
+  border-radius: 0;
+  background: var(--brutalist-paper);
+  color: var(--brutalist-ink);
+  box-shadow: none;
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+html[data-arch-theme^="brutalist"] .btn:not(.btn--ghost):not(.btn--link):hover {
+  background: var(--brutalist-paper);
+  color: var(--brutalist-ink);
+  border-color: var(--brutalist-ink);
+  box-shadow: var(--brutalist-shadow);
+  transform: translate(-1px, -1px);
+}
+
+html[data-arch-theme^="brutalist"] .btn:not(.btn--ghost):not(.btn--link):active,
+html[data-arch-theme^="brutalist"] .btn:not(.btn--ghost):not(.btn--link)[aria-pressed="true"] {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--brutalist-ink);
+}
+
+html[data-arch-theme^="brutalist"] .btn--primary:not(.btn--ghost):not(.btn--link) {
+  background: var(--brutalist-paper);
+  color: var(--brutalist-ink);
+  border-color: var(--brutalist-ink);
+}
+
+html[data-arch-theme^="brutalist"] .btn--ghost,
+html[data-arch-theme^="brutalist"] .btn--link {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+html[data-arch-theme^="brutalist"] .btn--ghost:hover,
+html[data-arch-theme^="brutalist"] .btn--link:hover {
+  background: transparent;
+  color: var(--brutalist-ink);
+  box-shadow: none;
+}
+
+/* Icon-only buttons stay circular; labelled controls stay square. */
+html[data-arch-theme^="brutalist"] .btn--icon {
+  border-radius: 50%;
+}
