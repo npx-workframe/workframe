@@ -371,6 +371,10 @@ function help() {
 
 async function main() {
   const args = process.argv.slice(2);
+  if (args.includes('--version') || args.includes('-v')) {
+    console.log(VERSION);
+    return;
+  }
   const command = args.find((arg) => !arg.startsWith('-')) || 'status';
   const json = args.includes('--json');
   const noTest = args.includes('--no-test') || json || !process.stdin.isTTY;
