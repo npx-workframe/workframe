@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "campaign": "ABX visual QA",
-  "generated_at": "2026-07-25T09:09:33.812Z",
+  "generated_at": "2026-07-25T09:31:07.894Z",
   "source": {
     "theme_registry": "apps/web/src/generated/architectonicThemes.ts",
     "visible_filter": "apps/web/src/lib/themeOptions.ts HIDDEN_THEME_PICKER_IDS",
@@ -177,7 +177,7 @@
     "ok": true,
     "url": "http://127.0.0.1:28644/api/meta",
     "status": 200,
-    "latency_ms": 231,
+    "latency_ms": 211,
     "meta": {
       "ok": true,
       "project_name": "ABX",

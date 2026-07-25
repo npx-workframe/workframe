@@ -1933,7 +1933,7 @@
       "id": "WF-UI-003",
       "title": "Fresh ABX dogfood install from published pack",
       "summary": "Wipe ABX install root, npx create-workframe@0.1.26 ABX, complete trusted_team wizard with SMTP and admin OTP.",
-      "status": "backlog",
+      "status": "in_progress",
       "priority": "P0",
       "owner_role": "tests",
       "acceptance": [
@@ -1944,7 +1944,15 @@
       "depends_on": [
         "WF-UI-002"
       ],
-      "evidence": [],
+      "evidence": [
+        "D:/ab/projects/ABX npx create-workframe@0.1.26",
+        "http://127.0.0.1:28644/install UI 200",
+        "http://127.0.0.1:29120/api/health ok trusted_team install_window_open"
+      ],
+      "claim": {
+        "assignee": "cursor-orchestrator",
+        "claimed_at": "2026-07-25"
+      },
       "extensions": {
         "wave": "release-truth",
         "stage": "C"
