@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url)
 const { chromium } = require('C:/Users/alan/.cursor/plugins/cache/cursor-public/browse/release_v0.2.4/node_modules/playwright')
 
 const BASE = 'http://127.0.0.1:28644'
-const OUT = 'd:/ab/projects/workframe/docs/ledger/audits/2026-07-25-abx-screenshots'
+const OUT = join(process.cwd(), 'docs/ledger/audits/2026-07-25-abx-screenshots')
 const THEMES = [
   'minimal-light', 'minimal-dark', 'neo-light', 'neo-dark',
   'brutalist-light', 'brutalist-dark', 'liquid-glass-light', 'liquid-glass-dark',

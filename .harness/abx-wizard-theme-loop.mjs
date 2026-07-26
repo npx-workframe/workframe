@@ -10,7 +10,7 @@ import { join } from 'node:path'
 
 const BASE = process.env.WF_ABX_URL || 'http://127.0.0.1:28644'
 const API = process.env.WF_ABX_API || 'http://127.0.0.1:29120'
-const ADMIN_EMAIL = process.env.WF_QA_ADMIN_EMAIL || 'alan@click.blue'
+const ADMIN_EMAIL = process.env.WF_QA_ADMIN_EMAIL || 'admin@example.com'
 const OUT_DIR = join(process.cwd(), 'docs/ledger/audits/2026-07-25-abx-screenshots')
 const AUDIT_PATH = join(process.cwd(), 'docs/ledger/audits/2026-07-25-abx-visual-qa.md')
 
@@ -256,7 +256,7 @@ async function fillOtp(page, code) {
 }
 
 async function main() {
-  const env = loadEnvFile('d:/ab/projects/workframe/infra/compose/workframe/.env')
+  const env = loadEnvFile(join(process.cwd(), 'infra/compose/workframe/.env'))
   const smtp = {
     host: env.SMTP_HOST || 'smtp.gmail.com',
     port: env.SMTP_PORT || '587',

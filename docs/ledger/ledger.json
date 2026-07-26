@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project": "workframe",
-  "updated": "2026-07-25",
+  "updated": "2026-07-26",
   "roadmap_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "items": [
     {
@@ -1945,7 +1945,7 @@
         "WF-UI-002"
       ],
       "evidence": [
-        "D:/ab/projects/ABX npx create-workframe@0.1.26",
+        "ABX install root: npx create-workframe@0.1.26",
         "http://127.0.0.1:28644/install UI 200",
         "http://127.0.0.1:29120/api/health ok trusted_team install_window_open"
       ],
@@ -1987,6 +1987,10 @@
       "extensions": {
         "wave": "design-system",
         "stage": "meta"
+      },
+      "claim": {
+        "assignee": "cursor-orchestrator",
+        "claimed_at": "2026-07-26"
       }
     },
     {
@@ -2051,10 +2055,15 @@
         "WF-UI-006"
       ],
       "evidence": [
-        "tag v0.1.27 publish via .github/workflows/publish-npm.yml (pending CI)"
+        "tag v0.1.27 publish via .github/workflows/publish-npm.yml (pending CI)",
+        "pnpm verify:public VERIFY_PUBLIC_STRICT=1 green 2026-07-26 (operator paths redacted in .harness/abx-*.mjs, ledger.json)"
       ],
       "extensions": {
         "wave": "release-truth"
+      },
+      "claim": {
+        "assignee": "cursor-orchestrator",
+        "claimed_at": "2026-07-26"
       }
     }
   ],
