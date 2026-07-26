@@ -52,12 +52,6 @@ export function DeviceCodeOAuthPanel({
     <div
       className={cn('wf-auth-otp-panel', presentation === 'inline' && 'wf-device-oauth-panel--inline')}
     >
-      {showBody ? (
-        <div className="wf-auth-otp-panel__notice">
-          Sign in with your {providerLabel} account. Keep this open until connection completes.
-        </div>
-      ) : null}
-
       {isError && message ? <PanelInlineNotice tone="error">{message}</PanelInlineNotice> : null}
 
       {showBody ? (

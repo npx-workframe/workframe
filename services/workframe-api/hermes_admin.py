@@ -464,7 +464,8 @@ def hermes_profile_detail(profile: str, workspace_id: str = "") -> dict[str, Any
     prof = _srv().resolve_validated_profile(profile)
     reg = _srv()._agent_registry_row(prof)
     db_row = _agent_db_row(prof, workspace_id)
-    soul_text = _srv()._profile_soul_text(prof)
+    soul_layers = profile_soul_get(prof, workspace_id)
+    soul_text = str(soul_layers.get("composed") or soul_layers.get("soul") or "")
     block = _srv()._read_model_block(prof)
     try:
         state = _srv().gateway_data(prof)
@@ -486,6 +487,11 @@ def hermes_profile_detail(profile: str, workspace_id: str = "") -> dict[str, Any
         "description": str(reg.get("description") or ""),
         "soul": soul_text,
         "soul_exists": bool(soul_text),
+        "soul_system": str(soul_layers.get("system") or ""),
+        "soul_admin": str(soul_layers.get("admin") or ""),
+        "soul_workspace_spice": str(soul_layers.get("workspace_spice") or ""),
+        "soul_user": str(soul_layers.get("user") or ""),
+        "soul_composed": soul_text,
         "gateway_running": gateway_running,
         "gateway_state": gateway_state,
         "model": block.get("default", ""),
@@ -520,30 +526,56 @@ def hermes_profile_update(profile: str, body: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "profile": prof, **patch}
 
 
-def profile_soul_get(profile: str) -> dict[str, Any]:
+def profile_soul_get(profile: str, workspace_id: str = "") -> dict[str, Any]:
     prof = _srv().resolve_validated_profile(profile)
-    text = _srv()._profile_soul_text(prof)
+    template = (
+        _srv()._runtime_template_slug(prof) if _srv()._is_runtime_profile_slug(prof) else prof
+    )
+    system = _srv()._profile_base_soul_text(prof)
+    admin = ""
+    if _srv()._is_native_profile(template):
+        admin = str(_srv()._agent_registry_row(template).get("admin_soul") or "").strip()
+    workspace_spice = _srv()._workspace_agent_spice(workspace_id)
+    user = _srv()._profile_user_soul(prof)
+    composed = _srv()._profile_soul_text(prof, workspace_id)
     path = _srv()._profile_soul_path(prof)
     return {
         "ok": True,
         "profile": prof,
-        "soul": text,
+        "soul": composed,
+        "system": system,
+        "admin": admin,
+        "workspace_spice": workspace_spice,
+        "user": user,
+        "composed": composed,
         "path": str(path),
         "exists": path.is_file(),
     }
 
 
-def profile_soul_set(profile: str, soul: str) -> dict[str, Any]:
+def profile_soul_set(profile: str, soul: str, layer: str = "") -> dict[str, Any]:
     prof = _srv().resolve_validated_profile(profile)
-    if _srv()._is_native_profile(prof):
-        path = _srv()._profile_soul_path(prof)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        normalized = soul if not soul or soul.endswith("\n") else f"{soul}\n"
-        path.write_text(normalized, encoding="utf-8")
-        return {"ok": True, "profile": prof, "bytes": len(normalized.encode("utf-8")), "target": "soul_file"}
     lookup = _srv()._runtime_template_slug(prof) if _srv()._is_runtime_profile_slug(prof) else prof
-    _srv()._apply_profile_identity(lookup, user_soul=soul)
-    return {"ok": True, "profile": prof, "bytes": len(soul.encode("utf-8")), "target": "user_soul_overlay"}
+    layer_name = str(layer or "").strip().lower()
+    if not layer_name:
+        layer_name = "admin" if _srv()._is_native_profile(lookup) else "user"
+    if layer_name == "admin":
+        if not _srv()._is_native_profile(lookup):
+            return {"ok": False, "error": "admin_layer_native_only", "profile": prof}
+        _srv()._apply_profile_identity(lookup, admin_soul=soul)
+        target = "admin_soul"
+    elif layer_name == "user":
+        _srv()._apply_profile_identity(lookup, user_soul=soul)
+        target = "user_soul"
+    else:
+        return {"ok": False, "error": "invalid_layer", "profile": prof, "allowed_layers": ["admin", "user"]}
+    return {
+        "ok": True,
+        "profile": prof,
+        "bytes": len(str(soul or "").encode("utf-8")),
+        "target": target,
+        "layer": layer_name,
+    }
 
 
 def hermes_debug() -> dict[str, Any]:

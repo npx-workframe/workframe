@@ -17,7 +17,6 @@ import {
   type ConciergeStep,
 } from '@/components/onboarding/onboardingWizardSteps'
 import {
-  defaultAgentSoul,
   normalizePublicUrl,
   preferAdminEmailOverSmtpLogin,
   resolveSmtpAdminEmail,
@@ -96,8 +95,8 @@ export function useConciergeFlow({
   const [avatarUrl, setAvatarUrl] = useState(() => pickRandomPreset('user') || DEFAULT_USER_AVATAR)
   const [agentName, setAgentName] = useState(`${projectName} Agent`)
   const [agentTagline, setAgentTagline] = useState('Workframe Manager')
+  const [agentRole, setAgentRole] = useState('Workframe Manager')
   const [agentSoul, setAgentSoul] = useState('')
-  const autoAgentSoulRef = useRef('')
   const [agentAvatar, setAgentAvatar] = useState(() => pickRandomPreset('agent') || DEFAULT_USER_AVATAR)
   const [inviteEmails, setInviteEmails] = useState('')
   const [publicUrl, setPublicUrl] = useState('')
@@ -244,15 +243,6 @@ export function useConciergeFlow({
   }, [projectName])
 
   useEffect(() => {
-    const nextDefault = defaultAgentSoul(agentName, resolveWorkframeName())
-    setAgentSoul((current) => {
-      if (current && current !== autoAgentSoulRef.current) return current
-      autoAgentSoulRef.current = nextDefault
-      return nextDefault
-    })
-  }, [agentName, resolveWorkframeName])
-
-  useEffect(() => {
     const trimmed = workframeName.trim()
     if (!trimmed || trimmed === projectName) return
     setAgentName((current) => (current === `${projectName} Agent` ? `${trimmed} Agent` : current))
@@ -377,14 +367,15 @@ export function useConciergeFlow({
                   ?? cohortPayload.cohort?.[0]
                 if (sharedAgent) {
                   setAgentName(sharedAgent.display_name || meta.native_agent_name || 'Workframe Agent')
-                  setAgentTagline(sharedAgent.tagline || sharedAgent.role || 'Workframe Manager')
+                  setAgentTagline(sharedAgent.tagline || 'Workframe Manager')
+                  setAgentRole(sharedAgent.role || sharedAgent.tagline || 'Workframe Manager')
                   const savedAvatar = sharedAgent.avatar_url || sharedAgent.avatar_id || ''
                   if (savedAvatar) setAgentAvatar(agentAvatarPickerValue(savedAvatar))
                   try {
                     const soul = await fetchProfileSoul(sharedAgent.template_slug)
-                    if (soul.soul?.trim()) setAgentSoul(soul.soul)
+                    if (soul.admin?.trim()) setAgentSoul(soul.admin)
                   } catch {
-                    // Identity metadata still hydrates when the SOUL read is unavailable.
+                    // Identity metadata still hydrates when the admin SOUL read is unavailable.
                   }
                 }
               } catch {
@@ -580,6 +571,7 @@ export function useConciergeFlow({
     bio,
     agentName,
     agentTagline,
+    agentRole,
     agentSoul,
     resolveWorkframeName,
     onComplete,
@@ -610,6 +602,7 @@ export function useConciergeFlow({
     avatarUrl,
     agentName,
     agentTagline,
+    agentRole,
     agentSoul,
     agentAvatar,
     agentPrimaryModel,
@@ -906,6 +899,7 @@ export function useConciergeFlow({
     avatarUrl,
     agentName,
     agentTagline,
+    agentRole,
     agentSoul,
     agentAvatar,
     agentPrimaryModel,
@@ -952,6 +946,7 @@ export function useConciergeFlow({
     setAvatarUrl,
     setAgentName,
     setAgentTagline,
+    setAgentRole,
     setAgentSoul,
     setAgentAvatar,
     setAgentModelTab,

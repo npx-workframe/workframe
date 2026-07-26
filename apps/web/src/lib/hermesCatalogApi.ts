@@ -215,6 +215,18 @@ export async function fetchHermesProfile(): Promise<HermesProfileResponse> {
   return apiGet<HermesProfileResponse>('/api/hermes/profile')
 }
 
+export type ProfileSoulLayers = {
+  ok: boolean
+  profile: string
+  /** Composed soul (all layers). Prefer layer fields for editing. */
+  soul: string
+  system: string
+  admin: string
+  workspace_spice: string
+  user: string
+  composed: string
+}
+
 export type HermesProfileDetailResponse = {
   ok: boolean
   profile: string
@@ -224,6 +236,11 @@ export type HermesProfileDetailResponse = {
   description: string
   soul: string
   soul_exists: boolean
+  soul_system?: string
+  soul_admin?: string
+  soul_workspace_spice?: string
+  soul_user?: string
+  soul_composed?: string
   gateway_running: boolean
   gateway_state: string
   model: string
@@ -247,15 +264,16 @@ export async function updateHermesProfile(
   return apiPatch(`/api/hermes/profiles/${encodeURIComponent(profile)}`, patch)
 }
 
-export async function fetchProfileSoul(profile: string): Promise<{ ok: boolean; profile: string; soul: string }> {
-  return apiGet(`/api/hermes/profiles/${encodeURIComponent(profile)}/soul`)
+export async function fetchProfileSoul(profile: string): Promise<ProfileSoulLayers> {
+  return apiGet<ProfileSoulLayers>(`/api/hermes/profiles/${encodeURIComponent(profile)}/soul`)
 }
 
 export async function saveProfileSoul(
   profile: string,
   soul: string,
-): Promise<{ ok: boolean; profile: string; bytes?: number; error?: string }> {
-  return apiPost(`/api/hermes/profiles/${encodeURIComponent(profile)}/soul`, { soul })
+  layer: 'admin' | 'user',
+): Promise<{ ok: boolean; profile: string; bytes?: number; layer?: string; target?: string; error?: string }> {
+  return apiPost(`/api/hermes/profiles/${encodeURIComponent(profile)}/soul`, { soul, layer })
 }
 
 export type ProfileGatewayStatusResponse = {

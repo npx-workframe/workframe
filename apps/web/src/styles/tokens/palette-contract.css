@@ -1,7 +1,7 @@
 /* Theme palette contract — Architectonic defines identity roles; architectonic/bridge.css maps them below.
    Values differ per theme; names must match for parity. */
 
-/* Palette: --wf-violet, --wf-violet-glow, --wf-cyan, --wf-mint, --wf-ring
+/* Palette: --wf-violet, --wf-violet-glow, --wf-cyan, --wf-mint, --wf-ring, --wf-purple (brand, light chrome)
    Surfaces: --wf-bg, --wf-text, --wf-muted, --wf-border, --wf-border-strong,
              --wf-surface, --wf-surface-soft, --wf-primary, --wf-primary-foreground
    Body: --wf-bg on body (base.css)

@@ -1,19 +1,19 @@
-# Workframe v0.1.27
+# Workframe v0.1.28
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.27 |
+| create-workframe | 0.1.28 |
 | workframe CLI (`npx workframe`) | 0.2.2 |
-| Workframe API / UI | 0.1.27 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.28 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.27 MyProject
+npx create-workframe@0.1.28 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
 
-## 0.1.27
+## 0.1.28
 
 - Branding: `workframe-color` SVG mark, generated favicon/PWA/OG assets, SEO metadata on web + website (`site_meta.py` defaults).
 - Onboarding wizard high relief on neo themes (reuses `--wf-relief-outset-l`, same as dialog).

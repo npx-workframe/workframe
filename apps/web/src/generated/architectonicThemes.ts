@@ -2,7 +2,7 @@
 export const ARCHITECTONIC_THEME_REGISTRY = {
   "package": "@architectonic/design-system",
   "version": "0.4.1",
-  "sourceHash": "aa92de98129715d14c3570166be4ba4ebe5a933a25130eb9c844fce19a03ba6f",
+  "sourceHash": "cbaeff6e578501354b23c79275a23b41df991754e19cff3c652b328ae5cb132b",
   "schemaVersion": 2,
   "defaultTheme": "neo-light",
   "themes": [

@@ -222,8 +222,6 @@
   --card-bg: color-mix(in srgb, var(--surface) 42%, transparent);
   --card-border: color-mix(in srgb, #fff 14%, transparent);
   --card-shadow: var(--shadow-lg);
-  --field-bg: color-mix(in srgb, var(--surface) 38%, transparent);
-  --field-border: color-mix(in srgb, #fff 16%, transparent);
   --pop-bg: color-mix(in srgb, var(--surface) 60%, transparent);
   --pop-border: color-mix(in srgb, #fff 14%, transparent);
   --line: color-mix(in srgb, #fff 12%, transparent);
@@ -266,6 +264,148 @@
 [data-style="glass"] .btn--secondary:hover,
 [data-style="glass"] .btn--outline:hover { background: color-mix(in srgb, #fff 12%, transparent); color: var(--fg); border-color: color-mix(in srgb, #fff 26%, transparent); }
 [data-style="glass"] .archi-segmented__item[aria-selected="true"] { background: color-mix(in srgb, #fff 16%, transparent); }
+
+/* Glass color modes — shared surface contract (no hairlines). */
+[data-style="glass"][data-color-mode] {
+  --card-border: transparent;
+  --pop-border: transparent;
+  --line: transparent;
+  --line-strong: transparent;
+  --line-soft: transparent;
+  --muted: var(--glass-surface-quiet);
+  --muted-hover: var(--glass-surface-emphasis);
+  --surface-floating-border: transparent;
+  --surface-floating-shadow: var(--shadow-lg);
+  --surface-floating-header-bg: var(--glass-surface-quiet);
+  --surface-modal-border: transparent;
+  --field-bg: var(--muted);
+  --field-border: transparent;
+  --field-border-width: 0;
+  --field-hover-border: transparent;
+}
+[data-style="glass"][data-color-mode] :is(
+  .archi-input,
+  .archi-textarea,
+  .archi-select,
+  .archi-cselect__trigger,
+  .archi-cselect__list
+):hover {
+  border-color: transparent;
+  background: var(--glass-surface-emphasis);
+}
+[data-style="glass"][data-color-mode] .archi-card,
+[data-style="glass"][data-color-mode] .archi-shell {
+  box-shadow: var(--shadow-lg);
+}
+[data-style="glass"][data-color-mode] :is(
+  .archi-input,
+  .archi-textarea,
+  .archi-select,
+  .archi-cselect__trigger,
+  .archi-cselect__list
+) {
+  background: var(--field-bg);
+  border-color: var(--field-border);
+  box-shadow: none;
+}
+[data-style="glass"][data-color-mode] :is(
+  .archi-input,
+  .archi-textarea,
+  .archi-select
+):focus {
+  border-color: var(--field-focus-border);
+  background: var(--muted-hover);
+  box-shadow: 0 0 0 var(--ar-ring-w) color-mix(in srgb, var(--ring) 22%, transparent);
+}
+
+/* Glass dark — surface controls: opacity fills, no borders. */
+[data-style="glass"][data-color-mode="dark"] {
+  --glass-surface-quiet: rgb(255 255 255 / 0.05);
+  --glass-surface-emphasis: rgb(255 255 255 / 0.10);
+  --glass-surface-primary-hover: rgb(255 255 255 / 0.15);
+  --glass-control-border: transparent;
+  --field-bg: var(--muted);
+  --field-border: transparent;
+  --field-border-width: 0;
+  --field-hover-border: transparent;
+  --field-focus-border: transparent;
+  --btn-bg: var(--glass-surface-quiet);
+  --btn-fg: rgb(255 255 255 / 0.92);
+  --btn-border: transparent;
+  --btn-hover-bg: var(--glass-surface-emphasis);
+  --btn-hover-fg: rgb(255 255 255 / 0.92);
+  --btn-hover-border: transparent;
+  --btn-active-bg: var(--glass-surface-emphasis);
+}
+[data-style="glass"][data-color-mode="dark"] .btn--secondary,
+[data-style="glass"][data-color-mode="dark"] .btn--outline {
+  background: var(--glass-surface-quiet);
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-style="glass"][data-color-mode="dark"] .btn--secondary:hover,
+[data-style="glass"][data-color-mode="dark"] .btn--outline:hover {
+  background: var(--glass-surface-emphasis);
+  border-color: transparent;
+  color: rgb(255 255 255 / 0.92);
+}
+[data-style="glass"][data-color-mode="dark"] .btn--primary {
+  --btn-bg: var(--glass-surface-emphasis);
+  --btn-fg: rgb(255 255 255 / 0.92);
+  --btn-border: transparent;
+  --btn-hover-bg: var(--glass-surface-primary-hover);
+  --btn-hover-fg: rgb(255 255 255 / 0.92);
+  --btn-hover-border: transparent;
+  --btn-active-bg: var(--glass-surface-emphasis);
+}
+[data-style="glass"][data-color-mode="dark"] .archi-segmented__item[aria-selected="true"] {
+  background: var(--glass-surface-emphasis);
+}
+
+/* Glass light — brand-tinted surface controls (wf-purple opacities). */
+[data-style="glass"][data-color-mode="light"] {
+  --glass-brand: #79689d;
+  --glass-surface-quiet: rgb(121 104 157 / 0.05);
+  --glass-surface-emphasis: rgb(121 104 157 / 0.10);
+  --glass-surface-primary-hover: rgb(121 104 157 / 0.15);
+  --glass-control-border: transparent;
+  --field-bg: var(--muted);
+  --field-border: transparent;
+  --field-border-width: 0;
+  --field-hover-border: transparent;
+  --field-focus-border: transparent;
+  --btn-bg: var(--glass-surface-quiet);
+  --btn-fg: var(--fg);
+  --btn-border: transparent;
+  --btn-hover-bg: var(--glass-surface-emphasis);
+  --btn-hover-fg: var(--fg);
+  --btn-hover-border: transparent;
+  --btn-active-bg: var(--glass-surface-emphasis);
+}
+[data-style="glass"][data-color-mode="light"] .btn--secondary,
+[data-style="glass"][data-color-mode="light"] .btn--outline {
+  background: var(--glass-surface-quiet);
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-style="glass"][data-color-mode="light"] .btn--secondary:hover,
+[data-style="glass"][data-color-mode="light"] .btn--outline:hover {
+  background: var(--glass-surface-emphasis);
+  border-color: transparent;
+  color: var(--fg);
+}
+[data-style="glass"][data-color-mode="light"] .btn--primary {
+  --btn-bg: var(--glass-surface-emphasis);
+  --btn-fg: var(--fg);
+  --btn-border: transparent;
+  --btn-hover-bg: var(--glass-surface-primary-hover);
+  --btn-hover-fg: var(--fg);
+  --btn-hover-border: transparent;
+  --btn-active-bg: var(--glass-surface-emphasis);
+}
+[data-style="glass"][data-color-mode="light"] .archi-segmented__item[aria-selected="true"] {
+  background: var(--glass-surface-emphasis);
+}
 
 /* ============================ SHADOWS — full component relief pass ============
    What goes DOWN (wells): tracks, fields, list containers, pressed states,

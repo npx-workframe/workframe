@@ -1,6 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 
-import { ThemeSwitcher } from '@/components/shell/ThemeSwitcher'
 import { useDocumentTheme } from '@/hooks/useDocumentTheme'
 import { BRAND_ICON } from '@/lib/brandAssets'
 import { isDarkTheme, type Theme } from '@/lib/theme'
@@ -31,7 +30,8 @@ type OnboardingWizardShellProps = {
 }
 
 function defaultWizardRailLogo(theme: Theme): { src: string; mono: boolean } {
-  return isDarkTheme(theme)
+  const useMono = isDarkTheme(theme) || theme === 'bauhaus'
+  return useMono
     ? { src: BRAND_ICON.workframe, mono: true }
     : { src: BRAND_ICON.workframeColor, mono: false }
 }
@@ -76,9 +76,6 @@ export function OnboardingWizardShell({
 
   return (
     <div className="wf-onboarding-page">
-      <div className="wf-onboarding-page__theme">
-        <ThemeSwitcher />
-      </div>
       <div className="wf-onboarding-wizard">
         <aside className="wf-onboarding-wizard__rail" aria-label="Setup steps">
           <div className="wf-onboarding-wizard__brand">
@@ -104,8 +101,7 @@ export function OnboardingWizardShell({
                     const idx = steps.findIndex((s) => s.id === item.id)
                     const state = idx < stepIndex ? 'done' : idx === stepIndex ? 'current' : 'upcoming'
                     const clickable = Boolean(onStepSelect) && idx >= 0 && idx <= reachable && state !== 'current'
-                    const mark =
-                      state === 'done' ? '✓' : item.configured && state === 'upcoming' ? '●' : String(idx + 1)
+                    const mark = state === 'done' ? '✓' : String(idx + 1)
                     const inner = (
                       <>
                         <span className="wf-onboarding-wizard__step-mark" aria-hidden="true">

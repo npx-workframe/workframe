@@ -84,6 +84,10 @@
   --wf-dnd-indicator-bg: color-mix(in srgb, var(--primary) 14%, transparent);
   --wf-dnd-indicator-border: var(--primary);
 
+  --wf-switch-track-off: var(--switch-track-off);
+  --wf-switch-track-on: var(--switch-track-on);
+  --wf-switch-thumb: var(--switch-thumb);
+
   --wf-icon-control-size: var(--icon-control-size, 1.75rem);
   --wf-icon-control-icon: var(--icon-control-icon, 1rem);
   --wf-tool-btn-size: var(--wf-icon-control-size);
@@ -225,17 +229,80 @@
   --wf-control-shadow-footer: none;
   --wf-btn-bg: transparent;
   --wf-btn-bg-hover: color-mix(in srgb, var(--surface) 42%, transparent);
-  --wf-btn-bg-primary: color-mix(in srgb, var(--primary) 18%, transparent);
+  --wf-btn-bg-primary: var(--primary);
   --wf-btn-fg-primary: var(--primary-fg);
   --wf-btn-border-width: var(--border-w);
   --wf-btn-border-color: var(--line);
   --wf-btn-border-color-hover: var(--line-strong);
-  --wf-btn-border-color-primary: color-mix(in srgb, var(--primary) 38%, var(--line));
+  --wf-btn-border-color-primary: transparent;
   --wf-btn-border-color-inactive: var(--line-soft);
   --wf-btn-shadow: none;
   --wf-btn-shadow-hover: var(--shadow-sm);
   --wf-btn-shadow-primary: var(--shadow-sm);
   --wf-icon-control-border-width: 0;
+}
+
+/* Glass — map Architectonic roles to --wf-* (field/button tokens live in relief.css). */
+:root[data-style='glass'][data-color-mode] {
+  --wf-border-width: 0;
+  --wf-border: transparent;
+  --wf-border-strong: transparent;
+  --wf-chrome-fill: var(--muted);
+  --wf-control-bg: var(--muted);
+  --wf-control-bg-hover: var(--muted-hover);
+  --wf-control-bg-active: var(--muted-hover);
+  --wf-control-border-width: 0;
+  --wf-control-border-color: transparent;
+  --wf-control-border-color-hover: transparent;
+  --wf-control-border-color-active: transparent;
+  --wf-control-border-color-inactive: transparent;
+  --wf-control-shadow: none;
+  --wf-control-shadow-hover: none;
+  --wf-control-shadow-active: none;
+  --wf-control-shadow-inset: none;
+  --wf-control-border-ring-raised: transparent;
+  --wf-notice-info-border: transparent;
+  --wf-notice-border: transparent;
+  --wf-chrome-border-solid: transparent;
+  --wf-chrome-border-whisper: transparent;
+  --wf-chrome-border-subtle: transparent;
+  --wf-chrome-border-weak: transparent;
+  --wf-chrome-border-light: transparent;
+  --wf-chrome-border: transparent;
+  --wf-chrome-border-dim: transparent;
+  --wf-chrome-border-accent: transparent;
+  --wf-chrome-border-strong: transparent;
+  --wf-chrome-border-drag: transparent;
+  --wf-chrome-border-heavy: transparent;
+  --wf-chrome-border-soft: transparent;
+  --wf-chrome-border-faint: transparent;
+  --wf-chrome-border-ghost: transparent;
+  --wf-divider-color: transparent;
+  --wf-tool-chrome-border: transparent;
+  --wf-dock-divider-color: transparent;
+  --wf-quiet-icon-border-hover: transparent;
+  --wf-surface-modal-border: transparent;
+  --wf-surface-floating-border: transparent;
+  --wf-surface-floating-shadow: var(--shadow-lg);
+  --wf-surface-floating-header-bg: var(--surface-floating-header-bg);
+  --wf-icon-control-border-width: 0;
+  --switch-track-off: var(--muted);
+  --wf-btn-bg: var(--btn-bg);
+  --wf-btn-bg-hover: var(--btn-hover-bg);
+  --wf-btn-bg-primary: var(--muted-hover);
+  --wf-btn-bg-primary-hover: var(--glass-surface-primary-hover);
+  --wf-btn-primary-transition: 250ms;
+  --wf-btn-fg: var(--btn-fg);
+  --wf-btn-fg-primary: var(--btn-fg);
+  --wf-btn-border-width: 0;
+  --wf-btn-border-color: transparent;
+  --wf-btn-border-color-hover: transparent;
+  --wf-btn-border-color-primary: transparent;
+  --wf-btn-border-color-inactive: transparent;
+  --wf-btn-shadow: none;
+  --wf-btn-shadow-hover: none;
+  --wf-btn-shadow-primary: none;
+  --wf-input-border: var(--field-border);
 }
 
 /* Blueprint + Notebook: square chrome; hairlines read above canvas texture. */
@@ -369,6 +436,12 @@
 :root[data-arch-theme^='neo'][data-color-mode='dark'] {
   --wf-line-chrome-soft: color-mix(in srgb, var(--fg) 10%, transparent);
   --wf-line-chrome-strong: color-mix(in srgb, var(--fg) 24%, transparent);
+}
+
+:root[data-color-mode='light'][data-arch-theme] {
+  --wf-progress-fill: var(--wf-purple);
+  --switch-track-on: var(--wf-purple);
+  --wf-wizard-radio-accent: var(--wf-purple);
 }
 
 :root[data-style='glass'] :is(.wf-dialog-content, .wf-auth-card, .wf-auth, .wf-onboarding-wizard) {

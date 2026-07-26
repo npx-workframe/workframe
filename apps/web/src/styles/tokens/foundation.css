@@ -77,6 +77,9 @@
   --wf-control: 32px;
   --wf-tool-btn-size: 28px;
   --wf-tool-btn-icon: 14px;
+  /* Workframe brand purple (logo bar #1) — use sparingly on light chrome */
+  --wf-purple: #79689d;
+  --wf-purple-fg: #ffffff;
   /* --wf-radius-* knobs: tokens/radius.css + themes/*.css */
 
   /* Z-index */

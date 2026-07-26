@@ -16,6 +16,7 @@ export type ConciergeLaunchDeps = {
   bio: string
   agentName: string
   agentTagline: string
+  agentRole: string
   agentSoul: string
   resolveWorkframeName: () => string
   onComplete: () => void
@@ -108,7 +109,8 @@ export function createConciergeLaunchHandlers(deps: ConciergeLaunchDeps) {
           workframe_name: deps.resolveWorkframeName(),
           agent_name: deps.agentName,
           agent_tagline: deps.agentTagline,
-          agent_soul: deps.agentSoul.trim() || deps.bio,
+          agent_role: deps.agentRole.trim() || deps.agentTagline,
+          agent_soul: deps.agentSoul.trim(),
           model: deps.agentPrimaryModel.trim(),
         }
         const result = await workframeAuthApi.completeInstall(payload)
@@ -128,7 +130,8 @@ export function createConciergeLaunchHandlers(deps: ConciergeLaunchDeps) {
         workframe_name: deps.resolveWorkframeName(),
         agent_name: deps.agentName,
         agent_tagline: deps.agentTagline,
-        agent_soul: deps.agentSoul.trim() || deps.bio,
+        agent_role: deps.agentRole.trim() || deps.agentTagline,
+        agent_soul: deps.agentSoul.trim(),
         model: deps.agentPrimaryModel.trim(),
       }
       const result = await workframeAuthApi.completeInstall(payload)

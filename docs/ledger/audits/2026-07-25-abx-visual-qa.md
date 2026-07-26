@@ -2,7 +2,7 @@
 
 **Campaign:** WF-UI-004 / WF-UI-005 / WF-UI-006  
 **Install:** ABX slot 2 — UI `http://127.0.0.1:28644`, API `http://127.0.0.1:29120`  
-**Package:** `create-workframe@0.1.27` (pending publish; built from commits through `d84f34a`, `24509ca`)  
+**Package:** `create-workframe@0.1.28` (pending publish; built from commits through `d84f34a`, `24509ca`)  
 **Scope:** UI/CSS/tokens only — no LLM chat, no backend changes, no credentials in files.
 
 ## Environment
@@ -107,3 +107,4 @@ Hidden themes (`mono`, `neo-color`, `minimal-color`, `leather-book`) — **not p
 | Round | Commit | Files | Themes / breakpoints |
 |-------|--------|-------|-------------------|
 | R1 | `d84f34a` | `relief-surfaces.css`, `onboarding.css`, `theme-picker.css`, `action-btn.css` | Neo relief wizard; theme grid all 14; inactive CTA all 14 |
+| R2 | pending | `DialogFrame.tsx`, `SetupAuthGate.tsx`, `OnboardingAuthGate.tsx`, `dialog.css`, `EmailOtpVerification.tsx`, `bauhaus-chrome.css`, `brandAssets.ts`, `deepseek.svg`, `nous.svg`, `onboarding.css` | Auth theme switcher inside dialog portal (P1); bauhaus/inactive CTA contrast (P0); DeepSeek/Nous brand SVGs (P2); mobile wizard theme menu anchored bottom-right (QA-02) |

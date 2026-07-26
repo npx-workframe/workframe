@@ -1,12 +1,14 @@
 import anthropic from '@/assets/brands/anthropic.svg?url'
 import brave from '@/assets/brands/brave.svg?url'
 import cursor from '@/assets/brands/cursor.svg?url'
+import deepseek from '@/assets/brands/deepseek.svg?url'
 import discord from '@/assets/brands/discord.svg?url'
 import gemini from '@/assets/brands/gemini.svg?url'
 import github from '@/assets/brands/github.svg?url'
 import google from '@/assets/brands/google.svg?url'
 import grok from '@/assets/brands/grok.svg?url'
 import netlify from '@/assets/brands/netlify.svg?url'
+import nous from '@/assets/brands/nous.svg?url'
 import nvidia from '@/assets/brands/nvidia.svg?url'
 import openai from '@/assets/brands/openai.svg?url'
 import openrouter from '@/assets/brands/openrouter.svg?url'
@@ -72,6 +74,8 @@ const PROVIDER_ICON_BY_ID: Partial<Record<ProviderBrandId, string>> = {
   grok: BRAND_ICON.grok,
   nvidia: BRAND_ICON.nvidia,
   stripe: BRAND_ICON.stripe,
+  deepseek: deepseek,
+  nous: nous,
 }
 
 export function providerIconForId(providerId: string): string | null {

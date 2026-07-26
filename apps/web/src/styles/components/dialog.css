@@ -144,6 +144,27 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
   margin-bottom: 1rem;
 }
 
+.wf-dialog-header--with-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.75rem;
+}
+
+.wf-dialog-header__copy {
+  display: grid;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.wf-dialog-header__actions {
+  flex-shrink: 0;
+  justify-self: end;
+}
+
+.wf-dialog-content.wf-auth-dialog .wf-dialog-header--with-actions {
+  padding-right: 0;
+}
+
 .wf-dialog-title {
   margin: 0;
   font-size: 0.9375rem;
@@ -341,11 +362,11 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
   width: 100%;
   height: var(--wf-input-height);
   padding: 0 var(--wf-input-padding-x);
-  border-radius: var(--wf-radius);
-  border: 1px solid color-mix(in srgb, var(--wf-border-strong) 85%, transparent);
-  background: color-mix(in srgb, var(--wf-surface-soft) 75%, transparent);
-  color: var(--wf-text);
-  font-size: var(--wf-type-ui);
+  border-radius: var(--field-radius, var(--wf-radius));
+  border: var(--field-border-width, var(--border-w)) solid var(--field-border);
+  background: var(--field-bg);
+  color: var(--field-fg, var(--wf-text));
+  font-size: var(--field-font, var(--wf-type-ui));
   line-height: var(--wf-leading-ui);
   box-shadow: none;
   transition:
@@ -359,14 +380,15 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
 }
 
 .wf-dialog-input:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--wf-border-strong) 100%, transparent);
-  background: color-mix(in srgb, var(--wf-surface) 80%, transparent);
+  border-color: var(--field-hover-border);
+  background: var(--muted-hover);
 }
 
 .wf-dialog-input:focus-visible {
   outline: none;
-  border-color: color-mix(in srgb, var(--wf-violet-glow) 45%, var(--wf-border-strong));
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--wf-ring) 55%, transparent);
+  border-color: var(--field-focus-border);
+  background: var(--muted-hover);
+  box-shadow: var(--wf-focus-ring);
 }
 
 .wf-dialog-input:disabled {
@@ -391,11 +413,11 @@ textarea.wf-dialog-input {
   width: 100%;
   height: var(--wf-input-height);
   padding: 0 2rem 0 var(--wf-input-padding-x);
-  border-radius: var(--wf-radius);
-  border: 1px solid color-mix(in srgb, var(--wf-border-strong) 85%, transparent);
-  background: color-mix(in srgb, var(--wf-surface-soft) 75%, transparent);
-  color: var(--wf-text);
-  font-size: var(--wf-type-ui);
+  border-radius: var(--field-radius, var(--wf-radius));
+  border: var(--field-border-width, var(--border-w)) solid var(--field-border);
+  background: var(--field-bg);
+  color: var(--field-fg, var(--wf-text));
+  font-size: var(--field-font, var(--wf-type-ui));
   line-height: var(--wf-leading-ui);
   cursor: pointer;
   appearance: none;
@@ -465,8 +487,8 @@ textarea.wf-dialog-input {
 }
 
 .wf-dialog-select__control:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--wf-border-strong) 100%, transparent);
-  background: color-mix(in srgb, var(--wf-surface) 80%, transparent);
+  border-color: var(--field-hover-border);
+  background: var(--muted-hover);
 }
 
 .wf-dialog-select__trigger[data-state='open'] {
@@ -476,8 +498,9 @@ textarea.wf-dialog-input {
 
 .wf-dialog-select__control:focus-visible {
   outline: none;
-  border-color: color-mix(in srgb, var(--wf-violet-glow) 45%, var(--wf-border-strong));
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--wf-ring) 55%, transparent);
+  border-color: var(--field-focus-border);
+  background: var(--muted-hover);
+  box-shadow: var(--wf-focus-ring);
 }
 
 /* ponytail: inset rings stay inside controls — dialog shells use overflow:hidden */

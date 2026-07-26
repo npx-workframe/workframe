@@ -86,11 +86,7 @@ export function ConciergeSmtpStep({
 }: ConciergeSmtpStepProps) {
   return (
     <>
-      {busy && smtpPhase ? (
-        <SmtpProgressList phase={smtpPhase} />
-      ) : (
-        <SmtpSetupStatus host={smtpHost} setupComplete={smtpSetupComplete} tested={smtpTested} />
-      )}
+      {busy && smtpPhase ? <SmtpProgressList phase={smtpPhase} /> : null}
       <div className="wf-onboarding-form__row wf-onboarding-form__row--2col">
         <div className="wf-dialog-field">
           <Label htmlFor="wf-smtp-host">SMTP host</Label>
@@ -166,6 +162,9 @@ export function ConciergeSmtpStep({
         />
         <p className="wf-dialog-field__hint">Leave blank to use the login email as the sender.</p>
       </div>
+      {!(busy && smtpPhase) ? (
+        <SmtpSetupStatus host={smtpHost} setupComplete={smtpSetupComplete} tested={smtpTested} />
+      ) : null}
     </>
   )
 }

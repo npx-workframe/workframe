@@ -8,25 +8,155 @@
   min-height: var(--wf-input-height);
   padding-inline: var(--wf-input-padding-x);
   padding-block: 0;
-  border-width: var(--field-border-width, var(--wf-border-width, 1px));
+  border-width: var(--field-border-width, var(--border-w));
   border-style: solid;
-  border-color: var(--field-border, var(--wf-input-border));
+  border-color: var(--field-border);
   border-radius: var(--field-radius, var(--wf-radius-control));
   outline: none;
-  background: var(--field-bg, var(--wf-input-bg));
-  box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm));
+  background: var(--field-bg);
+  box-shadow: none;
   color: var(--field-fg, var(--wf-text));
   font: inherit;
   font-size: var(--field-font, var(--wf-type-body));
-  transition: border-color var(--motion-fast, 120ms ease), box-shadow var(--motion-fast, 120ms ease);
+  transition:
+    border-color var(--motion-fast, 120ms ease),
+    box-shadow var(--motion-fast, 120ms ease),
+    background var(--motion-fast, 120ms ease);
 }
 
 .wf-input::placeholder { color: var(--field-placeholder, var(--wf-muted)); }
-.wf-input:hover:not(:disabled) { border-color: var(--field-hover-border, var(--wf-border-strong)); }
+.wf-input:hover:not(:disabled) { border-color: var(--field-hover-border); }
 .wf-input:focus-visible {
-  border-color: var(--field-focus-border, var(--wf-primary));
-  box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm)), var(--wf-focus-ring);
+  border-color: var(--field-focus-border);
+  box-shadow: var(--wf-focus-ring);
 }
+
+[data-style='glass'][data-color-mode] :is(.wf-input, .wf-textarea) {
+  background: var(--muted);
+  border-color: var(--field-border);
+  box-shadow: none;
+}
+
+[data-style='glass'][data-color-mode] :is(.wf-onboarding-wizard__panel, .wf-onboarding-wizard__rail, .wf-onboarding-wizard__footer, .wf-settings-shell__main, .wf-settings-shell__rail) {
+  background: transparent;
+}
+
+[data-style='glass'][data-color-mode] .wf-onboarding-wizard__footer {
+  border-top-color: transparent;
+}
+
+[data-style='glass'][data-color-mode] .wf-input:hover:not(:disabled),
+[data-style='glass'][data-color-mode] .wf-textarea:hover:not(:disabled) {
+  background: var(--muted-hover);
+}
+
+[data-style='glass'][data-color-mode] .wf-input:focus-visible,
+[data-style='glass'][data-color-mode] .wf-textarea:focus-visible {
+  background: var(--muted-hover);
+}
+
+[data-style='glass'][data-color-mode] :is(.wf-wizard-mode-card, .wf-wizard-choice-card, .wf-wizard-subtabs__btn) {
+  background: var(--muted);
+  border: none;
+  box-shadow: none;
+  transition: background 250ms ease;
+}
+
+[data-style='glass'][data-color-mode] :is(
+  .wf-wizard-mode-card:hover:not(:disabled):not(.is-inactive),
+  .wf-wizard-choice-card:hover:not(.is-selected),
+  .wf-wizard-choice-card.is-selected,
+  .wf-wizard-subtabs__btn:hover:not(.is-active),
+  .wf-wizard-subtabs__btn.is-active
+) {
+  background: var(--muted-hover);
+  border: none;
+  box-shadow: none;
+  color: var(--wf-text);
+}
+
+/* Glass switch-list rows — same muted ladder as mode cards. */
+[data-style='glass'][data-color-mode] :is(.wf-sign-in-app, .wf-provider-connect__item) {
+  background: var(--muted);
+  border: none;
+  box-shadow: none;
+  transition: background 250ms ease;
+}
+
+[data-style='glass'][data-color-mode] :is(
+  .wf-sign-in-app.is-on,
+  .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked),
+  .wf-provider-connect__item:has(.wf-provider-connect__editor)
+) {
+  background: var(--muted-hover);
+  border: none;
+  box-shadow: none;
+}
+
+[data-style='glass'][data-color-mode] .wf-sign-in-app__icon {
+  background: var(--muted);
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-style='glass'][data-color-mode] :is(
+  .wf-sign-in-app.is-on .wf-sign-in-app__icon,
+  .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked) .wf-sign-in-app__icon,
+  .wf-provider-connect__item:has(.wf-provider-connect__editor) .wf-sign-in-app__icon
+) {
+  background: var(--muted-hover);
+}
+
+[data-style='glass'][data-color-mode] .wf-sign-in-app__body {
+  border-top-color: transparent;
+}
+
+/* Glass switches — 5/10/15% ladder; thumbs contrast on both light and dark glass. */
+[data-style='glass'][data-color-mode] {
+  --switch-track-off: var(--muted);
+  --switch-track-on: var(--muted-hover);
+}
+
+[data-style='glass'][data-color-mode='light'] {
+  --switch-thumb: var(--wf-purple);
+  --switch-track-on: var(--glass-surface-emphasis);
+}
+
+[data-style='glass'][data-color-mode='dark'] {
+  --switch-thumb: rgb(255 255 255 / 0.9);
+  --switch-track-on: var(--glass-surface-emphasis);
+}
+
+[data-style='glass'][data-color-mode] .archi-switch__input {
+  box-shadow: none;
+  transition: background 250ms ease;
+}
+
+[data-style='glass'][data-color-mode] .archi-switch__input::after {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.14);
+  transition:
+    transform var(--motion-base) var(--ar-ease),
+    background 250ms ease;
+}
+
+[data-style='glass'][data-color-mode] .archi-switch__input:hover:not(:disabled):not(:checked) {
+  background: var(--muted-hover);
+}
+
+[data-style='glass'][data-color-mode] .archi-switch__input:checked:hover:not(:disabled) {
+  background: var(--glass-surface-primary-hover);
+}
+
+[data-style='glass'][data-color-mode='light'] .archi-switch__input:checked::after {
+  background: var(--wf-purple-fg);
+}
+
+[data-style='glass'][data-color-mode='dark'] .archi-switch__input:checked::after {
+  background: rgb(255 255 255 / 0.96);
+}
+
 .wf-input:disabled { cursor: not-allowed; opacity: 0.5; }
 
 :is(.wf-dialog-content, .wf-onboarding-wizard, .wf-onboarding-page, .wf-auth)
@@ -52,10 +182,10 @@
   height: 1rem;
   flex: 0 0 1rem;
   padding: 0;
-  border: var(--wf-border-width, 1px) solid var(--field-border, var(--wf-input-border));
+  border: var(--field-border-width, var(--border-w)) solid var(--field-border);
   border-radius: var(--ar-radius-sm, 4px);
   outline: none;
-  background: var(--field-bg, var(--wf-input-bg));
+  background: var(--field-bg);
   box-shadow: var(--wf-control-shadow-inset, var(--shadow-sm));
   color: var(--primary-foreground);
   cursor: pointer;
@@ -90,7 +220,9 @@
   .wf-onboarding-wizard__step-btn,
   .wf-settings-shell__nav-btn,
   .wf-theme-switcher__item,
+  .wf-wizard-mode-card,
   .wf-wizard-choice-card,
+  .wf-wizard-subtabs__btn,
   button.wf-tool-btn,
   .wf-panel__control-btn,
   .wf-popover__row,
@@ -137,7 +269,9 @@ button.wf-agent-rail__section-action--icon {
   .wf-onboarding-wizard__step-btn,
   .wf-settings-shell__nav-btn,
   .wf-theme-switcher__item,
+  .wf-wizard-mode-card,
   .wf-wizard-choice-card,
+  .wf-wizard-subtabs__btn,
   button.wf-tool-btn,
   .wf-panel__control-btn,
   .wf-popover__row,
@@ -186,6 +320,8 @@ button.wf-agent-rail__toggle:focus-visible {
   .wf-settings-shell__nav-btn[aria-selected='true'],
   .wf-settings-shell__nav-btn--solo,
   .wf-theme-switcher__item[aria-current='true'],
+  .wf-wizard-choice-card.is-selected,
+  .wf-wizard-subtabs__btn.is-active,
   .wf-dialog__option.is-selected,
   .wf-dialog__option[data-current='true'],
   .wf-dialog-select-list__option.is-selected
@@ -213,6 +349,8 @@ button.wf-agent-rail__toggle:focus-visible {
   .wf-settings-shell__nav-btn--solo,
   .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-btn,
   .wf-theme-switcher__item[aria-current='true'],
+  .wf-wizard-choice-card.is-selected,
+  .wf-wizard-subtabs__btn.is-active,
   .wf-dialog__option.is-selected,
   .wf-dialog__option[data-current='true'],
   .wf-dialog-select-list__option.is-selected

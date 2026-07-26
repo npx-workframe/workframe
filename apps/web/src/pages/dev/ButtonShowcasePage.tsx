@@ -63,7 +63,7 @@ function RailMock() {
           <li>
             <button type="button" className="wf-onboarding-wizard__step-btn is-static" disabled>
               <span className="wf-onboarding-wizard__step-mark" aria-hidden="true">
-                ·
+                4
               </span>
               <span className="wf-onboarding-wizard__step-copy">
                 <span className="wf-onboarding-wizard__step-label">Integrations</span>

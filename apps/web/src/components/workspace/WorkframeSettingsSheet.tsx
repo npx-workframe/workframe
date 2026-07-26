@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Save } from 'lucide-react'
 
+import { DialogField } from '@/components/dialogs/DialogField'
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
+import { Textarea } from '@/components/ui/textarea'
 import { IntegrationsStack } from '@/components/settings/IntegrationsStack'
 import { SiteBrandingFields } from '@/components/settings/SiteBrandingFields'
 import { SettingsSection } from '@/components/settings/SettingsSection'
@@ -16,6 +18,8 @@ import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPane
 import { StackUpdatesPanel } from '@/components/workspace/StackUpdatesPanel'
 import { resolveLogoUrl, resolveUserAvatarUrl } from '@/lib/avatarResolve'
 import { logoAvatarPersistPayload, logoAvatarPickerValue } from '@/lib/presetAssets'
+import { fetchProfileSoul } from '@/lib/hermesCatalogApi'
+import { fetchWorkframeMeta } from '@/lib/workframeMetaApi'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 import { DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
 import {
@@ -54,6 +58,7 @@ export function WorkframeSettingsSheet({
   const [displayName, setDisplayName] = useState('')
   const [workframeTagline, setWorkframeTagline] = useState('')
   const [description, setDescription] = useState('')
+  const [agentSpice, setAgentSpice] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [credentialMode, setCredentialMode] = useState<'byok' | 'workspace'>('byok')
   const [tab, setTab] = useState<WorkframeTab>('workframe')
@@ -86,6 +91,21 @@ export function WorkframeSettingsSheet({
       setDisplayName(detail.workspace.display_name ?? '')
       setWorkframeTagline(detail.workspace.tagline ?? '')
       setDescription(detail.workspace.description ?? '')
+      const spiceFromWorkspace = detail.workspace.agent_spice
+      if (spiceFromWorkspace != null) {
+        setAgentSpice(spiceFromWorkspace)
+      } else if (canManage) {
+        try {
+          const meta = await fetchWorkframeMeta()
+          const nativeProfile = meta.native_profile?.trim() || 'workframe-agent'
+          const soul = await fetchProfileSoul(nativeProfile)
+          setAgentSpice(soul.workspace_spice ?? '')
+        } catch {
+          setAgentSpice('')
+        }
+      } else {
+        setAgentSpice('')
+      }
       setAvatarUrl(logoAvatarPickerValue(detail.workspace.avatar_url ?? ''))
       setCredentialMode(detail.workspace.credential_mode === 'workspace' ? 'workspace' : 'byok')
     } catch (err) {
@@ -157,6 +177,7 @@ export function WorkframeSettingsSheet({
         display_name: displayName,
         description,
         tagline: workframeTagline,
+        agent_spice: agentSpice,
         ...(logo ?? {}),
       })
       setWorkspace(result.workspace)
@@ -322,6 +343,25 @@ export function WorkframeSettingsSheet({
                 placeholder: 'What this Workframe is for',
               }}
             />
+
+            {canManage ? (
+              <SettingsSection
+                title="Agent spice"
+                hint="Workspace-wide tone and context layered onto every agent. Per-agent preferences stay in Agent Settings."
+              >
+                <DialogField label="Workspace agent spice" htmlFor="wf-workframe-agent-spice">
+                  <Textarea
+                    id="wf-workframe-agent-spice"
+                    className="wf-dialog-input font-mono text-sm"
+                    value={agentSpice}
+                    onChange={(event) => setAgentSpice(event.target.value)}
+                    disabled={fieldsDisabled}
+                    rows={4}
+                    placeholder="Shared context for all agents in this Workframe"
+                  />
+                </DialogField>
+              </SettingsSection>
+            ) : null}
 
             {canManage ? (
               <SettingsSection

@@ -292,7 +292,22 @@ def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[st
         except Exception:  # noqa: BLE001
             pass
     payload: dict[str, Any] = {"message": message}
-    soul = _srv()._profile_soul_text(profile)
+    workspace_id = ""
+    if room_id:
+        try:
+            conn = _srv()._workframe_db()
+            try:
+                room = conn.execute(
+                    "SELECT workspace_id FROM rooms WHERE id = ? AND deleted_at IS NULL",
+                    (room_id,),
+                ).fetchone()
+                if room and room["workspace_id"]:
+                    workspace_id = str(room["workspace_id"])
+            finally:
+                conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    soul = _srv()._profile_soul_text(profile, workspace_id)
     if soul:
         payload["instructions"] = soul
     return payload

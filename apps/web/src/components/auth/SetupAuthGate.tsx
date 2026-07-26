@@ -133,6 +133,7 @@ export function SetupAuthGate({ projectName, onAuthenticated }: SetupAuthGatePro
       onOpenChange={() => {}}
       title={title}
       description={description}
+      headerActions={<ThemeSwitcher />}
       showClose={false}
       contentClassName="wf-auth-dialog"
     >
@@ -159,9 +160,6 @@ export function SetupAuthGate({ projectName, onAuthenticated }: SetupAuthGatePro
 
   return (
     <div className="wf-onboarding-page wf-onboarding-page--gate">
-      <div className="wf-onboarding-page__theme">
-        <ThemeSwitcher />
-      </div>
       {authDialog}
     </div>
   )

@@ -337,7 +337,25 @@ class ChatRoutesMixin:
             self._json(404, {"error": "not found"})
             return
         profile = resolve_validated_profile(profile_soul_match.group(1))
-        self._json(200, profile_soul_get(profile))
+        ws_id = ""
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if user_id:
+            try:
+                conn = srv._workframe_db()
+                row = conn.execute(
+                    """
+                    SELECT workspace_id FROM workspace_memberships
+                    WHERE user_id = ? AND status = 'active' AND deleted_at IS NULL
+                    ORDER BY created_at ASC LIMIT 1
+                    """,
+                    (user_id,),
+                ).fetchone()
+                conn.close()
+                if row:
+                    ws_id = str(row["workspace_id"])
+            except sqlite3.Error:
+                pass
+        self._json(200, profile_soul_get(profile, ws_id))
 
 
     def _route_pattern_get_hermes_profile_detail(self, path: str, qs: dict[str, list[str]]) -> None:
@@ -580,7 +598,8 @@ class ChatRoutesMixin:
             return
         profile = resolve_validated_profile(profile_soul_post.group(1))
         soul = str(body.get("soul", body.get("text", "")))
-        self._json(200, profile_soul_set(profile, soul))
+        layer = str(body.get("layer") or "").strip()
+        self._json(200, profile_soul_set(profile, soul, layer=layer))
 
 
     def _route_pattern_post_hermes_profile_bind(self, path: str, body: dict) -> None:

@@ -69,6 +69,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
   const [tagline, setTagline] = useState('')
   const [role, setRole] = useState('')
   const [soul, setSoul] = useState('')
+  const [systemSoul, setSystemSoul] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [, setAvatarFileName] = useState('')
   const [agentTab, setAgentTab] = useState<AgentSettingsTab>('identity')
@@ -164,7 +165,11 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
           setDisplayName(detail.display_name ?? '')
           setTagline(detail.tagline ?? '')
           setRole(detail.role ?? '')
-          setSoul(detail.soul ?? '')
+          setSystemSoul(detail.soul_system ?? '')
+          const editableLayer = detail.is_native
+            ? (detail.soul_admin ?? '')
+            : (detail.soul_user ?? '')
+          setSoul(editableLayer)
           const savedAvatar = detail.avatar_url || detail.avatar_id || ''
           setAvatarUrl(savedAvatar ? agentAvatarPickerValue(savedAvatar) : '')
           setAvatarFileName('')
@@ -257,17 +262,18 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
     setError('')
     setStatus('')
     try {
+      const layer = isNativeAgent ? 'admin' : 'user'
       if (isNativeAgent && me?.workspace_id) {
         await workframeAuthApi.patchNativeAgent({
           workspace_id: me.workspace_id,
           soul,
         })
       }
-      await saveProfileSoul(agentProfile, soul)
+      await saveProfileSoul(agentProfile, soul, layer)
       setStatus('Instructions saved — the agent will use them on the next turn.')
       await load()
     } catch (err) {
-      setError(formatWorkframeErrorMessage(err, 'Save SOUL'))
+      setError(formatWorkframeErrorMessage(err, 'Save instructions'))
     } finally {
       setBusy(false)
     }
@@ -513,6 +519,14 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                   value={soul}
                   onChange={setSoul}
                   disabled={agentFieldsDisabled}
+                  systemSoul={systemSoul}
+                  workspaceSpiceNote={isNativeAgent}
+                  label={isNativeAgent ? 'Manager preferences' : 'Your preferences'}
+                  hint={
+                    isNativeAgent
+                      ? 'Admin layer for the native manager. Workspace-wide spice is in Workframe Settings.'
+                      : 'Your layer on this agent — combined with the system prompt at runtime.'
+                  }
                 />
               </SettingsPanelBody>
             ) : (

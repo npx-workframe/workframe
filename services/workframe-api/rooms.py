@@ -136,6 +136,7 @@ def _workspace_payload(row: sqlite3.Row, *, viewer_role: str = "") -> dict[str, 
     payload["integrations"] = integrations
     payload["credential_mode"] = str(settings.get("credential_mode") or "byok").strip() or "byok"
     payload["tagline"] = str(settings.get("tagline") or "")
+    payload["agent_spice"] = str(settings.get("agent_spice") or "")
     if viewer_role in OWNER_ADMIN_ROLES:
         payload["admin_onboarding_done"] = bool(settings.get("admin_onboarding_done"))
     return payload
@@ -910,10 +911,11 @@ def _patch_workspace(workspace_id: str, body: dict[str, Any], user_id: str) -> t
         return 400, {"ok": False, "error": "workspace_id required"}
     if not user_id:
         return 401, {"ok": False, "error": "no_session"}
-    allowed = {"display_name", "description", "avatar_url", "tagline"}
+    allowed = {"display_name", "description", "avatar_url", "tagline", "agent_spice"}
     updates = {key: str(body[key]).strip() for key in ("display_name", "description", "avatar_url") if key in body}
     tagline = str(body.get("tagline") or "").strip() if "tagline" in body else None
-    if not updates and tagline is None:
+    agent_spice = str(body.get("agent_spice") or "").strip() if "agent_spice" in body else None
+    if not updates and tagline is None and agent_spice is None:
         return 400, {"ok": False, "error": "no_allowed_fields", "allowed": list(allowed)}
     if "avatar_url" in updates:
         _srv()._validate_me_profile_updates({"avatar_url": updates["avatar_url"]})
@@ -942,9 +944,12 @@ def _patch_workspace(workspace_id: str, body: dict[str, Any], user_id: str) -> t
         sets = [f"{key} = ?" for key in updates]
         vals = list(updates.values())
         now_ts = str(int(time.time()))
-        if tagline is not None:
+        if tagline is not None or agent_spice is not None:
             settings = _srv()._parse_workspace_settings(row)
-            settings["tagline"] = tagline
+            if tagline is not None:
+                settings["tagline"] = tagline
+            if agent_spice is not None:
+                settings["agent_spice"] = agent_spice
             sets.append("settings_json = ?")
             vals.append(json.dumps(settings, sort_keys=True))
         sets.append("updated_at = ?")

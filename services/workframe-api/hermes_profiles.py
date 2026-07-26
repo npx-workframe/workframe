@@ -434,6 +434,7 @@ def _seed_native_user_overlay(
     role: str = "",
     tagline: str = "",
     user_soul: str = "",
+    admin_soul: str = "",
 ) -> None:
     """Keep template SOUL/AGENTS on disk; layer user identity in registry overlay."""
     runtime = _srv().safe_profile_slug(runtime)
@@ -441,14 +442,18 @@ def _seed_native_user_overlay(
     if not runtime:
         return
     _write_profile_soul_if_stub(runtime, template)
-    if display_name.strip() or role.strip() or tagline.strip() or user_soul.strip():
-        _apply_profile_identity(
-            runtime,
-            display_name=display_name,
-            role=role,
-            tagline=tagline,
-            user_soul=user_soul,
-        )
+    overlay_soul = admin_soul.strip() or user_soul.strip()
+    if display_name.strip() or role.strip() or tagline.strip() or overlay_soul:
+        identity_kwargs: dict[str, str] = {
+            "display_name": display_name,
+            "role": role,
+            "tagline": tagline,
+        }
+        if _is_native_profile(template):
+            identity_kwargs["admin_soul"] = admin_soul.strip() or user_soul.strip()
+        elif user_soul.strip():
+            identity_kwargs["user_soul"] = user_soul.strip()
+        _apply_profile_identity(runtime, **identity_kwargs)
 
 
 def _apply_profile_identity(
@@ -458,6 +463,7 @@ def _apply_profile_identity(
     role: str = "",
     tagline: str = "",
     user_soul: str = "",
+    admin_soul: str = "",
 ) -> None:
     prof = _srv().safe_profile_slug(profile)
     patch: dict[str, Any] = {}
@@ -467,6 +473,8 @@ def _apply_profile_identity(
         patch["role"] = role.strip()
     if tagline.strip():
         patch["tagline"] = tagline.strip()
+    if admin_soul.strip():
+        patch["admin_soul"] = admin_soul.strip()
     if user_soul.strip():
         patch["user_soul"] = user_soul.strip()
     if patch.get("display_name"):
@@ -477,18 +485,65 @@ def _apply_profile_identity(
         _srv()._upsert_agent_registry_row(prof, patch)
 
 
-def _profile_identity_overlay(profile: str) -> str:
+def _template_slug_for_profile(profile: str) -> str:
+    prof = _srv().safe_profile_slug(str(profile or "").strip())
+    if _srv()._is_runtime_profile_slug(prof):
+        return _runtime_template_slug(prof)
+    return prof
+
+
+def _workspace_agent_spice(workspace_id: str) -> str:
+    workspace_id = str(workspace_id or "").strip()
+    if not workspace_id:
+        return ""
+    try:
+        conn = _srv()._workframe_db()
+        row = conn.execute(
+            "SELECT settings_json FROM workspaces WHERE id = ? AND deleted_at IS NULL",
+            (workspace_id,),
+        ).fetchone()
+        conn.close()
+        if row:
+            settings = _srv()._parse_workspace_settings(row)
+            return str(settings.get("agent_spice") or "").strip()
+    except (sqlite3.Error, OSError):
+        pass
+    return ""
+
+
+def _profile_admin_soul(profile: str) -> str:
+    template = _template_slug_for_profile(profile)
+    if not _is_native_profile(template):
+        return ""
+    return str(_srv()._agent_registry_row(template).get("admin_soul") or "").strip()
+
+
+def _profile_user_soul(profile: str) -> str:
+    prof = _srv().safe_profile_slug(profile)
+    template = _template_slug_for_profile(prof)
+    if _is_native_profile(template):
+        return ""
+    if _srv()._is_runtime_profile_slug(prof):
+        runtime_reg = _srv()._agent_registry_row(prof)
+        reg = _srv()._agent_registry_row(template)
+        return str(runtime_reg.get("user_soul") or reg.get("user_soul") or "").strip()
+    return str(_srv()._agent_registry_row(prof).get("user_soul") or "").strip()
+
+
+def _profile_identity_overlay(profile: str, workspace_id: str = "") -> str:
     prof = _srv().safe_profile_slug(profile)
     if _srv()._is_runtime_profile_slug(prof):
         template = _runtime_template_slug(prof)
-        # Keep runtime-local instructions separate from shared display
-        # identity.  Name/role/tagline/avatar must come from the template.
         reg = _srv()._agent_registry_row(template)
-        runtime_reg = _srv()._agent_registry_row(prof)
     else:
         reg = _srv()._agent_registry_row(prof)
-        runtime_reg = {}
     blocks: list[str] = []
+    admin_soul = _profile_admin_soul(prof)
+    if admin_soul:
+        blocks.append("## Manager identity\n" + admin_soul)
+    spice = _srv()._workspace_agent_spice(workspace_id)
+    if spice:
+        blocks.append("## Workspace preferences\n" + spice)
     identity_lines: list[str] = []
     display = str(reg.get("display_name") or "").strip()
     role = str(reg.get("role") or reg.get("description") or "").strip()
@@ -501,9 +556,9 @@ def _profile_identity_overlay(profile: str) -> str:
         identity_lines.append(f"- **Tagline:** {tagline}")
     if identity_lines:
         blocks.append("## User identity\n" + "\n".join(identity_lines))
-    user_soul = str(runtime_reg.get("user_soul") or reg.get("user_soul") or "").strip()
+    user_soul = _profile_user_soul(prof)
     if user_soul:
-        blocks.append("## Additional instructions\n" + user_soul)
+        blocks.append("## User preferences\n" + user_soul)
     return "\n\n".join(blocks).strip()
 
 
@@ -554,9 +609,9 @@ def _profile_base_soul_text(profile: str) -> str:
     return _render_soul_placeholders(raw).strip()
 
 
-def _profile_soul_text(profile: str) -> str:
+def _profile_soul_text(profile: str, workspace_id: str = "") -> str:
     base = _profile_base_soul_text(profile)
-    overlay = _profile_identity_overlay(profile)
+    overlay = _profile_identity_overlay(profile, workspace_id)
     if base and overlay:
         return f"{base.rstrip()}\n\n---\n\n{overlay}"
     return overlay or base

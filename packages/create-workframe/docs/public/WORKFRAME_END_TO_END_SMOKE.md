@@ -7,7 +7,7 @@ For monorepo contributor checks (scaffold regression, install gate, public deplo
 ## 1. Scaffold
 
 ```bash
-npx create-workframe@0.1.27 SmokeDemo
+npx create-workframe@0.1.28 SmokeDemo
 cd SmokeDemo
 ```
 

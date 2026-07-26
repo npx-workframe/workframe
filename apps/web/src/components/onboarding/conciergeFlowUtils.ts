@@ -55,7 +55,7 @@ export function preferAdminEmailOverSmtpLogin(
   return current
 }
 
-export function defaultAgentSoul(name: string, project: string) {
+export function defaultAdminSoulPlaceholder(name: string, project: string) {
   return `You are ${name}, the Workframe Manager for ${project}. You help the owner run rooms, agents, and day-to-day work.`
 }
 

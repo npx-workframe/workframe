@@ -353,10 +353,10 @@
     padding: 0 var(--wf-mobile-shell-padding-inline) 12px;
   }
 
-  .wf-provider-connect__row {
+  :is(.wf-sign-in-app__head, .wf-provider-connect__row) {
     grid-template-columns: auto 1fr auto;
     gap: 8px;
-    padding: 7px 8px;
+    padding: 8px;
   }
 
   .wf-onboarding-compact .wf-provider-connect__editor {
@@ -399,11 +399,11 @@
     font-size: 1rem;
   }
 
-  .wf-provider-connect__row {
+  :is(.wf-sign-in-app__head, .wf-provider-connect__row) {
     grid-template-columns: auto 1fr;
   }
 
-  .wf-provider-connect__row > :last-child:not(.wf-provider-connect__switch) {
+  :is(.wf-sign-in-app__head, .wf-provider-connect__row) > :last-child:not(.wf-provider-connect__switch) {
     grid-column: 1 / -1;
     justify-self: start;
   }

@@ -4,6 +4,9 @@
   --wf-accent: var(--wf-violet);
   --wf-accent-foreground: var(--wf-primary-foreground);
 
+  --wf-progress-track: color-mix(in srgb, var(--wf-muted) 25%, transparent);
+  --wf-progress-fill: linear-gradient(90deg, var(--wf-accent), color-mix(in srgb, var(--wf-cyan) 70%, var(--wf-accent)));
+
   --wf-surface-elevated: var(--wf-surface);
   --wf-surface-sunken: color-mix(in srgb, var(--wf-bg) 80%, transparent);
   --wf-overlay-bg: color-mix(in srgb, var(--wf-bg) 48%, transparent);

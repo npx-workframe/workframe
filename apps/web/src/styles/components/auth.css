@@ -262,7 +262,7 @@
 .wf-install-progress {
   height: 8px;
   border-radius: var(--wf-radius-pill);
-  background: color-mix(in srgb, var(--wf-muted) 40%, transparent);
+  background: var(--wf-progress-track);
   overflow: hidden;
   margin-block: 12px 8px;
 }
@@ -270,7 +270,7 @@
 .wf-install-progress__bar {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--wf-accent), color-mix(in srgb, var(--wf-accent) 70%, #fff));
+  background: var(--wf-progress-fill);
   transition: width 0.4s ease;
 }
 
@@ -299,22 +299,15 @@
   width: min(280px, 72vw);
   height: 4px;
   border-radius: var(--wf-radius-pill);
-  background: color-mix(in srgb, var(--wf-muted) 32%, transparent);
+  background: var(--wf-progress-track);
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px var(--wf-chrome-border);
 }
 
 .wf-boot-screen__bar {
   height: 100%;
   width: 42%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    var(--wf-violet),
-    var(--wf-violet-glow),
-    color-mix(in srgb, var(--wf-cyan) 65%, var(--wf-violet-glow))
-  );
-  box-shadow: 0 0 12px color-mix(in srgb, var(--wf-violet-glow) 45%, transparent);
+  background: var(--wf-progress-fill);
   animation: wf-boot-bar 1.15s ease-in-out infinite;
 }
 

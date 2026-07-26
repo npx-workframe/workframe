@@ -630,35 +630,62 @@
   color: var(--wf-text);
 }
 
-[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked) .wf-sign-in-app__icon,
-[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__editor) .wf-sign-in-app__icon {
-  background: var(--wf-control-bg-raised);
+[data-chrome-mode='relief'] :is(
+  .wf-sign-in-app,
+  .wf-provider-connect__item
+) {
+  background: var(--wf-control-bg-flush);
+  border: none;
   box-shadow: var(--wf-control-shadow-flush);
 }
 
-[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked),
-[data-chrome-mode='relief'] .wf-provider-connect__item:has(.wf-provider-connect__editor) {
+[data-chrome-mode='relief'] :is(
+  .wf-sign-in-app.is-on,
+  .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked),
+  .wf-provider-connect__item:has(.wf-provider-connect__editor)
+) {
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-control-shadow-raised);
 }
 
-/* Step number badges — keep contrast on solid chrome-fill rail (neo-solid sweep must not flatten these). */
+[data-chrome-mode='relief'] :is(
+  .wf-sign-in-app.is-on .wf-sign-in-app__icon,
+  .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked) .wf-sign-in-app__icon,
+  .wf-provider-connect__item:has(.wf-provider-connect__editor) .wf-sign-in-app__icon
+) {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-flush);
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app__icon {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-inset);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-chrome-mode='relief'] .wf-sign-in-app__body {
+  border-top-color: transparent;
+}
+
+/* Step number badges — flat on flush step rows (no nested inset on neo relief). */
 [data-chrome-mode='relief'] .wf-onboarding-wizard__step-mark {
   background: color-mix(in srgb, var(--wf-muted) 24%, var(--wf-bg));
-  box-shadow: var(--wf-relief-inset-s);
+  box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-mark {
   background: var(--wf-text);
   color: var(--wf-bg);
-  box-shadow: var(--wf-relief-outset-s);
+  box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-done .wf-onboarding-wizard__step-mark {
   background: color-mix(in srgb, var(--wf-cyan) 30%, var(--wf-bg));
   color: var(--wf-cyan);
-  box-shadow: var(--wf-relief-inset-s);
+  box-shadow: none;
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard__steps li.is-clickable:not(.is-current):hover .wf-onboarding-wizard__step-btn {
@@ -790,11 +817,15 @@
   box-shadow: var(--wf-relief-outset-l);
 }
 
+[data-chrome-mode='relief'] .wf-onboarding-page {
+  overflow: visible;
+}
+
 [data-chrome-mode='relief'] .wf-onboarding-wizard {
   background: var(--wf-surface-modal-bg, var(--wf-chrome-fill));
   border: none;
   box-shadow: var(--wf-relief-outset-l);
-  overflow: hidden;
+  overflow: visible;
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard__rail,
@@ -809,6 +840,13 @@
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard__rail {
   padding: 0;
+  border-radius: var(--wf-radius-shell) 0 0 var(--wf-radius-shell);
+  overflow: hidden;
+}
+
+[data-chrome-mode='relief'] .wf-onboarding-wizard__panel {
+  border-radius: 0 var(--wf-radius-shell) var(--wf-radius-shell) 0;
+  overflow: hidden;
 }
 
 @media (max-width: 720px) {
@@ -852,10 +890,7 @@
 
 /* ponytail: wizard/dialog inner cards — solid --wf-bg; selected/hover = shadow delta */
 [data-chrome-mode='relief'] .wf-onboarding-wizard :is(
-  .wf-onboarding-wizard__footer,
   .wf-wizard-checklist,
-  .wf-wizard-mode-card,
-  .wf-wizard-choice-card,
   .wf-wizard-preset-chip,
   .wf-publish-section,
   .wf-publish-alt,
@@ -863,31 +898,12 @@
   .wf-publish-nested,
   .wf-settings-stack .wf-settings-section,
   .wf-settings-card,
-  .wf-sign-in-app,
   .wf-profile-entity-card,
   .wf-onboarding-progress,
   .wf-onboarding-intro__points,
   .wf-onboarding-launch__card
 ) {
   background: var(--wf-chrome-fill);
-}
-
-[data-chrome-mode='relief'] .wf-sign-in-app__icon {
-  background: var(--wf-control-bg-flush);
-  border: none;
-  box-shadow: var(--wf-control-shadow-inset);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-[data-chrome-mode='relief'] .wf-sign-in-app.is-on {
-  border: none;
-  box-shadow: var(--wf-control-shadow-highlight);
-}
-
-[data-chrome-mode='relief'] .wf-sign-in-app.is-on .wf-sign-in-app__icon {
-  background: var(--wf-control-bg-raised);
-  box-shadow: var(--wf-control-shadow-flush);
 }
 
 [data-chrome-mode='relief'] .wf-profile-entity-card__avatar {
@@ -909,9 +925,6 @@
 }
 
 [data-chrome-mode='relief'] .wf-onboarding-wizard :is(
-  .wf-wizard-mode-card:hover:not(:disabled),
-  .wf-wizard-choice-card.is-selected,
-  .wf-wizard-choice-card:hover:not(.is-selected),
   .wf-wizard-preset-chip.is-active,
   .wf-wizard-preset-chip:hover:not(.is-active)
 ) {
@@ -1048,4 +1061,31 @@
 [data-chrome-mode='relief'] .wf-browser-tabs__tab,
 [data-chrome-mode='relief'] .wf-browser-tabs__tab--active {
   border-color: transparent;
+}
+
+/* Workframe purple — wizard accents on light themes only (logo bar #1). */
+[data-color-mode='light'] .wf-onboarding-wizard__step-mark,
+[data-color-mode='light'] .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-mark,
+[data-color-mode='light'] .wf-onboarding-wizard__steps li.is-done .wf-onboarding-wizard__step-mark {
+  background: var(--wf-purple);
+  color: var(--wf-purple-fg);
+  box-shadow: none;
+}
+
+/* Neo relief — purple label on raised chrome (not a filled brand block). */
+[data-color-mode='light'][data-chrome-mode='relief'] .wf-onboarding-wizard .wf-action-btn[data-tone='primary']:not(:disabled),
+[data-color-mode='light'][data-chrome-mode='relief'] .wf-onboarding-wizard .wf-action-btn[data-tone='primary']:hover:not(:disabled) {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-relief-outset-s);
+  color: var(--wf-purple);
+}
+
+/* Light wizard primary — filled brand (lines). Relief + glass consume tokens above. */
+[data-color-mode='light'][data-chrome-mode='line'] .wf-onboarding-wizard .wf-action-btn[data-tone='primary']:not(:disabled),
+[data-color-mode='light'][data-chrome-mode='line'] .wf-onboarding-wizard .wf-action-btn[data-tone='primary']:hover:not(:disabled) {
+  background: var(--wf-purple);
+  color: var(--wf-purple-fg);
+  border: none;
+  box-shadow: none;
 }

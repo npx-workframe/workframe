@@ -25,8 +25,8 @@
   min-height: 0;
   height: auto;
   resize: none;
-  border-color: var(--wf-chrome-border-soft);
-  background: color-mix(in srgb, var(--wf-bg) 35%, transparent);
+  border-color: var(--field-border, var(--wf-input-border, var(--wf-chrome-border-soft)));
+  background: var(--field-bg);
   font-size: var(--wf-type-body);
   line-height: var(--wf-leading-body);
   padding-block: var(--wf-space-2);
@@ -34,7 +34,7 @@
 }
 
 .wf-composer__input:focus-visible {
-  background: color-mix(in srgb, var(--wf-bg) 50%, transparent);
+  background: var(--muted-hover);
 }
 
 .wf-composer__reply-context {

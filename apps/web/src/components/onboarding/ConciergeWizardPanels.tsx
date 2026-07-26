@@ -1,3 +1,4 @@
+import { AgentInstructionsFields } from '@/components/settings/AgentInstructionsFields'
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
 import { PublicUrlWizardStep } from '@/components/onboarding/PublicUrlWizardStep'
 import { WorkframeIntegrationsStep } from '@/components/onboarding/WorkframeIntegrationsStep'
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import type { FallbackEntry } from '@/lib/hermesCatalogApi'
 import type { Theme } from '@/lib/theme'
 import type { WorkframeNoticeInfo } from '@/lib/workframeErrors'
-import { DEPLOYMENT_MODES, DEPLOYMENT_MODES_PLANNED, defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
+import { DEPLOYMENT_MODES, DEPLOYMENT_MODES_PLANNED, defaultAdminSoulPlaceholder } from '@/components/onboarding/conciergeFlowUtils'
 import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
 
 type ConciergeWizardPanelsProps = {
@@ -31,6 +32,7 @@ type ConciergeWizardPanelsProps = {
   avatarUrl: string
   agentName: string
   agentTagline: string
+  agentRole: string
   agentSoul: string
   agentAvatar: string
   agentPrimaryModel: string
@@ -55,6 +57,7 @@ type ConciergeWizardPanelsProps = {
   onAvatarUrlChange: (value: string) => void
   onAgentNameChange: (value: string) => void
   onAgentTaglineChange: (value: string) => void
+  onAgentRoleChange: (value: string) => void
   onAgentSoulChange: (value: string) => void
   onAgentAvatarChange: (value: string) => void
   onAgentModelTabChange: (tab: 'keys' | 'model') => void
@@ -85,6 +88,7 @@ export function ConciergeWizardPanels({
   avatarUrl,
   agentName,
   agentTagline,
+  agentRole,
   agentSoul,
   agentAvatar,
   agentPrimaryModel,
@@ -109,6 +113,7 @@ export function ConciergeWizardPanels({
   onAvatarUrlChange,
   onAgentNameChange,
   onAgentTaglineChange,
+  onAgentRoleChange,
   onAgentSoulChange,
   onAgentAvatarChange,
   onAgentModelTabChange,
@@ -366,13 +371,23 @@ export function ConciergeWizardPanels({
             onChange: onAgentTaglineChange,
           }}
           body={{
-            id: 'wf-agent-soul',
-            label: 'Soul / instructions',
-            value: agentSoul,
-            onChange: onAgentSoulChange,
-            rows: 4,
-            placeholder: defaultAgentSoul(agentName, resolveWorkframeName()),
+            id: 'wf-agent-role',
+            label: 'Role',
+            value: agentRole,
+            onChange: onAgentRoleChange,
+            rows: 2,
+            placeholder: 'Workframe Manager',
           }}
+        />
+        <AgentInstructionsFields
+          id="wf-agent-admin-soul"
+          label="Manager preferences"
+          value={agentSoul}
+          onChange={onAgentSoulChange}
+          disabled={busy}
+          rows={4}
+          placeholder={defaultAdminSoulPlaceholder(agentName, resolveWorkframeName())}
+          hint="How this manager should behave — saved as your admin layer only."
         />
       </SettingsPanelBody>
     )

@@ -15,15 +15,13 @@ export function OnboardingAuthGate({
 }) {
   return (
     <div className="wf-onboarding-page wf-onboarding-page--gate">
-      <div className="wf-onboarding-page__theme">
-        <ThemeSwitcher />
-      </div>
       <DialogFrame
         open
         modal={!isElectronRuntime()}
         onOpenChange={() => {}}
         title={title}
         description={description}
+        headerActions={<ThemeSwitcher />}
         showClose={false}
         contentClassName="wf-auth-dialog"
       >

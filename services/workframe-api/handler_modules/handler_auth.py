@@ -535,7 +535,7 @@ class AuthRoutesMixin:
             tagline=tagline,
         )
         if soul:
-            result = srv.profile_soul_set(native_slug, soul)
+            result = srv.profile_soul_set(native_slug, soul, layer="admin")
             if not result.get("ok"):
                 self._json(400, result)
                 return

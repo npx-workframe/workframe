@@ -3,7 +3,7 @@ import {
   setStoredSessionTokens,
   workframeAuthHeaders,
 } from '@/lib/workframeSession'
-import { applyTheme, isTheme, persistTheme } from '@/lib/theme'
+import { syncThemeFromProfile } from '@/lib/theme'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { noticeMessage, parseApiErrorResponse } from '@/lib/workframeErrors'
 
@@ -134,6 +134,7 @@ export type SessionWorkspace = {
 
 export type WorkspaceDetail = SessionWorkspace & {
   tagline?: string | null
+  agent_spice?: string | null
   status?: string
   owner_id?: string
   created_at?: string
@@ -494,11 +495,7 @@ export function peekCachedSessionProfile(): SessionProfile | null {
 
 function rememberSessionProfile(profile: SessionProfile): SessionProfile {
   cachedSessionProfile = profile
-  const theme = profile.user?.theme
-  if (isTheme(theme)) {
-    persistTheme(theme)
-    applyTheme(theme)
-  }
+  syncThemeFromProfile(profile.user?.theme)
   return profile
 }
 
@@ -841,7 +838,13 @@ export const workframeAuthApi = {
 
   patchWorkspace(
     workspaceId: string,
-    data: { display_name?: string; description?: string; avatar_url?: string; tagline?: string },
+    data: {
+      display_name?: string
+      description?: string
+      avatar_url?: string
+      tagline?: string
+      agent_spice?: string
+    },
   ) {
     return request<{ ok: boolean; workspace: WorkspaceDetail }>(`/workspace/${workspaceId}`, {
       method: 'PATCH',

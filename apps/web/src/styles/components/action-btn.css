@@ -61,18 +61,27 @@
   color: var(--wf-btn-fg-inactive);
 }
 
-/* Primary — raised/filled by default; hover stays same */
+/* Primary — filled by default; hover uses token when theme sets it. */
 .wf-action-btn[data-tone='primary'] {
   background: var(--wf-btn-bg-primary);
   border-color: var(--wf-btn-border-color-primary);
   box-shadow: var(--wf-btn-shadow-primary);
   color: var(--wf-btn-fg-primary);
+  transition:
+    background var(--wf-btn-primary-transition, 0.15s) ease,
+    border-color var(--wf-btn-primary-transition, 0.15s) ease,
+    box-shadow var(--wf-btn-primary-transition, 0.15s) ease,
+    color var(--wf-btn-primary-transition, 0.15s) ease;
 }
 
 .wf-action-btn[data-tone='primary']:hover:not(:disabled) {
-  background: var(--wf-btn-bg-primary);
+  background: var(--wf-btn-bg-primary-hover, var(--wf-btn-bg-primary));
   border-color: var(--wf-btn-border-color-primary);
   box-shadow: var(--wf-btn-shadow-primary);
+}
+
+.wf-action-btn[data-tone='primary']:active:not(:disabled) {
+  background: var(--wf-btn-bg-primary);
 }
 
 .wf-action-btn--warn {
@@ -106,7 +115,7 @@ button.wf-action-btn[data-tone='primary'].bg-primary {
 }
 
 button.wf-action-btn[data-tone='primary'].bg-primary:hover:not(:disabled) {
-  background: var(--wf-btn-bg-primary);
+  background: var(--wf-btn-bg-primary-hover, var(--wf-btn-bg-primary));
   border-color: var(--wf-btn-border-color-primary);
   box-shadow: var(--wf-btn-shadow-primary);
 }

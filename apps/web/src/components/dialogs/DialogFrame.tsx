@@ -26,6 +26,7 @@ type DialogFrameProps = {
   description?: string
   children?: ReactNode
   footer?: ReactNode
+  headerActions?: ReactNode
   showClose?: boolean
   contentClassName?: string
   modal?: boolean
@@ -38,6 +39,7 @@ export function DialogFrame({
   description,
   children,
   footer,
+  headerActions,
   showClose = true,
   contentClassName,
   modal = true,
@@ -51,9 +53,16 @@ export function DialogFrame({
         showClose={showClose}
         className={cn(contentClassName, hasFooter && 'wf-dialog-content--has-footer')}
       >
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description ? <DialogDescription>{description}</DialogDescription> : null}
+        <DialogHeader
+          className={cn(headerActions && 'wf-dialog-header--with-actions')}
+        >
+          <div className="wf-dialog-header__copy">
+            <DialogTitle>{title}</DialogTitle>
+            {description ? <DialogDescription>{description}</DialogDescription> : null}
+          </div>
+          {headerActions ? (
+            <div className="wf-dialog-header__actions">{headerActions}</div>
+          ) : null}
         </DialogHeader>
         {children ? (
           <div

@@ -1,12 +1,12 @@
 import type { MutableRefObject } from 'react'
 
 import { AGENT_SAVE_STEP_LABELS } from '@/components/onboarding/OnboardingLaunchScreen'
-import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
-import { defaultAgentSoul } from '@/components/onboarding/conciergeFlowUtils'
 import type { OperationStep } from '@/components/ui/OperationProgress'
-import { fetchHermesModels, setHermesFallbackChain, setHermesModel, type FallbackEntry } from '@/lib/hermesCatalogApi'
+import type { ConciergeStep } from '@/components/onboarding/onboardingWizardSteps'
+import { fetchHermesModels, setHermesFallbackChain, setHermesModel, updateHermesProfile, type FallbackEntry } from '@/lib/hermesCatalogApi'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { agentAvatarPersistPayload, logoAvatarPersistPayload, userAvatarPersistPayload } from '@/lib/presetAssets'
+import { fetchWorkframeMeta } from '@/lib/workframeMetaApi'
 import { workframeAuthApi } from '@/lib/workframeAuthApi'
 
 export type ConciergeSaveDeps = {
@@ -21,6 +21,7 @@ export type ConciergeSaveDeps = {
   avatarUrl: string
   agentName: string
   agentTagline: string
+  agentRole: string
   agentSoul: string
   agentAvatar: string
   agentPrimaryModel: string
@@ -230,14 +231,21 @@ export function createConciergeSaveHandlers(deps: ConciergeSaveDeps) {
       status: index === 0 ? 'active' : 'pending',
     })))
     try {
-      const soul = deps.agentSoul.trim() || defaultAgentSoul(deps.agentName, deps.resolveWorkframeName())
+      const adminSoul = deps.agentSoul.trim()
       const avatar = deps.agentAvatar ? agentAvatarPersistPayload(deps.agentAvatar) : null
+      const meta = await fetchWorkframeMeta().catch(() => null)
+      const nativeProfile = meta?.native_profile?.trim() || 'workframe-agent'
       await workframeAuthApi.patchNativeAgent({
         workspace_id: deps.workspaceId,
         display_name: deps.agentName,
         tagline: deps.agentTagline,
         ...(avatar ?? {}),
-        soul,
+        ...(adminSoul ? { soul: adminSoul } : {}),
+      })
+      await updateHermesProfile(nativeProfile, {
+        display_name: deps.agentName,
+        tagline: deps.agentTagline,
+        role: deps.agentRole.trim() || deps.agentTagline || 'Workframe Manager',
       })
       deps.setAgentSteps(AGENT_SAVE_STEP_LABELS.map((entry) => ({ ...entry, status: 'done' })))
       deps.setStep('agent_model')

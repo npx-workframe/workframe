@@ -731,20 +731,14 @@
   width: 100%;
   height: 3px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--wf-muted) 24%, transparent);
+  background: var(--wf-progress-track);
 }
 
 .wf-settings-shell__load-bar {
   height: 100%;
   width: 38%;
   border-radius: inherit;
-  background: linear-gradient(
-    90deg,
-    var(--wf-violet),
-    var(--wf-violet-glow),
-    color-mix(in srgb, var(--wf-cyan) 65%, var(--wf-violet-glow))
-  );
-  box-shadow: 0 0 10px color-mix(in srgb, var(--wf-violet-glow) 40%, transparent);
+  background: var(--wf-progress-fill);
   animation: wf-boot-bar 1.15s ease-in-out infinite;
 }
 
@@ -1501,7 +1495,8 @@
   color: var(--wf-muted);
 }
 
-.wf-provider-connect__list {
+/* Settings switch-list — OAuth onboarding (.wf-sign-in-app) + provider connect share one chrome path. */
+:is(.wf-sign-in-apps__list, .wf-provider-connect__list) {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1509,10 +1504,12 @@
   gap: 6px;
 }
 
-.wf-provider-connect__item {
-  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
+:is(.wf-sign-in-app, .wf-provider-connect__item) {
+  border-width: var(--wf-control-border-width, var(--wf-border-width, 1px));
+  border-style: var(--wf-control-border-style, solid);
+  border-color: var(--wf-control-border-color, var(--wf-chrome-border-strong));
   border-radius: var(--wf-radius-control);
-  background: color-mix(in srgb, var(--wf-bg) 72%, transparent);
+  background: var(--wf-control-bg, color-mix(in srgb, var(--wf-bg) 72%, transparent));
   overflow: hidden;
   transition:
     box-shadow 0.15s ease,
@@ -1520,19 +1517,36 @@
     background 0.15s ease;
 }
 
-.wf-provider-connect__item:has(.wf-provider-connect__switch input:checked),
-.wf-provider-connect__item:has(.wf-provider-connect__editor) {
+:is(
+  .wf-sign-in-app.is-on,
+  .wf-provider-connect__item:has(.wf-provider-connect__switch input:checked),
+  .wf-provider-connect__item:has(.wf-provider-connect__editor)
+) {
   background: var(--wf-control-bg-active, color-mix(in srgb, var(--wf-bg) 88%, var(--wf-surface)));
   border-color: var(--wf-control-border-color-active, var(--wf-chrome-border-strong));
   box-shadow: var(--wf-control-shadow-active, var(--wf-control-shadow-raised));
 }
 
-.wf-provider-connect__row {
+:is(.wf-sign-in-app__head, .wf-provider-connect__row) {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 7px 10px;
+  padding: 10px 12px;
+}
+
+.wf-sign-in-app__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--wf-control-bg-flush, color-mix(in srgb, var(--wf-surface-soft) 70%, transparent));
+  border-width: var(--wf-control-border-width, var(--wf-border-width, 1px));
+  border-style: solid;
+  border-color: var(--wf-control-border-color-inactive, var(--wf-chrome-border));
+  box-shadow: var(--wf-control-shadow-inset, none);
 }
 
 .wf-provider-connect__icon--placeholder {
@@ -1550,10 +1564,6 @@
 
 .wf-platform-identity--embedded .wf-sign-in-apps__list {
   margin: 0;
-}
-
-.wf-platform-link.is-on {
-  border-color: color-mix(in srgb, var(--wf-accent) 28%, var(--wf-border));
 }
 
 .wf-oauth-row__icon {
@@ -1707,18 +1717,10 @@
 .wf-wizard-subtabs__btn {
   padding: 7px 12px;
   border-radius: var(--wf-radius-control);
-  border: var(--wf-border-width, 1px) solid var(--wf-chrome-border-strong);
-  background: color-mix(in srgb, var(--wf-surface) 90%, transparent);
   font-size: var(--wf-type-ui);
   font-weight: 600;
-  color: var(--wf-muted);
+  color: var(--wf-control-fg-inactive, var(--wf-muted));
   cursor: pointer;
-}
-
-.wf-wizard-subtabs__btn.is-active {
-  border-color: color-mix(in srgb, var(--wf-violet-glow) 40%, transparent);
-  background: color-mix(in srgb, var(--wf-violet) 14%, transparent);
-  color: var(--wf-text);
 }
 
 .wf-connect-panel__hint code {

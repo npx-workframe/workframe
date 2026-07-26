@@ -320,7 +320,7 @@ export function EmailOtpVerification({
           ) : null}
           <WfActionButton
             wizardSize
-            tone="primary"
+            tone={busy || !email.trim() ? 'inactive' : 'primary'}
             type="submit"
             form="wf-email-otp-email-form"
             disabled={busy || !email.trim()}
@@ -334,7 +334,7 @@ export function EmailOtpVerification({
       <>
         <WfActionButton
           wizardSize
-          tone="primary"
+          tone={busy || otp.length !== OTP_LENGTH ? 'inactive' : 'primary'}
           type="submit"
           form="wf-email-otp-code-form"
           disabled={busy || otp.length !== OTP_LENGTH}
@@ -399,7 +399,12 @@ export function EmailOtpVerification({
                   Continue with Google
                 </WfActionButton>
               ) : null}
-              <WfActionButton wizardSize tone="primary" type="submit" disabled={busy || !email.trim()}>
+              <WfActionButton
+                wizardSize
+                tone={busy || !email.trim() ? 'inactive' : 'primary'}
+                type="submit"
+                disabled={busy || !email.trim()}
+              >
                 {busy ? 'Sending…' : 'Send code'}
               </WfActionButton>
             </div>
@@ -463,7 +468,7 @@ export function EmailOtpVerification({
                   ) : null}
                   <WfActionButton
                     wizardSize
-                    tone={otp.length === OTP_LENGTH ? 'primary' : 'inactive'}
+                    tone={busy || otp.length !== OTP_LENGTH ? 'inactive' : 'primary'}
                     type="submit"
                     disabled={busy || otp.length !== OTP_LENGTH}
                   >

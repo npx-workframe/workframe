@@ -42,6 +42,11 @@ function readStoredTheme(): Theme | null {
   }
 }
 
+/** Last theme written to local paint cache — used to avoid /me stomping an unsaved picker choice. */
+export function readPersistedTheme(): Theme | null {
+  return readStoredTheme()
+}
+
 export function getInitialTheme(): Theme {
   return readStoredTheme() ?? ARCHITECTONIC_THEME_REGISTRY.defaultTheme
 }
@@ -83,4 +88,13 @@ export function persistTheme(theme: Theme) {
   } catch {
     /* ignore quota / private mode */
   }
+}
+
+/** Apply profile theme when it matches local paint cache or no local choice exists yet. */
+export function syncThemeFromProfile(theme: string | null | undefined) {
+  if (!isTheme(theme)) return
+  const local = readStoredTheme()
+  if (local && local !== theme) return
+  persistTheme(theme)
+  applyTheme(theme)
 }
