@@ -1,17 +1,21 @@
-# Workframe v0.1.30
+# Workframe v0.1.31
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.30 |
-| workframe API / UI | 0.1.30 (bundled in create-workframe) |
+| create-workframe | 0.1.31 |
+| workframe API / UI | 0.1.31 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.30 MyProject
+npx create-workframe@0.1.31 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.31
+
+- SMTP onboarding errors no longer masquerade as LLM “API key rejected”; install email test returns `smtp_*` codes with SMTP-specific hints.
 
 ## 0.1.30
 

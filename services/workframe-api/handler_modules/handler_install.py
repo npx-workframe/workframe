@@ -116,9 +116,27 @@ class InstallRoutesMixin:
             result = install_api.smtp_test_send(to_email)
             self._json(200, result)
         except ValueError as exc:
-            self._json(400, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
+            code = install_api.smtp_error_code(exc)
+            self._json(
+                400,
+                {
+                    "ok": False,
+                    "error": code,
+                    "hint": install_api.smtp_error_hint(exc),
+                    "detail": str(exc)[:300],
+                },
+            )
         except Exception as exc:
-            self._json(500, {"ok": False, "error": str(exc), "hint": install_api.smtp_error_hint(exc)})
+            code = install_api.smtp_error_code(exc)
+            self._json(
+                500,
+                {
+                    "ok": False,
+                    "error": code,
+                    "hint": install_api.smtp_error_hint(exc),
+                    "detail": str(exc)[:300],
+                },
+            )
 
     def _route_post_install_url_test(self, body: dict) -> None:
         srv = _srv()

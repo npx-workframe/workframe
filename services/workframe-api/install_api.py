@@ -467,6 +467,25 @@ def url_test(app_base_url: str) -> dict[str, Any]:
         }
 
 
+def smtp_error_code(exc: Exception) -> str:
+    msg = str(exc).lower()
+    if "smtp login failed" in msg or "535" in msg or "badcredentials" in msg:
+        return "smtp_login_failed"
+    if "smtp password is required" in msg or "smtp is not configured" in msg:
+        return "smtp_not_configured"
+    if "rejected from address" in msg:
+        return "smtp_from_rejected"
+    if "530" in msg and "authentication required" in msg:
+        return "smtp_login_failed"
+    if "connect" in msg or "timed out" in msg or "unexpectedly closed" in msg:
+        return "smtp_connect_failed"
+    if "certificate" in msg or "ssl" in msg:
+        return "smtp_tls_failed"
+    if "smtp error" in msg or "network error sending email" in msg:
+        return "smtp_send_failed"
+    return "smtp_send_failed"
+
+
 def smtp_error_hint(exc: Exception) -> str:
     msg = str(exc).lower()
     if "smtp login failed" in msg or "535" in msg or "badcredentials" in msg:
@@ -511,6 +530,8 @@ if __name__ == "__main__":
     assert not stack_config.smtp_tested()
     stack_config.mark_smtp_tested()
     assert stack_config.smtp_tested()
+    assert smtp_error_code(RuntimeError("SMTP login failed: auth")) == "smtp_login_failed"
+    assert smtp_error_code(ValueError("SMTP is not configured yet")) == "smtp_not_configured"
     stack_config.patch_stack_config({"smtp": {"host": "smtp.other"}})
     assert not stack_config.smtp_tested()
     print("install_api publish hints ok")

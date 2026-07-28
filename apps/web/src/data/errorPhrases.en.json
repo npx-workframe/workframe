@@ -143,6 +143,30 @@
       "hint": "Reset the key at the integration, then paste it again under Settings → Integrations.",
       "actionLabel": "Update API key"
     },
+    "smtp_login_failed": {
+      "message": "SMTP sign-in was rejected.",
+      "hint": "Check host, port, username, and app password. Port 587 uses STARTTLS; port 465 uses SSL."
+    },
+    "smtp_not_configured": {
+      "message": "SMTP is not fully configured yet.",
+      "hint": "Enter host, username, and password, then send a test email."
+    },
+    "smtp_from_rejected": {
+      "message": "The mail server rejected the From address.",
+      "hint": "Leave From blank to send as your login email, or add the address at your provider."
+    },
+    "smtp_connect_failed": {
+      "message": "Workframe could not reach your SMTP server.",
+      "hint": "Check host and port. Port 587 uses STARTTLS; port 465 uses SSL."
+    },
+    "smtp_tls_failed": {
+      "message": "SMTP TLS/SSL negotiation failed.",
+      "hint": "Match port and encryption: 587 + STARTTLS, or 465 + SSL."
+    },
+    "smtp_send_failed": {
+      "message": "Workframe could not send email through SMTP.",
+      "hint": "Double-check host, port, credentials, and From address, then try again."
+    },
     "provider_no_credits": {
       "message": "Your provider account has no credits remaining.",
       "hint": "Add credits at your provider billing page, then try again.",
@@ -293,8 +317,13 @@
       "code": "network_unreachable"
     },
     {
+      "id": "smtp_login",
+      "match": "smtp login failed|smtp authentication|smtp error|network error sending email|535 |530 .*authentication",
+      "code": "smtp_login_failed"
+    },
+    {
       "id": "invalid_api_key",
-      "match": "invalid.*(api[_ ]?key|token)|authentication failed|incorrect api key",
+      "match": "invalid.*(api[_ ]?key|token)|incorrect api key|invalid api key",
       "code": "provider_invalid_key"
     },
     {
@@ -320,6 +349,14 @@
     "send_message": {
       "message": "Your message could not be sent.",
       "hint": "Check your connection and try again."
+    },
+    "smtp_test": {
+      "message": "The test email could not be sent.",
+      "hint": "Verify SMTP host, port, username, password, and From address."
+    },
+    "send_verification_code": {
+      "message": "The verification email could not be sent.",
+      "hint": "Fix SMTP under Email delivery, send a test email, then try again."
     }
   }
 }
