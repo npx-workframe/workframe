@@ -457,7 +457,8 @@
   .wf-auth,
   .wf-auth-otp-panel
 ) .wf-copy-input__value {
-  background: var(--wf-chrome-fill);
+  /* ponytail: shell carries inset relief; inner field stays transparent */
+  background: transparent;
   border: none;
   box-shadow: none;
 }

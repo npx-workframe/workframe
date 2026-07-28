@@ -324,11 +324,22 @@ def host_without_port(host: str) -> str:
     return host
 
 
+def _url_hostname(url: str) -> str:
+    host = urllib.parse.urlsplit(str(url or "").strip()).hostname or ""
+    return host.strip().lower()
+
+
 def allowed_hosts() -> set[str]:
     configured = {host.strip().lower() for host in ALLOWED_HOSTS if host.strip()}
-    if configured:
-        return configured | DEFAULT_ALLOWED_HOSTS
-    return set(DEFAULT_ALLOWED_HOSTS)
+    hosts = configured | DEFAULT_ALLOWED_HOSTS if configured else set(DEFAULT_ALLOWED_HOSTS)
+    for base_url in (
+        APP_BASE_URL,
+        str(stack_config.get_stack_config().get("app_base_url") or ""),
+    ):
+        host = _url_hostname(base_url)
+        if host:
+            hosts.add(host)
+    return hosts
 
 
 def loopback_ui_origins() -> set[str]:

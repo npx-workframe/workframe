@@ -1,17 +1,22 @@
-# Workframe v0.1.29
+# Workframe v0.1.30
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.29 |
+| create-workframe | 0.1.30 |
+| workframe API / UI | 0.1.30 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
-| Workframe API / UI | 0.1.29 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.29 MyProject
+npx create-workframe@0.1.30 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.30
+
+- Publish wizard copy fields: transparent inner input on relief chrome (no nested inset fill).
+- Public installs: `allowed_hosts()` includes `APP_BASE_URL` / stack `app_base_url` hostname (fixes theme save **invalid host** after register-admin).
 
 ## 0.1.29
 
