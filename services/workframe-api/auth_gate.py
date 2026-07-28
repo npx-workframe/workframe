@@ -349,6 +349,7 @@ def install_setup_route(method: str, path: str) -> bool:
         "/api/install/email/test",
         "/api/install/complete",
         "/api/install/setup-https",
+        "/api/install/register-admin",
     ):
         return True
     return False
