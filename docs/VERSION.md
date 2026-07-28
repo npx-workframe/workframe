@@ -1,17 +1,21 @@
-# Workframe v0.1.28
+# Workframe v0.1.29
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.28 |
+| create-workframe | 0.1.29 |
 | workframe CLI (`npx workframe`) | 0.2.2 |
-| Workframe API / UI | 0.1.28 (bundled in create-workframe) |
+| Workframe API / UI | 0.1.29 (bundled in create-workframe) |
 
 ```bash
-npx create-workframe@0.1.28 MyProject
+npx create-workframe@0.1.29 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.29
+
+- Fix install wizard **invalid host** on public domains: `POST /api/install/register-admin` now bypasses SECURE_MODE host validation during the install window.
 
 ## 0.1.28
 
