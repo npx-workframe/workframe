@@ -3,5 +3,123 @@
   "project": "workframe-origin-minimal-bootstrap",
   "updated": "2026-07-29",
   "roadmap_ref": "specs/001-origin-minimal-bootstrap/spec.md",
-  "items": []
+  "items": [
+    {
+      "id": "ORI-001",
+      "title": "Constitutional and Ponytail alignment",
+      "summary": "Verify the formation concept against Constitutional Architectonics, current Architectonic contracts, and the Ponytail reuse/delete ladder.",
+      "status": "done",
+      "priority": "P0",
+      "owner_role": "architect",
+      "acceptance": [
+        "Alignment names source limits and does not invent unavailable paper definitions",
+        "Teleology precedes ontology, evidence classification, authority, and consequence",
+        "MVP deletes custom scanning, ontology, credential, deployment, graph, and hosted-relay systems"
+      ],
+      "depends_on": [],
+      "evidence": [
+        "docs/campaigns/cli-socratic-bootstrap/CONSTITUTIONAL-ALIGNMENT.md",
+        "docs/campaigns/cli-socratic-bootstrap/LEAN-SCOPE.md",
+        ".specify/memory/constitution.md"
+      ],
+      "sources": [
+        "Constitutional Architectonics recovered thesis",
+        "architectonic public contracts",
+        "DietrichGebert/ponytail"
+      ],
+      "completed_at": "2026-07-29"
+    },
+    {
+      "id": "ORI-002",
+      "title": "Spec Kit feature contract and clean Rail",
+      "summary": "Create a branch-local Spec Kit constitution, feature specification, plan, tasks, and one canonical Rail initialized empty before ticket population.",
+      "status": "done",
+      "priority": "P0",
+      "owner_role": "architect",
+      "acceptance": [
+        "Feature has independently testable user stories",
+        "Plan passes the branch constitution check",
+        "Rail is the only live ticket status authority"
+      ],
+      "depends_on": [
+        "ORI-001"
+      ],
+      "evidence": [
+        ".specify/feature.json",
+        "specs/001-origin-minimal-bootstrap/spec.md",
+        "specs/001-origin-minimal-bootstrap/plan.md",
+        "specs/001-origin-minimal-bootstrap/tasks.md",
+        "commit 289473a4cf2474e23f5ee6def4a306d8f80bca8a"
+      ],
+      "sources": [
+        "github/spec-kit templates"
+      ],
+      "completed_at": "2026-07-29"
+    },
+    {
+      "id": "ORI-003",
+      "title": "Implement plan-only Origin start command",
+      "summary": "Add a thin CLI dispatcher and a bounded formation module that reuses status JSON, parses explicit goals, selects an inference candidate, and emits a zero-mutation plan.",
+      "status": "in_progress",
+      "priority": "P0",
+      "owner_role": "coder",
+      "acceptance": [
+        "Existing commands delegate to packages/workframe/bin/workframe.js unchanged",
+        "workframe start --json --goals=business,project returns valid JSON",
+        "Output contains authorization_required=true, inspected_paths=[], and mutations=[]",
+        "No provider call, path inspection, filesystem mutation, or new dependency"
+      ],
+      "depends_on": [
+        "ORI-002"
+      ],
+      "evidence": [],
+      "sources": [
+        "specs/001-origin-minimal-bootstrap/spec.md#user-story-1",
+        "specs/001-origin-minimal-bootstrap/tasks.md#phase-3-user-story-1--safe-formation-plan-mvp"
+      ]
+    },
+    {
+      "id": "ORI-004",
+      "title": "Verify and document the minimal slice",
+      "summary": "Add one standard-library test, update package documentation, and run the final Ponytail diff review.",
+      "status": "pending",
+      "priority": "P0",
+      "owner_role": "tests",
+      "acceptance": [
+        "Node syntax checks pass",
+        "Goal parsing, candidate priority, zero-mutation output, and command execution are checked",
+        "Package README states start is experimental and plan-only",
+        "Final diff has no avoidable dependency, abstraction, or speculative feature"
+      ],
+      "depends_on": [
+        "ORI-003"
+      ],
+      "evidence": [],
+      "sources": [
+        "specs/001-origin-minimal-bootstrap/tasks.md#phase-5-verification-and-documentation"
+      ]
+    },
+    {
+      "id": "ORI-005",
+      "title": "Cross-platform package verification",
+      "summary": "Run the packed CLI on supported host environments and prove the new dispatcher preserves the existing status command.",
+      "status": "pending",
+      "priority": "P1",
+      "owner_role": "tests",
+      "acceptance": [
+        "Packed npm artifact runs on Windows",
+        "At least one macOS or Linux run is recorded",
+        "Existing status --json output remains compatible",
+        "Interactive start is checked in a real TTY"
+      ],
+      "depends_on": [
+        "ORI-004"
+      ],
+      "evidence": [],
+      "sources": [
+        "packages/workframe/package.json",
+        "scripts/workframe/run-package-install-evidence.mjs"
+      ]
+    }
+  ]
 }
