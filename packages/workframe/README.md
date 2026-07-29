@@ -23,6 +23,25 @@ npx workframe help
 npx workframe version
 ```
 
+## Experimental Origin preflight
+
+The `feat/origin-minimal-bootstrap` branch adds one plan-only command:
+
+```bash
+node bin/workframe-cli.js start
+node bin/workframe-cli.js start --json --goals=business,project
+```
+
+It reuses the current status report, asks what the user is trying to establish, identifies an available inference candidate, and returns the next formation question. In this slice it:
+
+- does not inspect folders or files;
+- does not call a model or provider;
+- does not import credentials;
+- does not install Architectonic or Workframe;
+- does not write user state.
+
+A detected runtime or provider remains a candidate until the user explicitly authorizes its use.
+
 ## Privacy and authority
 
 - Discovery runs locally.
