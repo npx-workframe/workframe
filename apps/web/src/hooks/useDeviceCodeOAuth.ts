@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { workframeAuthApi } from '@/lib/workframeAuthApi'
+import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
+import { workframeAuthApi, type OAuthStartResponse } from '@/lib/workframeAuthApi'
 
 export type DeviceCodeOAuthStatus = 'idle' | 'starting' | 'pending' | 'connected' | 'error'
 
@@ -23,7 +24,9 @@ function oauthErrorMessage(
   result: { message?: string | null; output?: string | null; error?: string | null },
   fallback: string,
 ) {
-  return (result.message || result.output || result.error || fallback).trim()
+  const raw = (result.message || result.output || result.error || '').trim()
+  if (!raw) return fallback
+  return formatWorkframeErrorMessage(raw, 'device_oauth')
 }
 
 export function useDeviceCodeOAuth({
@@ -45,6 +48,7 @@ export function useDeviceCodeOAuth({
   const verificationUriRef = useRef<string | null>(null)
   const userCodeRef = useRef<string | null>(null)
   const startedKeyRef = useRef<string | null>(null)
+  const sessionRetryRef = useRef(0)
 
   onConnectedRef.current = onConnected
   onErrorRef.current = onError
@@ -70,6 +74,7 @@ export function useDeviceCodeOAuth({
   const reset = useCallback(() => {
     clearPoll()
     startedKeyRef.current = null
+    sessionRetryRef.current = 0
     verificationUriRef.current = null
     userCodeRef.current = null
     setVerificationUri(null)
@@ -78,6 +83,76 @@ export function useDeviceCodeOAuth({
     setMessage('')
     setCopied(false)
   }, [clearPoll])
+
+  const applyStartResult = useCallback(
+    (result: OAuthStartResponse, cancelled: () => boolean) => {
+      if (cancelled()) return
+      if (result.redirect_url) {
+        window.location.assign(result.redirect_url)
+        return
+      }
+      if (!result.ok || !result.session_id) {
+        fail(oauthErrorMessage(result, `Could not start ${providerLabel} OAuth`))
+        return
+      }
+      setIfChanged(result.verification_uri ?? null, setVerificationUri, verificationUriRef)
+      setIfChanged(result.user_code ?? null, setUserCode, userCodeRef)
+      if (result.status === 'connected') {
+        setStatus('connected')
+        setMessage(`${providerLabel} is connected.`)
+        onConnectedRef.current?.()
+        return
+      }
+      if (result.status === 'error') {
+        fail(oauthErrorMessage(result, `${providerLabel} OAuth failed`))
+        return
+      }
+      setStatus('pending')
+      const sessionId = result.session_id
+      pollRef.current = window.setInterval(() => {
+        void workframeAuthApi
+          .providerOAuthStatus(providerId, sessionId)
+          .then((poll) => {
+            if (cancelled()) return
+            setIfChanged(poll.verification_uri ?? null, setVerificationUri, verificationUriRef)
+            setIfChanged(poll.user_code ?? null, setUserCode, userCodeRef)
+            if (poll.status === 'connected' && poll.ok) {
+              clearPoll()
+              setStatus('connected')
+              setMessage(`${providerLabel} is connected.`)
+              onConnectedRef.current?.()
+              return
+            }
+            if (poll.error === 'session_not_found' && sessionRetryRef.current < 1) {
+              sessionRetryRef.current += 1
+              clearPoll()
+              startedKeyRef.current = null
+              setStatus('starting')
+              setMessage('')
+              void workframeAuthApi
+                .startProviderOAuth(providerId, workspaceId)
+                .then((retry) => applyStartResult(retry, cancelled))
+                .catch((err: unknown) => {
+                  if (cancelled()) return
+                  const errMsg =
+                    err instanceof Error ? err.message : `Failed to start ${providerLabel} OAuth`
+                  fail(formatWorkframeErrorMessage(errMsg, 'device_oauth'))
+                })
+              return
+            }
+            if (poll.status === 'error' || poll.ok === false) {
+              fail(oauthErrorMessage(poll, `${providerLabel} OAuth failed`))
+            }
+          })
+          .catch((err: unknown) => {
+            if (cancelled()) return
+            const errMsg = err instanceof Error ? err.message : `${providerLabel} OAuth failed`
+            fail(formatWorkframeErrorMessage(errMsg, 'device_oauth'))
+          })
+      }, 3000)
+    },
+    [clearPoll, fail, providerId, providerLabel, workspaceId],
+  )
 
   useEffect(() => {
     if (!active) {
@@ -90,72 +165,26 @@ export function useDeviceCodeOAuth({
     if (startedKeyRef.current === startKey) return
 
     let cancelled = false
+    const isCancelled = () => cancelled
     startedKeyRef.current = startKey
+    sessionRetryRef.current = 0
     setStatus('starting')
     setMessage('')
 
-    void (async () => {
-      try {
-        const result = await workframeAuthApi.startProviderOAuth(providerId, workspaceId)
-        if (cancelled) return
-        if (result.redirect_url) {
-          window.location.assign(result.redirect_url)
-          return
-        }
-        if (!result.ok || !result.session_id) {
-          fail(oauthErrorMessage(result, `Could not start ${providerLabel} OAuth`))
-          return
-        }
-        setIfChanged(result.verification_uri ?? null, setVerificationUri, verificationUriRef)
-        setIfChanged(result.user_code ?? null, setUserCode, userCodeRef)
-        if (result.status === 'connected') {
-          setStatus('connected')
-          setMessage(`${providerLabel} is connected.`)
-          onConnectedRef.current?.()
-          return
-        }
-        if (result.status === 'error') {
-          fail(oauthErrorMessage(result, `${providerLabel} OAuth failed`))
-          return
-        }
-        setStatus('pending')
-        const sessionId = result.session_id
-        pollRef.current = window.setInterval(() => {
-          void workframeAuthApi
-            .providerOAuthStatus(providerId, sessionId)
-            .then((poll) => {
-              if (cancelled) return
-              setIfChanged(poll.verification_uri ?? null, setVerificationUri, verificationUriRef)
-              setIfChanged(poll.user_code ?? null, setUserCode, userCodeRef)
-              if (poll.status === 'connected' && poll.ok) {
-                clearPoll()
-                setStatus('connected')
-                setMessage(`${providerLabel} is connected.`)
-                onConnectedRef.current?.()
-                return
-              }
-              if (poll.status === 'error' || poll.ok === false) {
-                fail(oauthErrorMessage(poll, `${providerLabel} OAuth failed`))
-              }
-            })
-            .catch((err: unknown) => {
-              if (cancelled) return
-              const errMsg = err instanceof Error ? err.message : `${providerLabel} OAuth failed`
-              fail(errMsg)
-            })
-        }, 3000)
-      } catch (err) {
+    void workframeAuthApi
+      .startProviderOAuth(providerId, workspaceId)
+      .then((result) => applyStartResult(result, isCancelled))
+      .catch((err) => {
         if (cancelled) return
         const errMsg = err instanceof Error ? err.message : `Failed to start ${providerLabel} OAuth`
-        fail(errMsg)
-      }
-    })()
+        fail(formatWorkframeErrorMessage(errMsg, 'device_oauth'))
+      })
 
     return () => {
       cancelled = true
       clearPoll()
     }
-  }, [active, clearPoll, fail, providerId, providerLabel, reset, workspaceId])
+  }, [active, applyStartResult, clearPoll, fail, providerId, providerLabel, reset, workspaceId])
 
   const copyCode = useCallback(async () => {
     if (!userCode) return

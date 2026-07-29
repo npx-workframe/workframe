@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 from typing import Any
 
 import action_proxy
@@ -193,20 +194,6 @@ class ProviderRoutesMixin:
         srv._invalidate_user_llm_picker_cache(user_id)
         srv._revoke_runtime_llm_leases(payer_user_id=user_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
-        # Credential persistence must not depend on an upstream network round-trip.
-        # OpenRouter's account endpoints can each consume their full timeout when a
-        # self-hosted install has restricted egress, leaving the settings UI stuck
-        # in "Saving…" even though the encrypted credential is already committed.
-        # Model/catalog requests provide the first real provider health signal.
-        health: dict[str, Any] = {
-            "ok": True,
-            "provider": provider,
-            "status": "stored",
-        }
-        try:
-            srv._bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
-        except (OSError, RuntimeError, ValueError) as exc:
-            srv._log_handler_error("POST /api/me/credentials provider bootstrap", exc)
         self._json(200, {
             "ok": True,
             "credential_id": cred_id,
@@ -215,11 +202,22 @@ class ProviderRoutesMixin:
             "label": label,
             "is_active": 1,
             "user_id": user_id,
-            "created_at": now,
-            "updated_at": now,
-            "health": health,
-            **payload,
+            "health": {
+                "ok": True,
+                "provider": provider,
+                "status": "stored",
+            },
         })
+
+        def _bootstrap() -> None:
+            try:
+                srv._bootstrap_model_after_llm_connect(
+                    user_id, str(body.get("workspace_id") or ""), provider
+                )
+            except (OSError, RuntimeError, ValueError) as exc:
+                srv._log_handler_error("POST /api/me/credentials provider bootstrap", exc)
+
+        threading.Thread(target=_bootstrap, daemon=True).start()
 
     def _route_post_me_telegram_link(self, body: dict) -> None:
         srv = _srv()

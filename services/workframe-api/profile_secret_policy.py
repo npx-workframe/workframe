@@ -75,9 +75,25 @@ def exec_blocked_for_profile(cmd: list[str] | str, acting_profile: str = "") -> 
     return False
 
 
+_GATEWAY_DATA_READ_RE = re.compile(
+    r"^profiles/[A-Za-z0-9._-]+/(?:auth\.json|\.oauth-[A-Za-z0-9_-]+\.log)$"
+)
+
+
+def gateway_data_file_read_allowed(rel_path: str) -> bool:
+    """Whitelist for supervisor gateway.read_data_file (device OAuth logs + auth.json)."""
+    normalized = str(rel_path or "").strip().lstrip("/")
+    if not normalized or ".." in normalized.split("/"):
+        return False
+    return bool(_GATEWAY_DATA_READ_RE.fullmatch(normalized))
+
+
 if __name__ == "__main__":
     assert is_secret_read_attempt(["cat", "profiles/u-alice-dev/.env"])
     assert is_secret_read_attempt("cat profiles/u-bob-dev/*")
+    assert gateway_data_file_read_allowed("profiles/u-alice/.oauth-abc123.log")
+    assert gateway_data_file_read_allowed("profiles/u-alice/auth.json")
+    assert not gateway_data_file_read_allowed("profiles/u-alice/.env")
     assert is_secret_read_attempt("cd /opt/data/profiles/u-bob && head .env")
     assert is_secret_read_attempt("cd profiles/u-x && python3 -c \"print(open('.env').read())\"")
     assert touches_foreign_profile_secrets("cd profiles/u-bob && head .env", "u-alice-dev")

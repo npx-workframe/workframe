@@ -66,6 +66,28 @@ const SNAKE_CODE_RE = /^[a-z][a-z0-9_]{2,63}$/
 const TRACE_RE = /\n(?:Traceback|  File )/m
 const API_PREFIX_RE = /^(?:GET|POST|PATCH|PUT|DELETE) \S+ failed:\s*/i
 
+function extractHttpApiError(raw: string): string {
+  const trimmed = raw.trim()
+  const match = trimmed.match(/^HTTP (\d{3}):\s*(\{[\s\S]*\})\s*$/i)
+  if (!match) return trimmed
+  try {
+    const data = JSON.parse(match[2]) as Record<string, unknown>
+    const err = data.error
+    const nested =
+      (typeof data.detail === 'string' && data.detail.trim()) ||
+      (typeof data.message === 'string' && data.message.trim()) ||
+      (typeof err === 'string' && err.trim()) ||
+      (typeof err === 'object' &&
+        err &&
+        typeof (err as { message?: string }).message === 'string' &&
+        (err as { message: string }).message.trim())
+    if (nested) return nested
+  } catch {
+    return trimmed
+  }
+  return trimmed
+}
+
 function copyForCode(code: string): PhraseCopy | undefined {
   const trimmed = code.trim()
   if (!trimmed) return undefined
@@ -136,7 +158,7 @@ function matchPattern(text: string): { code: string; copy: PhraseCopy } | null {
 
 function resolveRawError(raw: string, context?: string): WorkframeNoticeInfo {
   const scrubbed = scrubInternalText(raw)
-  const apiBody = scrubbed.replace(API_PREFIX_RE, '').trim() || scrubbed
+  const apiBody = extractHttpApiError(scrubbed.replace(API_PREFIX_RE, '').trim() || scrubbed)
 
   if (CODE_COPY[apiBody]) {
     const copy = CODE_COPY[apiBody]

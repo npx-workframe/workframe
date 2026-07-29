@@ -517,6 +517,7 @@
 
 .wf-onboarding-wizard .wf-auth-otp-panel__actions .wf-wizard-btn,
 .wf-onboarding-wizard .wf-provider-connect__editor-actions .wf-wizard-btn,
+.wf-onboarding-wizard .wf-sign-in-app__body .wf-provider-connect__editor-actions .wf-wizard-btn,
 .wf-onboarding-wizard .wf-copy-field > .wf-wizard-btn {
   min-width: 7.5rem;
 }

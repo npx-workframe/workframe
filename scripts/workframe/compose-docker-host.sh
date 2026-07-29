@@ -24,13 +24,9 @@ workframe_compose_prepare() {
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.yml" \
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]; then
     compose_cd="${WORKFRAME_COMPOSE_DIR}"
-    # Docker Desktop resolves Windows host paths via the daemon even when the
-    # supervisor cannot see them as Linux directories.
-    if [[ -d "${WORKFRAME_HOST_COMPOSE_DIR}" || "${WORKFRAME_HOST_COMPOSE_DIR}" =~ ^[A-Za-z]:[/\\] ]]; then
-      compose_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
-    else
-      compose_files=(-f docker-compose.yml)
-    fi
+    # ponytail: docker daemon resolves WORKFRAME_HOST_* on the real host even when
+    # this container only has the /compose bind (supervisor cannot stat host paths).
+    compose_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
     return 0
   fi
 
@@ -58,8 +54,7 @@ workframe_compose() {
 # Builds from inside the supervisor use /compose, but recreating a service must
 # pass the generated host-bindings overlay back to Docker Desktop for its binds.
 workframe_compose_host_bindings() {
-  if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" \
-        && -n "${WORKFRAME_HOST_COMPOSE_DIR:-}" \
+  if [[ -n "${WORKFRAME_HOST_COMPOSE_DIR:-}" \
         && -n "${WORKFRAME_HOST_PROJECT_ROOT:-}" \
         && -n "${WORKFRAME_COMPOSE_DIR:-}" \
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]; then

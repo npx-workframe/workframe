@@ -135,7 +135,7 @@ export type WizardStatusContext = {
   deploymentMode: string
   modeChosen: boolean
   stack: {
-    smtp?: { host?: string; port?: number; configured?: boolean; tested?: boolean; setup_complete?: boolean }
+    smtp?: { host?: string; port?: number; user?: string; configured?: boolean; tested?: boolean; setup_complete?: boolean }
     google_oauth?: { enabled?: boolean; client_id?: string; has_secret?: boolean }
     github_oauth?: { enabled?: boolean; client_id?: string; has_secret?: boolean }
     discord_oauth?: { enabled?: boolean; client_id?: string; has_secret?: boolean }
@@ -196,24 +196,20 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
       case 'theme':
         return { ...step, configured: ctx.themeConfirmed, detail: ctx.themeLabel || 'Optional' }
       case 'smtp': {
-        const host = ctx.smtpHost.trim() || ctx.stack?.smtp?.host?.trim() || ''
-        const smtpReady = Boolean(ctx.stack?.smtp?.configured || host)
-        if (ctx.adminVerified) {
+        const accountEmail =
+          ctx.smtpUser.trim() || ctx.stack?.smtp?.user?.trim() || ctx.adminEmail.trim()
+        if (ctx.stack?.smtp?.setup_complete || ctx.adminVerified) {
           return {
             ...step,
             configured: true,
-            detail: host
-              ? `${host} · verified`
-              : ctx.smtpUser.trim() || 'Admin verified',
+            detail: accountEmail ? truncate(accountEmail, 42) : undefined,
           }
         }
-        if (smtpReady) {
+        if (ctx.stack?.smtp?.configured || ctx.smtpHost.trim()) {
           return {
             ...step,
             configured: Boolean(ctx.stack?.smtp?.setup_complete),
-            detail: host
-              ? `${host}${ctx.stack?.smtp?.setup_complete ? ' · ready' : ctx.stack?.smtp?.tested ? ' · tested' : ''}`
-              : 'Configure SMTP',
+            detail: accountEmail ? truncate(accountEmail, 42) : 'Configure SMTP',
           }
         }
         return step

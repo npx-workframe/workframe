@@ -51,7 +51,7 @@ def _compose_run(argv: list[str], *, timeout: float = 120.0) -> subprocess.Compl
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(COMPOSE_DIR))
 
 
-from profile_secret_policy import exec_blocked_for_profile
+from profile_secret_policy import exec_blocked_for_profile, gateway_data_file_read_allowed
 
 
 def _exec_targets_runtime_profile_secrets(cmd: list[str], acting_profile: str = "") -> bool:
@@ -394,8 +394,14 @@ def _docker_request(method: str, path: str, body: dict[str, Any] | None = None) 
         return resp.status, raw.decode("utf-8", errors="replace")
 
 
-def _docker_exec(container: str, cmd: list[str], acting_profile: str = "") -> tuple[int, str]:
-    if _exec_targets_runtime_profile_secrets(cmd, acting_profile):
+def _docker_exec(
+    container: str,
+    cmd: list[str],
+    acting_profile: str = "",
+    *,
+    bypass_secret_policy: bool = False,
+) -> tuple[int, str]:
+    if not bypass_secret_policy and _exec_targets_runtime_profile_secrets(cmd, acting_profile):
         return 1, "blocked: runtime profile credential paths are not readable via gateway exec"
     create_status, create_data = _docker_request(
         "POST",
@@ -438,6 +444,13 @@ def _docker_exec(container: str, cmd: list[str], acting_profile: str = "") -> tu
     exit_raw = inspect_data.get("ExitCode")
     exit_code = 0 if exit_raw in (0, "0") else int(exit_raw or 1)
     return exit_code, out
+
+
+def _gateway_read_data_file(rel_path: str) -> tuple[int, str]:
+    if not gateway_data_file_read_allowed(rel_path):
+        return 1, "path_not_allowed"
+    full = f"/opt/data/{rel_path.strip().lstrip('/')}"
+    return _docker_exec(GATEWAY_CONTAINER_NAME, ["cat", full], bypass_secret_policy=True)
 
 
 def _docker_exec_detached(container: str, cmd: list[str], acting_profile: str = "") -> tuple[int, str]:
@@ -802,6 +815,17 @@ class Handler(BaseHTTPRequestHandler):
                         200,
                         {"ok": code == 0, "exit_code": code, "output": out, "detached": detach},
                     )
+                except Exception as exc:  # noqa: BLE001
+                    return self._json(500, {"ok": False, "error": str(exc)})
+            if path == "/v1/gateway.read_data_file":
+                rel_path = str(body.get("rel_path") or "").strip()
+                if not rel_path:
+                    return self._json(400, {"ok": False, "error": "rel_path required"})
+                try:
+                    code, out = _gateway_read_data_file(rel_path)
+                    if code != 0:
+                        return self._json(400, {"ok": False, "error": out or "read_failed"})
+                    return self._json(200, {"ok": True, "content": out})
                 except Exception as exc:  # noqa: BLE001
                     return self._json(500, {"ok": False, "error": str(exc)})
             if path == "/v1/stack.apply":

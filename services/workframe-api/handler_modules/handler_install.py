@@ -122,7 +122,6 @@ class InstallRoutesMixin:
                 {
                     "ok": False,
                     "error": code,
-                    "hint": install_api.smtp_error_hint(exc),
                     "detail": str(exc)[:300],
                 },
             )
@@ -133,7 +132,6 @@ class InstallRoutesMixin:
                 {
                     "ok": False,
                     "error": code,
-                    "hint": install_api.smtp_error_hint(exc),
                     "detail": str(exc)[:300],
                 },
             )

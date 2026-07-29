@@ -122,7 +122,6 @@ export function ChatSplit() {
   const [providerDialogOpen, setProviderDialogOpen] = useState(false)
   const {
     agentDisplayName,
-    nativeAgentName,
     sessionReady,
     connectError,
     turnActive,
@@ -257,10 +256,10 @@ export function ChatSplit() {
       ...messages,
       systemNoticeChatMessage(connectError, {
         id: stableId,
-        authorName: nativeAgentName,
+        authorName: agentDisplayName,
       }),
     ]
-  }, [connectError, messages, nativeAgentName])
+  }, [connectError, messages, agentDisplayName])
 
   const reloadRoomMessages = useCallback(async (roomId: string, opts?: { silent?: boolean }) => {
     const gen = ++reloadGenRef.current

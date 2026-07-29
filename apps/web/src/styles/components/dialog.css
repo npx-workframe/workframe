@@ -244,6 +244,29 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
   box-shadow: none;
 }
 
+.wf-dialog-content--device-oauth .wf-auth-otp-panel__form {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+[data-chrome-mode='relief'] .wf-dialog-content--device-oauth .wf-auth-otp-panel:not(.wf-auth-otp-panel--embedded) {
+  box-shadow: none;
+}
+
+.wf-dialog-content--device-oauth .wf-auth-otp-panel__notice,
+.wf-device-oauth-panel--inline .wf-auth-otp-panel__notice {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--wf-text);
+  font-size: var(--wf-type-body);
+  line-height: 1.45;
+  text-align: center;
+}
+
 .wf-device-oauth-panel {
   gap: 20px;
 }

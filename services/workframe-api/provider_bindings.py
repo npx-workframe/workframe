@@ -241,6 +241,21 @@ def _read_gateway_data_file(rel_path: str) -> str:
             return host_path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             return ""
+    if _srv().SECURE_MODE and _srv()._supervisor_ready():
+        from profile_secret_policy import gateway_data_file_read_allowed
+
+        if gateway_data_file_read_allowed(rel_path):
+            try:
+                status, data = _srv()._supervisor_request(
+                    "POST",
+                    "/v1/gateway.read_data_file",
+                    {"rel_path": rel_path},
+                    timeout=15.0,
+                )
+                if status < 300 and isinstance(data, dict) and data.get("ok"):
+                    return str(data.get("content") or "")
+            except Exception:
+                pass
     full = f"/opt/data/{rel_path}"
     try:
         code, out = _srv()._gateway_container_exec(["cat", full])

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { OAuthProviderRow } from '@/components/onboarding/OAuthProviderRow'
+import { SignInAppSaveActions } from '@/components/onboarding/SignInAppSaveActions'
 import { SignInAppField } from '@/components/settings/SignInAppField'
 import { SignInBrandIcon } from '@/components/settings/SignInBrandIcon'
 import { Input } from '@/components/ui/input'
@@ -15,8 +16,11 @@ type AdminOAuthSetupProps = {
   afterGithub?: ReactNode
 }
 
+type SavingId = 'google' | 'github' | 'discord' | 'telegram'
+
 export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAuthSetupProps) {
   const [error, setError] = useState<string | null>(null)
+  const [savingId, setSavingId] = useState<SavingId | null>(null)
   const [googleOn, setGoogleOn] = useState(false)
   const [githubOn, setGithubOn] = useState(false)
   const [discordOn, setDiscordOn] = useState(false)
@@ -44,42 +48,57 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
   const githubCallback = `${appBase}/api/oauth/github/callback`
   const discordCallback = `${appBase}/api/oauth/discord/callback`
 
-  useEffect(() => {
-    void workframeAuthApi.getInstallStack().then((cfg) => {
-      const go = cfg.google_oauth
-      const gh = cfg.github_oauth
-      const dc = cfg.discord_oauth
-      const tg = cfg.telegram_login
-      if (go?.client_id) {
-        setGoogleOn(true)
-        setGoogleClientId(go.client_id)
+  const applyStack = useCallback((cfg: Awaited<ReturnType<typeof workframeAuthApi.getInstallStack>>) => {
+    const go = cfg.google_oauth
+    const gh = cfg.github_oauth
+    const dc = cfg.discord_oauth
+    const tg = cfg.telegram_login
+    setGoogleOn(Boolean(go?.client_id))
+    setGoogleClientId(go?.client_id ?? '')
+    setGoogleHasSecret(Boolean(go?.has_secret))
+    setGithubOn(Boolean(gh?.client_id))
+    setGithubClientId(gh?.client_id ?? '')
+    setGithubHasSecret(Boolean(gh?.has_secret))
+    setDiscordOn(Boolean(dc?.client_id))
+    setDiscordClientId(dc?.client_id ?? '')
+    setDiscordHasSecret(Boolean(dc?.has_secret))
+    setTelegramOn(Boolean(tg?.bot_username))
+    setTelegramBotUsername(tg?.bot_username ?? '')
+    setTelegramHasToken(Boolean(tg?.has_token))
+    if (tg?.domain) setTelegramDomain(tg.domain)
+    else {
+      try {
+        setTelegramDomain(new URL(appBase).hostname)
+      } catch {
+        setTelegramDomain('')
       }
-      setGoogleHasSecret(Boolean(go?.has_secret))
-      if (gh?.client_id) {
-        setGithubOn(true)
-        setGithubClientId(gh.client_id)
-      }
-      setGithubHasSecret(Boolean(gh?.has_secret))
-      if (dc?.client_id) {
-        setDiscordOn(true)
-        setDiscordClientId(dc.client_id)
-      }
-      setDiscordHasSecret(Boolean(dc?.has_secret))
-      if (tg?.bot_username) {
-        setTelegramOn(true)
-        setTelegramBotUsername(tg.bot_username)
-      }
-      setTelegramHasToken(Boolean(tg?.has_token))
-      if (tg?.domain) setTelegramDomain(tg.domain)
-      else {
-        try {
-          setTelegramDomain(new URL(appBase).hostname)
-        } catch {
-          setTelegramDomain('')
-        }
-      }
-    }).catch(() => {})
+    }
+    setGoogleClientSecret('')
+    setGithubClientSecret('')
+    setDiscordClientSecret('')
+    setTelegramBotToken('')
   }, [appBase])
+
+  useEffect(() => {
+    void workframeAuthApi.getInstallStack().then(applyStack).catch(() => {})
+  }, [applyStack])
+
+  const saveProvider = useCallback(async (
+    id: SavingId,
+    payload: Record<string, unknown>,
+  ) => {
+    setSavingId(id)
+    setError(null)
+    try {
+      await workframeAuthApi.patchInstallStack(payload)
+      const cfg = await workframeAuthApi.getInstallStack()
+      applyStack(cfg)
+    } catch (err) {
+      setError(formatWorkframeErrorMessage(err, 'Save sign-in apps'))
+    } finally {
+      setSavingId(null)
+    }
+  }, [applyStack])
 
   const save = useCallback(async () => {
     setError(null)
@@ -110,15 +129,7 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
           }
         : { bot_username: '', bot_token: '' }
       await workframeAuthApi.patchInstallStack(payload)
-      const cfg = await workframeAuthApi.getInstallStack()
-      setGoogleHasSecret(Boolean(cfg.google_oauth?.has_secret))
-      setGithubHasSecret(Boolean(cfg.github_oauth?.has_secret))
-      setDiscordHasSecret(Boolean(cfg.discord_oauth?.has_secret))
-      setTelegramHasToken(Boolean(cfg.telegram_login?.has_token))
-      setGoogleClientSecret('')
-      setGithubClientSecret('')
-      setDiscordClientSecret('')
-      setTelegramBotToken('')
+      applyStack(await workframeAuthApi.getInstallStack())
       return true
     } catch (err) {
       setError(formatWorkframeErrorMessage(err, 'Save sign-in apps'))
@@ -137,7 +148,22 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
     telegramBotToken,
     telegramBotUsername,
     telegramOn,
+    applyStack,
   ])
+
+  const rowActions = (id: SavingId, payload: Record<string, unknown>, saveDisabled = false) => (
+    <SignInAppSaveActions
+      busy={savingId === id}
+      disabled={disabled}
+      saveDisabled={saveDisabled}
+      onCancel={() => {
+        void workframeAuthApi.getInstallStack().then(applyStack).catch(() => {})
+      }}
+      onSave={() => {
+        void saveProvider(id, payload)
+      }}
+    />
+  )
 
   useEffect(() => {
     onBindSave?.(save)
@@ -154,6 +180,14 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
           enabled={googleOn}
           disabled={disabled}
           onToggle={setGoogleOn}
+          actions={rowActions('google', {
+            google_oauth: googleOn && googleClientId.trim()
+              ? {
+                  client_id: googleClientId.trim(),
+                  ...(googleClientSecret.trim() ? { client_secret: googleClientSecret.trim() } : {}),
+                }
+              : { client_id: '', client_secret: '' },
+          }, googleOn && !googleClientId.trim())}
         >
           <SignInAppField label="Redirect URI" hint="Add this exact URL in Google Cloud Console → OAuth client." fullWidth>
             <Input readOnly value={googleCallback} />
@@ -187,6 +221,14 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
           enabled={githubOn}
           disabled={disabled}
           onToggle={setGithubOn}
+          actions={rowActions('github', {
+            github_oauth: githubOn && githubClientId.trim()
+              ? {
+                  client_id: githubClientId.trim(),
+                  ...(githubClientSecret.trim() ? { client_secret: githubClientSecret.trim() } : {}),
+                }
+              : { client_id: '', client_secret: '' },
+          }, githubOn && !githubClientId.trim())}
         >
           <p className="wf-sign-in-app__link-row">
             <a className="text-primary underline" href="https://github.com/settings/developers" target="_blank" rel="noreferrer">
@@ -233,6 +275,14 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
           enabled={discordOn}
           disabled={disabled}
           onToggle={setDiscordOn}
+          actions={rowActions('discord', {
+            discord_oauth: discordOn && discordClientId.trim()
+              ? {
+                  client_id: discordClientId.trim(),
+                  ...(discordClientSecret.trim() ? { client_secret: discordClientSecret.trim() } : {}),
+                }
+              : { client_id: '', client_secret: '' },
+          }, discordOn && !discordClientId.trim())}
         >
           <p className="wf-sign-in-app__link-row">
             <a className="text-primary underline" href="https://discord.com/developers/applications" target="_blank" rel="noreferrer">
@@ -272,6 +322,14 @@ export function AdminOAuthSetup({ disabled, onBindSave, afterGithub }: AdminOAut
           enabled={telegramOn}
           disabled={disabled}
           onToggle={setTelegramOn}
+          actions={rowActions('telegram', {
+            telegram_login: telegramOn && telegramBotUsername.trim()
+              ? {
+                  bot_username: telegramBotUsername.trim().replace(/^@/, ''),
+                  ...(telegramBotToken.trim() ? { bot_token: telegramBotToken.trim() } : {}),
+                }
+              : { bot_username: '', bot_token: '' },
+          }, telegramOn && !telegramBotUsername.trim())}
         >
           <p className="wf-sign-in-app__link-row">
             <a className="text-primary underline" href="https://t.me/BotFather" target="_blank" rel="noreferrer">

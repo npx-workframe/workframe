@@ -10,6 +10,7 @@ type OAuthProviderRowProps = {
   disabled?: boolean
   onToggle: (next: boolean) => void
   children?: ReactNode
+  actions?: ReactNode
 }
 
 export function OAuthProviderRow({
@@ -20,6 +21,7 @@ export function OAuthProviderRow({
   disabled,
   onToggle,
   children,
+  actions,
 }: OAuthProviderRowProps) {
   return (
     <li className={`wf-sign-in-app${enabled ? ' is-on' : ''}`}>
@@ -41,7 +43,12 @@ export function OAuthProviderRow({
           onChange={(event) => onToggle(event.target.checked)}
         />
       </div>
-      {enabled && children ? <div className="wf-sign-in-app__body">{children}</div> : null}
+      {enabled && children ? (
+        <div className="wf-sign-in-app__body">
+          {children}
+          {actions}
+        </div>
+      ) : null}
     </li>
   )
 }

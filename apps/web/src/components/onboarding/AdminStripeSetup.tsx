@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { OAuthProviderRow } from '@/components/onboarding/OAuthProviderRow'
+import { SignInAppSaveActions } from '@/components/onboarding/SignInAppSaveActions'
 import { SignInAppField } from '@/components/settings/SignInAppField'
 import { SignInBrandIcon } from '@/components/settings/SignInBrandIcon'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,7 @@ type AdminStripeSetupProps = {
 
 export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSetupProps) {
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [stripeOn, setStripeOn] = useState(false)
   const [clientId, setClientId] = useState('')
   const [platformSecret, setPlatformSecret] = useState('')
@@ -42,6 +44,7 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
   }, [])
 
   const save = useCallback(async () => {
+    setSaving(true)
     setError(null)
     try {
       const payload: Record<string, unknown> = {}
@@ -59,8 +62,20 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
     } catch (err) {
       setError(formatWorkframeErrorMessage(err, 'Save Stripe Connect'))
       return false
+    } finally {
+      setSaving(false)
     }
   }, [clientId, platformSecret, stripeOn])
+
+  const reloadStripe = useCallback(() => {
+    void workframeAuthApi.getInstallStack().then((cfg) => {
+      const st = cfg.stripe_connect
+      setStripeOn(Boolean(st?.client_id))
+      setClientId(st?.client_id ?? '')
+      setHasSecret(Boolean(st?.has_secret))
+      setPlatformSecret('')
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     onBindSave?.(save)
@@ -74,6 +89,17 @@ export function AdminStripeSetup({ disabled, onBindSave, inline }: AdminStripeSe
       enabled={stripeOn}
       disabled={disabled}
       onToggle={setStripeOn}
+      actions={
+        <SignInAppSaveActions
+          busy={saving}
+          disabled={disabled}
+          saveDisabled={stripeOn && !clientId.trim()}
+          onCancel={reloadStripe}
+          onSave={() => {
+            void save()
+          }}
+        />
+      }
     >
       <p className="wf-sign-in-app__link-row">
         <a

@@ -8,5 +8,5 @@ source "$SCRIPT_DIR/compose-docker-host.sh"
 echo "=== Hermes gateway restart ==="
 workframe_compose_prepare
 echo "Compose dir: $compose_cd"
-workframe_compose up -d --force-recreate --no-deps gateway
+workframe_compose_host_bindings up -d --force-recreate --no-deps gateway
 echo "=== Gateway restart complete ==="

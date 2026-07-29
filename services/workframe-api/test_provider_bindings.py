@@ -166,6 +166,33 @@ def test_byok_effective_scope_does_not_leak_shared_binding(monkeypatch) -> None:
     assert row["credential_id"] is None
 
 
+def test_read_gateway_data_file_via_supervisor(monkeypatch) -> None:
+    calls: list[tuple[str, dict]] = []
+
+    class _Srv:
+        SECURE_MODE = True
+        HERMES_DATA = Path("/nonexistent")
+
+        def _supervisor_ready(self) -> bool:
+            return True
+
+        def _supervisor_request(self, method: str, path: str, body: dict, timeout: float = 30.0):
+            calls.append((path, body))
+            return 200, {"ok": True, "content": "oauth log body"}
+
+        def _gateway_container_exec(self, _cmd: list[str]) -> tuple[int, str]:
+            raise AssertionError("raw exec should not run when supervisor read succeeds")
+
+    monkeypatch.setattr(provider_bindings, "_srv", lambda: _Srv())
+    out = provider_bindings._read_gateway_data_file(
+        "profiles/user-1/.oauth-session123.log",
+    )
+    assert out == "oauth log body"
+    assert calls == [
+        ("/v1/gateway.read_data_file", {"rel_path": "profiles/user-1/.oauth-session123.log"}),
+    ]
+
+
 if __name__ == "__main__":
     test_hermes_oauth_auth_keys()
     test_auth_json_has_oauth_material()

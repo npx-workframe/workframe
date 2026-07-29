@@ -38,13 +38,11 @@ export function DeviceCodeOAuthPanel({
   const statusLine =
     status === 'starting'
       ? 'Starting device sign-in…'
-      : status === 'pending' && !userCode
-        ? 'Preparing your code…'
-        : status === 'pending'
-          ? 'Waiting for sign-in — this updates automatically.'
-          : isConnected
-            ? message || `${providerLabel} is connected.`
-            : ''
+      : status === 'pending' && userCode
+        ? 'Waiting for sign-in — this updates automatically.'
+        : isConnected
+          ? message || `${providerLabel} is connected.`
+          : ''
 
   const dismissLabel = isConnected ? 'Done' : isError ? 'Back' : 'Cancel'
 
@@ -87,7 +85,7 @@ export function DeviceCodeOAuthPanel({
             <div className="wf-auth-otp-panel__field">
               <Label className="wf-auth-otp-panel__label">Device code</Label>
               <PanelStatus>
-                {status === 'starting' ? 'Preparing your code…' : 'Waiting for code…'}
+                {status === 'starting' || status === 'pending' ? 'Preparing your code…' : 'Waiting for code…'}
               </PanelStatus>
             </div>
           )}

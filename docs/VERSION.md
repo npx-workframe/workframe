@@ -1,17 +1,23 @@
-# Workframe v0.1.31
+# Workframe v0.1.32
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.31 |
-| workframe API / UI | 0.1.31 (bundled in create-workframe) |
+| create-workframe | 0.1.32 |
+| workframe API / UI | 0.1.32 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.31 MyProject
+npx create-workframe@0.1.32 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.32
+
+- Gateway recreate uses host-bindings overlay when `WORKFRAME_HOST_*` is set (fixes Agents mount split blocking profile API health on VPS).
+- Device OAuth: human `session_not_found` copy, flush dialog styling, auto-retry; supervisor reads OAuth logs across API/gateway mount paths.
+- Chat connect errors use the native agent display name; admin OAuth/Stripe onboarding polish.
 
 ## 0.1.31
 

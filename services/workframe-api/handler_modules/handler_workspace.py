@@ -8,6 +8,7 @@ import queue
 import re
 import secrets
 import sqlite3
+import threading
 import time
 import urllib.parse
 import uuid
@@ -929,16 +930,20 @@ class WorkspaceRoutesMixin:
         cred_id = str(payload["credential_id"])
         srv._revoke_runtime_llm_leases(workspace_id=ws_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
-        try:
-            srv._bootstrap_model_after_llm_connect("", ws_id, provider)
-        except (OSError, RuntimeError, ValueError) as exc:
-            srv._log_handler_error("POST workspace credentials/store bootstrap", exc)
         if str(spec.get("category") or "") == "messaging":
             sync_result = srv._sync_workspace_messaging_gateway(ws_id)
             if not sync_result.get("ok"):
                 self._json(500, {"ok": False, "error": sync_result.get("error") or "messaging_sync_failed"})
                 return
         self._json(200, {"ok": True, "credential_id": cred_id, "credential_ref": payload["credential_ref"]})
+
+        def _bootstrap() -> None:
+            try:
+                srv._bootstrap_model_after_llm_connect("", ws_id, provider)
+            except (OSError, RuntimeError, ValueError) as exc:
+                srv._log_handler_error("POST workspace credentials/store bootstrap", exc)
+
+        threading.Thread(target=_bootstrap, daemon=True).start()
 
     def _route_pattern_post_workspace_credentials_revoke(self, path: str, body: dict) -> None:
         srv = _srv()

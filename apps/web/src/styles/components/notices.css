@@ -73,10 +73,27 @@
 }
 
 .wf-onboarding-wizard .wf-notice--wizard {
-  padding: 12px 14px;
-  border-radius: var(--wf-radius-control);
+  margin: 0 0 var(--wf-gap, 12px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--wf-text);
+  font-size: var(--wf-type-body, 13px);
+  line-height: 1.45;
+}
+
+.wf-onboarding-wizard .wf-notice--wizard.wf-notice--caution {
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .wf-onboarding-wizard .wf-notice--wizard .wf-notice__message {
-  font-size: var(--wf-type-body);
+  font-size: inherit;
+  color: inherit;
+}
+
+.wf-onboarding-wizard .wf-notice--wizard .wf-notice__code {
+  display: none;
 }

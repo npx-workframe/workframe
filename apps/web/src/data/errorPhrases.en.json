@@ -90,6 +90,17 @@
       "message": "This provider does not support device sign-in on this stack.",
       "hint": "Use an API key or a different connect method."
     },
+    "session_not_found": {
+      "message": "This sign-in expired. Close the dialog and try again."
+    },
+    "oauth_failed": {
+      "message": "Provider sign-in did not complete.",
+      "hint": "Try again in a moment."
+    },
+    "oauth_timeout": {
+      "message": "Provider sign-in timed out.",
+      "hint": "Close the dialog and start again."
+    },
     "email_required": {
       "message": "Email is required.",
       "hint": "Enter your email address before continuing."
@@ -144,8 +155,7 @@
       "actionLabel": "Update API key"
     },
     "smtp_login_failed": {
-      "message": "SMTP sign-in was rejected.",
-      "hint": "Check host, port, username, and app password. Port 587 uses STARTTLS; port 465 uses SSL."
+      "message": "Couldn't sign in to your mail server. Check your password and that SMTP is enabled at your provider."
     },
     "smtp_not_configured": {
       "message": "SMTP is not fully configured yet.",
@@ -357,6 +367,10 @@
     "send_verification_code": {
       "message": "The verification email could not be sent.",
       "hint": "Fix SMTP under Email delivery, send a test email, then try again."
+    },
+    "device_oauth": {
+      "message": "Could not complete provider sign-in.",
+      "hint": "Close the dialog and try again."
     }
   }
 }
