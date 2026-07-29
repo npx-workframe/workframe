@@ -22,6 +22,8 @@ node bin/workframe-cli.js start --json \
   --purpose="Build a durable operating context for my work." \
   --forms=organization,project
 node bin/workframe-cli.js help
+node bin/workframe-cli.js --help
+node bin/workframe-cli.js -h
 ```
 
 ## Results
@@ -30,7 +32,7 @@ node bin/workframe-cli.js help
 - Standard-library Origin checks passed.
 - `version` delegated through `workframe-cli.js`.
 - `status --json` delegated through `workframe-cli.js`.
-- `help` preserved existing output and appended the experimental `start` command.
+- `help`, `--help`, and `-h` preserved existing output and appended the experimental `start` command.
 - Purpose preceded provisional form.
 - `none` handling, form normalization, and candidate priority passed.
 - JSON contained:
