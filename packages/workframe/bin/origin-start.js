@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
@@ -8,19 +6,20 @@ import { fileURLToPath } from 'node:url';
 
 const BIN_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-export function parseGoals(value) {
+export function parseForms(value) {
   if (!value) return [];
   const aliases = new Map([
+    ['0', 'none'], ['none', 'none'], ['not yet', 'none'],
     ['1', 'organization'], ['org', 'organization'], ['organization', 'organization'],
     ['2', 'business'], ['biz', 'business'], ['business', 'business'],
     ['3', 'project'], ['proj', 'project'], ['project', 'project'],
   ]);
-  const goals = String(value)
+  const forms = [...new Set(String(value)
     .toLowerCase()
     .split(/[,+]/)
     .map((item) => aliases.get(item.trim()))
-    .filter(Boolean);
-  return [...new Set(goals)];
+    .filter(Boolean))];
+  return forms.length > 1 ? forms.filter((form) => form !== 'none') : forms;
 }
 
 export function chooseInferencePath(report) {
@@ -35,18 +34,22 @@ export function chooseInferencePath(report) {
   return null;
 }
 
-export function buildFormationPlan(report, goals) {
+export function buildFormationPlan(report, purpose, forms) {
+  const nextQuestion = !purpose
+    ? 'What are you trying to accomplish, for whom, and what would success look like?'
+    : !forms.length
+      ? 'What kind of durable thing, if any, should carry this purpose: organization, business, project, or none yet?'
+      : 'Which existing sources should be considered before this purpose and structure become durable doctrine?';
   return {
     schema_version: '0.1',
     mode: 'plan_only',
-    goals,
+    purpose_statement: purpose || null,
+    candidate_forms: forms,
     inference_candidate: chooseInferencePath(report),
     authorization_required: true,
     inspected_paths: [],
     mutations: [],
-    next_question: goals.length
-      ? 'Which existing folders, repositories, or documents should help define the purpose of this work?'
-      : 'What are you trying to establish?',
+    next_question: nextQuestion,
   };
 }
 
@@ -70,14 +73,18 @@ function findOption(args, name) {
   return index >= 0 ? args[index + 1] : undefined;
 }
 
-async function askGoals() {
+async function askFormation() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   try {
+    const purpose = (await rl.question(
+      '\nWhat are you trying to accomplish, for whom, and what would success look like?\n> ',
+    )).trim();
+    if (!purpose) return { purpose: '', forms: [] };
     const answer = await rl.question(
-      '\nWhat are you trying to establish? Choose one or more.\n' +
-      '  1. Organization\n  2. Business\n  3. Project\n> ',
+      '\nWhat kind of durable thing, if any, should carry this purpose?\n' +
+      '  0. None yet\n  1. Organization\n  2. Business\n  3. Project\n> ',
     );
-    return parseGoals(answer);
+    return { purpose, forms: parseForms(answer) };
   } finally {
     rl.close();
   }
@@ -85,10 +92,11 @@ async function askGoals() {
 
 export async function runOriginStart(args = process.argv.slice(2)) {
   const json = args.includes('--json');
-  let goals = parseGoals(findOption(args, '--goals'));
-  if (!goals.length && process.stdin.isTTY && !json) goals = await askGoals();
+  let purpose = (findOption(args, '--purpose') || '').trim();
+  let forms = parseForms(findOption(args, '--forms'));
+  if (!purpose && process.stdin.isTTY && !json) ({ purpose, forms } = await askFormation());
 
-  const plan = buildFormationPlan(readStatus(), goals);
+  const plan = buildFormationPlan(readStatus(), purpose, forms);
   if (json) {
     console.log(JSON.stringify(plan, null, 2));
     return;
@@ -96,11 +104,8 @@ export async function runOriginStart(args = process.argv.slice(2)) {
 
   console.log('\nWORKFRAME ORIGIN // FORMATION PREFLIGHT');
   console.log('No files were inspected and nothing was changed.');
-  console.log(`Goal: ${goals.length ? goals.join(', ') : 'not selected'}`);
+  console.log(`Purpose: ${purpose || 'not stated'}`);
+  console.log(`Form: ${forms.length ? forms.join(', ') : 'not selected'}`);
   console.log(`Inference: ${plan.inference_candidate?.label ?? 'none detected'}`);
   console.log(`Next: ${plan.next_question}\n`);
-}
-
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await runOriginStart();
 }
