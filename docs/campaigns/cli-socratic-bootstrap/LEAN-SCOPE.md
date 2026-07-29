@@ -12,7 +12,7 @@ The implementation branch treats the long campaign documents as **research refer
 2. **Does it already exist?** Runtime and provider discovery already exists in `packages/workframe/bin/workframe.js`. Reuse it.
 3. **Does Architectonic already do it?** Composition, onboarding, verification, maps, agents, and Rail scaffolding belong to Architectonic. Invoke it later; do not rebuild it here.
 4. **Does Workframe already do it?** Workspace installation, credentials, sessions, users, rooms, files, and runtime profiles belong to Workframe/create-workframe. Attach later; do not build a second platform.
-5. **Can the first slice be smaller?** Yes: detect, ask the first teleological question, and return a reviewable zero-mutation plan.
+5. **Can the first slice be smaller?** Yes: detect, ask for purpose, optionally classify a provisional form, and return a reviewable zero-mutation plan.
 
 ## MVP
 
@@ -20,7 +20,8 @@ The implementation branch treats the long campaign documents as **research refer
 workframe status                    existing, unchanged
 workframe start                     new thin dispatch
   -> reuse status JSON
-  -> ask: organization, business, project
+  -> ask what the user wants to accomplish, for whom, and what success means
+  -> optionally ask whether organization, business, project, or none yet should carry it
   -> name the best available inference candidate
   -> state that authorization is still required
   -> return the next question
@@ -31,7 +32,9 @@ workframe start                     new thin dispatch
 Non-interactive form:
 
 ```bash
-workframe start --json --goals=business,project
+workframe start --json \
+  --purpose="Build a durable operating context for my work." \
+  --forms=business,project
 ```
 
 ## Explicitly deferred
@@ -56,7 +59,7 @@ These may become later independently testable features. None is foundational to 
 ## Minimum architecture
 
 - `workframe-cli.js`: dispatch `start`; delegate every existing command unchanged.
-- `origin-start.js`: parse goals, read existing status JSON, select a candidate, print a plan.
+- `origin-start.js`: capture purpose, parse bounded provisional forms, read existing status JSON, select a candidate, and print a plan.
 - one assert-based test file.
 - no new dependency.
 - no network call.
@@ -72,13 +75,14 @@ These may become later independently testable features. None is foundational to 
 - Delete hosted fallback inference from the MVP.
 - Delete automatic full-PC scanning from the MVP.
 - Delete the assumption that every project needs a Rail; add Rail only when work crosses sessions, actors, dependencies, review, or approval.
+- Delete the category mistake that organization, business, and project are purposes. They are only provisional forms that may carry a prior purpose.
 
 ## Upgrade path
 
 The next feature may add **progressive path authorization and metadata-only inventory**. It must not be started until this slice proves:
 
 - existing commands still behave identically;
-- goal parsing works in interactive and JSON modes;
+- purpose capture and provisional-form parsing work in interactive and JSON modes;
 - output states exactly what was and was not inspected;
 - output contains no secrets;
 - no filesystem mutation occurs;
