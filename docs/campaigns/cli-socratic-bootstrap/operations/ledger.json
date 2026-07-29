@@ -103,6 +103,7 @@
       "evidence": [
         "packages/workframe/scripts/test-origin-start.mjs",
         "docs/campaigns/cli-socratic-bootstrap/operations/evidence/2026-07-29-local-fixture-test.md",
+        "docs/campaigns/cli-socratic-bootstrap/operations/evidence/2026-07-29-ponytail-review.md",
         "docs/campaigns/cli-socratic-bootstrap/LEAN-SCOPE.md"
       ],
       "sources": [
