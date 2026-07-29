@@ -18,23 +18,31 @@
 
 ## Phase 3: User Story 1 — Safe Formation Plan (MVP)
 
-- [ ] **T007 [US3]** Add `packages/workframe/bin/workframe-cli.js` to dispatch `start` and delegate all other commands to the existing `workframe.js`.
-- [ ] **T008 [US1]** Add `packages/workframe/bin/origin-start.js` with goal parsing, current status invocation, candidate selection, and zero-mutation plan output.
-- [ ] **T009 [US1]** Update `packages/workframe/package.json` so the package binary uses the thin dispatcher and the package test runs Origin checks.
+- [x] **T007 [US3]** Add `packages/workframe/bin/workframe-cli.js` to dispatch `start` and delegate all other commands to the existing `workframe.js`.
+- [x] **T008 [US1]** Add `packages/workframe/bin/origin-start.js` with purpose capture, bounded provisional-form parsing, current status invocation, candidate selection, and zero-mutation plan output.
+- [x] **T009 [US1]** Update `packages/workframe/package.json` so the package binary uses the thin dispatcher and the package test runs Origin checks.
 
-**Checkpoint**: `workframe start --json --goals=business,project` returns a valid zero-mutation plan while existing commands remain delegated.
+**Checkpoint**:
 
-## Phase 4: User Story 2 — Bounded Conversational First Question
+```bash
+workframe start --json \
+  --purpose="Build a durable operating context for my work." \
+  --forms=business,project
+```
 
-- [ ] **T010 [US2]** Add TTY prompting for organization, business, and project using the bounded parser.
-- [ ] **T011 [US2]** Add human-readable output that states no files were inspected and nothing changed.
+returns a valid zero-mutation plan while existing commands remain delegated.
+
+## Phase 4: User Story 2 — Purpose Before Structure
+
+- [x] **T010 [US2]** Add TTY prompting that asks for purpose and success before asking whether organization, business, project, or none yet should carry it.
+- [x] **T011 [US2]** Add human-readable output that states no files were inspected and nothing changed.
 
 ## Phase 5: Verification and Documentation
 
-- [ ] **T012 [US1]** Add `packages/workframe/scripts/test-origin-start.mjs` using Node `assert` and child-process execution.
-- [ ] **T013 [US3]** Verify `node --check`, package tests, existing delegated status output, and Origin JSON output.
-- [ ] **T014 [US1]** Update `packages/workframe/README.md` with the experimental plan-only command and privacy boundary.
-- [ ] **T015 [US1]** Run a Ponytail review on the final diff and remove anything not required by the acceptance scenarios.
+- [x] **T012 [US1]** Add `packages/workframe/scripts/test-origin-start.mjs` using Node `assert` and child-process execution.
+- [ ] **T013 [US3]** Verify the exact packed package on a real checkout and supported host, including `node --check`, package tests, existing delegated status output, and Origin JSON output.
+- [x] **T014 [US1]** Update `packages/workframe/README.md` with the experimental plan-only command and privacy boundary.
+- [x] **T015 [US1]** Run a Ponytail review on the implementation diff and remove anything not required by the acceptance scenarios.
 
 ## Deferred Features — Not Tickets in This Rail
 
