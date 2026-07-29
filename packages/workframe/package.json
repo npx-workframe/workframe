@@ -4,15 +4,15 @@
   "description": "Adaptive local entrypoint for Workframe runtimes and model providers.",
   "type": "module",
   "bin": {
-    "workframe": "bin/workframe.js"
+    "workframe": "bin/workframe-cli.js"
   },
   "files": [
     "bin",
     "README.md"
   ],
   "scripts": {
-    "check": "node --check bin/workframe.js",
-    "test": "node --check bin/workframe.js && node bin/workframe.js version && node bin/workframe.js status --json"
+    "check": "node --check bin/workframe.js && node --check bin/workframe-cli.js && node --check bin/origin-start.js",
+    "test": "npm run check && node scripts/test-origin-start.mjs && node bin/workframe-cli.js status --json"
   },
   "engines": {
     "node": ">=20"
