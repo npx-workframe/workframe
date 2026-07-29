@@ -19,7 +19,7 @@ When language becomes operational, it becomes constitutional material. A languag
 
 | Constitutional concern | Minimal bootstrap behavior |
 |---|---|
-| Telos before mechanism | `start` asks what the user is trying to establish before scanning content or installing anything. |
+| Telos before mechanism and ontology | `start` first asks what the user wants to accomplish, for whom, and what success means. Organization, business, project, or none yet is asked only afterward as a provisional form. |
 | Constitution before consequence | The first slice is plan-only. It cannot inspect paths, call providers, or mutate files. |
 | Actors and authority | A detected runtime is only a candidate. Use requires explicit authorization. Access never implies authority. |
 | Ontology from evidence | No entity, project, role, or relation is created from filenames alone. Later claims require source evidence or explicit confirmation. |
@@ -33,7 +33,7 @@ When language becomes operational, it becomes constitutional material. A languag
 
 ## Constitutional invariants for this branch
 
-1. The system asks **to what end** before asking what to install.
+1. The system asks **to what end, for whom, and toward what success condition** before proposing an entity type or installation.
 2. Discovery is read-only and progressively authorized.
 3. Detected runtimes and credentials are candidates, not grants.
 4. No file content leaves the machine without a separate explicit grant.
@@ -49,7 +49,8 @@ When language becomes operational, it becomes constitutional material. A languag
 The original campaign described the entire eventual system at once. That obscured the constitutional dependency order. The corrected build sequence is:
 
 ```text
-teleological intent
+teleological intent and success condition
+  -> provisional carrier form, if one is justified
   -> explicit authority to inspect
   -> evidence inventory
   -> ontology and epistemic classification
@@ -60,4 +61,4 @@ teleological intent
   -> runtime execution
 ```
 
-Only the first line is implemented in the initial slice, using existing runtime discovery as input. Later stages must earn their existence through a verified preceding slice.
+Only the first two lines are represented in the initial plan-only slice, using existing runtime discovery as environmental input. Later stages must earn their existence through a verified preceding slice.
