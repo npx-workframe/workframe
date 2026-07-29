@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const videoSrc =
-  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ?? "/Workframe_DemoVideos.mp4";
+  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ?? "/Workframe_DemoVideo.mp4";
 
 type WebkitVideo = HTMLVideoElement & {
   webkitEnterFullscreen?: () => void;

@@ -3,7 +3,14 @@ import Link from "next/link";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 19 19" fill="currentColor" aria-hidden className={className}>
+    <svg
+      viewBox="0 0 19 19"
+      width="19"
+      height="19"
+      fill="currentColor"
+      aria-hidden
+      className={className}
+    >
       <path
         fillRule="evenodd"
         clipRule="evenodd"
