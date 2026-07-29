@@ -29,10 +29,12 @@ The `feat/origin-minimal-bootstrap` branch adds one plan-only command:
 
 ```bash
 node bin/workframe-cli.js start
-node bin/workframe-cli.js start --json --goals=business,project
+node bin/workframe-cli.js start --json \
+  --purpose="Build a durable operating context for my work." \
+  --forms=business,project
 ```
 
-It reuses the current status report, asks what the user is trying to establish, identifies an available inference candidate, and returns the next formation question. In this slice it:
+It reuses the current status report, asks what the user is trying to accomplish before asking what kind of entity should carry that purpose, identifies an available inference candidate, and returns the next formation question. In this slice it:
 
 - does not inspect folders or files;
 - does not call a model or provider;
@@ -40,7 +42,7 @@ It reuses the current status report, asks what the user is trying to establish, 
 - does not install Architectonic or Workframe;
 - does not write user state.
 
-A detected runtime or provider remains a candidate until the user explicitly authorizes its use.
+A detected runtime or provider remains a candidate until the user explicitly authorizes its use. Organization, business, and project are provisional forms, not substitutes for purpose. `none yet` is valid.
 
 ## Privacy and authority
 
