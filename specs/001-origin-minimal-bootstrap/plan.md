@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add a thin package entrypoint that routes only `start` to a small formation module and delegates every existing command to the shipped CLI unchanged. The formation module invokes existing `status --json`, parses a bounded teleological choice, identifies an inference candidate, and emits a zero-mutation plan. No scanning, LLM call, credential import, Architectonic installation, or Workframe deployment is included.
+Add a thin package entrypoint that routes only `start` to a small formation module and delegates every existing command to the shipped CLI unchanged. The formation module invokes existing `status --json`, captures a purpose statement first, parses an optional bounded form second, identifies an inference candidate, and emits a zero-mutation plan. No scanning, LLM call, credential import, Architectonic installation, or Workframe deployment is included.
 
 ## Technical Context
 
@@ -26,14 +26,14 @@ Add a thin package entrypoint that routes only `start` to a small formation modu
 
 **Constraints**: No new dependency, no write path, no provider call, preserve existing command behavior
 
-**Scale/Scope**: One command, one bounded goal parser, one plan object, one runnable check
+**Scale/Scope**: One command, one purpose string, one bounded form parser, one plan object, one runnable check
 
 ## Constitution Check
 
-- Purpose before structure: pass; `start` begins with goals.
+- Purpose before structure: pass; `start` captures purpose before provisional form.
 - Reuse existing authorities: pass; status is invoked, not reimplemented.
 - Progressive consent: pass; no path or provider access occurs.
-- Files/evidence over chat: pass; no durable claims are written yet.
+- Files/evidence over chat: pass; the purpose remains a provisional user statement and no durable claim is written.
 - Minimum coherent slice: pass; two small runtime files and one test.
 
 ## Project Structure
