@@ -28,6 +28,12 @@ const delegated = spawnSync(process.execPath, [path.join(root, 'bin/workframe-cl
 assert.equal(delegated.status, 0, delegated.stderr);
 assert.equal(delegated.stdout.trim(), version);
 
+for (const helpArgs of [['help'], ['--help'], ['-h']]) {
+  const help = spawnSync(process.execPath, [path.join(root, 'bin/workframe-cli.js'), ...helpArgs], { encoding: 'utf8' });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /start\s+Begin the experimental plan-only formation preflight\./);
+}
+
 const run = spawnSync(process.execPath, [
   path.join(root, 'bin/workframe-cli.js'),
   'start',
