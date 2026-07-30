@@ -239,7 +239,10 @@ def _reconcile_profile_llm_for_user(
     if (
         configured_billing
         and current_model
-        and _srv()._user_can_use_llm(user, workspace_id, configured_billing)
+        and (
+            _srv()._profile_routing_matches_billing(prof, configured_billing, block=block)
+            or _srv()._user_can_use_llm(user, workspace_id, configured_billing)
+        )
     ):
         billing = configured_billing
     elif prefer and _srv()._user_can_use_llm(user, workspace_id, prefer):
