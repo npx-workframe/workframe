@@ -236,7 +236,11 @@ def _reconcile_profile_llm_for_user(
     )
     connected = _srv()._user_llm_providers_for_picker(user)
     prefer = str(prefer_provider or "").strip().lower()
-    if configured_billing and current_model:
+    if (
+        configured_billing
+        and current_model
+        and _srv()._user_can_use_llm(user, workspace_id, configured_billing)
+    ):
         billing = configured_billing
     elif prefer and _srv()._user_can_use_llm(user, workspace_id, prefer):
         billing = prefer

@@ -109,6 +109,37 @@ def _provider_label(provider: str) -> str:
     return _PROVIDER_LABELS.get(key, key.title() or "Provider")
 
 
+def message_for_run_authority_deny(deny_reason: str, provider: str = "") -> str:
+    """User-facing copy when RunAuthorityGate denies a turn."""
+    key = str(deny_reason or "").strip().lower()
+    label = _provider_label(provider) if provider else "your LLM provider"
+    if key == "no_credential_byok":
+        return (
+            f"I can't reply yet — connect {label} under Profile → Connect accounts "
+            f"(LLM Providers), then pick a model on the LLM Models tab."
+        )
+    if key == "no_credential_company":
+        return (
+            "I can't reply yet — this workspace needs a company LLM key. "
+            "Ask an owner to add one under workspace settings."
+        )
+    if key == "provider_user_only_no_fallback":
+        return (
+            f"I can't reply yet — connect your personal {label} account under "
+            f"Profile → Connect accounts (OAuth providers cannot use workspace keys)."
+        )
+    if key == "delegation_no_grantor_credential":
+        return (
+            "I can't reply yet — the member who delegated this task has not connected "
+            "an LLM provider under Profile → Connect accounts."
+        )
+    if key == "no_actor":
+        return "I can't reply yet — sign in and open this agent again."
+    return (
+        f"I can't reply yet — connect {label} under Profile → Connect accounts."
+    )
+
+
 def tailor_provider_entry(entry: dict[str, Any], provider: str) -> dict[str, Any]:
     """Agent-facing copy when a provider rejects credentials."""
     if str(entry.get("code") or "") != "provider_invalid_key":

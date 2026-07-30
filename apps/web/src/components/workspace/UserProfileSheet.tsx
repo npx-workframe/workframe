@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { LogOut, Save } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
-import { WfActionButton } from '@/components/ui/WfActionButton'
+import { Button } from '@/components/ui/button'
+import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
+import { ModelPickerPanel } from '@/components/settings/ModelPickerPanel'
 import { AgentDelegationPanel } from '@/components/workspace/AgentDelegationPanel'
 import { ThemeSettingsPanel } from '@/components/settings/ThemeSettingsPanel'
-import { SettingsPanelBody } from '@/components/workspace/SettingsPanelBody'
 import { SettingsSheetFrame } from '@/components/workspace/SettingsSheetFrame'
 import { useWorkspacePanels } from '@/contexts/WorkspacePanelsContext'
 import { resolveUserAvatarUrl } from '@/lib/avatarResolve'
@@ -16,7 +17,7 @@ import { workframeAuthApi, type SessionProfile, type WorkspaceMember } from '@/l
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
 
 type ProfileTab = 'profile' | 'connect' | 'agents' | 'appearance'
-type ConnectTab = 'providers' | 'messaging'
+type ConnectTab = 'providers' | 'models' | 'messaging'
 
 type UserProfileSheetProps = {
   open: boolean
@@ -46,16 +47,7 @@ export function UserProfileSheet({
   const [tagline, setTagline] = useState('')
   const [bio, setBio] = useState('')
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
-
-  useEffect(() => {
-    if (!open) return
-    setTab(initialTab)
-    if (initialTab === 'connect') {
-      setConnectTab(initialConnectTab === 'messaging' ? 'messaging' : 'providers')
-    }
-    setError('')
-    setStatus('')
-  }, [open, initialTab, initialConnectTab])
+  const [modelPickerKey, setModelPickerKey] = useState(0)
 
   useEffect(() => {
     if (!open) return
@@ -64,6 +56,9 @@ export function UserProfileSheet({
     async function load() {
       setLoading(true)
       setError('')
+      setStatus('')
+      setTab(initialTab)
+      if (initialTab === 'connect') setConnectTab(initialConnectTab)
       try {
         const me = await workframeAuthApi.getMe()
         if (cancelled) return
@@ -96,7 +91,7 @@ export function UserProfileSheet({
     return () => {
       cancelled = true
     }
-  }, [open])
+  }, [open, initialTab, initialConnectTab])
 
   const summary = useMemo(() => {
     if (!profile) return ''
@@ -124,7 +119,7 @@ export function UserProfileSheet({
       })
       setProfile(result)
       setAvatarUrl(userAvatarPickerValue(result.user.avatar_url ?? avatarUrl))
-      setStatus('Profile saved. Your identity updates are live.')
+      setStatus('Profile saved.')
     } catch (err) {
       setStatus('')
       setError(formatWorkframeErrorMessage(err, 'Save profile'))
@@ -151,7 +146,6 @@ export function UserProfileSheet({
       summary={summary || undefined}
       titleId="wf-user-profile-title"
       loading={loading}
-      contentFill={false}
       tabs={[
         { id: 'profile', label: 'Identity & Bio' },
         { id: 'connect', label: 'Connected Accounts' },
@@ -160,37 +154,44 @@ export function UserProfileSheet({
       ]}
       activeTab={tab}
       onTabChange={(next) => setTab(next as ProfileTab)}
-      actions={
-        tab === 'profile' ? (
-          <WfActionButton
-            type="button"
-            tone="primary"
-            onClick={() => void saveProfile()}
-            disabled={profileFieldsDisabled}
-          >
-            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-            {savingProfile ? 'Saving…' : 'Save changes'}
-          </WfActionButton>
-        ) : null
-      }
       footer={
         onLogout ? (
-          <WfActionButton
+          <Button
             type="button"
+            variant="outline"
             className="w-full justify-start gap-2"
             disabled={loggingOut}
             onClick={() => void handleLogout()}
           >
             <LogOut className="w-4 h-4" aria-hidden="true" />
             {loggingOut ? 'Signing out…' : 'Log out'}
-          </WfActionButton>
+          </Button>
         ) : null
       }
     >
       <div className="space-y-6">
+        {tab === 'agents' && error ? <WorkframeNotice message={error} /> : null}
+        {tab === 'agents' && status ? <WorkframeStatusNotice message={status} /> : null}
+
         {tab === 'profile' ? (
-          <SettingsPanelBody error={error} status={status}>
-            <OnboardingIdentityFields
+          <div className="space-y-4" role="tabpanel">
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => void saveProfile()}
+                disabled={profileFieldsDisabled}
+              >
+                <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+                {savingProfile ? 'Saving…' : 'Save changes'}
+              </Button>
+            </div>
+
+            {error ? <WorkframeNotice message={error} /> : null}
+            {status ? <WorkframeStatusNotice message={status} /> : null}
+
+            <div className="wf-wizard-panel wf-onboarding-form">
+              <OnboardingIdentityFields
                 avatarKind="user"
                 avatarUrl={avatarDisplayUrl}
                 onAvatarChange={setAvatarUrl}
@@ -215,64 +216,80 @@ export function UserProfileSheet({
                   rows: 3,
                 }}
               />
-          </SettingsPanelBody>
+            </div>
+          </div>
         ) : tab === 'connect' ? (
-          <SettingsPanelBody
-            error={error}
-            status={status}
-            tabs={[
-              { id: 'providers', label: 'Integrations' },
-              { id: 'messaging', label: 'Linked accounts' },
-            ]}
-            activeTab={connectTab}
-            onTabChange={(id) => setConnectTab(id as ConnectTab)}
-            tablistLabel="Model keys sections"
-          >
-            {connectTab === 'providers' ? (
-              <ProviderConnectPanel
+          <div className="space-y-4" role="tabpanel">
+            {error ? <WorkframeNotice message={error} /> : null}
+            {status ? <WorkframeStatusNotice message={status} /> : null}
+
+            <div className="wf-wizard-panel wf-onboarding-form">
+              <div className="wf-wizard-subtabs" role="tablist" aria-label="Connected account sections">
+                {(
+                  [
+                    ['providers', 'LLM Providers'],
+                    ['models', 'LLM Models'],
+                    ['messaging', 'Messaging'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={connectTab === id}
+                    className={`wf-wizard-subtabs__btn${connectTab === id ? ' is-active' : ''}`}
+                    onClick={() => setConnectTab(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {connectTab === 'providers' ? (
+                <ProviderConnectPanel
                   disabled={loading}
                   workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
                   credentialScope="user"
                   categories={['llm', 'dev', 'search']}
                   hint="none"
                   layout="stack"
-                  deviceOAuthPresentation="inline"
-                  onError={(message) => {
-                    setError(message)
-                    setStatus('')
-                  }}
-                  onStatus={(message) => {
-                    setError('')
-                    setStatus(message)
-                  }}
-                  onConnected={() => {
-                    setStatus('Provider connected. Choose a model per agent in Agent Settings.')
-                  }}
+                  onStatus={setStatus}
+                  onError={setError}
+                  onConnected={() => setModelPickerKey((key) => key + 1)}
                 />
               ) : null}
 
-            {connectTab === 'messaging' ? (
-              <PlatformIdentityPanel
-                embedded
-                workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
-                disabled={loading}
-                onLinked={() => setStatus('Account linked.')}
-              />
-            ) : null}
-          </SettingsPanelBody>
+              {connectTab === 'messaging' ? (
+                <PlatformIdentityPanel
+                  embedded
+                  workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
+                  disabled={loading}
+                  onLinked={() => setStatus('Messaging account linked.')}
+                />
+              ) : null}
+
+              {connectTab === 'models' ? (
+                <ModelPickerPanel
+                  key={modelPickerKey}
+                  embedded
+                  selectionOnly
+                  workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id}
+                  onError={setError}
+                />
+              ) : null}
+            </div>
+          </div>
         ) : tab === 'agents' ? (
-          <SettingsPanelBody error={error} status={status}>
+          <div className="space-y-6" role="tabpanel">
             <AgentDelegationPanel
               workspaceId={profile?.current_workspace?.id ?? profile?.default_workspace?.id ?? ''}
               currentUserId={profile?.user.user_id ?? ''}
               members={workspaceMembers}
               loading={loading}
             />
-          </SettingsPanelBody>
+          </div>
         ) : (
-          <SettingsPanelBody>
-            <ThemeSettingsPanel />
-          </SettingsPanelBody>
+          <ThemeSettingsPanel />
         )}
       </div>
     </SettingsSheetFrame>

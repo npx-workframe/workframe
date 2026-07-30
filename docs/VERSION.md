@@ -1,17 +1,24 @@
-# Workframe v0.1.32
+# Workframe v0.1.33
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.32 |
-| workframe API / UI | 0.1.32 (bundled in create-workframe) |
+| create-workframe | 0.1.33 |
+| workframe API / UI | 0.1.33 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.32 MyProject
+npx create-workframe@0.1.33 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.33
+
+- LLM model prefs: members can save via `selection_only` without admin 403s; `billing_ready` on model surface.
+- Credential connect returns immediately (sync bootstrap); runtime credentials refresh with `wait_healthy=True`.
+- Run-authority deny messages in chat use specific `llm_error_glossary` copy per deny reason.
+- Concierge onboarding wizard refactor (inlined flow); ModelPicker and profile sheet polish.
 
 ## 0.1.32
 

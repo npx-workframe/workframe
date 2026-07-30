@@ -76,6 +76,8 @@ export type HermesModelsResponse = {
   stack_llm_available?: boolean
   /** Billing provider for the active model (e.g. openrouter), not Hermes config provider (custom). */
   billing_provider?: string
+  /** Whether the active billing provider is configured and usable. */
+  billing_ready?: boolean
   selection_only?: boolean
 }
 

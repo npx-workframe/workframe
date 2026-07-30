@@ -10,6 +10,7 @@ export type ConciergeStep =
   | 'billing'
   | 'workframe'
   | 'profile'
+  | 'providers'
   | 'agent'
   | 'agent_model'
   | 'invites'
@@ -18,6 +19,7 @@ export type ConciergeStep =
 
 /** Map internal steps onto wizard-rail ids (admin OTP shares the SMTP rail step). */
 export function wizardRailStep(step: ConciergeStep): string {
+  if (step === 'providers') return 'agent_model'
   return step
 }
 
@@ -103,6 +105,11 @@ export function stepMeta(step: ConciergeStep, projectName: string, isInvitee: bo
       return {
         title: isInvitee ? `Join ${projectName}` : 'Your Identity',
         description: isInvitee ? 'Set how teammates see you in chat and rooms.' : 'Your display name and avatar in Workframe.',
+      }
+    case 'providers':
+      return {
+        title: 'Connect & model',
+        description: 'Add provider keys, linked accounts, and pick your default LLM model.',
       }
     case 'agent':
       return { title: 'Your Agent', description: 'Your concierge agent — name, avatar, and operating instructions.' }
@@ -280,6 +287,11 @@ export function enrichWizardSteps(steps: WizardStepItem[], ctx: WizardStatusCont
 }
 
 /** Map wizard rail id → internal concierge step (admin OTP shares smtp rail). */
-export function railStepToConciergeStep(railId: string): ConciergeStep {
+export function railStepToConciergeStep(
+  railId: string,
+  current?: ConciergeStep,
+  _adminVerified?: boolean,
+): ConciergeStep {
+  if (railId === 'smtp' && current === 'admin_auth') return 'admin_auth'
   return railId as ConciergeStep
 }

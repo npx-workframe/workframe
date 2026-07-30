@@ -13,6 +13,7 @@ from typing import Any
 
 import chat_stream
 import lane_bindings
+import llm_error_glossary
 import profile_gateway
 import rooms
 import run_authority
@@ -290,7 +291,10 @@ def _invoke_room_agent_mention(
                 conn.close()
             if not auth_decision.allowed:
                 fail_turn(
-                    "I can't reply yet — connect an LLM provider in Profile → Connect accounts.",
+                    llm_error_glossary.message_for_run_authority_deny(
+                        str(auth_decision.deny_reason or ""),
+                        provider,
+                    ),
                     persist=True,
                 )
                 return

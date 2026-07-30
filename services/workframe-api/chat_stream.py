@@ -456,7 +456,17 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         finally:
             conn.close()
         if not _auth_decision.allowed:
-            entry = concierge.respond(text, situation="no_provider")
+            msg = llm_error_glossary.message_for_run_authority_deny(
+                str(_auth_decision.deny_reason or ""),
+                llm_provider,
+            )
+            entry = llm_error_glossary.notice_payload({
+                "code": "no_llm_provider",
+                "message": msg,
+                "hint": "Open Profile → Connect accounts to add your API key, then pick a model on the LLM Models tab.",
+                "action": llm_error_glossary.PLAYBOOK["no_llm_provider"]["action"],
+                "action_label": "Connect provider",
+            })
             _log_llm_failure(
                 handler,
                 str(_auth_decision.deny_reason or "run_denied"),

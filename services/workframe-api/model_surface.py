@@ -736,9 +736,9 @@ def _bootstrap_model_after_llm_connect(
             elif user:
                 _srv()._reconcile_profile_llm_for_user(runtime, user, ws, prefer_provider=provider_key)
     if user:
-        _srv()._refresh_user_runtime_credentials(user, ws, wait_healthy=False)
+        _srv()._refresh_user_runtime_credentials(user, ws, wait_healthy=True)
     elif ws:
-        _srv()._refresh_workspace_runtime_credentials(ws, wait_healthy=False)
+        _srv()._refresh_workspace_runtime_credentials(ws, wait_healthy=True)
 
 
 # Curated snapshot of commonly-used models per provider. Surfaced in the
@@ -1131,6 +1131,11 @@ def hermes_models(
             "catalog_status": catalog_status,
             "has_llm_provider": has_llm,
             "billing_provider": billing if has_llm else "",
+            "billing_ready": bool(
+                has_llm
+                and billing
+                and _srv()._user_can_use_llm(user_id, workspace_id, billing)
+            ),
             "selection_only": True,
             "default_primary": HERMES_DEFAULT_PRIMARY,
             "default_fallback_chain": HERMES_DEFAULT_FALLBACK_CHAIN,
@@ -1176,6 +1181,14 @@ def hermes_models(
         deduped.append(row)
     suggestions = deduped
     display_provider = billing
+    billing_ready = bool(
+        has_llm
+        and billing
+        and (
+            not user_id
+            or _srv()._user_can_use_llm(user_id, workspace_id, billing)
+        )
+    )
     return {
         "ok": True,
         "profile": primary_profile,
@@ -1188,6 +1201,7 @@ def hermes_models(
         "catalog_status": catalog_status,
         "has_llm_provider": has_llm,
         "billing_provider": billing if has_llm else "",
+        "billing_ready": billing_ready,
         "default_primary": HERMES_DEFAULT_PRIMARY,
         "default_fallback_chain": HERMES_DEFAULT_FALLBACK_CHAIN,
     }
