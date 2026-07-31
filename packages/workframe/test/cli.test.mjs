@@ -93,7 +93,7 @@ test('apply gate requires exact approval phrase', () => {
     purpose: { value: 'KB' },
     execution_surface: { value: 'architectonic only' },
   };
-  const report = collectStatus('0.4.0');
+  const report = collectStatus('0.4.1');
   const bundle = buildApplyBundle(draft, report, { targetRoot: path.join(os.tmpdir(), 'wf-test-bundle') });
   const gate = evaluateApplyGate({ bundle, approvalText: 'yes please', execute: false });
   assert.equal(gate.approved, false);

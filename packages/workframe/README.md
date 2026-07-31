@@ -3,10 +3,10 @@
 The adaptive local entrypoint for Workframe and Architectonic bootstrap.
 
 ```bash
-npx workframe@0.4.0
+npx workframe@0.4.1
 ```
 
-Version **0.4.0** adds real gated apply: `npx architectonic init`, organization writes, optional `create-workframe`, KB mirrored to `Files/organization`.
+Version **0.4.1** adds real gated apply: `npx architectonic init`, organization writes, optional `create-workframe`, KB mirrored to `Files/organization`.
 
 ## Commands
 
