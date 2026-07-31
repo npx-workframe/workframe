@@ -1,7 +1,8 @@
 # WF-CLI-001 — First coherent Socratic slice
 
-**Status:** todo  
-**Scope:** `packages/workframe/**` only
+**Status:** done (`workframe@0.3.0`)  
+**Scope:** `packages/workframe/**` only  
+**Ledger:** reconciled 2026-07-31 — `campaign.json` matches this file; rejected PR branches are evidence only.
 
 ## First-principles decision
 
@@ -14,7 +15,7 @@ The scheduled campaign mixed four separate problems into one change:
 
 That produced an unmergeable branch, repeated ledger reconciliation, and authority bugs where mentioning a provider could be interpreted as selecting it.
 
-The repository therefore returns to the last shipped coherent package, `workframe@0.2.1`. PRs #6, #7, and #9 are rejected implementation evidence, not source code to merge. Their useful tests and findings may inform a new implementation, but their branches are not continuation points.
+The repository shipped the coherent Socratic chain in `workframe@0.3.0`. PRs #6, #7, and #9 remain rejected implementation evidence, not continuation points.
 
 ## What remains true
 
@@ -56,7 +57,7 @@ It should then print and optionally emit as JSON a bounded first mirror containi
 
 ## Acceptance
 
-- `workframe status` remains byte-for-byte behaviorally compatible with `0.2.1`.
+- `workframe status` remains behaviorally compatible with shipped 0.2.2 read-only discovery and optional minimal test flow.
 - `workframe begin` performs no network call and reads no provider credential.
 - The session remains memory-only; no file is written unless a later command receives separate explicit approval.
 - EOF, Ctrl+C, timeout, refusal, and empty answers stop cleanly.

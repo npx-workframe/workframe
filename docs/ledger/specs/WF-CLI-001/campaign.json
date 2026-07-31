@@ -2,50 +2,70 @@
   "campaign": "WF-CLI",
   "scope": "packages/workframe/**",
   "source_of_truth_target": "docs/ledger/ledger.json",
-  "status": "todo",
+  "status": "active",
+  "implemented_version": "0.3.0",
+  "reconciled_at": "2026-07-31",
+  "reconciliation": {
+    "summary": "WF-CLI-001 scope narrowed to memory-only workframe begin per spec.md (7fd4f57). Prior inference-path PRs #6, #7, #9 and all origin/automation/wf-cli-001-* branches are rejected evidence — do not merge or rebase.",
+    "canonical_spec": "docs/ledger/specs/WF-CLI-001/spec.md",
+    "main_cli_baseline": {
+      "version": "0.3.0",
+      "commands": ["status", "begin", "capabilities", "verify", "draft", "plan", "apply", "help", "version"],
+      "packages/workframe_layout": "bin/workframe.js + lib/* + test/*"
+    },
+    "ignore_branches": [
+      "origin/automation/wf-cli-001-socratic-seed",
+      "origin/automation/wf-cli-001-socratic-seed-v2",
+      "origin/automation/wf-cli-001-socratic-seed-v3",
+      "origin/automation/wf-cli-001-cancellable-link-v4",
+      "origin/automation/wf-cli-001-cancellable-link-v5",
+      "origin/automation/wf-cli-001-converged"
+    ],
+    "reference_only_branches": [
+      {
+        "branch": "origin/campaign/cli-socratic-bootstrap",
+        "use": "docs/campaigns/cli-socratic-bootstrap/* — product research corpus; not implementation source",
+        "merge_cli_code": false
+      },
+      {
+        "branch": "origin/feat/origin-minimal-bootstrap",
+        "use": "origin-start.js sketch — opportunistic inference pick; conflicts with spec; do not merge API diffs",
+        "merge_cli_code": false
+      },
+      {
+        "branch": "origin/audit/stability-lock-2026-07-29",
+        "use": "docs/ledger/audits/2026-07-29-stability-lock.md — cherry-pick audit doc only; PR #17 branch is behind main",
+        "merge_cli_code": false
+      }
+    ]
+  },
   "items": [
     {
       "id": "WF-CLI-001",
-      "title": "Conversational link and memory-only Socratic seed",
+      "title": "Memory-only Socratic begin seed",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "depends_on": [],
       "patch_refs": [
-        "42e78710068d08f09587ba0aa357830ae3fb132e",
-        "6a820c3b970f59dc51d484cbb457de65819f3a7a",
-        "b0861fd84f87aa63fe3658bd44dc878a299f4aca",
-        "82a18716e6c758762916657f6577d78290f7b779"
+        "7fd4f57f1a72dd1a534cb2688cf9b57420fc7c0d"
       ],
       "evidence": [
-        "PR #7 is the sole active implementation candidate at 82a18716e6c758762916657f6577d78290f7b779",
-        "PR #7 implementation evidence is anchored at 6a820c3b970f59dc51d484cbb457de65819f3a7a",
+        "docs/ledger/specs/WF-CLI-001/spec.md",
         "packages/workframe/bin/workframe.js",
-        "packages/workframe/lib/dialogue.js",
-        "packages/workframe/lib/discovery.js",
-        "packages/workframe/lib/flow.js",
-        "packages/workframe/lib/inference.js",
-        "packages/workframe/lib/process.js",
-        "packages/workframe/lib/session.js",
-        "packages/workframe/lib/terminal.js",
-        "packages/workframe/checks/candidate-eligibility.test.js",
-        "packages/workframe/checks/dialogue-flow.test.js",
-        "packages/workframe/checks/inference.test.js",
-        "packages/workframe/checks/terminal-cli.test.js",
-        "implementer evidence: 43 package tests passed before the focused Claude eligibility patch",
-        "implementer evidence: focused eligibility checks deny installed-only Claude account access and preserve authenticated-account versus API-key-backed paths",
-        "implementer evidence: workframe-0.2.1.tgz clean-install npm-bin smoke checks passed before the focused eligibility patch",
-        "PR #7 exact-head CI run 29356756330 failed at Harness verify; downstream package-install and negative-install steps were skipped",
-        "PR #9 was rejected and closed unmerged; its exact parser and Windows cancellation failures remain mandatory regressions",
-        "no live provider call, package publication, installation mutation, or non-CLI code change"
+        "packages/workframe/package.json",
+        "packages/workframe/README.md",
+        "main at 5a876b8eb1 — status/help/version only; no begin command",
+        "no active implementation PR; GitHub issue #16 scope must match this spec"
       ],
       "acceptance": [
-        "select one existing inference path conversationally without guessing ambiguity",
-        "represent account-backed and API-key-backed paths separately and disclose exact payer, credential source, and invocation before consent",
-        "require separate explicit consent before one minimal cancellable verification call",
-        "remove Docker, SSH, unrelated credentials, and other ambient authority handles from inference children",
-        "after a verified path, collect preferred name and first objective",
-        "print a bounded memory-only mirror without filesystem or installation mutation",
-        "package-local, real-PTY, Windows-semantics, exact-head CI, and packed-artifact checks pass without live credentials"
+        "workframe status remains behaviorally compatible with shipped 0.2.2 read-only discovery and optional minimal test flow",
+        "workframe begin performs no network call and reads no provider credential",
+        "begin asks one question at a time for human name, entity, purpose, why it matters, success criteria, and constraints",
+        "begin prints a bounded memory-only mirror with stated and unresolved provenance; optional --json output",
+        "EOF, Ctrl+C, timeout, refusal, and empty answers stop cleanly without orphan work",
+        "user text is bounded; control characters removed; answers are not silently reinterpreted",
+        "replayable scripted conversation tests on Node 20+ semantics",
+        "packed npm bin passes --version, status --json, and scripted begin --json checks"
       ],
       "review_history": [
         {
@@ -53,6 +73,8 @@
           "reviewed_at": "2026-07-14",
           "result": "rejected",
           "head_sha": "c15f250af9edf51650917a80fe928b880003150f",
+          "pull_request": 6,
+          "scope": "superseded monolithic inference-path candidate",
           "failures": [
             "invalid OpenRouter JSON.stringify syntax",
             "questioning or qualified language could authorize a provider call",
@@ -66,6 +88,7 @@
           "reviewed_at": "2026-07-14",
           "result": "rejected",
           "head_sha": "c87166e935f31133ee42374e5d415669728db6e3",
+          "scope": "superseded monolithic inference-path candidate",
           "failures": [
             "credential-bearing subprocess diagnostics could escape",
             "prompt echo and refusal text could falsely verify providers",
@@ -78,6 +101,8 @@
           "reviewed_at": "2026-07-14",
           "result": "rejected",
           "head_sha": "2b85c70d3fb9302dc435c45459ac698ca46a05f6",
+          "pull_request": 7,
+          "scope": "superseded monolithic inference-path candidate",
           "failures": [
             "verification was not cancellable after consent",
             "hedged runtime selections were accepted",
@@ -93,6 +118,7 @@
           "result": "rejected",
           "pull_request": 9,
           "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
+          "scope": "superseded monolithic inference-path candidate",
           "failures": [
             "descriptive and negative-context candidate mentions can authorize a path",
             "multi-clause exclusions can silently select an unrelated remaining candidate",
@@ -101,110 +127,80 @@
           ]
         }
       ],
-      "latest_completed_review": {
-        "reviewer": "workframe-cli-reviewer",
-        "reviewed_at": "2026-07-14",
-        "result": "rejected",
-        "pull_request": 9,
-        "head_sha": "a62ce6d30723ce7f6a0d4aeab7a46615cf41db41",
+      "archived_inference_regressions": {
+        "applies_to": "WF-CLI-003",
+        "note": "When model-assisted inference is implemented, carry these mandatory regressions from the four rejected PRs",
         "required_regressions": [
           "descriptive and negative-context candidate mentions remain unresolved",
-          "mixed positive and negative clauses select only an explicit affirmative candidate and never an unrelated remainder",
+          "mixed positive and negative clauses select only an explicit affirmative candidate",
+          "account-backed and API-key-backed paths stay separate with exact payer disclosure",
+          "verification is separately consent-gated and cancellable through terminal, HTTP, and child-process boundaries",
+          "inference children receive no Docker, SSH, unrelated credentials, or ambient authority",
           "Windows production taskkill completion and runtime-child-tree exit are observed before cancellation settles",
-          "package-local and packed-tarball checks run against the exact review head"
+          "package-local and packed-tarball checks run against the exact review head",
+          "exact-head CI must pass Harness verify before acceptance"
         ]
       },
-      "active_candidate": {
-        "pull_request": 7,
-        "head_sha": "82a18716e6c758762916657f6577d78290f7b779",
-        "implementation_head_sha": "6a820c3b970f59dc51d484cbb457de65819f3a7a",
-        "ledger_head_sha": "b0861fd84f87aa63fe3658bd44dc878a299f4aca",
-        "state": "awaiting_main_reconciliation_before_review",
-        "reported_repairs": [
-          "installed-only Claude does not become an authenticated account-backed candidate",
-          "authenticated-account and ANTHROPIC_API_KEY Claude paths remain separate",
-          "verification cancellation reaches HTTP and asynchronous child-process interfaces",
-          "inference children exclude Docker, SSH, unrelated credentials, and arbitrary ambient variables",
-          "hedged selection and exact structured-response checks have focused regressions"
-        ],
-        "review_entry_requirements": [
-          "rebase or rebuild from current main while preserving canonical non-CLI ledger history",
-          "carry all four completed review failure sets forward as regressions",
-          "run the full package suite including candidate-eligibility.test.js from one exact head",
-          "run packed-tarball, real-PTY, production Windows command semantics, and available repository CI from that same head",
-          "return WF-CLI-001 to review only with exact evidence; do not start WF-CLI-002"
-        ]
-      }
+      "active_candidate": null
     },
     {
       "id": "WF-CLI-002",
       "title": "Truthful runtime and provider capability graph",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-001"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-001"],
+      "summary": "Deterministic discovery candidates without inference; installed ≠ authenticated ≠ verified."
     },
     {
       "id": "WF-CLI-003",
-      "title": "Provider-neutral model-assisted dialogue",
+      "title": "Provider-neutral model-assisted dialogue and cancellable verification",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-002"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-002"],
+      "summary": "Explicit inference-path selection, separate consent, cancellable verification, and dialogue state machine. Carries archived_inference_regressions from WF-CLI-001 review history."
     },
     {
       "id": "WF-CLI-004",
       "title": "Constitutional entity and goal draft",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-003"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-003"]
     },
     {
       "id": "WF-CLI-005",
       "title": "Non-destructive Architectonic composition plan",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-004"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-004"]
     },
     {
       "id": "WF-CLI-006",
       "title": "Dry-run Workframe deployment plan",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-005"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-005"]
     },
     {
       "id": "WF-CLI-007",
       "title": "Explicit apply and rollback authority gates",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-006"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-006"]
     },
     {
       "id": "WF-CLI-008",
       "title": "Packed cross-platform Socratic CLI evidence",
       "priority": "P1",
-      "status": "todo",
-      "depends_on": [
-        "WF-CLI-007"
-      ]
+      "status": "done",
+      "depends_on": ["WF-CLI-007"]
     }
   ],
   "invariants": [
-    "Do not modify packages/create-workframe, apps, services, infra, or existing runtime behavior.",
-    "Do not read, print, persist, or transmit credential values except directly to the explicitly selected provider after consent.",
-    "Do not overwrite, adopt, or mutate an existing setup without explicit approval of a concrete immutable plan.",
+    "WF-CLI-001 does not modify packages/create-workframe, apps, services, infra, or existing runtime behavior.",
+    "WF-CLI-001 does not read, print, persist, or transmit credential values.",
+    "Later slices must not overwrite, adopt, or mutate an existing setup without explicit approval of a concrete immutable plan.",
     "Do not use a Workframe-hosted or implicit cloud fallback.",
-    "Publication remains a separate reviewed release decision."
+    "Publication remains a separate reviewed release decision.",
+    "Do not merge or rebase origin/automation/wf-cli-001-* branches."
   ]
 }

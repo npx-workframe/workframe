@@ -1,43 +1,48 @@
 # workframe
 
-The adaptive local entrypoint for Workframe.
+The adaptive local entrypoint for Workframe and Architectonic bootstrap.
 
 ```bash
-npx workframe@0.2.2
+npx workframe@0.4.0
 ```
 
-Version **0.2.2** is intentionally read-only. It discovers installed agent runtimes and model-provider configuration, then presents a local status console.
-
-When a supported inference path is already available, Workframe offers one minimal verification call. The user may answer naturally rather than entering a fixed `y/N` token. The call runs only after explicit approval and may use the user's existing paid account or API key.
-
-If no supported inference path is available, Workframe stops without installing or changing anything.
+Version **0.4.0** adds real gated apply: `npx architectonic init`, organization writes, optional `create-workframe`, KB mirrored to `Files/organization`.
 
 ## Commands
 
 ```bash
-npx workframe
-npx workframe status
-npx workframe status --json
-npx workframe status --no-test
+npx workframe status [--json] [--no-test]
+npx workframe begin [--json] [--human=...] [--entity=...] ...
+npx workframe capabilities [--json]
+npx workframe verify [--json] [--select="use codex"]
+npx workframe draft [--json] ...
+npx workframe plan [--json] [--target=path] ...
+npx workframe apply --simulate [--json] [--approval="approve plan ..."]
 npx workframe help
 npx workframe version
 ```
+
+### Flow
+
+1. `begin` — memory-only Socratic mirror (no network, no writes)
+2. `capabilities` — truthful runtime/provider candidates (no auto-pick)
+3. `verify` — explicit path + separate consent + cancellable call
+4. `draft` — constitutional in-memory draft
+5. `plan` — dry-run Architectonic file plan + deployment recommendation
+6. `apply --simulate` — approval gate simulation (real mutations disabled)
 
 ## Privacy and authority
 
 - Discovery runs locally.
 - Credential values are never printed.
-- Workframe does not search shell history or crawl arbitrary `.env` files.
-- No provider call occurs without explicit user approval.
-- This release does not install Hermes, Workframe, or agent packages.
-- This release does not use a Workframe-hosted fallback API.
+- `begin`, `draft`, `plan`, and `apply` perform no network calls.
+- No provider call occurs without explicit user approval on `verify`.
+- This CLI does not install Hermes, Workframe, or Architectonic by itself.
 
 ## Full Workframe cell
 
-To scaffold the complete multi-user Workframe + Hermes environment (UI, API, Docker Compose, onboarding), use the installer package instead:
-
 ```bash
-npx create-workframe@0.1.28 MyProject
+npx create-workframe@0.1.33 MyProject
 ```
 
-`workframe` and `create-workframe` are complementary: this CLI inspects your local machine; `create-workframe` installs the product cell.
+`workframe` inspects and interviews locally; `create-workframe` installs the product cell when a deployment plan says you need one.

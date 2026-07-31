@@ -1,18 +1,25 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
-import { spawnSync } from 'node:child_process';
-import os from 'node:os';
-import path from 'node:path';
-import process from 'node:process';
 import readline from 'node:readline/promises';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+import { runBegin, printBeginMirror } from '../lib/begin.js';
+import { collectStatus } from '../lib/discovery.js';
+import { buildCapabilityGraph, listEligibleVerificationCandidates } from '../lib/capability-graph.js';
+import { resolveCandidateSelection } from '../lib/inference-selection.js';
+import { runVerification, chooseTestCandidate, runLegacyTest } from '../lib/inference.js';
+import { buildConstitutionalDraft, BEGIN_QUESTIONS } from '../lib/mirror.js';
+import { buildApplyBundle, evaluateApplyGate } from '../lib/apply-gate.js';
+import { executeApply, preflightApply } from '../lib/apply-executor.js';
+import { interpretConsent } from '../lib/text.js';
+import { createInteractiveAsk, seedFromFlags, findFlagValue } from '../lib/cli-args.js';
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VERSION = JSON.parse(fs.readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8')).version;
-const TIMEOUT_MS = 12_000;
-const TEST_TIMEOUT_MS = 90_000;
-const isWindows = process.platform === 'win32';
+
 const isTTY = Boolean(process.stdout.isTTY && process.env.TERM !== 'dumb');
 const noColor = 'NO_COLOR' in process.env && process.env.NO_COLOR !== '0';
 const useColor = isTTY && !noColor;
@@ -24,160 +31,6 @@ const color = {
   dim: (value) => useColor ? `\x1b[2m${value}\x1b[0m` : value,
   bold: (value) => useColor ? `\x1b[1m${value}\x1b[0m` : value,
 };
-
-function resolveWindowsExecutable(command, env) {
-  if (!isWindows) return command;
-  if (/[\\/]/.test(command)) return command;
-
-  const pathEntries = String(env.PATH || env.Path || '')
-    .split(path.delimiter)
-    .map((entry) => entry.trim().replace(/^"|"$/g, ''))
-    .filter(Boolean);
-  const extensions = path.extname(command)
-    ? ['']
-    : String(env.PATHEXT || '.COM;.EXE;.BAT;.CMD')
-      .split(';')
-      .map((extension) => extension.trim().toLowerCase())
-      .filter(Boolean);
-
-  for (const directory of pathEntries) {
-    for (const extension of extensions) {
-      const candidate = path.join(directory, `${command}${extension}`);
-      try {
-        if (fs.statSync(candidate).isFile()) return candidate;
-      } catch {
-        // Continue through PATH candidates.
-      }
-    }
-  }
-
-  return command;
-}
-
-function quoteCmdArgument(value) {
-  const text = String(value);
-  if (/[\0\r\n]/.test(text)) throw new Error('Command arguments may not contain control characters.');
-  return `"${text.replace(/%/g, '%%').replace(/!/g, '^!').replace(/"/g, '\\"')}"`;
-}
-
-function spawnCommand(command, args, options) {
-  const env = options.env ?? process.env;
-  const executable = resolveWindowsExecutable(command, env);
-  const common = {
-    encoding: 'utf8',
-    timeout: options.timeout ?? TIMEOUT_MS,
-    cwd: options.cwd,
-    env,
-    shell: false,
-    windowsHide: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  };
-
-  if (isWindows && /\.(?:cmd|bat)$/i.test(executable)) {
-    const commandLine = `"${[executable, ...args].map(quoteCmdArgument).join(' ')}"`;
-    return spawnSync(env.ComSpec || env.COMSPEC || 'cmd.exe', ['/d', '/s', '/c', commandLine], common);
-  }
-
-  return spawnSync(executable, args, common);
-}
-
-function run(command, args = [], options = {}) {
-  const result = spawnCommand(command, args, options);
-  return {
-    ok: result.status === 0 && !result.error,
-    code: result.status ?? 1,
-    stdout: String(result.stdout ?? '').trim(),
-    stderr: String(result.stderr ?? '').trim(),
-    error: result.error ? String(result.error.message || result.error) : '',
-  };
-}
-
-function firstLine(value) {
-  return String(value || '').split(/\r?\n/).map((line) => line.trim()).find(Boolean) || '';
-}
-
-function commandCheck(id, label, command, versionArgs = ['--version']) {
-  const result = run(command, versionArgs);
-  return {
-    id,
-    label,
-    command,
-    status: result.ok ? 'verified' : 'missing',
-    detail: result.ok ? firstLine(result.stdout || result.stderr) : '',
-  };
-}
-
-function envProvider(id, label, names) {
-  const present = names.find((name) => typeof process.env[name] === 'string' && process.env[name].trim());
-  return {
-    id,
-    label,
-    status: present ? 'configured' : 'missing',
-    detail: present ? `${present} is set` : '',
-    envName: present || null,
-  };
-}
-
-function codexStatus(base) {
-  if (base.status !== 'verified') return base;
-  const login = run('codex', ['login', 'status']);
-  return {
-    ...base,
-    status: login.ok ? 'authenticated' : 'detected',
-    detail: login.ok ? firstLine(login.stdout || login.stderr) || base.detail : base.detail,
-  };
-}
-
-function hermesStatus(base) {
-  if (base.status !== 'verified') return base;
-  const doctor = run('hermes', ['doctor'], { timeout: 20_000 });
-  return {
-    ...base,
-    status: doctor.ok ? 'verified' : 'detected',
-    detail: base.detail || firstLine(doctor.stdout || doctor.stderr),
-  };
-}
-
-function collectStatus() {
-  const system = [
-    { id: 'node', label: 'Node.js', status: 'verified', detail: process.version },
-    commandCheck('npm', 'npm', 'npm'),
-    commandCheck('git', 'Git', 'git'),
-  ];
-
-  const docker = commandCheck('docker', 'Docker', 'docker');
-  if (docker.status === 'verified') {
-    const info = run('docker', ['info', '--format', '{{.ServerVersion}}']);
-    docker.status = info.ok ? 'verified' : 'detected';
-    docker.detail = info.ok ? `engine ${firstLine(info.stdout)}` : docker.detail;
-  }
-  system.push(docker);
-
-  const runtimes = [
-    hermesStatus(commandCheck('hermes', 'Hermes Agent', 'hermes')),
-    codexStatus(commandCheck('codex', 'Codex CLI', 'codex')),
-    commandCheck('claude', 'Claude Code', 'claude'),
-    commandCheck('openclaw', 'OpenClaw', 'openclaw'),
-    commandCheck('pi', 'Pi', 'pi'),
-    commandCheck('cursor-agent', 'Cursor Agent', 'cursor-agent'),
-  ];
-
-  const providers = [
-    envProvider('openrouter', 'OpenRouter', ['OPENROUTER_API_KEY']),
-    envProvider('openai', 'OpenAI', ['OPENAI_API_KEY']),
-    envProvider('anthropic', 'Anthropic', ['ANTHROPIC_API_KEY']),
-    envProvider('google', 'Google / Gemini', ['GEMINI_API_KEY', 'GOOGLE_API_KEY']),
-  ];
-
-  return {
-    version: VERSION,
-    platform: `${process.platform}/${process.arch}`,
-    hostname: os.hostname(),
-    system,
-    runtimes,
-    providers,
-  };
-}
 
 function marker(status) {
   if (['verified', 'authenticated'].includes(status)) return color.brightGreen('▶');
@@ -203,123 +56,8 @@ function printStatus(report) {
   printGroup('MODEL ACCESS', report.providers);
 }
 
-function normalizeAnswer(value) {
-  return String(value || '')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9' ]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function interpretConsent(value) {
-  const answer = normalizeAnswer(value);
-  if (!answer) return 'unknown';
-
-  const noPatterns = [
-    /\bno\b/, /\bnope\b/, /\bnah\b/, /\bnegative\b/, /\bnot now\b/,
-    /\bdon't\b/, /\bdo not\b/, /\bstop\b/, /\bskip\b/, /\blater\b/,
-    /\bnot yet\b/, /\bi'd rather not\b/, /\bi would rather not\b/,
-  ];
-  const yesPatterns = [
-    /\byes\b/, /\byep\b/, /\byeah\b/, /\byup\b/, /\baffirmative\b/,
-    /\bsure\b/, /\bok\b/, /\bokay\b/, /\bgo ahead\b/, /\bdo it\b/,
-    /\bproceed\b/, /\bplease\b/, /\btest it\b/, /\bsounds good\b/,
-    /\blet's do it\b/, /\blets do it\b/, /\bwhy not\b/,
-  ];
-
-  if (noPatterns.some((pattern) => pattern.test(answer))) return 'no';
-  if (yesPatterns.some((pattern) => pattern.test(answer))) return 'yes';
-  return 'unknown';
-}
-
-function chooseTest(report) {
-  const runtime = Object.fromEntries(report.runtimes.map((item) => [item.id, item]));
-  const provider = Object.fromEntries(report.providers.map((item) => [item.id, item]));
-
-  if (runtime.codex?.status === 'authenticated') {
-    return { id: 'codex', label: 'Codex CLI', billing: 'your existing Codex / ChatGPT account or configured provider' };
-  }
-  if (runtime.claude?.status === 'verified') {
-    return { id: 'claude', label: 'Claude Code', billing: 'your existing Claude account or Anthropic provider' };
-  }
-  if (provider.openrouter?.status === 'configured') {
-    return { id: 'openrouter', label: 'OpenRouter', billing: 'the OpenRouter key already present in your environment' };
-  }
-  if (provider.openai?.status === 'configured') {
-    return { id: 'openai', label: 'OpenAI', billing: 'the OpenAI key already present in your environment' };
-  }
-  return null;
-}
-
-async function testOpenAI() {
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      input: 'Reply with exactly WORKFRAME_OK and nothing else.',
-      max_output_tokens: 8,
-    }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const body = await response.text();
-  return { ok: response.ok && /WORKFRAME_OK/i.test(body), detail: response.ok ? 'OpenAI responded.' : `OpenAI returned HTTP ${response.status}.` };
-}
-
-async function testOpenRouter() {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      'content-type': 'application/json',
-      'x-title': 'Workframe local link test',
-    },
-    body: JSON.stringify({
-      model: 'openai/gpt-4o-mini',
-      messages: [{ role: 'user', content: 'Reply with exactly WORKFRAME_OK and nothing else.' }],
-      max_tokens: 8,
-      temperature: 0,
-    }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const body = await response.text();
-  return { ok: response.ok && /WORKFRAME_OK/i.test(body), detail: response.ok ? 'OpenRouter responded.' : `OpenRouter returned HTTP ${response.status}.` };
-}
-
-async function runTest(candidate) {
-  if (candidate.id === 'codex') {
-    const result = run('codex', [
-      'exec',
-      '--skip-git-repo-check',
-      '--sandbox', 'read-only',
-      '--color', 'never',
-      'Reply with exactly WORKFRAME_OK and nothing else. Do not inspect files or run tools.',
-    ], { timeout: TEST_TIMEOUT_MS, cwd: os.tmpdir() });
-    return { ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`), detail: result.ok ? 'Codex responded.' : firstLine(result.stderr || result.error || 'Codex test failed.') };
-  }
-  if (candidate.id === 'claude') {
-    const result = run('claude', [
-      '-p',
-      '--permission-mode', 'plan',
-      '--max-turns', '1',
-      '--max-budget-usd', '0.02',
-      '--no-session-persistence',
-      'Reply with exactly WORKFRAME_OK and nothing else.',
-    ], { timeout: TEST_TIMEOUT_MS, cwd: os.tmpdir() });
-    return { ok: result.ok && /WORKFRAME_OK/i.test(`${result.stdout}\n${result.stderr}`), detail: result.ok ? 'Claude responded.' : firstLine(result.stderr || result.error || 'Claude test failed.') };
-  }
-  if (candidate.id === 'openrouter') return testOpenRouter();
-  if (candidate.id === 'openai') return testOpenAI();
-  return { ok: false, detail: 'No test adapter is available.' };
-}
-
-async function askForTest(report) {
-  const candidate = chooseTest(report);
+async function askForLegacyTest(report) {
+  const candidate = chooseTestCandidate(report);
   if (!candidate) {
     console.log(color.dim('\n  I could not find a configured inference path I can test safely.'));
     console.log(color.dim('  Nothing was sent and nothing was changed. We stop here.\n'));
@@ -346,7 +84,7 @@ async function askForTest(report) {
 
     console.log(color.dim(`\n  Opening a minimal link through ${candidate.label}...`));
     try {
-      const result = await runTest(candidate);
+      const result = await runLegacyTest(candidate);
       if (result.ok) {
         console.log(color.brightGreen('  ▶ LINK VERIFIED'));
         console.log(color.dim(`  ${result.detail}\n`));
@@ -366,7 +104,220 @@ async function askForTest(report) {
 }
 
 function help() {
-  console.log(`workframe ${VERSION}\n\nUsage:\n  npx workframe\n  npx workframe status [--json] [--no-test]\n\nCommands:\n  status     Discover local runtimes and provider configuration.\n  help       Show this help.\n\nThe status flow is read-only until you explicitly approve one minimal provider test.\nCredential values are never printed or transmitted by Workframe.`);
+  console.log(`workframe ${VERSION}
+
+Usage:
+  npx workframe
+  npx workframe status [--json] [--no-test]
+  npx workframe begin [--json] [--human=...] [--entity=...] ...
+  npx workframe capabilities [--json]
+  npx workframe verify [--json] [--select="use codex"]
+  npx workframe draft [--json] [--human=...] ...
+  npx workframe plan [--json] [--target=path] ...
+  npx workframe apply [--execute] [--json] [--target=path] [--approval="approve plan ..."]
+  npx workframe origin [--json] [--target=path]
+
+Commands:
+  status        Discover local runtimes and provider configuration.
+  begin         Memory-only Socratic entry — no network, no writes.
+  capabilities  Truthful capability graph without auto-selection.
+  verify        Explicit-path verification with separate consent.
+  draft         Constitutional in-memory draft from begin fields.
+  plan          Dry-run Architectonic + deployment plans.
+  apply         Gated instantiate (--execute runs architectonic init + optional cell).
+  origin        Begin interview + show plan hash and approval phrase.
+  help          Show this help.
+
+Credential values are never printed or transmitted by Workframe.`);
+}
+
+async function cmdBegin(args) {
+  const json = args.includes('--json');
+  const seed = seedFromFlags(args);
+  const interactive = createInteractiveAsk();
+  const { mirror } = await runBegin({
+    json,
+    seed,
+    ask: Object.keys(seed).length === BEGIN_QUESTIONS.length ? null : interactive.ask,
+    close: interactive.close,
+  });
+
+  if (json) {
+    console.log(JSON.stringify(mirror, null, 2));
+    return;
+  }
+  printBeginMirror(mirror, color);
+}
+
+async function cmdCapabilities(args) {
+  const json = args.includes('--json');
+  const report = collectStatus(VERSION);
+  const graph = buildCapabilityGraph(report);
+  if (json) {
+    console.log(JSON.stringify(graph, null, 2));
+    return;
+  }
+  console.log(color.brightGreen('\n  WORKFRAME // CAPABILITY GRAPH'));
+  for (const candidate of graph.candidates) {
+    console.log(`  ${color.bold(candidate.id)} — ${candidate.label} (${candidate.eligibility})`);
+  }
+  console.log(color.dim('\n  No path is selected automatically.\n'));
+}
+
+async function cmdVerify(args) {
+  const json = args.includes('--json');
+  const report = collectStatus(VERSION);
+  const graph = buildCapabilityGraph(report);
+  const eligible = listEligibleVerificationCandidates(graph);
+  const selectText = findFlagValue(args, '--select') || '';
+
+  if (!eligible.length) {
+    const out = { ok: false, reason: 'no_eligible_candidates', candidates: graph.candidates };
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else console.log(color.dim('\n  No eligible verification path. Nothing sent.\n'));
+    return;
+  }
+
+  let selection = selectText ? resolveCandidateSelection(selectText, eligible) : { status: 'unresolved' };
+  if (selection.status !== 'selected') {
+    const out = { ok: false, reason: selection.reason || 'selection_required', eligible: eligible.map((c) => c.id) };
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else {
+      console.log(color.yellow('\n  Name one path explicitly. Example: use codex'));
+      console.log(color.dim(`  Eligible: ${eligible.map((c) => c.id).join(', ')}\n`));
+    }
+    return;
+  }
+
+  const candidate = selection.candidate;
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  let consent = 'no';
+  if (!json && process.stdin.isTTY) {
+    console.log(`\n  Selected ${candidate.label}. Payer: ${candidate.payer}.`);
+    const answer = await rl.question('\n  Explicit consent required. Proceed with one minimal verification call?\n  > ');
+    consent = interpretConsent(answer);
+  }
+  rl.close();
+
+  if (consent !== 'yes') {
+    const out = { ok: false, reason: 'consent_denied', candidate: candidate.id };
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else console.log(color.dim('\n  Consent not given. Nothing sent.\n'));
+    return;
+  }
+
+  const controller = new AbortController();
+  const result = await runVerification(candidate, { signal: controller.signal });
+  const out = { ok: result.ok, cancelled: result.cancelled, candidate: candidate.id, detail: result.detail };
+  if (json) console.log(JSON.stringify(out, null, 2));
+  else if (result.ok) console.log(color.brightGreen('\n  ▶ VERIFIED\n'));
+  else console.log(color.red(`\n  × ${result.detail}\n`));
+  if (!result.ok) process.exitCode = 1;
+}
+
+async function cmdDraft(args) {
+  const json = args.includes('--json');
+  const seed = seedFromFlags(args);
+  const { mirror } = await runBegin({ json: true, seed, ask: null });
+  const draft = buildConstitutionalDraft(mirror);
+  if (json) console.log(JSON.stringify(draft, null, 2));
+  else console.log(JSON.stringify(draft, null, 2));
+}
+
+async function sessionFromArgs(args) {
+  const seed = seedFromFlags(args);
+  const targetRoot = findFlagValue(args, '--target');
+  const { mirror } = await runBegin({ json: true, seed, ask: null });
+  const draft = buildConstitutionalDraft(mirror);
+  const report = collectStatus(VERSION);
+  const bundle = buildApplyBundle(draft, report, { targetRoot });
+  return { mirror, draft, bundle };
+}
+
+async function cmdPlan(args) {
+  const json = args.includes('--json');
+  const { bundle } = await sessionFromArgs(args);
+  const out = { architectonic: bundle.architectonic, deployment: bundle.deployment, plan_hash: bundle.plan_hash };
+  if (json) console.log(JSON.stringify(out, null, 2));
+  else console.log(JSON.stringify(out, null, 2));
+}
+
+async function cmdApply(args) {
+  const json = args.includes('--json');
+  const execute = args.includes('--execute');
+  const approval = findFlagValue(args, '--approval') || '';
+  const { draft, bundle } = await sessionFromArgs(args);
+  const gate = evaluateApplyGate({ bundle, approvalText: approval, execute });
+  const out = {
+    ...gate,
+    preflight: preflightApply(bundle),
+    bundle: { plan_hash: bundle.plan_hash, target_root: bundle.architectonic.target_root },
+  };
+
+  if (!gate.approved) {
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else console.log(`\n  ${gate.message}\n`);
+    return;
+  }
+
+  if (execute) {
+    if (!out.preflight.ok) {
+      out.result = { ok: false, reason: 'preflight_failed', preflight: out.preflight };
+      process.exitCode = 1;
+    } else {
+      out.result = executeApply(bundle, draft);
+      if (!out.result.ok) process.exitCode = 1;
+    }
+  }
+
+  if (json) console.log(JSON.stringify(out, null, 2));
+  else {
+    console.log(`\n  ${gate.message}`);
+    if (out.result) console.log(JSON.stringify(out.result, null, 2));
+    console.log('');
+  }
+}
+
+async function cmdOrigin(args) {
+  const json = args.includes('--json');
+  const targetRoot = findFlagValue(args, '--target');
+  const seed = seedFromFlags(args);
+  const seededAll = BEGIN_QUESTIONS.every((question) => seed[question.key]);
+  const interactive = createInteractiveAsk();
+  const { mirror } = await runBegin({
+    json: true,
+    seed,
+    ask: seededAll ? null : interactive.ask,
+    close: interactive.close,
+  });
+  const draft = buildConstitutionalDraft(mirror);
+  const report = collectStatus(VERSION);
+  const bundle = buildApplyBundle(draft, report, { targetRoot });
+  const preflight = preflightApply(bundle);
+  const approvalPhrase = `approve plan ${bundle.plan_hash}`;
+
+  const summary = {
+    mirror,
+    draft,
+    plan_hash: bundle.plan_hash,
+    architectonic: bundle.architectonic,
+    deployment: bundle.deployment,
+    preflight,
+    approval_phrase: approvalPhrase,
+  };
+
+  if (json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  printBeginMirror(mirror, color);
+  console.log(color.brightGreen('\n  WORKFRAME // ORIGIN'));
+  console.log(color.dim(`  Target: ${bundle.architectonic.target_root}`));
+  console.log(color.dim(`  Preset: ${bundle.architectonic.preset}`));
+  console.log(color.dim(`  Workframe cell: ${bundle.deployment.workframe_install ? 'requested' : 'not requested'}`));
+  if (!preflight.ok) console.log(color.red('\n  Target is not empty. Choose a new --target path.'));
+  console.log(color.yellow(`\n  To instantiate:\n  workframe apply --execute --target="${bundle.architectonic.target_root}" --approval="${approvalPhrase}" plus your begin flags.\n`));
 }
 
 async function main() {
@@ -375,6 +326,7 @@ async function main() {
     console.log(VERSION);
     return;
   }
+
   const command = args.find((arg) => !arg.startsWith('-')) || 'status';
   const json = args.includes('--json');
   const noTest = args.includes('--no-test') || json || !process.stdin.isTTY;
@@ -387,6 +339,15 @@ async function main() {
     console.log(VERSION);
     return;
   }
+
+  if (command === 'begin') return cmdBegin(args);
+  if (command === 'capabilities') return cmdCapabilities(args);
+  if (command === 'verify') return cmdVerify(args);
+  if (command === 'draft') return cmdDraft(args);
+  if (command === 'plan') return cmdPlan(args);
+  if (command === 'apply') return cmdApply(args);
+  if (command === 'origin') return cmdOrigin(args);
+
   if (command !== 'status') {
     console.error(`Unknown command: ${command}`);
     help();
@@ -394,14 +355,14 @@ async function main() {
     return;
   }
 
-  const report = collectStatus();
+  const report = collectStatus(VERSION);
   if (json) {
     console.log(JSON.stringify(report, null, 2));
     return;
   }
 
   printStatus(report);
-  if (!noTest) await askForTest(report);
+  if (!noTest) await askForLegacyTest(report);
 }
 
 await main();

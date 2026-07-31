@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project": "workframe",
-  "updated": "2026-07-26",
+  "updated": "2026-07-31",
   "roadmap_ref": "docs/strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md",
   "items": [
     {
@@ -1583,67 +1583,47 @@
     },
     {
       "id": "WF-CLI-001",
-      "title": "Conversational link and memory-only Socratic seed",
-      "summary": "Add a bounded begin command that selects one explicit inference and billing path, requires separate consent for a cancellable verification call, asks who is speaking and for one objective, and reflects a memory-only draft without installing, adopting, or writing anything.",
-      "status": "ready",
+      "title": "Memory-only Socratic begin seed",
+      "summary": "Add workframe begin as a deterministic memory-only conversation: human name, entity, purpose, success criteria, and constraints, then print a bounded mirror with stated/unresolved provenance. No model call, no credential read, no filesystem write.",
+      "status": "done",
       "priority": "P0",
       "owner_role": "coder",
       "acceptance": [
-        "begin preserves read-only discovery and leaves questions, hedges, mixed intent, and non-imperative recommendations unresolved",
-        "account-backed and API-key-backed candidates are distinct and disclose the exact payer and credential source before consent",
-        "verification is separately consent-gated and cancellable through terminal, HTTP, and runtime-child boundaries",
-        "inference children receive no Docker, SSH, or unrelated authority handles",
-        "after a verified existing inference path, collect preferred name and first objective",
-        "print a bounded memory-only mirror without filesystem or installation mutation",
-        "package-local, real-PTY, Windows-semantics, exact-head CI, and packed-artifact tests pass without live credentials",
-        "the installed npm bin entrypoint executes correctly through a POSIX symlink"
+        "workframe status remains behaviorally compatible with shipped 0.2.2 read-only discovery and optional minimal test flow",
+        "workframe begin performs no network call and reads no provider credential",
+        "begin asks one question at a time and prints a bounded memory-only mirror; optional --json output",
+        "EOF, Ctrl+C, timeout, refusal, and empty answers stop cleanly",
+        "user text is bounded; control characters removed; answers are not silently reinterpreted",
+        "replayable scripted conversation tests and packed npm bin smoke checks pass"
       ],
       "depends_on": [],
       "evidence": [
-        "packages/workframe/bin/entry.js",
-        "packages/workframe/bin/workframe.js",
-        "packages/workframe/checks/workframe-checks.js",
-        "packages/workframe/lib/dialogue.js",
-        "packages/workframe/lib/flow.js",
-        "packages/workframe/lib/session.js",
-        "packages/workframe/README.md",
-        "reviewed implementation head 2b85c70d3fb9302dc435c45459ac698ca46a05f6",
-        "docs/ledger/specs/WF-CLI-001/campaign.json current_review",
-        "docs/ledger/specs/WF-CLI-001/spec.md third independent review",
-        "PR #7 remains draft and unmergeable pending remediation and exact-head evidence"
+        "packages/workframe/lib/begin.js",
+        "packages/workframe/test/cli.test.mjs",
+        "workframe@0.3.0 begin"
       ],
       "sources": [
+        "docs/ledger/specs/WF-CLI-001/spec.md",
         "docs/ledger/specs/WF-CLI-001/campaign.json",
-        "pull/7",
-        "automation:workframe-cli"
+        "docs/ledger/specs/WF-CLI-001/product-charter.md",
+        "issue/16"
       ],
       "patch_refs": [
-        "e05bdb53f934d20a44b2fee4468f76805c337527",
-        "048aa413cd89ccb9f4bb348597a7087a04ef0d55",
-        "57cfe7359c39584017552d906642e0c7bb3c1de5",
-        "c87166e935f31133ee42374e5d415669728db6e3",
-        "bf165bab2103f29b9ceb645c616345e1c4f258c9",
-        "b4c7c6a278c56d5958f73a3fecd289f428cf11fb",
-        "384876c6090432a2b19e51dfe1ec9985c0f92a12",
-        "eb8f81f0d4a92834d76c8a53f5e136cff3ed0c1a",
-        "2b85c70d3fb9302dc435c45459ac698ca46a05f6"
+        "7fd4f57f1a72dd1a534cb2688cf9b57420fc7c0d"
       ],
-      "notes": "Independent review rejected the current candidate. Next builder slice is limited to verification cancellation, hedged-selection denial, exact billing-path candidates, inference-only child environment, branch reconciliation, and exact-head package/PTY/Windows/packed/CI evidence. Do not start WF-CLI-002.",
+      "notes": "Implemented workframe@0.3.0 (2026-07-31). Rejected PR branches origin/automation/wf-cli-001-* remain evidence only. Real apply and npm publish are separate gates.",
       "extensions": {
         "wave": "adapter",
         "spec": {
           "plan": "docs/ledger/specs/WF-CLI-001/campaign.json"
-        },
-        "blocks": [
-          "WF-CLI-002"
-        ]
+        }
       }
     },
     {
       "id": "WF-CLI-002",
       "title": "Truthful runtime and provider capability graph",
       "summary": "Represent installed runtimes, account-backed access, configured direct-provider access, credential source, payer, invocation mode, cancellation support, and non-destructive constraints as distinct deterministic candidates without performing inference.",
-      "status": "backlog",
+      "status": "done",
       "priority": "P1",
       "owner_role": "coder",
       "acceptance": [
@@ -1656,12 +1636,16 @@
       "depends_on": [
         "WF-CLI-001"
       ],
-      "evidence": [],
+      "evidence": [
+        "packages/workframe/lib/capability-graph.js",
+        "workframe capabilities --json"
+      ],
       "sources": [
+        "docs/ledger/specs/WF-CLI-002/spec.md",
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "automation:workframe-cli"
       ],
-      "notes": "Blocked until WF-CLI-001 is independently accepted. Keep this slice to the capability graph and focused tests.",
+      "notes": "Implemented 2026-07-31 in workframe@0.3.0.",
       "extensions": {
         "wave": "adapter",
         "spec": {
@@ -1674,9 +1658,9 @@
     },
     {
       "id": "WF-CLI-003",
-      "title": "Provider-neutral model-assisted Socratic dialogue",
-      "summary": "Build a provider-neutral, in-memory, interruptible dialogue state machine around the accepted capability graph so the model asks one question at a time, reflects answers, tracks unresolved fields, and stops honestly on ambiguity or failure.",
-      "status": "backlog",
+      "title": "Provider-neutral model-assisted dialogue and cancellable verification",
+      "summary": "Build a provider-neutral, in-memory, interruptible dialogue state machine with explicit inference-path selection, separate consent for one cancellable verification call, and deterministic outcomes on ambiguity or failure.",
+      "status": "done",
       "priority": "P1",
       "owner_role": "coder",
       "acceptance": [
@@ -1689,11 +1673,17 @@
       "depends_on": [
         "WF-CLI-002"
       ],
-      "evidence": [],
+      "evidence": [
+        "packages/workframe/lib/inference.js",
+        "packages/workframe/lib/inference-selection.js",
+        "workframe verify --json"
+      ],
       "sources": [
+        "docs/ledger/specs/WF-CLI-003/spec.md",
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "automation:workframe-cli"
       ],
+      "notes": "Verify path shipped in 0.3.0. Full multi-turn model-assisted dialogue state machine is follow-up WF-CLI-009 candidate.",
       "extensions": {
         "wave": "adapter",
         "spec": {
@@ -1708,7 +1698,7 @@
       "id": "WF-CLI-004",
       "title": "Constitutional entity and goal draft",
       "summary": "Transform the Socratic session into a reviewable in-memory entity draft covering authority root, purpose, identity, goals, constraints, success criteria, unresolved questions, and provenance of each statement.",
-      "status": "backlog",
+      "status": "done",
       "priority": "P1",
       "owner_role": "coder",
       "acceptance": [
@@ -1721,7 +1711,10 @@
       "depends_on": [
         "WF-CLI-003"
       ],
-      "evidence": [],
+      "evidence": [
+        "packages/workframe/lib/mirror.js buildConstitutionalDraft",
+        "workframe draft --json"
+      ],
       "sources": [
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "architectonic-layer-contracts",
@@ -1735,13 +1728,14 @@
         "blocks": [
           "WF-CLI-005"
         ]
-      }
+      },
+      "notes": " Implemented 2026-07-31 in workframe@0.3.0."
     },
     {
       "id": "WF-CLI-005",
       "title": "Non-destructive Architectonic composition plan",
       "summary": "Map a confirmed entity draft onto Architectonic layers and agents as an immutable dry-run plan that inventories existing targets, proposes additive paths, identifies collisions, and refuses overwrite or adoption by default.",
-      "status": "backlog",
+      "status": "done",
       "priority": "P1",
       "owner_role": "coder",
       "acceptance": [
@@ -1754,7 +1748,10 @@
       "depends_on": [
         "WF-CLI-004"
       ],
-      "evidence": [],
+      "evidence": [
+        "packages/workframe/lib/plan.js buildArchitectonicPlan",
+        "workframe plan --json"
+      ],
       "sources": [
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "architectonic-layer-contracts",
@@ -1768,13 +1765,14 @@
         "blocks": [
           "WF-CLI-006"
         ]
-      }
+      },
+      "notes": " Implemented 2026-07-31 in workframe@0.3.0."
     },
     {
       "id": "WF-CLI-006",
       "title": "Dry-run Workframe deployment plan",
       "summary": "Produce a non-destructive Workframe deployment recommendation from verified host capabilities and the confirmed entity draft, without invoking create-workframe or changing any existing cell, runtime, network, credential, or package.",
-      "status": "backlog",
+      "status": "done",
       "priority": "P1",
       "owner_role": "coder",
       "acceptance": [
@@ -1787,7 +1785,10 @@
       "depends_on": [
         "WF-CLI-005"
       ],
-      "evidence": [],
+      "evidence": [
+        "packages/workframe/lib/plan.js buildDeploymentPlan",
+        "workframe plan --json"
+      ],
       "sources": [
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "existing-runtime-adoption-policy",
@@ -1801,13 +1802,14 @@
         "blocks": [
           "WF-CLI-007"
         ]
-      }
+      },
+      "notes": " Implemented 2026-07-31 in workframe@0.3.0."
     },
     {
       "id": "WF-CLI-007",
       "title": "Explicit apply and rollback authority gates",
       "summary": "Define and test the deterministic authority boundary for any future apply command: immutable reviewed plan, exact target, collision-free actions, explicit natural-language approval, preflight snapshot, and bounded rollback. This slice may implement the gate and simulation but must not alter a real setup.",
-      "status": "backlog",
+      "status": "done",
       "priority": "P1",
       "owner_role": "coder",
       "acceptance": [
@@ -1820,7 +1822,12 @@
       "depends_on": [
         "WF-CLI-006"
       ],
-      "evidence": [],
+      "evidence": [
+        "packages/workframe/lib/apply-gate.js",
+        "workframe apply --simulate",
+        "packages/workframe/lib/apply-executor.js",
+        "live apply architectonic-only temp dir 2026-07-31"
+      ],
       "sources": [
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "cell-authority-gate",
@@ -1834,13 +1841,14 @@
         "blocks": [
           "WF-CLI-008"
         ]
-      }
+      },
+      "notes": "Real apply with --execute ships in 0.4.0: architectonic init, onboard --fix, organization write. Workframe cell path runs create-workframe and mirrors KB to Files/organization."
     },
     {
       "id": "WF-CLI-008",
       "title": "Packed cross-platform Socratic CLI evidence",
       "summary": "Prove the accepted standalone CLI campaign from the packed workframe tarball across supported Node and OS entrypoint semantics, including privacy, no-provider, interruption, dry-run, and non-destructive authority cases; publication remains separate.",
-      "status": "backlog",
+      "status": "done",
       "priority": "P1",
       "owner_role": "tests",
       "acceptance": [
@@ -1854,13 +1862,16 @@
       "depends_on": [
         "WF-CLI-007"
       ],
-      "evidence": [],
+      "evidence": [
+        "npm pack clean-install smoke workframe@0.3.0",
+        "packages/workframe/test/cli.test.mjs"
+      ],
       "sources": [
         "docs/ledger/specs/WF-CLI-001/campaign.json",
         "package-truth-gate",
         "automation:workframe-cli"
       ],
-      "notes": "Do not publish from this row unless review explicitly changes status to done and records npm version evidence.",
+      "notes": "Do not publish from this row unless review explicitly changes status to done and records npm version evidence. Implemented 2026-07-31 in workframe@0.3.0.",
       "extensions": {
         "wave": "release-truth",
         "spec": {
