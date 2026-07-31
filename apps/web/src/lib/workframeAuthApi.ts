@@ -172,6 +172,12 @@ export type StackProductUpdateStatus = {
   update_mode?: string
   install_kind?: string
   components?: string[]
+  package_pin?: string
+  api_env?: string
+  api_build?: string
+  ui_build?: string
+  install_drift?: boolean
+  drift_reasons?: string[]
   current_image?: string
   current_digest?: string
   latest_digest?: string

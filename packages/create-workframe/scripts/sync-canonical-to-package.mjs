@@ -5,6 +5,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -71,8 +72,23 @@ function copyIntoPackage(src, dst) {
   }
 }
 
+function writeApiBuildStamp(apiDir) {
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
+  const gitRef = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
+  const stamp = {
+    package_version: pkgVersion,
+    synced_at: new Date().toISOString(),
+    git_ref: gitRef.status === 0 ? gitRef.stdout.trim() : '',
+  };
+  fs.writeFileSync(path.join(apiDir, 'workframe-api-build.json'), `${JSON.stringify(stamp, null, 2)}\n`);
+  return stamp;
+}
+
 console.log(`Sync canonical BFF: ${CANONICAL_API} -> ${PKG_API}`);
 copyTree(CANONICAL_API, PKG_API);
+const apiStamp = writeApiBuildStamp(PKG_API);
+writeApiBuildStamp(CANONICAL_API);
+console.log(`Stamped workframe-api-build.json @ ${apiStamp.package_version}`);
 
 console.log(`Sync canonical supervisor: ${CANONICAL_SUPERVISOR} -> ${PKG_SUPERVISOR}`);
 copyTree(CANONICAL_SUPERVISOR, PKG_SUPERVISOR);

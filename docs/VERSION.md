@@ -1,17 +1,22 @@
-# Workframe v0.1.33
+# Workframe v0.1.34
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.33 |
-| workframe API / UI | 0.1.33 (bundled in create-workframe) |
+| create-workframe | 0.1.34 |
+| workframe API / UI | 0.1.34 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.33 MyProject
+npx create-workframe@0.1.34 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.34
+
+- Updates panel detects install drift (package pin vs compose env vs API/UI build stamps) and offers Repair instead of false “Up to date”.
+- `workframe-api-build.json` stamped at pack sync; `apply-update-workframe.sh` only bumps pin after template sync and syncs `WORKFRAME_API_VERSION` in `.env` and `docker-compose.yml`.
 
 ## 0.1.33
 

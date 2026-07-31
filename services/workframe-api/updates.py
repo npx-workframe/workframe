@@ -22,6 +22,12 @@ GATEWAY_CONTAINER = os.environ.get("WORKFRAME_GATEWAY_CONTAINER", "workframe-gat
 API_VERSION = str(os.environ.get("WORKFRAME_API_VERSION", "")).strip()
 
 
+def _api_env_version() -> str:
+    return _normalize_api_env_version(
+        str(os.environ.get("WORKFRAME_API_VERSION", API_VERSION) or "").strip(),
+    )
+
+
 def _version_tuple(raw: str) -> tuple[int, ...]:
     text = re.sub(r"^workframe-api-", "", str(raw or "").strip())
     nums: list[int] = []
@@ -164,8 +170,126 @@ def _container_image_digest(name: str) -> tuple[str, str]:
     return digest, ref
 
 
+def _read_build_stamp_file(path: Path) -> dict[str, str]:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    version = str(data.get("package_version") or "").strip()
+    if not version:
+        return {}
+    out = {"package_version": version}
+    for key in ("synced_at", "bundled_at", "git_ref", "asset_revision"):
+        val = str(data.get(key) or "").strip()
+        if val:
+            out[key] = val
+    return out
+
+
+def _api_build_stamp_paths(project_root: Path) -> list[Path]:
+    roots = [project_root]
+    for raw in (
+        os.environ.get("WORKFRAME_HOST_PROJECT_ROOT", ""),
+        os.environ.get("WORKFRAME_PROJECT_ROOT", ""),
+        os.environ.get("WORKFRAME_COMPOSE_DIR", ""),
+        "/project",
+        "/compose",
+    ):
+        p = Path(str(raw or "").strip())
+        if p.is_dir() and p not in roots:
+            roots.append(p)
+    paths: list[Path] = []
+    for root in roots:
+        paths.extend(
+            [
+                root / "workframe-api" / "workframe-api-build.json",
+                root / "services" / "workframe-api" / "workframe-api-build.json",
+            ],
+        )
+    return paths
+
+
+def _ui_build_stamp_paths(project_root: Path) -> list[Path]:
+    roots = [project_root]
+    for raw in (
+        os.environ.get("WORKFRAME_HOST_PROJECT_ROOT", ""),
+        os.environ.get("WORKFRAME_PROJECT_ROOT", ""),
+        os.environ.get("WORKFRAME_COMPOSE_DIR", ""),
+        "/project",
+        "/compose",
+    ):
+        p = Path(str(raw or "").strip())
+        if p.is_dir() and p not in roots:
+            roots.append(p)
+    paths: list[Path] = []
+    for root in roots:
+        paths.extend(
+            [
+                root / "workframe-ui" / "public" / "workframe-build.json",
+                root / "apps" / "web" / "dist" / "workframe-build.json",
+            ],
+        )
+    return paths
+
+
+def _first_build_stamp(paths: list[Path]) -> dict[str, str]:
+    seen: set[str] = set()
+    for candidate in paths:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        stamp = _read_build_stamp_file(candidate)
+        if stamp:
+            return stamp
+    return {}
+
+
+def _read_api_build_stamp(project_root: Path) -> dict[str, str]:
+    return _first_build_stamp(_api_build_stamp_paths(project_root))
+
+
+def _read_ui_build_stamp(project_root: Path) -> dict[str, str]:
+    return _first_build_stamp(_ui_build_stamp_paths(project_root))
+
+
+def _normalize_api_env_version(raw: str) -> str:
+    text = re.sub(r"^workframe-api-", "", str(raw or "").strip())
+    return text
+
+
+def _workframe_install_integrity(installed: dict[str, str], project_root: Path) -> dict[str, Any]:
+    package_pin = str(installed.get("package") or "").strip()
+    api_env = _normalize_api_env_version(str(installed.get("api") or ""))
+    api_build = str(_read_api_build_stamp(project_root).get("package_version") or "").strip()
+    ui_build = str(_read_ui_build_stamp(project_root).get("package_version") or "").strip()
+    drift: list[str] = []
+
+    if package_pin and api_env and package_pin != api_env:
+        drift.append(f"compose env is v{api_env} but package pin is v{package_pin}")
+    if package_pin and api_build and package_pin != api_build:
+        drift.append(f"API files are v{api_build} but package pin is v{package_pin}")
+    if package_pin and ui_build and package_pin != ui_build:
+        drift.append(f"UI bundle is v{ui_build} but package pin is v{package_pin}")
+    if api_env and api_build and api_env != api_build:
+        drift.append(f"API files are v{api_build} but compose env is v{api_env}")
+
+    return {
+        "ok": not drift,
+        "package_pin": package_pin,
+        "api_env": api_env,
+        "api_build": api_build,
+        "ui_build": ui_build,
+        "drift_reasons": drift,
+    }
+
+
 def _read_installed_workframe_version(project_root: Path) -> dict[str, str]:
-    out = {"api": API_VERSION, "package": "", "manifest_generator": ""}
+    out = {"api": _api_env_version(), "package": "", "manifest_generator": ""}
     pin = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data")) / "package-version"
     if pin.is_file():
         out["package"] = pin.read_text(encoding="utf-8").strip()
@@ -181,7 +305,7 @@ def _read_installed_workframe_version(project_root: Path) -> dict[str, str]:
         try:
             import server as _server  # noqa: WPS433
 
-            out["api"] = str(getattr(_server, "VERSION", ""))
+            out["api"] = _normalize_api_env_version(str(getattr(_server, "VERSION", "")))
         except Exception:  # noqa: BLE001
             pass
     if not out["package"]:
@@ -353,6 +477,7 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     supervisor_ok = _supervisor_configured()
     apply_channel, apply_ready, apply_reason = _update_apply_channel()
     installed = _read_installed_workframe_version(project_root)
+    integrity = _workframe_install_integrity(installed, project_root)
 
     npm_latest = ""
     try:
@@ -364,8 +489,11 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     workframe_latest = str(releases.get("workframe") or releases.get("create_workframe") or npm_latest or "")
     desktop_latest = str(releases.get("desktop") or os.environ.get("WORKFRAME_DESKTOP_LATEST", "0.1.0"))
 
-    installed_pkg = installed.get("package") or installed.get("api") or ""
+    installed_pkg = integrity.get("package_pin") or installed.get("package") or installed.get("api") or ""
     workframe_update = bool(workframe_latest and _version_lt(installed_pkg, workframe_latest))
+    install_drift = not bool(integrity.get("ok"))
+    if install_drift:
+        workframe_update = True
 
     hermes_digest, hermes_ref = ("", "")
     if api_docker:
@@ -401,6 +529,12 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     if not hermes_reason and hermes_update and not hermes_script_ok:
         hermes_reason = "Hermes update script is missing from this install."
     workframe_reason = apply_reason
+    if not workframe_reason and install_drift:
+        drift_reasons = integrity.get("drift_reasons") or []
+        workframe_reason = (
+            "Install drift detected — package pin does not match running files. "
+            + (drift_reasons[0] if drift_reasons else "Run Update to repair.")
+        )
     if not workframe_reason and workframe_update and not workframe_script_ok:
         workframe_reason = "Workframe update script is missing from this install."
     if not workframe_reason and workframe_update and not workframe_latest:
@@ -428,6 +562,12 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
             "update_mode": "docker-compose-rebuild",
             "install_kind": "docker",
             "components": ["ui", "api", "supervisor"],
+            "package_pin": integrity.get("package_pin") or "",
+            "api_env": integrity.get("api_env") or "",
+            "api_build": integrity.get("api_build") or "",
+            "ui_build": integrity.get("ui_build") or "",
+            "install_drift": install_drift,
+            "drift_reasons": integrity.get("drift_reasons") or [],
         },
         "hermes": {
             "current": hermes_current,
@@ -636,6 +776,9 @@ if __name__ == "__main__":
     assert _version_lt("0.1.0", "0.1.1")
     assert not _version_lt("0.1.0", "0.1.0")
     assert parse_hermes_version_output("Hermes Agent v0.17.0 (2026.6.19)") == "0.17.0"
+    drift = _workframe_install_integrity({"package": "0.1.33", "api": "0.1.29"}, Path("."))
+    assert not drift["ok"]
+    assert drift["package_pin"] == "0.1.33"
     ch, ready, _ = _update_apply_channel()
     assert ch in {"api_docker", "supervisor", "none"}
     assert ready is False or ch != "none"

@@ -102,6 +102,26 @@ p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")' "$PROJECT_ROO
   fi
 }
 
+_wf_sync_env_api_version() {
+  local ver="$1"
+  local env_file="$compose_cd/.env"
+  [[ -n "$ver" && -f "$env_file" ]] || return 0
+  if grep -q '^WORKFRAME_API_VERSION=' "$env_file"; then
+    sed -i "s/^WORKFRAME_API_VERSION=.*/WORKFRAME_API_VERSION=${ver}/" "$env_file"
+  else
+    printf '\nWORKFRAME_API_VERSION=%s\n' "$ver" >> "$env_file"
+  fi
+}
+
+_wf_sync_compose_api_version() {
+  local ver="$1"
+  local compose_file="$compose_cd/docker-compose.yml"
+  [[ -n "$ver" && -f "$compose_file" ]] || return 0
+  if grep -qE '^[[:space:]]*- WORKFRAME_API_VERSION=' "$compose_file"; then
+    sed -i -E "s/^([[:space:]]*- WORKFRAME_API_VERSION=).*/\1${ver}/" "$compose_file"
+  fi
+}
+
 _wf_install_paths() {
   local root="$1"
   if [[ -d "$root/services/workframe-api" ]]; then
@@ -147,10 +167,12 @@ echo "Preserves: Agents/, Files/, .env, workframe-api/data, gateway/Hermes profi
 TARGET_VERSION="${WORKFRAME_UPDATE_VERSION:-}"
 NPM_PACKAGE="${WORKFRAME_NPM_PACKAGE:-create-workframe}"
 PREFETCH_TARBALL="${WORKFRAME_UPDATE_TARBALL:-}"
+TEMPLATE_SYNCED=0
 
 if [[ -n "$PREFETCH_TARBALL" && -f "$PREFETCH_TARBALL" ]]; then
   echo "Applying API-prefetched tarball: $PREFETCH_TARBALL"
   _wf_apply_npm_tarball "$PREFETCH_TARBALL" "${TARGET_VERSION:-latest}" prefetched
+  TEMPLATE_SYNCED=1
 elif [[ "${WORKFRAME_UPDATE_SKIP_NPM:-1}" == "1" ]] && [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" != "1" ]]; then
   echo "Skipping npm template sync (WORKFRAME_UPDATE_SKIP_NPM=1; set WORKFRAME_UPDATE_ALLOW_NPM=1 to fetch)"
 elif command -v npm >/dev/null 2>&1; then
@@ -168,6 +190,7 @@ elif command -v npm >/dev/null 2>&1; then
   TARBALL="$(ls -1 "$TMP"/${NPM_PACKAGE}-*.tgz 2>/dev/null | head -n1 || true)"
   if [[ -n "$TARBALL" ]]; then
     _wf_apply_npm_tarball "$TARBALL" "${TARGET_VERSION:-latest}" npm
+    TEMPLATE_SYNCED=1
   else
     echo "npm pack produced no tarball — skipping template sync" >&2
     exit 1
@@ -201,7 +224,13 @@ if [[ -n "${SUPERVISOR_RESTART_PID}" ]]; then
   wait "${SUPERVISOR_RESTART_PID}" 2>/dev/null || true
 fi
 
-_wf_record_package_version "${TARGET_VERSION:-}"
+if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then
+  _wf_record_package_version "$TARGET_VERSION"
+  _wf_sync_env_api_version "$TARGET_VERSION"
+  _wf_sync_compose_api_version "$TARGET_VERSION"
+elif [[ -n "$TARGET_VERSION" ]]; then
+  echo "Skipping package-version pin — template sync did not run (set WORKFRAME_UPDATE_TARBALL or WORKFRAME_UPDATE_ALLOW_NPM=1)"
+fi
 
 workframe_docker_cleanup_after_update
 

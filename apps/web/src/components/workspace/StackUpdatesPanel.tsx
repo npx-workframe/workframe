@@ -43,12 +43,29 @@ function formatVersionLabel(value: string): string {
   return `v${value}`
 }
 
-function formatProductDetail(product: { current?: string; latest?: string; update_available: boolean }): string | undefined {
-  const current = product.current?.trim()
-  if (!current) return undefined
-  const label = formatVersionLabel(current)
+function formatProductDetail(product: {
+  current?: string
+  latest?: string
+  update_available: boolean
+  package_pin?: string
+  api_env?: string
+  api_build?: string
+  ui_build?: string
+  install_drift?: boolean
+}): string | undefined {
+  const pin = product.package_pin?.trim() || product.current?.trim()
+  if (!pin) return undefined
+  const label = formatVersionLabel(pin)
+  const mismatches: string[] = []
+  const api = product.api_build?.trim() || product.api_env?.trim()
+  const ui = product.ui_build?.trim()
+  if (api && api !== pin) mismatches.push(`API ${formatVersionLabel(api)}`)
+  if (ui && ui !== pin) mismatches.push(`UI ${formatVersionLabel(ui)}`)
+  if (product.install_drift && mismatches.length > 0) {
+    return `${label} · running ${mismatches.join(', ')}`
+  }
   const latest = product.latest?.trim()
-  if (product.update_available && latest && latest !== current) {
+  if (product.update_available && latest && latest !== pin) {
     return `${label} · latest ${formatVersionLabel(latest)}`
   }
   return label
@@ -296,7 +313,7 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
             name="Workframe"
             detail={formatProductDetail(status.workframe)}
             product={status.workframe}
-            actionLabel="Update"
+            actionLabel={status.workframe.install_drift ? 'Repair' : 'Update'}
             applying={applying === 'workframe'}
             disabled={applyDisabled}
             dockerOk={dockerOk}
