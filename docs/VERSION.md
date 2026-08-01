@@ -16,6 +16,7 @@ Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admi
 ## 0.1.42
 
 - UI sync replaces `workframe-ui/public` entirely so stale hashed assets cannot survive across updates.
+- Force-recreate UI nginx after public dir replace so bind mounts refresh (avoids 403).
 
 ## 0.1.41
 

@@ -290,7 +290,7 @@ _wf_ensure_ui_service() {
   _wf_prune_created_compose_containers "$svc"
 
   echo "Ensuring $svc is running..."
-  workframe_compose_recreate up -d --no-build --no-deps "$svc"
+  workframe_compose_recreate up -d --no-build --force-recreate --no-deps "$svc"
 
   local attempt
   for attempt in $(seq 1 30); do
