@@ -86,6 +86,9 @@ jobs:
         working-directory: services/workframe-api
         run: ${{ steps.setup-python.outputs.python-path }} -m py_compile server.py zk_auth.py email_sender.py profile_config_yaml.py route_registry.py
 
+      - name: Supervisor updater self-checks
+        run: ${{ steps.setup-python.outputs.python-path }} services/workframe-supervisor/test_supervisor_negative.py
+
       - name: Build web
         run: pnpm build:web
 

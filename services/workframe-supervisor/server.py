@@ -51,6 +51,18 @@ STACK_APPLY_LOCK_DIR = COMPOSE_DIR / "workframe-api" / "data" / ".stack-apply.lo
 STACK_APPLY_STATUS_PATH = HERMES_DATA / "workframe" / "stack-apply-status.json"
 
 
+def _update_script(name: str) -> Path | None:
+    """Resolve updater scripts from the bind mount or canonical install tree."""
+    for candidate in (
+        SCRIPTS_DIR / name,
+        COMPOSE_DIR / "scripts" / name,
+        COMPOSE_DIR / "scripts" / "workframe" / name,
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _write_stack_apply_status(payload: dict[str, Any]) -> dict[str, Any]:
     status = {
         "ok": True,
@@ -179,13 +191,13 @@ def _stack_apply_prepare(
         raise ValueError("invalid_update_target")
     scripts: list[Path] = []
     if target in {"hermes", "all"}:
-        p = SCRIPTS_DIR / "apply-update-hermes.sh"
-        if not p.is_file():
+        p = _update_script("apply-update-hermes.sh")
+        if p is None:
             raise ValueError("update_script_missing:hermes")
         scripts.append(p)
     if target in {"workframe", "all"}:
-        p = SCRIPTS_DIR / "apply-update-workframe.sh"
-        if not p.is_file():
+        p = _update_script("apply-update-workframe.sh")
+        if p is None:
             raise ValueError("update_script_missing:workframe")
         scripts.append(p)
     env = os.environ.copy()
@@ -351,8 +363,8 @@ def _stack_apply(
 ) -> dict[str, Any]:
     target = str(target or "all").strip().lower()
     if target == "gateway-restart":
-        script = SCRIPTS_DIR / "restart-gateway-hermes.sh"
-        if not script.is_file():
+        script = _update_script("restart-gateway-hermes.sh")
+        if script is None:
             raise ValueError("restart_script_missing")
         proc = subprocess.run(
             ["bash", str(script)],

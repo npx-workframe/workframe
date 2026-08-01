@@ -183,26 +183,51 @@ _wf_schedule_supervisor_restart() {
     return 0
   fi
   local host_cd="${WORKFRAME_HOST_COMPOSE_DIR:-$compose_cd}"
+  local host_root="${WORKFRAME_HOST_PROJECT_ROOT:-$host_cd}"
+  local scripts_rel="scripts"
+  if [[ "$SCRIPTS_DIR" == "$PROJECT_ROOT/"* ]]; then
+    scripts_rel="${SCRIPTS_DIR#"$PROJECT_ROOT/"}"
+  fi
+  local host_scripts="${host_root}/${scripts_rel}"
+  host_scripts="${host_scripts//\\//}"
   local sibling_cd="/workframe-host"
+  local restart_overlay="${compose_cd}/.workframe-supervisor-restart.yml"
+  local host_scripts_yaml="${host_scripts//\"/\\\"}"
+  cat > "$restart_overlay" <<EOF
+services:
+  workframe-supervisor:
+    volumes:
+      - type: bind
+        source: "${host_scripts_yaml}"
+        target: /opt/install/scripts
+        read_only: true
+EOF
   local compose_cmd="docker compose"
   local compose_file
   while IFS= read -r compose_file; do
     [[ -n "$compose_file" ]] || continue
     compose_cmd+=" $(printf '%q' "$compose_file")"
   done < <(workframe_compose_recreate_file_args)
+  compose_cmd+=" -f .workframe-supervisor-restart.yml"
   local job_name="wf-sup-restart-$$"
   echo "Scheduling supervisor restart via sibling container in ${delay}s (${job_name})"
   # Retry with an explicit rm if the recreate leaves a Created-state corpse.
   docker run -d --rm \
     --name "$job_name" \
     --env-file "${compose_cd}/.env" \
+    -e "WORKFRAME_HOST_COMPOSE_DIR=${host_cd}" \
+    -e "WORKFRAME_HOST_PROJECT_ROOT=${host_root}" \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "${host_cd}:${sibling_cd}" \
     -w "${sibling_cd}" \
     "$self_image" \
-    sh -lc "sleep ${delay}; \
-${compose_cmd} up -d --no-build --no-deps --force-recreate workframe-supervisor \
-|| { ${compose_cmd} rm -sf workframe-supervisor; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor; }"
+    sh -lc "trap 'rm -f .workframe-supervisor-restart.yml' EXIT; sleep ${delay}; \
+(${compose_cmd} up -d --no-build --no-deps --force-recreate workframe-supervisor \
+|| { ${compose_cmd} rm -sf workframe-supervisor; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor; }); \
+supervisor_id=\$(${compose_cmd} ps -q workframe-supervisor); \
+test -n \"\$supervisor_id\"; \
+docker exec \"\$supervisor_id\" test -f /opt/install/scripts/apply-update-workframe.sh; \
+docker exec \"\$supervisor_id\" test -f /opt/install/scripts/apply-update-hermes.sh"
 }
 
 _wf_stack_apply_lock_dir() {

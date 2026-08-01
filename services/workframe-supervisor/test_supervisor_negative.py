@@ -135,6 +135,31 @@ def test_stack_apply_status_round_trip() -> None:
             supervisor.STACK_APPLY_LOCK_DIR = old_lock
 
 
+def test_update_script_falls_back_to_compose_tree() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        empty_mount = root / "empty-script-mount"
+        canonical_scripts = root / "compose" / "scripts"
+        empty_mount.mkdir()
+        canonical_scripts.mkdir(parents=True)
+        hermes = canonical_scripts / "apply-update-hermes.sh"
+        workframe = canonical_scripts / "apply-update-workframe.sh"
+        hermes.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+        workframe.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+        old_scripts = supervisor.SCRIPTS_DIR
+        old_compose = supervisor.COMPOSE_DIR
+        try:
+            supervisor.SCRIPTS_DIR = empty_mount
+            supervisor.COMPOSE_DIR = root / "compose"
+            assert supervisor._update_script("apply-update-hermes.sh") == hermes
+            assert supervisor._update_script("apply-update-workframe.sh") == workframe
+        finally:
+            supervisor.SCRIPTS_DIR = old_scripts
+            supervisor.COMPOSE_DIR = old_compose
+
+
 def test_gateway_agent_version_probe() -> None:
     old_exec = supervisor._docker_exec
     try:
@@ -189,6 +214,7 @@ def main() -> None:
     test_host_install_paths_reads_env_file()
     test_stack_apply_lock_held()
     test_stack_apply_status_round_trip()
+    test_update_script_falls_back_to_compose_tree()
     test_gateway_agent_version_probe()
     test_stack_release_status_reads_component_versions()
     print("supervisor negative tests ok")

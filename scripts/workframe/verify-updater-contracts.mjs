@@ -8,6 +8,16 @@ const helperPath = path.join(root, 'scripts/workframe/compose-docker-host.sh');
 const source = fs.readFileSync(helperPath, 'utf8');
 const applyPath = path.join(root, 'scripts/workframe/apply-update-workframe.sh');
 const applySource = fs.readFileSync(applyPath, 'utf8');
+const supervisorPath = path.join(root, 'services/workframe-supervisor/server.py');
+const supervisorSource = fs.readFileSync(supervisorPath, 'utf8');
+const generatorSource = fs.readFileSync(
+  path.join(root, 'packages/create-workframe/bin/create-workframe.js'),
+  'utf8',
+);
+const sourceHostBindings = fs.readFileSync(
+  path.join(root, 'infra/compose/workframe/docker-compose.host-bindings.yml'),
+  'utf8',
+);
 const failures = [];
 
 function requireContract(condition, message) {
@@ -43,8 +53,42 @@ requireContract(
   'Deferred supervisor restart must mount the host install at its container-native working directory.',
 );
 requireContract(
+  applySource.includes('local host_root="${WORKFRAME_HOST_PROJECT_ROOT:-$host_cd}"'),
+  'Deferred supervisor restart must preserve the API-resolved host project root.',
+);
+requireContract(
+  applySource.includes('-e "WORKFRAME_HOST_COMPOSE_DIR=${host_cd}"')
+    && applySource.includes('-e "WORKFRAME_HOST_PROJECT_ROOT=${host_root}"'),
+  'Deferred supervisor restart must override stale .env host paths with the resolved install paths.',
+);
+requireContract(
+  applySource.includes('source: "${host_scripts_yaml}"')
+    && applySource.includes('target: /opt/install/scripts')
+    && applySource.includes('compose_cmd+=" -f .workframe-supervisor-restart.yml"'),
+  'Deferred supervisor restart must override relative script binds with the resolved host script directory.',
+);
+requireContract(
+  applySource.includes('docker exec \\"\\$supervisor_id\\" test -f /opt/install/scripts/apply-update-workframe.sh')
+    && applySource.includes('docker exec \\"\\$supervisor_id\\" test -f /opt/install/scripts/apply-update-hermes.sh'),
+  'Deferred supervisor restart must verify both updater scripts in the recreated container.',
+);
+requireContract(
   !applySource.includes('-w "${host_cd}"'),
   'Deferred supervisor restart must never use a Windows host path as a container working directory.',
+);
+requireContract(
+  supervisorSource.includes('def _update_script(name: str) -> Path | None:')
+    && supervisorSource.includes('COMPOSE_DIR / "scripts" / name')
+    && supervisorSource.includes('COMPOSE_DIR / "scripts" / "workframe" / name'),
+  'Supervisor must recover updater scripts from canonical install layouts when its script bind drifts.',
+);
+requireContract(
+  generatorSource.includes('- \\${WORKFRAME_HOST_PROJECT_ROOT}/scripts:/opt/install/scripts:ro'),
+  'Generated host-bindings overlay must pin the supervisor script mount to the absolute install root.',
+);
+requireContract(
+  sourceHostBindings.includes('- ${WORKFRAME_HOST_PROJECT_ROOT}/scripts/workframe:/opt/install/scripts:ro'),
+  'Source host-bindings overlay must pin the supervisor script mount to the absolute source root.',
 );
 
 if (failures.length) {

@@ -540,6 +540,7 @@ services:
       context: \${WORKFRAME_HOST_PROJECT_ROOT}/workframe-supervisor
     volumes:
       - \${WORKFRAME_HOST_PROJECT_ROOT}/Agents:/opt/data
+      - \${WORKFRAME_HOST_PROJECT_ROOT}/scripts:/opt/install/scripts:ro
       - \${WORKFRAME_HOST_PROJECT_ROOT}:/compose
 
   workframe:

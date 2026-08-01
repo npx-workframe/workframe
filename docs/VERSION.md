@@ -1,17 +1,23 @@
-# Workframe v0.1.49
+# Workframe v0.1.50
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.49 |
-| workframe API / UI | 0.1.49 (bundled in create-workframe) |
+| create-workframe | 0.1.50 |
+| workframe API / UI | 0.1.50 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.49 MyProject
+npx create-workframe@0.1.50 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.50
+
+- Preserve the API-resolved host compose and project roots across the deferred supervisor restart, overriding stale install `.env` values.
+- Resolve supervisor updater scripts from the canonical install tree when a stale script bind mount is empty, keeping both Workframe and Hermes updates operable.
+- Extend the updater release gate to cover host-root forwarding and supervisor script fallback.
 
 ## 0.1.49
 
