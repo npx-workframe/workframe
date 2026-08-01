@@ -36,6 +36,30 @@ SCRIPTS_DIR = Path(os.environ.get("WORKFRAME_SCRIPTS_DIR", "/opt/install/scripts
 COMPOSE_DIR = Path(os.environ.get("WORKFRAME_COMPOSE_DIR", "/compose"))
 
 
+def _host_install_paths(
+    host_compose_dir: str = "",
+    host_project_root: str = "",
+) -> tuple[str, str]:
+    compose = str(host_compose_dir or os.environ.get("WORKFRAME_HOST_COMPOSE_DIR", "")).strip()
+    project = str(host_project_root or os.environ.get("WORKFRAME_HOST_PROJECT_ROOT", "")).strip()
+    if compose and project:
+        return compose, project
+    env_path = COMPOSE_DIR / ".env"
+    if env_path.is_file():
+        for raw in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            if key == "WORKFRAME_HOST_COMPOSE_DIR" and not compose:
+                compose = value
+            elif key == "WORKFRAME_HOST_PROJECT_ROOT" and not project:
+                project = value
+    return compose, project
+
+
 def _compose_file_args() -> list[str]:
     """Absolute host bind paths when compose CLI runs inside supervisor (relative paths break)."""
     args = ["-f", str(COMPOSE_DIR / "docker-compose.yml")]
@@ -89,9 +113,10 @@ def _stack_apply_prepare(
     version = str(workframe_version or "").strip()
     tarball = str(workframe_tarball or "").strip()
     env["WORKFRAME_UPDATE_FROM_SUPERVISOR"] = "1"
-    if host_compose_dir and host_project_root:
-        env["WORKFRAME_HOST_COMPOSE_DIR"] = str(host_compose_dir).strip()
-        env["WORKFRAME_HOST_PROJECT_ROOT"] = str(host_project_root).strip()
+    resolved_compose, resolved_project = _host_install_paths(host_compose_dir, host_project_root)
+    if resolved_compose and resolved_project:
+        env["WORKFRAME_HOST_COMPOSE_DIR"] = resolved_compose
+        env["WORKFRAME_HOST_PROJECT_ROOT"] = resolved_project
     if tarball and target in {"workframe", "all"}:
         tar_path = Path(tarball)
         if not tar_path.is_file():

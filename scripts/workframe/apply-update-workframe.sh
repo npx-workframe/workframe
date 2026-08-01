@@ -146,12 +146,12 @@ _wf_verify_version_alignment() {
   fi
   local attempt state running_ver
   for attempt in $(seq 1 90); do
-    state="$(workframe_compose ps workframe-api 2>/dev/null | tail -n +2 | awk '{print $NF}' | head -n1 || true)"
+    state="$(workframe_compose_recreate ps workframe-api 2>/dev/null | tail -n +2 | awk '{print $NF}' | head -n1 || true)"
     if [[ "$state" == Restarting* ]]; then
       sleep 2
       continue
     fi
-    running_ver="$(workframe_compose exec -T workframe-api printenv WORKFRAME_API_VERSION 2>/dev/null | tr -d '\r\n' || true)"
+    running_ver="$(workframe_compose_recreate exec -T workframe-api printenv WORKFRAME_API_VERSION 2>/dev/null | tr -d '\r\n' || true)"
     if [[ "$running_ver" == "$ver" ]]; then
       echo "Version alignment verified: v${ver} (files + running API)"
       return 0
@@ -177,17 +177,21 @@ _wf_schedule_supervisor_restart() {
     echo "WARN: could not resolve supervisor image — skipping deferred supervisor restart" >&2
     return 0
   fi
+  local host_cd="${WORKFRAME_HOST_COMPOSE_DIR:-$compose_cd}"
   local compose_cmd="docker compose"
-  for f in "${compose_files[@]}"; do
-    compose_cmd+=" $(printf '%q' "$f")"
-  done
+  local compose_file
+  while IFS= read -r compose_file; do
+    [[ -n "$compose_file" ]] || continue
+    compose_cmd+=" $(printf '%q' "$compose_file")"
+  done < <(workframe_compose_recreate_file_args)
   local job_name="wf-sup-restart-$$"
   echo "Scheduling supervisor restart via sibling container in ${delay}s (${job_name})"
   docker run -d --rm \
     --name "$job_name" \
+    --env-file "${compose_cd}/.env" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v "${compose_cd}:/compose" \
-    -w /compose \
+    -v "${host_cd}:${host_cd}" \
+    -w "${host_cd}" \
     "$self_image" \
     sh -lc "sleep ${delay}; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor"
 }
@@ -209,7 +213,7 @@ _wf_ensure_ui_service() {
   fi
 
   local cid state
-  cid="$(workframe_compose ps -aq "$svc" 2>/dev/null | head -n1 || true)"
+  cid="$(workframe_compose_recreate ps -aq "$svc" 2>/dev/null | head -n1 || true)"
   if [[ -n "$cid" ]]; then
     state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
     if [[ "$state" == "created" ]]; then
@@ -219,26 +223,18 @@ _wf_ensure_ui_service() {
   fi
 
   echo "Ensuring $svc is running..."
-  if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
-    workframe_compose_host_bindings up -d --no-build --no-deps "$svc"
-  else
-    workframe_compose up -d --no-build --no-deps "$svc"
-  fi
+  workframe_compose_recreate up -d --no-build --no-deps "$svc"
 
-  local ui_port="${WORKFRAME_UI_PORT:-}"
-  if [[ -n "$ui_port" ]]; then
-    local attempt code
-    for attempt in $(seq 1 30); do
-      code="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${ui_port}/" 2>/dev/null || true)"
-      if [[ "$code" == "200" ]]; then
-        echo "UI health check ok on port ${ui_port}"
-        return 0
-      fi
-      sleep 1
-    done
-    echo "ERROR: UI not responding on port ${ui_port} (last http=${code:-none})" >&2
-    exit 1
-  fi
+  local attempt
+  for attempt in $(seq 1 30); do
+    if workframe_compose_recreate exec -T "$svc" wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null; then
+      echo "UI health check ok ($svc)"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "ERROR: UI service $svc not healthy after recreate" >&2
+  exit 1
 }
 
 _wf_sync_env_api_version() {
@@ -356,10 +352,10 @@ fi
 echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
 if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
-  workframe_compose up -d --no-build --force-recreate --no-deps workframe-api
+  workframe_compose_recreate up -d --no-build --force-recreate --no-deps workframe-api
   _wf_schedule_supervisor_restart
 else
-  workframe_compose up -d --build --force-recreate --no-deps workframe-api workframe-supervisor
+  workframe_compose_recreate up -d --build --force-recreate --no-deps workframe-api workframe-supervisor
 fi
 
 _wf_ensure_ui_service

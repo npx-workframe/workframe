@@ -627,6 +627,27 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     }
 
 
+def _host_install_paths() -> tuple[str, str]:
+    compose = str(os.environ.get("WORKFRAME_HOST_COMPOSE_DIR") or "").strip()
+    project = str(os.environ.get("WORKFRAME_HOST_PROJECT_ROOT") or "").strip()
+    if compose and project:
+        return compose, project
+    env_file = _compose_dir() / ".env"
+    if env_file.is_file():
+        for raw in env_file.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+            if key == "WORKFRAME_HOST_COMPOSE_DIR" and not compose:
+                compose = value
+            elif key == "WORKFRAME_HOST_PROJECT_ROOT" and not project:
+                project = value
+    return compose, project
+
+
 def _supervisor_connection_dropped(exc: BaseException) -> bool:
     text = str(exc).lower()
     return (
@@ -758,8 +779,7 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
 
     if channel == "supervisor":
         body: dict[str, Any] = {"target": target}
-        host_compose_dir = str(os.environ.get("WORKFRAME_HOST_COMPOSE_DIR") or "").strip()
-        host_project_root = str(os.environ.get("WORKFRAME_HOST_PROJECT_ROOT") or "").strip()
+        host_compose_dir, host_project_root = _host_install_paths()
         if host_compose_dir and host_project_root:
             body["host_compose_dir"] = host_compose_dir
             body["host_project_root"] = host_project_root

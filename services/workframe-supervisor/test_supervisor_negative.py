@@ -61,6 +61,28 @@ def test_api_compose_public_has_no_docker_sock() -> None:
   assert "WORKFRAME_SUPERVISOR_ALLOW_RAW_EXEC=0" in public
 
 
+def test_host_install_paths_reads_env_file() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        compose_dir = Path(tmp)
+        (compose_dir / ".env").write_text(
+            "WORKFRAME_HOST_COMPOSE_DIR=/opt/workframe/ABX\n"
+            "WORKFRAME_HOST_PROJECT_ROOT=/opt/workframe/ABX\n",
+            encoding="utf-8",
+        )
+        old = supervisor.COMPOSE_DIR
+        try:
+            supervisor.COMPOSE_DIR = compose_dir
+            os.environ.pop("WORKFRAME_HOST_COMPOSE_DIR", None)
+            os.environ.pop("WORKFRAME_HOST_PROJECT_ROOT", None)
+            compose, project = supervisor._host_install_paths()
+            assert compose == "/opt/workframe/ABX"
+            assert project == "/opt/workframe/ABX"
+        finally:
+            supervisor.COMPOSE_DIR = old
+
+
 def main() -> None:
     test_secret_read_blocked()
     test_foreign_profile_secrets_blocked()
@@ -68,6 +90,7 @@ def main() -> None:
     test_supervisor_auth_required()
     test_raw_container_exec_disabled_by_default()
     test_api_compose_public_has_no_docker_sock()
+    test_host_install_paths_reads_env_file()
     print("supervisor negative tests ok")
 
 

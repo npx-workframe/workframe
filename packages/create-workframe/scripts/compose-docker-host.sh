@@ -54,13 +54,16 @@ workframe_compose() {
   docker compose "${compose_files[@]}" "$@"
 }
 
-# Builds from inside the supervisor use /compose, but recreating a service must
-# pass the generated host-bindings overlay back to Docker Desktop for its binds.
+workframe_compose_host_bindings_available() {
+  [[ -n "${WORKFRAME_HOST_COMPOSE_DIR:-}" ]] \
+    && [[ -n "${WORKFRAME_HOST_PROJECT_ROOT:-}" ]] \
+    && [[ -n "${WORKFRAME_COMPOSE_DIR:-}" ]] \
+    && [[ -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]
+}
+
+# ponytail: build contexts use /compose; any `up` that applies bind mounts must use host paths
 workframe_compose_host_bindings() {
-  if [[ -n "${WORKFRAME_HOST_COMPOSE_DIR:-}" \
-        && -n "${WORKFRAME_HOST_PROJECT_ROOT:-}" \
-        && -n "${WORKFRAME_COMPOSE_DIR:-}" \
-        && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]; then
+  if workframe_compose_host_bindings_available; then
     cd "${WORKFRAME_COMPOSE_DIR}"
     local host_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
     if [[ -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.public.yml" ]]; then
@@ -70,6 +73,27 @@ workframe_compose_host_bindings() {
     return
   fi
   workframe_compose "$@"
+}
+
+workframe_compose_recreate() {
+  if workframe_compose_host_bindings_available; then
+    workframe_compose_host_bindings "$@"
+  else
+    workframe_compose "$@"
+  fi
+}
+
+workframe_compose_recreate_file_args() {
+  if workframe_compose_host_bindings_available; then
+    printf '%s\n' docker-compose.yml
+    if [[ -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.public.yml" ]]; then
+      printf '%s\n' docker-compose.public.yml
+    fi
+    printf '%s\n' docker-compose.host-bindings.yml
+    return 0
+  fi
+  workframe_compose_prepare
+  printf '%s\n' "${compose_files[@]#-f }"
 }
 
 # After compose build/pull + recreate, drop stopped project containers and dangling images.

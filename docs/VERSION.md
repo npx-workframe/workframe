@@ -1,17 +1,23 @@
-# Workframe v0.1.36
+# Workframe v0.1.37
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.36 |
-| workframe API / UI | 0.1.36 (bundled in create-workframe) |
+| create-workframe | 0.1.37 |
+| workframe API / UI | 0.1.37 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.36 MyProject
+npx create-workframe@0.1.37 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.37
+
+- Supervisor apply: recreate API/UI via `workframe_compose_recreate` (host-bindings overlay) so bind mounts resolve to real host paths, not `/compose/...` on Linux VPS.
+- Resolve `WORKFRAME_HOST_*` from install `.env` when API/supervisor env omits them; public overlay no longer hardcodes host root to `/compose`.
+- UI health check probes inside the nginx container; deferred supervisor restart uses host-bindings compose files.
 
 ## 0.1.36
 
