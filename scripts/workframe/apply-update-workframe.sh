@@ -201,6 +201,75 @@ _wf_schedule_supervisor_restart() {
     sh -lc "sleep ${delay}; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor"
 }
 
+_wf_stack_apply_lock_dir() {
+  printf '%s' "${API_DIR}/data/.stack-apply.lock.d"
+}
+
+_wf_release_update_lock() {
+  rm -rf "$(_wf_stack_apply_lock_dir)" 2>/dev/null || true
+}
+
+_wf_acquire_update_lock() {
+  local lockdir oldpid
+  lockdir="$(_wf_stack_apply_lock_dir)"
+  mkdir -p "${API_DIR}/data"
+  if mkdir "$lockdir" 2>/dev/null; then
+    echo $$ > "$lockdir/pid"
+    trap '_wf_release_update_lock' EXIT
+    return 0
+  fi
+  oldpid="$(tr -d '\r\n' < "$lockdir/pid" 2>/dev/null || true)"
+  if [[ -n "$oldpid" ]] && kill -0 "$oldpid" 2>/dev/null; then
+    echo "ERROR: stack apply already running (pid ${oldpid})" >&2
+    exit 1
+  fi
+  echo "WARN: removing stale stack apply lock (pid ${oldpid:-unknown})" >&2
+  rm -rf "$lockdir"
+  mkdir "$lockdir" || { echo "ERROR: could not acquire stack apply lock" >&2; exit 1; }
+  echo $$ > "$lockdir/pid"
+  trap '_wf_release_update_lock' EXIT
+}
+
+_wf_prune_created_compose_containers() {
+  local svc="$1"
+  local cid state project
+  workframe_compose_prepare
+  project="$(docker compose "${compose_files[@]}" config --format '{{.name}}' 2>/dev/null || true)"
+  [[ -n "$project" ]] || return 0
+  while IFS= read -r cid; do
+    [[ -n "$cid" ]] || continue
+    state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    if [[ "$state" == "created" ]]; then
+      echo "Removing ${svc} container in Created state ($cid)"
+      docker rm -f "$cid" >/dev/null 2>&1 || true
+    fi
+  done < <(docker ps -aq \
+    --filter "label=com.docker.compose.project=${project}" \
+    --filter "label=com.docker.compose.service=${svc}" 2>/dev/null || true)
+}
+
+_wf_recreate_api_and_supervisor() {
+  local attempt
+  for attempt in 1 2; do
+    _wf_prune_created_compose_containers workframe-api
+    _wf_prune_created_compose_containers workframe-supervisor
+    if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
+      if workframe_compose_recreate up -d --no-build --force-recreate --no-deps workframe-api; then
+        _wf_schedule_supervisor_restart
+        return 0
+      fi
+    elif workframe_compose_recreate up -d --build --force-recreate --no-deps workframe-api workframe-supervisor; then
+      return 0
+    fi
+    if [[ "$attempt" -eq 1 ]]; then
+      echo "WARN: service recreate failed — pruning stale containers and retrying..." >&2
+      sleep 2
+    else
+      exit 1
+    fi
+  done
+}
+
 _wf_ensure_ui_service() {
   local svc=""
   if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
@@ -217,15 +286,7 @@ _wf_ensure_ui_service() {
     exit 1
   fi
 
-  local cid state
-  cid="$(workframe_compose_recreate ps -aq "$svc" 2>/dev/null | head -n1 || true)"
-  if [[ -n "$cid" ]]; then
-    state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
-    if [[ "$state" == "created" ]]; then
-      echo "Removing failed $svc container in Created state ($cid)"
-      docker rm -f "$cid" >/dev/null 2>&1 || true
-    fi
-  fi
+  _wf_prune_created_compose_containers "$svc"
 
   echo "Ensuring $svc is running..."
   workframe_compose_recreate up -d --no-build --no-deps "$svc"
@@ -299,6 +360,7 @@ fi
 workframe_compose_prepare
 PROJECT_ROOT="$(_wf_resolve_project_root)"
 _wf_install_paths "$PROJECT_ROOT"
+_wf_acquire_update_lock
 
 echo "=== Workframe update (API + supervisor + UI) ==="
 echo "Project root: $PROJECT_ROOT"
@@ -363,12 +425,7 @@ fi
 
 echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
-if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
-  workframe_compose_recreate up -d --no-build --force-recreate --no-deps workframe-api
-  _wf_schedule_supervisor_restart
-else
-  workframe_compose_recreate up -d --build --force-recreate --no-deps workframe-api workframe-supervisor
-fi
+_wf_recreate_api_and_supervisor
 
 _wf_ensure_ui_service
 

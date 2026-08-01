@@ -83,6 +83,26 @@ def test_host_install_paths_reads_env_file() -> None:
             supervisor.COMPOSE_DIR = old
 
 
+def test_stack_apply_lock_held() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        compose_dir = Path(tmp)
+        lock_dir = compose_dir / "workframe-api" / "data" / ".stack-apply.lock.d"
+        old_compose = supervisor.COMPOSE_DIR
+        old_lock = supervisor.STACK_APPLY_LOCK_DIR
+        try:
+            supervisor.COMPOSE_DIR = compose_dir
+            supervisor.STACK_APPLY_LOCK_DIR = lock_dir
+            assert not supervisor._stack_apply_lock_held()
+            lock_dir.mkdir(parents=True)
+            (lock_dir / "pid").write_text(str(os.getpid()), encoding="utf-8")
+            assert supervisor._stack_apply_lock_held()
+        finally:
+            supervisor.COMPOSE_DIR = old_compose
+            supervisor.STACK_APPLY_LOCK_DIR = old_lock
+
+
 def main() -> None:
     test_secret_read_blocked()
     test_foreign_profile_secrets_blocked()
@@ -91,6 +111,7 @@ def main() -> None:
     test_raw_container_exec_disabled_by_default()
     test_api_compose_public_has_no_docker_sock()
     test_host_install_paths_reads_env_file()
+    test_stack_apply_lock_held()
     print("supervisor negative tests ok")
 
 

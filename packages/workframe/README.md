@@ -42,7 +42,7 @@ npx workframe version
 ## Full Workframe cell
 
 ```bash
-npx create-workframe@0.1.38 MyProject
+npx create-workframe@0.1.40 MyProject
 ```
 
 `workframe` inspects and interviews locally; `create-workframe` installs the product cell when a deployment plan says you need one.

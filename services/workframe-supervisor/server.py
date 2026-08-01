@@ -34,6 +34,22 @@ DEPLOYMENT_MODE = (os.environ.get("WORKFRAME_DEPLOYMENT_MODE") or "trusted_team"
 ROUTES_JSON = HERMES_DATA / "workframe" / "routes.json"
 SCRIPTS_DIR = Path(os.environ.get("WORKFRAME_SCRIPTS_DIR", "/opt/install/scripts"))
 COMPOSE_DIR = Path(os.environ.get("WORKFRAME_COMPOSE_DIR", "/compose"))
+STACK_APPLY_LOCK_DIR = COMPOSE_DIR / "workframe-api" / "data" / ".stack-apply.lock.d"
+
+
+def _stack_apply_lock_held() -> bool:
+    pid_file = STACK_APPLY_LOCK_DIR / "pid"
+    if not STACK_APPLY_LOCK_DIR.is_dir() or not pid_file.is_file():
+        return False
+    try:
+        pid = int(pid_file.read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
 
 
 def _host_install_paths(
@@ -214,6 +230,8 @@ def _stack_apply(
         host_compose_dir=host_compose_dir,
         host_project_root=host_project_root,
     )
+    if async_apply and _stack_apply_lock_held():
+        raise ValueError("stack_apply_in_progress")
     if async_apply:
         return _stack_apply_async(prepared_target, scripts, env)
     return _stack_apply_run_scripts(prepared_target, scripts, env)
