@@ -1,17 +1,22 @@
-# Workframe v0.1.34
+# Workframe v0.1.35
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.34 |
-| workframe API / UI | 0.1.34 (bundled in create-workframe) |
+| create-workframe | 0.1.35 |
+| workframe API / UI | 0.1.35 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.34 MyProject
+npx create-workframe@0.1.35 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.35
+
+- Stack updates: async supervisor apply, sibling-container supervisor restart (no self-kill), public compose overlay parity, health-check retries.
+- Updates UI: actionable badge, drift repair copy, restart-tolerant apply flow, build fix in settings sheet.
 
 ## 0.1.34
 

@@ -139,10 +139,11 @@ export function WorkframeSettingsSheet({
         const desktopVersion = bridge?.getAppVersion ? await bridge.getAppVersion().catch(() => '') : ''
         const status = await workframeAuthApi.getAdminUpdates(desktopVersion || undefined)
         if (cancelled) return
+        const applyOk = status.update_apply_ready !== false && status.docker_available !== false
         let count = 0
-        if (status.workframe?.update_available) count += 1
-        if (status.hermes?.update_available) count += 1
-        if (status.desktop?.update_available) count += 1
+        if (status.workframe?.update_available && status.workframe.can_update !== false && applyOk) count += 1
+        if (status.hermes?.update_available && status.hermes.can_update !== false && applyOk) count += 1
+        if (status.desktop?.update_available && status.desktop.download_url) count += 1
         setUpdatesBadge(count)
       } catch {
         if (!cancelled) setUpdatesBadge(0)

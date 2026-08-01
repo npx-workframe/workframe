@@ -41,7 +41,7 @@ class AdminRoutesMixin:
                 "mode": "dev_unsafe" if srv.DEV_LOCAL_UNSAFE else "secure",
                 "secure_mode": srv.SECURE_MODE,
                 "deployment_mode": srv.DEPLOYMENT_MODE,
-                "admin_updates_enabled": os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") == "1",
+                "admin_updates_enabled": stack_updates._admin_stack_updates_enabled(),
                 "docker_sock_on_api": Path("/var/run/docker.sock").exists(),
                 "proxy_token_configured": internal_proxy_auth.proxy_token_configured(),
                 "vault_sealed": vault_stat.get("sealed"),

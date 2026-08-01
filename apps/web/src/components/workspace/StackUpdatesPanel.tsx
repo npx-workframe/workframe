@@ -114,7 +114,7 @@ function UpdateRow({
       <div className="wf-stack-updates__card-main">
         <strong className="wf-stack-updates__card-title">{name}</strong>
         {detail ? <span className="wf-stack-updates__muted">{detail}</span> : null}
-        {blocked ? (
+        {blocked || (product.install_drift && product.reason) ? (
           <span className="wf-stack-updates__reason">
             {product.reason || 'Update from the host — one-click apply is not available here.'}
           </span>
@@ -160,10 +160,11 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
   const updateCount = useMemo(() => {
     if (!status) return 0
+    const applyOk = status.update_apply_ready !== false && status.docker_available !== false
     let count = 0
-    if (status.workframe?.update_available) count += 1
-    if (status.hermes?.update_available) count += 1
-    if (status.desktop?.update_available) count += 1
+    if (status.workframe?.update_available && resolveCanUpdate(status.workframe, applyOk)) count += 1
+    if (status.hermes?.update_available && resolveCanUpdate(status.hermes, applyOk)) count += 1
+    if (status.desktop?.update_available && status.desktop.download_url) count += 1
     return count
   }, [status])
 
@@ -178,6 +179,12 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
   const applyReady = status?.update_apply_ready !== false && status?.docker_available !== false
   const applyChannel = status?.update_apply_channel
+  const applyBlockedMessage =
+    status?.workframe?.reason ||
+    status?.hermes?.reason ||
+    (status?.supervisor_configured
+      ? 'Stack updates are not ready — check that update scripts are installed and supervisor can reach Docker.'
+      : 'In-place updates need workframe-supervisor or Docker on the stack host.')
 
   useEffect(() => {
     onBadgeChange?.(updateCount)
@@ -205,6 +212,14 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
   }, [updating])
 
   useEffect(() => {
+    void load()
+  }, [load])
+
+  const dismissUpdateProgress = useCallback(() => {
+    waitAbortRef.current?.abort()
+    setUpdateSteps([])
+    setUpdateTarget('')
+    setApplying('')
     void load()
   }, [load])
 
@@ -285,22 +300,22 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
       {loading && !status && !updating ? <p className="wf-user-settings__hint">Checking for updates…</p> : null}
 
       {updating ? (
-        <OperationProgress
-          steps={updateSteps}
-          title={updateTarget ? stackUpdateTitle(updateTarget) : 'Updating stack'}
-          className="wf-stack-updates__progress"
-        />
+        <>
+          <OperationProgress
+            steps={updateSteps}
+            title={updateTarget ? stackUpdateTitle(updateTarget) : 'Updating stack'}
+            className="wf-stack-updates__progress"
+          />
+          {updateFailed ? (
+            <Button type="button" size="sm" variant="outline" onClick={dismissUpdateProgress}>
+              Back to updates
+            </Button>
+          ) : null}
+        </>
       ) : null}
 
       {status && !applyReady && !updating ? (
-        <WorkframeNotice
-          message={
-            status.supervisor_configured
-              ? 'Stack updates are not ready — check that update scripts are installed and supervisor can reach Docker.'
-              : 'In-place updates need workframe-supervisor or Docker on the stack host.'
-          }
-          tone="neutral"
-        />
+        <WorkframeNotice message={applyBlockedMessage} tone="neutral" />
       ) : null}
 
       {status && applyReady && applyChannel === 'supervisor' && !updating ? (
@@ -309,6 +324,11 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
       {status && !updating ? (
         <>
+          <div className="wf-stack-updates__toolbar">
+            <Button type="button" size="sm" variant="outline" disabled={loading || Boolean(applying)} onClick={() => void load()}>
+              {loading ? 'Checking…' : 'Check again'}
+            </Button>
+          </div>
           <UpdateRow
             name="Workframe"
             detail={formatProductDetail(status.workframe)}

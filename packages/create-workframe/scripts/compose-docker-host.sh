@@ -14,6 +14,9 @@ workframe_compose_prepare() {
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.yml" ]]; then
     compose_cd="${WORKFRAME_COMPOSE_DIR}"
     compose_files=(-f docker-compose.yml)
+    if [[ -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.public.yml" ]]; then
+      compose_files+=(-f docker-compose.public.yml)
+    fi
     return 0
   fi
 
@@ -59,7 +62,11 @@ workframe_compose_host_bindings() {
         && -n "${WORKFRAME_COMPOSE_DIR:-}" \
         && -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.host-bindings.yml" ]]; then
     cd "${WORKFRAME_COMPOSE_DIR}"
-    docker compose -f docker-compose.yml -f docker-compose.host-bindings.yml "$@"
+    local host_files=(-f docker-compose.yml -f docker-compose.host-bindings.yml)
+    if [[ -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.public.yml" ]]; then
+      host_files=(-f docker-compose.yml -f docker-compose.public.yml -f docker-compose.host-bindings.yml)
+    fi
+    docker compose "${host_files[@]}" "$@"
     return
   fi
   workframe_compose "$@"

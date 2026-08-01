@@ -102,6 +102,36 @@ p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")' "$PROJECT_ROO
   fi
 }
 
+# ponytail: sibling container restarts supervisor — never docker-compose self from inside self
+_wf_schedule_supervisor_restart() {
+  workframe_compose_prepare
+  local delay="${WORKFRAME_SUPERVISOR_RESTART_DELAY:-15}"
+  local self_image=""
+  if command -v docker >/dev/null 2>&1; then
+    self_image="$(docker inspect --format '{{.Config.Image}}' "$(hostname)" 2>/dev/null || true)"
+  fi
+  if [[ -z "$self_image" ]]; then
+    self_image="$(workframe_compose images -q workframe-supervisor 2>/dev/null | head -n1 || true)"
+  fi
+  if [[ -z "$self_image" ]]; then
+    echo "WARN: could not resolve supervisor image — skipping deferred supervisor restart" >&2
+    return 0
+  fi
+  local compose_cmd="docker compose"
+  for f in "${compose_files[@]}"; do
+    compose_cmd+=" $(printf '%q' "$f")"
+  done
+  local job_name="wf-sup-restart-$$"
+  echo "Scheduling supervisor restart via sibling container in ${delay}s (${job_name})"
+  docker run -d --rm \
+    --name "$job_name" \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "${compose_cd}:/compose" \
+    -w /compose \
+    "$self_image" \
+    sh -lc "sleep ${delay}; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor"
+}
+
 _wf_sync_env_api_version() {
   local ver="$1"
   local env_file="$compose_cd/.env"
@@ -175,6 +205,10 @@ if [[ -n "$PREFETCH_TARBALL" && -f "$PREFETCH_TARBALL" ]]; then
   TEMPLATE_SYNCED=1
 elif [[ "${WORKFRAME_UPDATE_SKIP_NPM:-1}" == "1" ]] && [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" != "1" ]]; then
   echo "Skipping npm template sync (WORKFRAME_UPDATE_SKIP_NPM=1; set WORKFRAME_UPDATE_ALLOW_NPM=1 to fetch)"
+  if [[ -n "$PREFETCH_TARBALL" && ! -f "$PREFETCH_TARBALL" ]]; then
+    echo "ERROR: prefetch tarball missing: $PREFETCH_TARBALL" >&2
+    exit 1
+  fi
 elif command -v npm >/dev/null 2>&1; then
   if [[ "${WORKFRAME_UPDATE_ALLOW_NPM:-}" == "1" ]] && [[ -z "$TARGET_VERSION" ]]; then
     echo "WORKFRAME_UPDATE_VERSION is required when WORKFRAME_UPDATE_ALLOW_NPM=1" >&2
@@ -199,29 +233,25 @@ else
   echo "Skipping npm template sync (npm missing or WORKFRAME_UPDATE_SKIP_NPM=1)"
 fi
 
+if [[ -n "$TARGET_VERSION" && "$TEMPLATE_SYNCED" != "1" ]]; then
+  echo "ERROR: template sync did not run — refusing rebuild-only update for create-workframe@${TARGET_VERSION}." >&2
+  echo "Prefetch the npm pack to workframe-api/data/.update-staging or set WORKFRAME_UPDATE_ALLOW_NPM=1." >&2
+  exit 1
+fi
+
 echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
-SUPERVISOR_RESTART_PID=""
 if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
-  # ponytail: supervisor cannot recreate itself inside the stack.apply request — defer after handler returns
-  workframe_compose_host_bindings up -d --no-build --no-deps workframe-api
-  (
-    sleep 3
-    workframe_compose_host_bindings up -d --no-build --no-deps workframe-supervisor
-  ) >/tmp/workframe-supervisor-restart.log 2>&1 &
-  SUPERVISOR_RESTART_PID=$!
+  workframe_compose up -d --no-build --no-deps workframe-api
+  _wf_schedule_supervisor_restart
 else
   workframe_compose up -d --build --no-deps workframe-api workframe-supervisor
 fi
 
 if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
-  workframe_compose_host_bindings up -d --no-build --no-deps workframe-ui || workframe_compose_host_bindings restart workframe-ui || true
+  workframe_compose up -d --no-build --no-deps workframe-ui || workframe_compose restart workframe-ui || true
 elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
-  workframe_compose_host_bindings up -d --no-build --no-deps workframe || workframe_compose_host_bindings restart workframe || true
-fi
-
-if [[ -n "${SUPERVISOR_RESTART_PID}" ]]; then
-  wait "${SUPERVISOR_RESTART_PID}" 2>/dev/null || true
+  workframe_compose up -d --no-build --no-deps workframe || workframe_compose restart workframe || true
 fi
 
 if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then

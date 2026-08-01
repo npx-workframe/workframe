@@ -2586,6 +2586,10 @@ async function main() {
     writeText(path.join(filesRoot, '.hermes.md'), render(readText(path.join(PKG_ROOT, 'rules', '.hermes.md')), ctx));
 
     copyWorkframeApiTemplate(target);
+    writeText(
+      path.join(target, 'workframe-api', 'data', 'package-version'),
+      `${PKG_VERSION}\n`,
+    );
     copyWorkframeSupervisorTemplate(target);
     copyWorkframeUiTemplate(target, [nativeSlug]);
     writeText(

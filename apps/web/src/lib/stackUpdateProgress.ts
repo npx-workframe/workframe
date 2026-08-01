@@ -4,7 +4,7 @@ import { workframeAuthApi } from '@/lib/workframeAuthApi'
 export type StackUpdateTarget = 'hermes' | 'workframe' | 'all'
 
 const RESTART_ERROR_RE =
-  /upstream service unavailable|service temporarily unavailable|failed to fetch|networkerror|load failed|http_502|http_503|\b502\b|\b503\b|request_timeout|aborted|network request failed/i
+  /upstream service unavailable|service temporarily unavailable|failed to fetch|networkerror|load failed|http_502|http_503|\b502\b|\b503\b|request_timeout|aborted|network request failed|remote end closed|connection reset|supervisor_apply_failed:remote end closed/i
 
 export function stackUpdateStepLabels(target: StackUpdateTarget): Array<{ id: string; label: string }> {
   const rebuild =

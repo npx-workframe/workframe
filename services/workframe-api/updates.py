@@ -5,6 +5,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -62,13 +63,10 @@ def _npm_latest_version() -> str:
 
 
 def _supervisor_tarball_path(package: str, version: str) -> str:
-    """Path on the compose bind mount — supervisor reads /compose even when API lacks that mount."""
-    for raw in (os.environ.get("WORKFRAME_COMPOSE_DIR", ""), "/compose"):
-        root = str(raw or "").strip().rstrip("/")
-        if root and root != ".":
-            return f"{root}/workframe-api/data/.update-staging/{package}-{version}.tgz"
-    data_dir = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data"))
-    return str(data_dir / ".update-staging" / f"{package}-{version}.tgz")
+    """Path on the supervisor /compose mount (pack installs: workframe-api/data/.update-staging)."""
+    ver = str(version or "").strip()
+    pkg = str(package or NPM_PACKAGE).strip()
+    return f"/compose/workframe-api/data/.update-staging/{pkg}-{ver}.tgz"
 
 
 def prefetch_workframe_npm_tarball(version: str) -> str:
@@ -109,6 +107,8 @@ def prefetch_workframe_npm_tarball(version: str) -> str:
         raise ValueError("npm_integrity_mismatch")
     dest.write_bytes(body)
     dest.with_suffix(dest.suffix + ".sha512").write_text(actual + "\n", encoding="utf-8")
+    if not dest.is_file():
+        raise ValueError("npm_staging_write_failed")
     return _supervisor_tarball_path(pkg, ver)
 
 
@@ -396,6 +396,30 @@ def _supervisor_gateway_image_digest() -> tuple[str, str]:
     return str(data.get("digest") or "").strip(), str(data.get("ref") or "").strip()
 
 
+def _supervisor_healthy(*, attempts: int = 4, delay_s: float = 2.0) -> tuple[bool, str | None]:
+    base = str(os.environ.get("WORKFRAME_SUPERVISOR_URL", "")).rstrip("/")
+    token = str(os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "")).strip()
+    if not base or not token:
+        return False, "workframe-supervisor is not configured."
+    req = urllib.request.Request(
+        f"{base}/health",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "User-Agent": "workframe-api"},
+    )
+    last_exc: BaseException | None = None
+    for attempt in range(max(1, attempts)):
+        try:
+            with urllib.request.urlopen(req, timeout=8.0) as resp:
+                if resp.status == 200:
+                    return True, None
+                last_exc = OSError(f"HTTP {resp.status}")
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last_exc = exc
+        if attempt + 1 < attempts:
+            time.sleep(delay_s)
+    detail = str(last_exc) if last_exc else "unknown error"
+    return False, f"workframe-supervisor is unreachable ({detail})."
+
+
 def _admin_stack_updates_enabled() -> bool:
     if os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") == "1":
         return True
@@ -426,6 +450,9 @@ def _update_apply_channel() -> tuple[str, bool, str | None]:
     if _supervisor_configured():
         if _script_path("apply-update-workframe.sh") is None and _script_path("apply-update-hermes.sh") is None:
             return "supervisor", False, "Stack update scripts are missing from this install."
+        ok, reason = _supervisor_healthy()
+        if not ok:
+            return "supervisor", False, reason
         return "supervisor", True, None
     if api_docker:
         _, reason = _docker_apply_ready()
@@ -600,6 +627,17 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     }
 
 
+def _supervisor_connection_dropped(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    return (
+        "remote end closed" in text
+        or "connection reset" in text
+        or "broken pipe" in text
+        or "try again" in text
+        or "errno -3" in text
+    )
+
+
 def _supervisor_stack_apply(body: dict[str, Any], *, timeout: float = 900.0) -> dict[str, Any]:
     if not _supervisor_configured():
         raise ValueError("supervisor_not_configured")
@@ -630,6 +668,9 @@ def _supervisor_stack_apply(body: dict[str, Any], *, timeout: float = 900.0) -> 
             pass
         raise ValueError(f"supervisor_apply_failed:{exc.code}") from exc
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        target = str(body.get("target") or "all").strip().lower()
+        if target in {"workframe", "all"} and _supervisor_connection_dropped(exc):
+            return {"ok": True, "accepted": True, "restarting": True, "target": target}
         raise ValueError(f"supervisor_apply_failed:{exc}") from exc
     if not isinstance(data, dict) or not data.get("ok"):
         raise ValueError(str(data.get("error") or "supervisor_apply_failed"))
@@ -726,6 +767,8 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
             body["workframe_version"] = workframe_version
         if workframe_tarball:
             body["workframe_tarball"] = workframe_tarball
+        if target in {"workframe", "all"}:
+            body["async"] = True
         return _supervisor_stack_apply(body)
 
     if not Path(DOCKER_SOCK).exists():

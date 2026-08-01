@@ -39,6 +39,9 @@ COMPOSE_DIR = Path(os.environ.get("WORKFRAME_COMPOSE_DIR", "/compose"))
 def _compose_file_args() -> list[str]:
     """Absolute host bind paths when compose CLI runs inside supervisor (relative paths break)."""
     args = ["-f", str(COMPOSE_DIR / "docker-compose.yml")]
+    public = COMPOSE_DIR / "docker-compose.public.yml"
+    if public.is_file():
+        args.extend(["-f", str(public)])
     host_root = os.environ.get("WORKFRAME_HOST_PROJECT_ROOT", "").strip()
     bindings = COMPOSE_DIR / "docker-compose.host-bindings.yml"
     if host_root and bindings.is_file():
@@ -60,30 +63,15 @@ def _exec_targets_runtime_profile_secrets(cmd: list[str], acting_profile: str = 
     return exec_blocked_for_profile(cmd, acting_profile)
 
 
-def _stack_apply(
+def _stack_apply_prepare(
     target: str,
     *,
     workframe_version: str = "",
     workframe_tarball: str = "",
     host_compose_dir: str = "",
     host_project_root: str = "",
-) -> dict[str, Any]:
+) -> tuple[str, list[Path], dict[str, str]]:
     target = str(target or "all").strip().lower()
-    if target == "gateway-restart":
-        script = SCRIPTS_DIR / "restart-gateway-hermes.sh"
-        if not script.is_file():
-            raise ValueError("restart_script_missing")
-        proc = subprocess.run(
-            ["bash", str(script)],
-            capture_output=True,
-            text=True,
-            timeout=300,
-            cwd=str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None,
-        )
-        log = f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}"
-        if proc.returncode != 0:
-            raise ValueError("restart_failed:gateway")
-        return {"ok": True, "target": "gateway", "log": log[-12000:]}
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")
     scripts: list[Path] = []
@@ -105,13 +93,21 @@ def _stack_apply(
         env["WORKFRAME_HOST_COMPOSE_DIR"] = str(host_compose_dir).strip()
         env["WORKFRAME_HOST_PROJECT_ROOT"] = str(host_project_root).strip()
     if tarball and target in {"workframe", "all"}:
+        tar_path = Path(tarball)
+        if not tar_path.is_file():
+            raise ValueError(f"update_tarball_missing:{tarball}")
         env["WORKFRAME_UPDATE_TARBALL"] = tarball
         if version:
             env["WORKFRAME_UPDATE_VERSION"] = version
     elif version and target in {"workframe", "all"}:
         env["WORKFRAME_UPDATE_ALLOW_NPM"] = "1"
         env["WORKFRAME_UPDATE_VERSION"] = version
+    return target, scripts, env
+
+
+def _stack_apply_run_scripts(target: str, scripts: list[Path], env: dict[str, str]) -> dict[str, Any]:
     logs: list[str] = []
+    cwd = str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None
     for script in scripts:
         proc = subprocess.run(
             ["bash", str(script)],
@@ -119,7 +115,7 @@ def _stack_apply(
             text=True,
             timeout=900,
             env=env,
-            cwd=str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None,
+            cwd=cwd,
         )
         logs.append(f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}")
         if proc.returncode != 0:
@@ -127,6 +123,75 @@ def _stack_apply(
             tail = detail[-1].strip() if detail else f"exit_{proc.returncode}"
             raise ValueError(f"update_failed:{script.name}:{tail[-600:]}")
     return {"ok": True, "target": target, "log": "\n".join(logs)[-12000:]}
+
+
+def _stack_apply_async(
+    target: str,
+    scripts: list[Path],
+    env: dict[str, str],
+) -> dict[str, Any]:
+    log_dir = HERMES_DATA / "workframe"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "stack-apply.log"
+    quoted_log = shlex.quote(str(log_path))
+    parts = [f": > {quoted_log}", f"date -u +%Y-%m-%dT%H:%M:%SZ >> {quoted_log}"]
+    for script in scripts:
+        qscript = shlex.quote(str(script))
+        parts.append(f"echo '=== {script.name} ===' >> {quoted_log}")
+        parts.append(f"bash {qscript} >> {quoted_log} 2>&1")
+    shell = "set -euo pipefail; " + "; ".join(parts)
+    cwd = str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None
+    proc = subprocess.Popen(
+        ["bash", "-lc", shell],
+        env=env,
+        cwd=cwd,
+        start_new_session=True,
+    )
+    return {
+        "ok": True,
+        "accepted": True,
+        "async": True,
+        "target": target,
+        "pid": proc.pid,
+        "log": str(log_path),
+    }
+
+
+def _stack_apply(
+    target: str,
+    *,
+    workframe_version: str = "",
+    workframe_tarball: str = "",
+    host_compose_dir: str = "",
+    host_project_root: str = "",
+    async_apply: bool = False,
+) -> dict[str, Any]:
+    target = str(target or "all").strip().lower()
+    if target == "gateway-restart":
+        script = SCRIPTS_DIR / "restart-gateway-hermes.sh"
+        if not script.is_file():
+            raise ValueError("restart_script_missing")
+        proc = subprocess.run(
+            ["bash", str(script)],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            cwd=str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None,
+        )
+        log = f"=== {script} (exit {proc.returncode}) ===\n{proc.stdout}\n{proc.stderr}"
+        if proc.returncode != 0:
+            raise ValueError("restart_failed:gateway")
+        return {"ok": True, "target": "gateway", "log": log[-12000:]}
+    prepared_target, scripts, env = _stack_apply_prepare(
+        target,
+        workframe_version=workframe_version,
+        workframe_tarball=workframe_tarball,
+        host_compose_dir=host_compose_dir,
+        host_project_root=host_project_root,
+    )
+    if async_apply:
+        return _stack_apply_async(prepared_target, scripts, env)
+    return _stack_apply_run_scripts(prepared_target, scripts, env)
 
 
 _DEVICE_OAUTH_AUTH_IDS = frozenset({"openai-codex", "nous"})
@@ -834,17 +899,22 @@ class Handler(BaseHTTPRequestHandler):
                 workframe_tarball = str(body.get("workframe_tarball") or "").strip()
                 host_compose_dir = str(body.get("host_compose_dir") or "").strip()
                 host_project_root = str(body.get("host_project_root") or "").strip()
+                async_apply = body.get("async")
+                if async_apply is None:
+                    async_apply = target in {"workframe", "all"}
+                else:
+                    async_apply = bool(async_apply)
                 try:
-                    return self._json(
-                        200,
-                        _stack_apply(
-                            target,
-                            workframe_version=workframe_version,
-                            workframe_tarball=workframe_tarball,
-                            host_compose_dir=host_compose_dir,
-                            host_project_root=host_project_root,
-                        ),
+                    result = _stack_apply(
+                        target,
+                        workframe_version=workframe_version,
+                        workframe_tarball=workframe_tarball,
+                        host_compose_dir=host_compose_dir,
+                        host_project_root=host_project_root,
+                        async_apply=async_apply,
                     )
+                    status = 202 if result.get("async") else 200
+                    return self._json(status, result)
                 except ValueError as exc:
                     return self._json(400, {"ok": False, "error": str(exc)})
                 except Exception as exc:  # noqa: BLE001
