@@ -1,17 +1,22 @@
-# Workframe v0.1.38
+# Workframe v0.1.39
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.38 |
-| workframe API / UI | 0.1.38 (bundled in create-workframe) |
+| create-workframe | 0.1.39 |
+| workframe API / UI | 0.1.39 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.38 MyProject
+npx create-workframe@0.1.39 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.39
+
+- Write `package-version` pin only after running API verifies — no more false drift from partial apply.
+- Updates panel: single Update action (no Repair label); neo-themed flush buttons that beat global primary styles.
 
 ## 0.1.38
 

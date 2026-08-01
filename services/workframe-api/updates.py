@@ -519,7 +519,7 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     installed_pkg = integrity.get("package_pin") or installed.get("package") or installed.get("api") or ""
     workframe_update = bool(workframe_latest and _version_lt(installed_pkg, workframe_latest))
     install_drift = not bool(integrity.get("ok"))
-    if install_drift:
+    if install_drift and not workframe_update:
         workframe_update = True
 
     hermes_digest, hermes_ref = ("", "")

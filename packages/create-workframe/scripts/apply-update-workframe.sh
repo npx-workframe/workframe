@@ -102,11 +102,16 @@ p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")' "$PROJECT_ROO
   fi
 }
 
-_wf_commit_version_alignment() {
+_wf_commit_compose_alignment() {
   local ver="$1"
   [[ -n "$ver" ]] || return 0
   _wf_sync_env_api_version "$ver"
   _wf_sync_compose_api_version "$ver"
+}
+
+_wf_commit_version_alignment() {
+  local ver="$1"
+  _wf_commit_compose_alignment "$ver"
   _wf_record_package_version "$ver"
 }
 
@@ -133,7 +138,7 @@ _wf_verify_version_alignment() {
   env_ver="$(grep '^WORKFRAME_API_VERSION=' "$compose_cd/.env" 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r\n' || true)"
   compose_ver="$(grep -E '^[[:space:]]*- WORKFRAME_API_VERSION=' "$compose_cd/docker-compose.yml" 2>/dev/null | tail -n1 | sed -E 's/^[[:space:]]*- WORKFRAME_API_VERSION=//' | tr -d '\r\n' || true)"
   local mismatch=0
-  for label in pin:package-version api_build:api-build ui_build:ui-build env_ver:.env compose_ver:compose; do
+  for label in api_build:api-build ui_build:ui-build env_ver:.env compose_ver:compose; do
     local name="${label%%:*}"
     local value="${!name}"
     if [[ -n "$value" && "$value" != "$ver" ]]; then
@@ -352,8 +357,8 @@ if [[ -n "$TARGET_VERSION" && "$TEMPLATE_SYNCED" != "1" ]]; then
 fi
 
 if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then
-  echo "Committing version alignment to v${TARGET_VERSION} before container recreate..."
-  _wf_commit_version_alignment "$TARGET_VERSION"
+  echo "Syncing compose env to v${TARGET_VERSION} before container recreate..."
+  _wf_commit_compose_alignment "$TARGET_VERSION"
 fi
 
 echo "Rebuilding workframe-api and workframe-supervisor..."
@@ -369,6 +374,7 @@ _wf_ensure_ui_service
 
 if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then
   _wf_verify_version_alignment "$TARGET_VERSION"
+  _wf_record_package_version "$TARGET_VERSION"
 fi
 
 workframe_docker_cleanup_after_update

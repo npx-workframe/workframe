@@ -57,6 +57,7 @@
 .wf-stack-updates .wf-action-btn[data-tone='primary'],
 .wf-stack-updates a.wf-action-btn[data-tone='primary'] {
   background: var(--wf-control-bg-raised);
+  border: none;
   box-shadow: var(--wf-control-shadow-raised);
   color: var(--wf-text);
 }
@@ -64,7 +65,19 @@
 .wf-stack-updates .wf-action-btn[data-tone='primary']:hover:not(:disabled),
 .wf-stack-updates a.wf-action-btn[data-tone='primary']:hover {
   background: var(--wf-control-bg-raised);
+  border: none;
   box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+/* Beat relief-surfaces + action-btn primary tokens inside this panel */
+[data-chrome-mode='relief'] .wf-stack-updates .wf-action-btn,
+[data-chrome-mode='relief'] .wf-stack-updates .wf-action-btn:hover:not(:disabled),
+[data-chrome-mode='line'] .wf-stack-updates .wf-action-btn,
+[data-chrome-mode='line'] .wf-stack-updates .wf-action-btn:hover:not(:disabled) {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
   color: var(--wf-text);
 }
 

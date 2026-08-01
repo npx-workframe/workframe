@@ -140,7 +140,6 @@ function UpdateRow({
             ) : canUpdate ? (
               <WfActionButton
                 type="button"
-                tone="primary"
                 className="wf-stack-updates__btn"
                 disabled={disabled}
                 onClick={onApply}
@@ -348,7 +347,7 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
             name="Workframe"
             detail={formatProductDetail(status.workframe)}
             product={status.workframe}
-            actionLabel={status.workframe.install_drift ? 'Repair' : 'Update'}
+            actionLabel="Update"
             applying={applying === 'workframe'}
             disabled={applyDisabled}
             dockerOk={dockerOk}
