@@ -190,6 +190,7 @@ _wf_schedule_supervisor_restart() {
   done < <(workframe_compose_recreate_file_args)
   local job_name="wf-sup-restart-$$"
   echo "Scheduling supervisor restart via sibling container in ${delay}s (${job_name})"
+  # Retry with an explicit rm if the recreate leaves a Created-state corpse.
   docker run -d --rm \
     --name "$job_name" \
     --env-file "${compose_cd}/.env" \
@@ -197,7 +198,9 @@ _wf_schedule_supervisor_restart() {
     -v "${host_cd}:${host_cd}" \
     -w "${host_cd}" \
     "$self_image" \
-    sh -lc "sleep ${delay}; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor"
+    sh -lc "sleep ${delay}; \
+${compose_cmd} up -d --no-build --no-deps --force-recreate workframe-supervisor \
+|| { ${compose_cmd} rm -sf workframe-supervisor; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor; }"
 }
 
 _wf_stack_apply_lock_dir() {
@@ -254,7 +257,9 @@ _wf_recreate_api_and_supervisor() {
     _wf_prune_created_compose_containers workframe-supervisor
     if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
       if workframe_compose_recreate up -d --no-build --force-recreate --no-deps workframe-api; then
-        _wf_schedule_supervisor_restart
+        # This script runs INSIDE the supervisor container — restarting it here
+        # would kill this apply mid-flight. Defer to the very end of the script.
+        WF_NEED_SUPERVISOR_RESTART=1
         return 0
       fi
     elif workframe_compose_recreate up -d --build --force-recreate --no-deps workframe-api workframe-supervisor; then
@@ -298,8 +303,17 @@ _wf_ensure_ui_service() {
 
   _wf_prune_created_compose_containers "$svc"
 
+  # nginx upstreams (gateway/dashboard) must exist, but the UI up must NOT walk
+  # the dependency graph: that recreates the supervisor and kills this apply.
+  local dep
+  for dep in gateway dashboard; do
+    if workframe_compose config --services 2>/dev/null | grep -qx "$dep"; then
+      workframe_compose_recreate up -d --no-build --no-deps --no-recreate "$dep" 2>/dev/null || true
+    fi
+  done
+
   echo "Ensuring $svc is running..."
-  workframe_compose_recreate up -d --no-build "$svc"
+  workframe_compose_recreate up -d --no-build --no-deps "$svc"
 
   local attempt
   for attempt in $(seq 1 30); do
@@ -311,7 +325,7 @@ _wf_ensure_ui_service() {
     if [[ "$attempt" -eq 15 ]]; then
       echo "WARN: UI mount stale — removing $svc and retrying..." >&2
       workframe_compose_recreate rm -f "$svc" 2>/dev/null || true
-      workframe_compose_recreate up -d --no-build "$svc"
+      workframe_compose_recreate up -d --no-build --no-deps "$svc"
     fi
     sleep 1
   done
@@ -387,6 +401,7 @@ PREFETCH_TARBALL="${WORKFRAME_UPDATE_TARBALL:-}"
 TEMPLATE_SYNCED=0
 WF_UPDATE_UI_SRC=""
 WF_UPDATE_EXTRACT_DIR=""
+WF_NEED_SUPERVISOR_RESTART=0
 
 if [[ -n "$PREFETCH_TARBALL" && -f "$PREFETCH_TARBALL" ]]; then
   echo "Applying API-prefetched tarball: $PREFETCH_TARBALL"
@@ -456,5 +471,11 @@ fi
 workframe_docker_cleanup_after_update
 
 rm -rf "${WF_UPDATE_EXTRACT_DIR:-}" 2>/dev/null || true
+
+# Last step on purpose: the sibling recreates the supervisor (our own parent
+# container). Everything above must already be done and pinned by now.
+if [[ "${WF_NEED_SUPERVISOR_RESTART:-0}" == "1" ]]; then
+  _wf_schedule_supervisor_restart
+fi
 
 echo "=== Workframe update complete ==="

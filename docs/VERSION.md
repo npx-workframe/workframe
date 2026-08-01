@@ -1,17 +1,22 @@
-# Workframe v0.1.45
+# Workframe v0.1.46
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.45 |
-| workframe API / UI | 0.1.45 (bundled in create-workframe) |
+| create-workframe | 0.1.46 |
+| workframe API / UI | 0.1.46 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.45 MyProject
+npx create-workframe@0.1.46 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.46
+
+- Root cause of half-applied updates: the apply script runs inside the supervisor container, and mid-apply dependency recreation (UI `up` without `--no-deps`, early supervisor-restart sibling) could recreate the supervisor and kill the apply itself. Supervisor restart now runs as the final step; UI recreate uses `--no-deps` with gateway/dashboard explicitly started first.
+- Supervisor restart sibling retries with an explicit remove if recreate leaves a Created-state container.
 
 ## 0.1.45
 
