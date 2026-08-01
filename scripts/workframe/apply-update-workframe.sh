@@ -183,6 +183,7 @@ _wf_schedule_supervisor_restart() {
     return 0
   fi
   local host_cd="${WORKFRAME_HOST_COMPOSE_DIR:-$compose_cd}"
+  local sibling_cd="/workframe-host"
   local compose_cmd="docker compose"
   local compose_file
   while IFS= read -r compose_file; do
@@ -196,8 +197,8 @@ _wf_schedule_supervisor_restart() {
     --name "$job_name" \
     --env-file "${compose_cd}/.env" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v "${host_cd}:${host_cd}" \
-    -w "${host_cd}" \
+    -v "${host_cd}:${sibling_cd}" \
+    -w "${sibling_cd}" \
     "$self_image" \
     sh -lc "sleep ${delay}; \
 ${compose_cmd} up -d --no-build --no-deps --force-recreate workframe-supervisor \

@@ -36,6 +36,12 @@ jobs:
       - name: Docs claim gate
         run: node scripts/workframe/verify-docs-claims.mjs
 
+      - name: UI contract gate
+        run: pnpm verify:ui-contracts
+
+      - name: Updater contract gate
+        run: pnpm verify:updater-contracts
+
       - name: Release evidence fixtures
         run: node scripts/workframe/validate-release-evidence.mjs
 

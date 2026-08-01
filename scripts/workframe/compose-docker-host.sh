@@ -154,6 +154,23 @@ workframe_compose_recreate_file_args() {
   printf '%s\n' "${compose_files[@]#-f }"
 }
 
+# Cleanup is optional and must never hold an otherwise-successful update open.
+_wf_bounded_docker_cleanup() {
+  local label="$1"
+  shift
+  local seconds="${WORKFRAME_DOCKER_CLEANUP_TIMEOUT:-20}"
+  if [[ ! "$seconds" =~ ^[0-9]+$ ]] || [[ "$seconds" -lt 1 ]]; then
+    seconds=20
+  fi
+  if ! command -v timeout >/dev/null 2>&1; then
+    echo "WARN: skipping ${label}; timeout command is unavailable" >&2
+    return 0
+  fi
+  if ! timeout -k 5 "$seconds" "$@" 2>/dev/null; then
+    echo "WARN: ${label} did not finish within ${seconds}s; continuing update" >&2
+  fi
+}
+
 # After compose build/pull + recreate, drop stopped project containers and dangling images.
 workframe_docker_cleanup_after_update() {
   if ! command -v docker >/dev/null 2>&1; then
@@ -168,13 +185,12 @@ workframe_docker_cleanup_after_update() {
   echo "=== Docker cleanup after update ==="
   if [[ -n "$project" ]]; then
     echo "Removing stopped containers for compose project: ${project}"
-    docker container prune -f --filter "label=com.docker.compose.project=${project}" 2>/dev/null \
-      || docker container prune -f 2>/dev/null \
-      || true
+    _wf_bounded_docker_cleanup "stopped-container cleanup" docker container prune -f \
+      --filter "label=com.docker.compose.project=${project}"
   else
-    docker container prune -f 2>/dev/null || true
+    _wf_bounded_docker_cleanup "stopped-container cleanup" docker container prune -f
   fi
   echo "Removing dangling images from rebuild/pull"
-  docker image prune -f 2>/dev/null || true
+  _wf_bounded_docker_cleanup "dangling-image cleanup" docker image prune -f
   echo "=== Docker cleanup complete ==="
 }

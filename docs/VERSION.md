@@ -1,17 +1,24 @@
-# Workframe v0.1.48
+# Workframe v0.1.49
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.48 |
-| workframe API / UI | 0.1.48 (bundled in create-workframe) |
+| create-workframe | 0.1.49 |
+| workframe API / UI | 0.1.49 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.48 MyProject
+npx create-workframe@0.1.49 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.49
+
+- Restore the profile settings Save action to the theme-aware settings footer; remove the legacy filled body button introduced in 0.1.33.
+- CI and trusted npm publishing now fail if profile settings regress from the footer/neo action contract.
+- Post-update Docker cleanup is bounded and non-fatal, so a slow daemon cannot leave a completed update permanently “in progress.”
+- Deferred supervisor reboot uses a container-native bind target, so the same updater path works on Linux hosts and Docker Desktop.
 
 ## 0.1.48
 

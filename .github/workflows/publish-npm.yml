@@ -68,6 +68,12 @@ jobs:
           VERIFY_PUBLIC_STRICT: '1'
         run: pnpm verify:public
 
+      - name: UI contract gate
+        run: pnpm verify:ui-contracts
+
+      - name: Updater contract gate
+        run: pnpm verify:updater-contracts
+
       - uses: actions/setup-python@v5
         id: setup-python
         with:

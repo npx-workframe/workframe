@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { LogOut, Save } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
-import { Button } from '@/components/ui/button'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import { PlatformIdentityPanel } from '@/components/settings/PlatformIdentityPanel'
 import { ProviderConnectPanel } from '@/components/workspace/ProviderConnectPanel'
@@ -154,18 +154,30 @@ export function UserProfileSheet({
       ]}
       activeTab={tab}
       onTabChange={(next) => setTab(next as ProfileTab)}
+      actions={
+        tab === 'profile' ? (
+          <WfActionButton
+            type="button"
+            tone="primary"
+            onClick={() => void saveProfile()}
+            disabled={profileFieldsDisabled}
+          >
+            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
+            {savingProfile ? 'Saving…' : 'Save changes'}
+          </WfActionButton>
+        ) : null
+      }
       footer={
         onLogout ? (
-          <Button
+          <WfActionButton
             type="button"
-            variant="outline"
             className="w-full justify-start gap-2"
             disabled={loggingOut}
             onClick={() => void handleLogout()}
           >
             <LogOut className="w-4 h-4" aria-hidden="true" />
             {loggingOut ? 'Signing out…' : 'Log out'}
-          </Button>
+          </WfActionButton>
         ) : null
       }
     >
@@ -175,18 +187,6 @@ export function UserProfileSheet({
 
         {tab === 'profile' ? (
           <div className="space-y-4" role="tabpanel">
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                type="button"
-                variant="default"
-                onClick={() => void saveProfile()}
-                disabled={profileFieldsDisabled}
-              >
-                <Save className="w-4 h-4 mr-2" aria-hidden="true" />
-                {savingProfile ? 'Saving…' : 'Save changes'}
-              </Button>
-            </div>
-
             {error ? <WorkframeNotice message={error} /> : null}
             {status ? <WorkframeStatusNotice message={status} /> : null}
 
