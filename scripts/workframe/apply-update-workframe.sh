@@ -102,6 +102,66 @@ p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")' "$PROJECT_ROO
   fi
 }
 
+_wf_commit_version_alignment() {
+  local ver="$1"
+  [[ -n "$ver" ]] || return 0
+  _wf_sync_env_api_version "$ver"
+  _wf_sync_compose_api_version "$ver"
+  _wf_record_package_version "$ver"
+}
+
+_wf_read_stamp_version() {
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+  python3 -c 'import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+try:
+    data = json.loads(p.read_text(encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+print(str(data.get("package_version") or "").strip())' "$file" 2>/dev/null || true
+}
+
+_wf_verify_version_alignment() {
+  local ver="$1"
+  [[ -n "$ver" ]] || return 0
+  local pin api_build ui_build env_ver compose_ver running_ver
+  pin="$(tr -d '\r\n' < "$API_DIR/data/package-version" 2>/dev/null || true)"
+  api_build="$(_wf_read_stamp_version "$API_DIR/workframe-api-build.json")"
+  ui_build="$(_wf_read_stamp_version "$UI_DIR/workframe-build.json")"
+  env_ver="$(grep '^WORKFRAME_API_VERSION=' "$compose_cd/.env" 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r\n' || true)"
+  compose_ver="$(grep -E '^[[:space:]]*- WORKFRAME_API_VERSION=' "$compose_cd/docker-compose.yml" 2>/dev/null | tail -n1 | sed -E 's/^[[:space:]]*- WORKFRAME_API_VERSION=//' | tr -d '\r\n' || true)"
+  local mismatch=0
+  for label in pin:package-version api_build:api-build ui_build:ui-build env_ver:.env compose_ver:compose; do
+    local name="${label%%:*}"
+    local value="${!name}"
+    if [[ -n "$value" && "$value" != "$ver" ]]; then
+      echo "ERROR: ${label#*:} is v${value} but target is v${ver}" >&2
+      mismatch=1
+    fi
+  done
+  if [[ "$mismatch" -ne 0 ]]; then
+    exit 1
+  fi
+  local attempt state running_ver
+  for attempt in $(seq 1 90); do
+    state="$(workframe_compose ps workframe-api 2>/dev/null | tail -n +2 | awk '{print $NF}' | head -n1 || true)"
+    if [[ "$state" == Restarting* ]]; then
+      sleep 2
+      continue
+    fi
+    running_ver="$(workframe_compose exec -T workframe-api printenv WORKFRAME_API_VERSION 2>/dev/null | tr -d '\r\n' || true)"
+    if [[ "$running_ver" == "$ver" ]]; then
+      echo "Version alignment verified: v${ver} (files + running API)"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "ERROR: running API WORKFRAME_API_VERSION=${running_ver:-<unset>} expected v${ver}" >&2
+  exit 1
+}
+
 # ponytail: sibling container restarts supervisor — never docker-compose self from inside self
 _wf_schedule_supervisor_restart() {
   workframe_compose_prepare
@@ -130,6 +190,55 @@ _wf_schedule_supervisor_restart() {
     -w /compose \
     "$self_image" \
     sh -lc "sleep ${delay}; ${compose_cmd} up -d --no-build --no-deps workframe-supervisor"
+}
+
+_wf_ensure_ui_service() {
+  local svc=""
+  if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
+    svc=workframe-ui
+  elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
+    svc=workframe
+  else
+    return 0
+  fi
+
+  local nginx_conf="$compose_cd/workframe-ui/docker/nginx.conf"
+  if [[ ! -f "$nginx_conf" ]]; then
+    echo "ERROR: UI nginx config missing: $nginx_conf" >&2
+    exit 1
+  fi
+
+  local cid state
+  cid="$(workframe_compose ps -aq "$svc" 2>/dev/null | head -n1 || true)"
+  if [[ -n "$cid" ]]; then
+    state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    if [[ "$state" == "created" ]]; then
+      echo "Removing failed $svc container in Created state ($cid)"
+      docker rm -f "$cid" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  echo "Ensuring $svc is running..."
+  if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
+    workframe_compose_host_bindings up -d --no-build --no-deps "$svc"
+  else
+    workframe_compose up -d --no-build --no-deps "$svc"
+  fi
+
+  local ui_port="${WORKFRAME_UI_PORT:-}"
+  if [[ -n "$ui_port" ]]; then
+    local attempt code
+    for attempt in $(seq 1 30); do
+      code="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:${ui_port}/" 2>/dev/null || true)"
+      if [[ "$code" == "200" ]]; then
+        echo "UI health check ok on port ${ui_port}"
+        return 0
+      fi
+      sleep 1
+    done
+    echo "ERROR: UI not responding on port ${ui_port} (last http=${code:-none})" >&2
+    exit 1
+  fi
 }
 
 _wf_sync_env_api_version() {
@@ -239,27 +348,24 @@ if [[ -n "$TARGET_VERSION" && "$TEMPLATE_SYNCED" != "1" ]]; then
   exit 1
 fi
 
+if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then
+  echo "Committing version alignment to v${TARGET_VERSION} before container recreate..."
+  _wf_commit_version_alignment "$TARGET_VERSION"
+fi
+
 echo "Rebuilding workframe-api and workframe-supervisor..."
 workframe_compose build workframe-api workframe-supervisor
 if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
-  workframe_compose up -d --no-build --no-deps workframe-api
+  workframe_compose up -d --no-build --force-recreate --no-deps workframe-api
   _wf_schedule_supervisor_restart
 else
-  workframe_compose up -d --build --no-deps workframe-api workframe-supervisor
+  workframe_compose up -d --build --force-recreate --no-deps workframe-api workframe-supervisor
 fi
 
-if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
-  workframe_compose up -d --no-build --no-deps workframe-ui || workframe_compose restart workframe-ui || true
-elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
-  workframe_compose up -d --no-build --no-deps workframe || workframe_compose restart workframe || true
-fi
+_wf_ensure_ui_service
 
 if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then
-  _wf_record_package_version "$TARGET_VERSION"
-  _wf_sync_env_api_version "$TARGET_VERSION"
-  _wf_sync_compose_api_version "$TARGET_VERSION"
-elif [[ -n "$TARGET_VERSION" ]]; then
-  echo "Skipping package-version pin — template sync did not run (set WORKFRAME_UPDATE_TARBALL or WORKFRAME_UPDATE_ALLOW_NPM=1)"
+  _wf_verify_version_alignment "$TARGET_VERSION"
 fi
 
 workframe_docker_cleanup_after_update

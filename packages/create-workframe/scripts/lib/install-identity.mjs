@@ -140,7 +140,7 @@ export async function allocateInstall({
   throw new Error(`No free Workframe install slot (1–${maxSlot}) on ${host}`);
 }
 
-export function envFileLines(install, { example = false, nativeProfile = '', deploy = 'docker', hermesHome = '' } = {}) {
+export function envFileLines(install, { example = false, nativeProfile = '', deploy = 'docker', hermesHome = '', packageVersion = '' } = {}) {
   const header = example
     ? '# Copy to .env — one install = one slot + one WORKFRAME_INSTALL_ID.\n# Same email may be used across installs; each has its own auth DB.\n'
     : '# Local Workframe install identity (.env is gitignored).\n';
@@ -155,6 +155,7 @@ WORKFRAME_DASHBOARD_PORT=${ports.dashboard}
 WORKFRAME_UI_PORT=${ports.ui}
 WORKFRAME_UI_STATIC_DIR=./workframe-ui/public
 WORKFRAME_API_PORT=${ports.api}
+WORKFRAME_API_VERSION=${packageVersion}
 WORKFRAME_SUPERVISOR_PORT=${ports.supervisor}
 WORKFRAME_MISSION_PORT=${ports.api}
 WORKFRAME_NATIVE_PROFILE=${nativeProfile}

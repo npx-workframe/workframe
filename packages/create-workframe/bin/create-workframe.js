@@ -150,8 +150,8 @@ function resolveProjectTarget(out, name) {
   return { outRoot, target, name: safeName };
 }
 
-function envFileContent(install, { example = false, nativeProfile = '', deploy = 'docker', hermesHome = '' } = {}) {
-  return envFileLines(install, { example, nativeProfile, deploy, hermesHome });
+function envFileContent(install, { example = false, nativeProfile = '', deploy = 'docker', hermesHome = '', packageVersion = '' } = {}) {
+  return envFileLines(install, { example, nativeProfile, deploy, hermesHome, packageVersion });
 }
 
 function routesJsonContent(profiles, nativeProfile, projectName) {
@@ -2656,11 +2656,11 @@ async function main() {
 
     writeText(path.join(target, '.gitignore'), GITIGNORE);
     writeText(path.join(target, '.dockerignore'), DOCKERIGNORE);
-    writeText(path.join(target, '.env.example'), envFileContent(install, { example: true, nativeProfile: nativeSlug, deploy, hermesHome }) + `WORKFRAME_HOST_COMPOSE_DIR=/path/to/${slug}\nWORKFRAME_HOST_PROJECT_ROOT=/path/to/${slug}\n`);
+    writeText(path.join(target, '.env.example'), envFileContent(install, { example: true, nativeProfile: nativeSlug, deploy, hermesHome, packageVersion: PKG_VERSION }) + `WORKFRAME_HOST_COMPOSE_DIR=/path/to/${slug}\nWORKFRAME_HOST_PROJECT_ROOT=/path/to/${slug}\n`);
     const hostRoot = target.replace(/\\/g, '/');
     writeText(
       path.join(target, '.env'),
-      envFileContent(install, { nativeProfile: nativeSlug, deploy, hermesHome })
+      envFileContent(install, { nativeProfile: nativeSlug, deploy, hermesHome, packageVersion: PKG_VERSION })
         + `WORKFRAME_HOST_COMPOSE_DIR=${hostRoot}\nWORKFRAME_HOST_PROJECT_ROOT=${hostRoot}\n`,
     );
     writeText(path.join(target, 'docker-compose.yml'), dockerComposeYaml(safeName, docker, nativeSlug, [nativeSlug], install.installId, hermesHome));

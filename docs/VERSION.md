@@ -1,17 +1,23 @@
-# Workframe v0.1.35
+# Workframe v0.1.36
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.35 |
-| workframe API / UI | 0.1.35 (bundled in create-workframe) |
+| create-workframe | 0.1.36 |
+| workframe API / UI | 0.1.36 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.35 MyProject
+npx create-workframe@0.1.36 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.36
+
+- Apply update: commit `WORKFRAME_API_VERSION` / package pin / compose env **before** container recreate (`--force-recreate`); post-apply alignment verify fails fast on mismatch.
+- Fresh installs write `WORKFRAME_API_VERSION` to `.env` at scaffold time.
+- Supervisor apply restarts UI via host-bindings overlay (fixes blank page after in-app update).
 
 ## 0.1.35
 
