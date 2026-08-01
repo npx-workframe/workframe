@@ -32,6 +32,17 @@
   gap: var(--wf-gap);
 }
 
+.wf-stack-updates__toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.wf-stack-updates__btn {
+  min-height: calc(var(--wf-input-height) * 0.88);
+  padding-inline: calc(var(--wf-input-height) * 0.4);
+  font-size: var(--wf-type-ui);
+}
+
 .wf-stack-updates__action-icon {
   width: 14px;
   height: 14px;

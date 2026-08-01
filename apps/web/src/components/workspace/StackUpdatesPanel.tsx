@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { OperationProgress, type OperationStep } from '@/components/ui/OperationProgress'
+import { WfActionButton } from '@/components/ui/WfActionButton'
 import { WorkframeNotice, WorkframeStatusNotice } from '@/components/ui/WorkframeNotice'
 import {
   advanceUpdateSteps,
@@ -127,16 +127,26 @@ function UpdateRow({
           <>
             <span className="wf-stack-updates__status">{blocked ? 'Manual step' : 'Update available'}</span>
             {downloadUrl ? (
-              <Button type="button" size="sm" variant="default" asChild>
-                <a href={downloadUrl} target="_blank" rel="noreferrer">
-                  <Download className="wf-stack-updates__action-icon" aria-hidden="true" />
-                  Download
-                </a>
-              </Button>
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="wf-action-btn wf-stack-updates__btn"
+                data-tone="primary"
+              >
+                <Download className="wf-stack-updates__action-icon" aria-hidden="true" />
+                Download
+              </a>
             ) : canUpdate ? (
-              <Button type="button" size="sm" variant="default" disabled={disabled} onClick={onApply}>
+              <WfActionButton
+                type="button"
+                tone="primary"
+                className="wf-stack-updates__btn"
+                disabled={disabled}
+                onClick={onApply}
+              >
                 {applying ? 'Updating…' : actionLabel}
-              </Button>
+              </WfActionButton>
             ) : null}
           </>
         )}
@@ -307,9 +317,9 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
             className="wf-stack-updates__progress"
           />
           {updateFailed ? (
-            <Button type="button" size="sm" variant="outline" onClick={dismissUpdateProgress}>
+            <WfActionButton type="button" className="wf-stack-updates__btn" onClick={dismissUpdateProgress}>
               Back to updates
-            </Button>
+            </WfActionButton>
           ) : null}
         </>
       ) : null}
@@ -325,9 +335,14 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
       {status && !updating ? (
         <>
           <div className="wf-stack-updates__toolbar">
-            <Button type="button" size="sm" variant="outline" disabled={loading || Boolean(applying)} onClick={() => void load()}>
+            <WfActionButton
+              type="button"
+              className="wf-stack-updates__btn"
+              disabled={loading || Boolean(applying)}
+              onClick={() => void load()}
+            >
               {loading ? 'Checking…' : 'Check again'}
-            </Button>
+            </WfActionButton>
           </div>
           <UpdateRow
             name="Workframe"
@@ -371,9 +386,15 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
           {updateCount > 1 && canApplyAny ? (
             <div className="flex justify-end pt-1">
-              <Button type="button" variant="default" disabled={applyDisabled} onClick={() => void apply('all')}>
+              <WfActionButton
+                type="button"
+                tone="primary"
+                className="wf-stack-updates__btn"
+                disabled={applyDisabled}
+                onClick={() => void apply('all')}
+              >
                 {applying === 'all' ? 'Updating…' : 'Update all'}
-              </Button>
+              </WfActionButton>
             </div>
           ) : null}
         </>
