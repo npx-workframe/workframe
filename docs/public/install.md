@@ -3,7 +3,7 @@
 End-user path: scaffold a project, run Docker, complete the setup wizard.
 
 ```bash
-npx create-workframe@0.1.44 MyProject
+npx create-workframe@0.1.45 MyProject
 cd MyProject
 node scripts/workframe.mjs doctor   # optional preflight
 docker compose up -d --build
@@ -15,24 +15,24 @@ Open the URL printed by the wizard or shown in `docker compose` output (typicall
 
 `create-workframe` scaffolds into an **empty** target directory. If the project folder already exists, the CLI denies unless you pass `--force` (overwrite of a validated scaffold path only).
 
-Release evidence (`NegativeInstallEvidence`) proves deny paths do **not** mutate foreign directories. Until `CellAuthorityGate` exists, treat **empty-target create** as the only supported install claim — not update-in-place or adopt-existing-cell flows.
+Release evidence (`NegativeInstallEvidence`) proves deny paths do **not** mutate foreign directories. Until `CellAuthorityGate` exists, treat **empty-target create** as the only supported install claim â€” not update-in-place or adopt-existing-cell flows.
 
 ```bash
-npx create-workframe@0.1.44 MyProject    # MyProject/ must not exist yet
+npx create-workframe@0.1.45 MyProject    # MyProject/ must not exist yet
 ```
 
 ## Generated project layout
 
 ```text
 MyProject/
-├── Agents/                 Hermes profiles and runtime state
-├── Files/                  Project workspace (/workspace in containers)
-├── scripts/                Bootstrap, lifecycle, workframe.mjs CLI
-├── docker-compose.yml
-├── workframe-api/
-├── workframe-ui/
-├── workframe-supervisor/
-└── workframe-manifest.json
+â”œâ”€â”€ Agents/                 Hermes profiles and runtime state
+â”œâ”€â”€ Files/                  Project workspace (/workspace in containers)
+â”œâ”€â”€ scripts/                Bootstrap, lifecycle, workframe.mjs CLI
+â”œâ”€â”€ docker-compose.yml
+â”œâ”€â”€ workframe-api/
+â”œâ”€â”€ workframe-ui/
+â”œâ”€â”€ workframe-supervisor/
+â””â”€â”€ workframe-manifest.json
 ```
 
 The npm package copies built API, UI, and supervisor into your project. To change Workframe product code, work in the [monorepo](./develop.md) and publish/sync a new package version.
@@ -54,20 +54,20 @@ On first visit, the UI walks through setup. Steps depend on deployment mode.
 
 ### Owner / first admin
 
-1. **Welcome** — choose who will use this install:
-   - *Just me on this machine* → `single_user_local`
-   - *My team on Docker* → `trusted_team`
-   - *Public on the web* → `public_multi_user`
-2. **Public URL** *(public mode only)* — DNS, HTTPS, connection test
-3. **Email & admin** *(team/public)* — SMTP, then verify admin email via OTP
-4. **Integrations** *(optional)* — OAuth apps for sign-in; messaging bots
-5. **Model billing** — BYOK (default) or company-pays for LLM usage
-6. **Business profile** — workspace name, logo, tagline
-7. **Your profile** — display name and identity
-8. **Model keys** *(optional before first chat)* — connect LLM providers
-9. **Native agent** — name and personality for the project concierge
-10. **Invite team** *(non-public modes, optional)* — email invites
-11. **Launch** — creates runtime profile, starts gateway, opens agent chat
+1. **Welcome** â€” choose who will use this install:
+   - *Just me on this machine* â†’ `single_user_local`
+   - *My team on Docker* â†’ `trusted_team`
+   - *Public on the web* â†’ `public_multi_user`
+2. **Public URL** *(public mode only)* â€” DNS, HTTPS, connection test
+3. **Email & admin** *(team/public)* â€” SMTP, then verify admin email via OTP
+4. **Integrations** *(optional)* â€” OAuth apps for sign-in; messaging bots
+5. **Model billing** â€” BYOK (default) or company-pays for LLM usage
+6. **Business profile** â€” workspace name, logo, tagline
+7. **Your profile** â€” display name and identity
+8. **Model keys** *(optional before first chat)* â€” connect LLM providers
+9. **Native agent** â€” name and personality for the project concierge
+10. **Invite team** *(non-public modes, optional)* â€” email invites
+11. **Launch** â€” creates runtime profile, starts gateway, opens agent chat
 
 ### Invited member
 
@@ -130,6 +130,6 @@ More: [Operations](./operations.md)
 ## Next steps
 
 - [Using Workframe](./using-workframe.md)
-- [Operations](./operations.md) — updates, backup, day-to-day
+- [Operations](./operations.md) â€” updates, backup, day-to-day
 - [Security](./security.md)
-- [Develop](./develop.md) — if you want to change Workframe source
+- [Develop](./develop.md) â€” if you want to change Workframe source

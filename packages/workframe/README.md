@@ -24,12 +24,12 @@ npx workframe version
 
 ### Flow
 
-1. `begin` — memory-only Socratic mirror (no network, no writes)
-2. `capabilities` — truthful runtime/provider candidates (no auto-pick)
-3. `verify` — explicit path + separate consent + cancellable call
-4. `draft` — constitutional in-memory draft
-5. `plan` — dry-run Architectonic file plan + deployment recommendation
-6. `apply --simulate` — approval gate simulation (real mutations disabled)
+1. `begin` â€” memory-only Socratic mirror (no network, no writes)
+2. `capabilities` â€” truthful runtime/provider candidates (no auto-pick)
+3. `verify` â€” explicit path + separate consent + cancellable call
+4. `draft` â€” constitutional in-memory draft
+5. `plan` â€” dry-run Architectonic file plan + deployment recommendation
+6. `apply --simulate` â€” approval gate simulation (real mutations disabled)
 
 ## Privacy and authority
 
@@ -42,7 +42,7 @@ npx workframe version
 ## Full Workframe cell
 
 ```bash
-npx create-workframe@0.1.44 MyProject
+npx create-workframe@0.1.45 MyProject
 ```
 
 `workframe` inspects and interviews locally; `create-workframe` installs the product cell when a deployment plan says you need one.

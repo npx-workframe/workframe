@@ -3,7 +3,7 @@
 Published on npm as **create-workframe**.
 
 ```bash
-npx create-workframe@0.1.44 MyProject
+npx create-workframe@0.1.45 MyProject
 ```
 
 Scaffolds an isolated Workframe + Hermes project on Windows, macOS, and Linux.
@@ -12,14 +12,14 @@ Scaffolds an isolated Workframe + Hermes project on Windows, macOS, and Linux.
 
 ```text
 MyProject/
-├── Agents/
-├── Files/
-├── scripts/              bootstrap, lifecycle, workframe.mjs CLI
-├── docker-compose.yml
-├── workframe-api/
-├── workframe-ui/
-├── workframe-supervisor/
-└── workframe-manifest.json
+â”œâ”€â”€ Agents/
+â”œâ”€â”€ Files/
+â”œâ”€â”€ scripts/              bootstrap, lifecycle, workframe.mjs CLI
+â”œâ”€â”€ docker-compose.yml
+â”œâ”€â”€ workframe-api/
+â”œâ”€â”€ workframe-ui/
+â”œâ”€â”€ workframe-supervisor/
+â””â”€â”€ workframe-manifest.json
 ```
 
 ## Project CLI
@@ -37,4 +37,4 @@ node scripts/workframe.mjs setup
 
 Documentation: [docs/README.md](https://github.com/npx-workframe/workframe/blob/main/docs/README.md)
 
-Apache-2.0 — see `LICENSE`, `NOTICE`, `SECURITY.md`.
+Apache-2.0 â€” see `LICENSE`, `NOTICE`, `SECURITY.md`.

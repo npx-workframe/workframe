@@ -167,7 +167,7 @@ export type StackProductUpdateStatus = {
   image_tag?: string
   update_available: boolean
   can_update: boolean
-  state: 'current' | 'available' | 'blocked' | 'unsupported' | 'error'
+  state: 'current' | 'available' | 'blocked' | 'applying' | 'unsupported' | 'error'
   reason?: string | null
   update_mode?: string
   install_kind?: string
@@ -195,6 +195,7 @@ export type StackUpdatesStatus = {
   update_apply_channel?: 'api_docker' | 'supervisor' | null
   compose_dir?: string
   project_root?: string
+  apply_in_progress?: boolean
   workframe: StackProductUpdateStatus & {
     current: string
     latest: string

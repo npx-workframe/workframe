@@ -8,27 +8,27 @@ Repository: [github.com/npx-workframe/workframe](https://github.com/npx-workfram
 
 ## Who it is for
 
-| You are… | Typical use |
+| You areâ€¦ | Typical use |
 |----------|-------------|
-| **Solo developer** | One machine, one operator, local Docker — explore Hermes with a ready-made UI |
-| **Small team** | Trusted colleagues on Docker/LAN — shared rooms, BYOK keys, invite-only access |
-| **Operator hosting others** | HTTPS VPS, invite-only — public multi-user mode with hardened compose |
+| **Solo developer** | One machine, one operator, local Docker â€” explore Hermes with a ready-made UI |
+| **Small team** | Trusted colleagues on Docker/LAN â€” shared rooms, BYOK keys, invite-only access |
+| **Operator hosting others** | HTTPS VPS, invite-only â€” public multi-user mode with hardened compose |
 
 If you only need a single Hermes profile on your laptop with no team UI, [Hermes alone](https://hermes-agent.nousresearch.com/docs/) may be enough. Choose Workframe when you want **shared workspace, multi-user auth, and compose packaging**.
 
 ## What you get
 
-- **Web UI** — chat, files, browser preview, activity feed, team rail
-- **Hermes runtime** — profiles, skills, Kanban, gateway (via Docker image `nousresearch/hermes-agent`)
-- **Workframe API** — sessions, rooms, vault, provider connect, Hermes proxy
-- **Installer** — `npx create-workframe@0.1.44 MyProject` scaffolds a runnable project
-- **Optional surfaces** — Telegram and Discord (configured per install)
+- **Web UI** â€” chat, files, browser preview, activity feed, team rail
+- **Hermes runtime** â€” profiles, skills, Kanban, gateway (via Docker image `nousresearch/hermes-agent`)
+- **Workframe API** â€” sessions, rooms, vault, provider connect, Hermes proxy
+- **Installer** â€” `npx create-workframe@0.1.45 MyProject` scaffolds a runnable project
+- **Optional surfaces** â€” Telegram and Discord (configured per install)
 
 ## How it relates to Hermes
 
 ```text
-Workframe UI  →  Workframe API  →  Hermes gateway (profiles, chat, tools)
-                      ↓
+Workframe UI  â†’  Workframe API  â†’  Hermes gateway (profiles, chat, tools)
+                      â†“
                  SQLite + vault + Files/ (/workspace)
 ```
 
@@ -42,9 +42,9 @@ Workframe adds tenancy, auth, and UI around Hermes. Agent execution, skills, and
 | **Specialist agents** | Optional role agents added when needed |
 | **Lane** | UI route to an agent profile |
 | **Runtime profile** | Per-user Hermes home (`u-{user}-{agent}`) for BYOK isolation |
-| **Files** | Project workspace — canonical truth (`Files/` on host, `/workspace` in containers) |
+| **Files** | Project workspace â€” canonical truth (`Files/` on host, `/workspace` in containers) |
 | **Kanban** | Hermes execution state and handoffs |
-| **Chat** | Intent and coordination — not the durable record of record |
+| **Chat** | Intent and coordination â€” not the durable record of record |
 
 ## Two ways to use this repository
 
@@ -61,9 +61,9 @@ Current release line: **0.1.x** (see [VERSION.md](../VERSION.md)). Expect rough 
 
 ## Next steps
 
-- [Prerequisites](./prerequisites.md) — what you need before install
-- [Install](./install.md) — end-user setup wizard
-- [Using Workframe](./using-workframe.md) — features after first login
-- [Architecture](./architecture.md) — system design
-- [Security](./security.md) — modes and credential model
-- [Audit](./audit.md) — code review path for evaluators
+- [Prerequisites](./prerequisites.md) â€” what you need before install
+- [Install](./install.md) â€” end-user setup wizard
+- [Using Workframe](./using-workframe.md) â€” features after first login
+- [Architecture](./architecture.md) â€” system design
+- [Security](./security.md) â€” modes and credential model
+- [Audit](./audit.md) â€” code review path for evaluators

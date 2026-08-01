@@ -1,17 +1,22 @@
-# Workframe v0.1.44
+# Workframe v0.1.45
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.44 |
-| workframe API / UI | 0.1.44 (bundled in create-workframe) |
+| create-workframe | 0.1.45 |
+| workframe API / UI | 0.1.45 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.44 MyProject
+npx create-workframe@0.1.45 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.45
+
+- Updates panel reports "Update in progress" while an async apply holds the stack lock, instead of drift + a second Update button; apply requests are rejected while one is running.
+- Hermes update recreates gateway/dashboard with host-bindings overlay (fixes broken `/compose/...` binds from supervisor) and restarts nginx so cached upstream IPs refresh.
 
 ## 0.1.44
 

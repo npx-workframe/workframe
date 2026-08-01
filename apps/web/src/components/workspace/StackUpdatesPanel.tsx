@@ -106,8 +106,9 @@ function UpdateRow({
   downloadUrl,
 }: UpdateRowProps) {
   const canUpdate = resolveCanUpdate(product, dockerOk)
-  const upToDate = !product.update_available
-  const blocked = product.update_available && !canUpdate
+  const inProgress = product.state === 'applying'
+  const upToDate = !product.update_available && !inProgress
+  const blocked = product.update_available && !canUpdate && !inProgress
 
   return (
     <div className="wf-stack-updates__card">
@@ -121,7 +122,9 @@ function UpdateRow({
         ) : null}
       </div>
       <div className="wf-stack-updates__card-actions">
-        {upToDate ? (
+        {inProgress ? (
+          <span className="wf-stack-updates__status">Update in progress…</span>
+        ) : upToDate ? (
           <span className="wf-stack-updates__status">Up to date!</span>
         ) : (
           <>
@@ -188,6 +191,7 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
   const applyReady = status?.update_apply_ready !== false && status?.docker_available !== false
   const applyChannel = status?.update_apply_channel
+  const applyInProgress = status?.apply_in_progress === true
   const applyBlockedMessage =
     status?.workframe?.reason ||
     status?.hermes?.reason ||
@@ -223,6 +227,14 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
   useEffect(() => {
     void load()
   }, [load])
+
+  // A background apply is running (started here, another tab, or Update all):
+  // poll until the lock clears so the panel settles on the final state.
+  useEffect(() => {
+    if (!applyInProgress || updating) return
+    const id = window.setInterval(() => void load(), 5000)
+    return () => window.clearInterval(id)
+  }, [applyInProgress, updating, load])
 
   const dismissUpdateProgress = useCallback(() => {
     waitAbortRef.current?.abort()
@@ -300,7 +312,7 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
   }
 
   const dockerOk = applyReady
-  const applyDisabled = !dockerOk || Boolean(applying) || updating
+  const applyDisabled = !dockerOk || Boolean(applying) || updating || applyInProgress
 
   return (
     <div className="wf-stack-updates space-y-3" role="tabpanel">
@@ -327,7 +339,11 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
         <WorkframeNotice message={applyBlockedMessage} tone="neutral" />
       ) : null}
 
-      {status && applyReady && applyChannel === 'supervisor' && !updating ? (
+      {status && applyInProgress && !updating ? (
+        <WorkframeStatusNotice message="An update is being applied — services may restart briefly. This panel refreshes automatically." />
+      ) : null}
+
+      {status && applyReady && applyChannel === 'supervisor' && !updating && !applyInProgress ? (
         <p className="wf-user-settings__hint">Updates apply via the stack supervisor (runtime data and configs are preserved).</p>
       ) : null}
 

@@ -420,6 +420,22 @@ def _supervisor_healthy(*, attempts: int = 4, delay_s: float = 2.0) -> tuple[boo
     return False, f"workframe-supervisor is unreachable ({detail})."
 
 
+STACK_APPLY_LOCK_MAX_AGE_S = 30 * 60
+
+
+def _stack_apply_in_progress() -> bool:
+    """True while apply-update-workframe.sh holds its lock (async apply running)."""
+    lock = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data")) / ".stack-apply.lock.d"
+    if not lock.is_dir():
+        return False
+    try:
+        age = time.time() - lock.stat().st_mtime
+    except OSError:
+        return False
+    # Negative age = clock/filesystem skew; still counts as fresh.
+    return age < STACK_APPLY_LOCK_MAX_AGE_S
+
+
 def _admin_stack_updates_enabled() -> bool:
     if os.environ.get("WORKFRAME_ENABLE_ADMIN_UPDATES") == "1":
         return True
@@ -561,6 +577,16 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     if not workframe_reason and workframe_update and not workframe_latest:
         workframe_reason = "No published npm release to update to yet."
 
+    # An async apply is running: files may be ahead of the running containers.
+    # Report a calm in-progress state instead of drift + a second Update button.
+    apply_in_progress = _stack_apply_in_progress()
+    if apply_in_progress:
+        workframe_can_update = False
+        hermes_can_update = False
+        install_drift = False
+        workframe_reason = ""
+        hermes_reason = ""
+
     agent_version = str(hermes_agent_version or "").strip() or _read_hermes_agent_version()
     hermes_current = agent_version or hermes_tag
 
@@ -573,12 +599,15 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
         "update_apply_ready": apply_ready,
         "compose_dir": str(compose_dir),
         "project_root": str(project_root),
+        "apply_in_progress": apply_in_progress,
         "workframe": {
             "current": installed_pkg,
             "latest": workframe_latest,
             "update_available": workframe_update,
             "can_update": workframe_can_update,
-            "state": _product_state(update_available=workframe_update, can_update=workframe_can_update),
+            "state": "applying"
+            if apply_in_progress
+            else _product_state(update_available=workframe_update, can_update=workframe_can_update),
             "reason": workframe_reason,
             "update_mode": "docker-compose-rebuild",
             "install_kind": "docker",
@@ -601,7 +630,9 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
             "image": f"{HERMES_IMAGE}:{HERMES_TAG}",
             "update_available": hermes_update,
             "can_update": hermes_can_update,
-            "state": _product_state(update_available=hermes_update, can_update=hermes_can_update),
+            "state": "applying"
+            if apply_in_progress
+            else _product_state(update_available=hermes_update, can_update=hermes_can_update),
             "reason": hermes_reason,
             "update_mode": "docker-compose-pull",
             "install_kind": "docker",
@@ -762,6 +793,8 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
     target = str(target or "all").strip().lower()
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")
+    if _stack_apply_in_progress():
+        raise ValueError("update_already_in_progress")
     channel, apply_ready, apply_reason = _update_apply_channel()
     if not apply_ready:
         raise ValueError(str(apply_reason or "docker_apply_unavailable"))

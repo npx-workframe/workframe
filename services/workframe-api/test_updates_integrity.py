@@ -54,6 +54,15 @@ with tempfile.TemporaryDirectory() as tmp:
             root,
         )
         assert aligned["ok"], aligned
+
+        # apply-in-progress: lock dir present and fresh -> True; absent -> False
+        assert not updates._stack_apply_in_progress()
+        lock = data_dir / ".stack-apply.lock.d"
+        lock.mkdir()
+        assert updates._stack_apply_in_progress()
+        old = updates.time.time() - updates.STACK_APPLY_LOCK_MAX_AGE_S - 60
+        os.utime(lock, (old, old))
+        assert not updates._stack_apply_in_progress()
     finally:
         os.environ.pop("WORKFRAME_API_DATA_DIR", None)
         os.environ.pop("WORKFRAME_PROJECT_ROOT", None)
