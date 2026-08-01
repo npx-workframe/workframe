@@ -1,17 +1,21 @@
-# Workframe v0.1.40
+# Workframe v0.1.41
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.40 |
-| workframe API / UI | 0.1.40 (bundled in create-workframe) |
+| create-workframe | 0.1.41 |
+| workframe API / UI | 0.1.41 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.40 MyProject
+npx create-workframe@0.1.41 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.41
+
+- Acquire stack-apply lock after tarball re-exec so the same PID does not block itself.
 
 ## 0.1.40
 

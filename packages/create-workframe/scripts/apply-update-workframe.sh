@@ -360,7 +360,6 @@ fi
 workframe_compose_prepare
 PROJECT_ROOT="$(_wf_resolve_project_root)"
 _wf_install_paths "$PROJECT_ROOT"
-_wf_acquire_update_lock
 
 echo "=== Workframe update (API + supervisor + UI) ==="
 echo "Project root: $PROJECT_ROOT"
@@ -411,6 +410,8 @@ if [[ "$TEMPLATE_SYNCED" == "1" && -z "${WF_APPLY_REEXEC:-}" ]]; then
   export WF_APPLY_REEXEC=1
   exec bash "${SCRIPTS_DIR}/apply-update-workframe.sh"
 fi
+
+_wf_acquire_update_lock
 
 if [[ -n "$TARGET_VERSION" && "$TEMPLATE_SYNCED" != "1" ]]; then
   echo "ERROR: template sync did not run — refusing rebuild-only update for create-workframe@${TARGET_VERSION}." >&2
