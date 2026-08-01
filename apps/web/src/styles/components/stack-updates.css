@@ -37,6 +37,42 @@
   justify-content: flex-start;
 }
 
+/* ponytail: match settings-shell neo controls — not global shadcn/primary fill */
+.wf-stack-updates .wf-action-btn,
+.wf-stack-updates a.wf-action-btn {
+  background: var(--wf-control-bg-flush);
+  border: none;
+  box-shadow: var(--wf-control-shadow-flush);
+  color: var(--wf-text);
+  text-decoration: none;
+}
+
+.wf-stack-updates .wf-action-btn:hover:not(:disabled),
+.wf-stack-updates a.wf-action-btn:hover {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+.wf-stack-updates .wf-action-btn[data-tone='primary'],
+.wf-stack-updates a.wf-action-btn[data-tone='primary'] {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+.wf-stack-updates .wf-action-btn[data-tone='primary']:hover:not(:disabled),
+.wf-stack-updates a.wf-action-btn[data-tone='primary']:hover {
+  background: var(--wf-control-bg-raised);
+  box-shadow: var(--wf-control-shadow-raised);
+  color: var(--wf-text);
+}
+
+.wf-stack-updates .wf-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .wf-stack-updates__btn {
   min-height: calc(var(--wf-input-height) * 0.88);
   padding-inline: calc(var(--wf-input-height) * 0.4);
