@@ -299,7 +299,7 @@ _wf_ensure_ui_service() {
   _wf_prune_created_compose_containers "$svc"
 
   echo "Ensuring $svc is running..."
-  workframe_compose_recreate up -d --no-build --no-deps "$svc"
+  workframe_compose_recreate up -d --no-build "$svc"
 
   local attempt
   for attempt in $(seq 1 30); do
@@ -311,7 +311,7 @@ _wf_ensure_ui_service() {
     if [[ "$attempt" -eq 15 ]]; then
       echo "WARN: UI mount stale — removing $svc and retrying..." >&2
       workframe_compose_recreate rm -f "$svc" 2>/dev/null || true
-      workframe_compose_recreate up -d --no-build --no-deps "$svc"
+      workframe_compose_recreate up -d --no-build "$svc"
     fi
     sleep 1
   done
