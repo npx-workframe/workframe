@@ -1,17 +1,22 @@
-# Workframe v0.1.37
+# Workframe v0.1.38
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.37 |
-| workframe API / UI | 0.1.37 (bundled in create-workframe) |
+| create-workframe | 0.1.38 |
+| workframe API / UI | 0.1.38 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.37 MyProject
+npx create-workframe@0.1.38 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.38
+
+- Apply update re-execs itself after tarball sync so the synced script (not the stale in-memory copy) runs recreate.
+- Load `WORKFRAME_HOST_*` from install `.env` inside compose helpers when supervisor env omits them.
 
 ## 0.1.37
 

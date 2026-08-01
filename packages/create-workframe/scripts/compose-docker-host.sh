@@ -2,9 +2,31 @@
 # Shared docker compose invocation for in-container apply (docker.sock on host).
 set -euo pipefail
 
+# ponytail: supervisor env may omit WORKFRAME_HOST_* — install .env is canonical on VPS
+_wf_export_host_paths_from_env_file() {
+  local env_file="${WORKFRAME_COMPOSE_DIR:-${WORKFRAME_PROJECT_ROOT:-.}}/.env"
+  [[ -f "$env_file" ]] || return 0
+  if [[ -z "${WORKFRAME_HOST_COMPOSE_DIR:-}" ]]; then
+    local compose_dir
+    compose_dir="$(grep -m1 '^WORKFRAME_HOST_COMPOSE_DIR=' "$env_file" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
+    if [[ -n "$compose_dir" ]]; then
+      export WORKFRAME_HOST_COMPOSE_DIR="$compose_dir"
+    fi
+  fi
+  if [[ -z "${WORKFRAME_HOST_PROJECT_ROOT:-}" ]]; then
+    local project_root
+    project_root="$(grep -m1 '^WORKFRAME_HOST_PROJECT_ROOT=' "$env_file" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
+    if [[ -n "$project_root" ]]; then
+      export WORKFRAME_HOST_PROJECT_ROOT="$project_root"
+    fi
+  fi
+}
+
 workframe_compose_prepare() {
   compose_cd=""
   compose_files=()
+
+  _wf_export_host_paths_from_env_file
 
   # A supervisor invokes compose through the Docker socket. Its /compose mount is
   # the only build context it can package, so never feed the host-bindings overlay

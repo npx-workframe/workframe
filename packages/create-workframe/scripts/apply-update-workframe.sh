@@ -338,6 +338,13 @@ else
   echo "Skipping npm template sync (npm missing or WORKFRAME_UPDATE_SKIP_NPM=1)"
 fi
 
+# ponytail: tarball sync rewrites this script on disk — must re-exec or old logic keeps running
+if [[ "$TEMPLATE_SYNCED" == "1" && -z "${WF_APPLY_REEXEC:-}" ]]; then
+  echo "Re-execing apply-update-workframe.sh after template sync..."
+  export WF_APPLY_REEXEC=1
+  exec bash "${SCRIPTS_DIR}/apply-update-workframe.sh"
+fi
+
 if [[ -n "$TARGET_VERSION" && "$TEMPLATE_SYNCED" != "1" ]]; then
   echo "ERROR: template sync did not run — refusing rebuild-only update for create-workframe@${TARGET_VERSION}." >&2
   echo "Prefetch the npm pack to workframe-api/data/.update-staging or set WORKFRAME_UPDATE_ALLOW_NPM=1." >&2
