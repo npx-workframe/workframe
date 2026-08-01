@@ -294,7 +294,8 @@ _wf_ensure_ui_service() {
 
   local attempt
   for attempt in $(seq 1 30); do
-    if workframe_compose_recreate exec -T "$svc" wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null; then
+    if workframe_compose_recreate exec -T "$svc" test -f /usr/share/nginx/html/index.html 2>/dev/null \
+      && workframe_compose_recreate exec -T "$svc" wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null; then
       echo "UI health check ok ($svc)"
       return 0
     fi

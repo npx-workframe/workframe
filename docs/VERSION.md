@@ -1,17 +1,21 @@
-# Workframe v0.1.42
+# Workframe v0.1.43
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.42 |
-| workframe API / UI | 0.1.42 (bundled in create-workframe) |
+| create-workframe | 0.1.43 |
+| workframe API / UI | 0.1.43 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.42 MyProject
+npx create-workframe@0.1.43 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.43
+
+- UI health check requires `index.html` in nginx docroot (catches 403 after stale bind mount).
 
 ## 0.1.42
 
