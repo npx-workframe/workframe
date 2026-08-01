@@ -57,9 +57,7 @@ _wf_sync_from_pack_dir() {
     _wf_sync_tree "$pkg/workframe-supervisor" "$SUP_DIR"
   fi
   if [[ -d "$pkg/workframe-ui/public" ]]; then
-    echo "Syncing workframe-ui/public -> $UI_DIR"
-    rm -rf "$UI_DIR"
-    _wf_sync_tree "$pkg/workframe-ui/public" "$UI_DIR"
+    WF_UPDATE_UI_SRC="$pkg/workframe-ui/public"
   fi
   if [[ -d "$pkg/scripts" ]]; then
     for script in "$pkg/scripts"/*.sh; do
@@ -82,8 +80,8 @@ _wf_apply_npm_tarball() {
   local extract_dir
   extract_dir="$(mktemp -d)"
   tar -xf "$tarball" -C "$extract_dir"
+  WF_UPDATE_EXTRACT_DIR="$extract_dir"
   _wf_sync_from_pack_dir "$extract_dir/package"
-  rm -rf "$extract_dir"
 }
 
 _wf_record_package_version() {
@@ -271,15 +269,18 @@ _wf_recreate_api_and_supervisor() {
   done
 }
 
-_wf_ensure_ui_service() {
-  local svc=""
+_wf_ui_service_name() {
   if workframe_compose config --services 2>/dev/null | grep -qx workframe-ui; then
-    svc=workframe-ui
+    printf '%s' workframe-ui
   elif workframe_compose config --services 2>/dev/null | grep -qx workframe; then
-    svc=workframe
-  else
-    return 0
+    printf '%s' workframe
   fi
+}
+
+_wf_ensure_ui_service() {
+  local svc
+  svc="$(_wf_ui_service_name)"
+  [[ -n "$svc" ]] || return 0
 
   local nginx_conf="$compose_cd/workframe-ui/docker/nginx.conf"
   if [[ ! -f "$nginx_conf" ]]; then
@@ -287,10 +288,18 @@ _wf_ensure_ui_service() {
     exit 1
   fi
 
+  if [[ -n "${WF_UPDATE_UI_SRC:-}" && -d "$WF_UPDATE_UI_SRC" ]]; then
+    echo "Syncing workframe-ui/public -> $UI_DIR (UI stays up until API rebuild finishes)"
+    workframe_compose_recreate stop "$svc" 2>/dev/null || true
+    workframe_compose_recreate rm -f "$svc" 2>/dev/null || true
+    rm -rf "$UI_DIR"
+    _wf_sync_tree "$WF_UPDATE_UI_SRC" "$UI_DIR"
+  fi
+
   _wf_prune_created_compose_containers "$svc"
 
   echo "Ensuring $svc is running..."
-  workframe_compose_recreate up -d --no-build --force-recreate --no-deps "$svc"
+  workframe_compose_recreate up -d --no-build --no-deps "$svc"
 
   local attempt
   for attempt in $(seq 1 30); do
@@ -298,6 +307,11 @@ _wf_ensure_ui_service() {
       && workframe_compose_recreate exec -T "$svc" wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null; then
       echo "UI health check ok ($svc)"
       return 0
+    fi
+    if [[ "$attempt" -eq 15 ]]; then
+      echo "WARN: UI mount stale — removing $svc and retrying..." >&2
+      workframe_compose_recreate rm -f "$svc" 2>/dev/null || true
+      workframe_compose_recreate up -d --no-build --no-deps "$svc"
     fi
     sleep 1
   done
@@ -371,6 +385,8 @@ TARGET_VERSION="${WORKFRAME_UPDATE_VERSION:-}"
 NPM_PACKAGE="${WORKFRAME_NPM_PACKAGE:-create-workframe}"
 PREFETCH_TARBALL="${WORKFRAME_UPDATE_TARBALL:-}"
 TEMPLATE_SYNCED=0
+WF_UPDATE_UI_SRC=""
+WF_UPDATE_EXTRACT_DIR=""
 
 if [[ -n "$PREFETCH_TARBALL" && -f "$PREFETCH_TARBALL" ]]; then
   echo "Applying API-prefetched tarball: $PREFETCH_TARBALL"
@@ -438,5 +454,7 @@ if [[ "$TEMPLATE_SYNCED" == "1" && -n "$TARGET_VERSION" ]]; then
 fi
 
 workframe_docker_cleanup_after_update
+
+rm -rf "${WF_UPDATE_EXTRACT_DIR:-}" 2>/dev/null || true
 
 echo "=== Workframe update complete ==="

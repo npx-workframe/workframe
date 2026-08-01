@@ -556,12 +556,6 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     if not hermes_reason and hermes_update and not hermes_script_ok:
         hermes_reason = "Hermes update script is missing from this install."
     workframe_reason = apply_reason
-    if not workframe_reason and install_drift:
-        drift_reasons = integrity.get("drift_reasons") or []
-        workframe_reason = (
-            "Install drift detected — package pin does not match running files. "
-            + (drift_reasons[0] if drift_reasons else "Run Update to repair.")
-        )
     if not workframe_reason and workframe_update and not workframe_script_ok:
         workframe_reason = "Workframe update script is missing from this install."
     if not workframe_reason and workframe_update and not workframe_latest:

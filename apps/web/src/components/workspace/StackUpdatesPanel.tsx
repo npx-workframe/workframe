@@ -114,7 +114,7 @@ function UpdateRow({
       <div className="wf-stack-updates__card-main">
         <strong className="wf-stack-updates__card-title">{name}</strong>
         {detail ? <span className="wf-stack-updates__muted">{detail}</span> : null}
-        {blocked || (product.install_drift && product.reason) ? (
+        {blocked ? (
           <span className="wf-stack-updates__reason">
             {product.reason || 'Update from the host — one-click apply is not available here.'}
           </span>
