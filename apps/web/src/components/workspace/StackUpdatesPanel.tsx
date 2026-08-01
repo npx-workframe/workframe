@@ -10,7 +10,7 @@ import {
   initialUpdateSteps,
   isStackRestartError,
   stackUpdateTitle,
-  waitForStackHealth,
+  waitForStackUpdate,
   type StackUpdateTarget,
 } from '@/lib/stackUpdateProgress'
 import { formatWorkframeErrorMessage } from '@/lib/workframeErrors'
@@ -51,6 +51,8 @@ function formatProductDetail(product: {
   api_env?: string
   api_build?: string
   ui_build?: string
+  supervisor_build?: string
+  supervisor_runtime?: string
   install_drift?: boolean
 }): string | undefined {
   const pin = product.package_pin?.trim() || product.current?.trim()
@@ -59,8 +61,10 @@ function formatProductDetail(product: {
   const mismatches: string[] = []
   const api = product.api_build?.trim() || product.api_env?.trim()
   const ui = product.ui_build?.trim()
+  const supervisor = product.supervisor_runtime?.trim() || product.supervisor_build?.trim()
   if (api && api !== pin) mismatches.push(`API ${formatVersionLabel(api)}`)
   if (ui && ui !== pin) mismatches.push(`UI ${formatVersionLabel(ui)}`)
+  if (supervisor && supervisor !== pin) mismatches.push(`supervisor ${formatVersionLabel(supervisor)}`)
   if (product.install_drift && mismatches.length > 0) {
     return `${label} · running ${mismatches.join(', ')}`
   }
@@ -79,7 +83,9 @@ function formatHermesDetail(product: StackProductUpdateStatus): string | undefin
     }
   }
   const imageTag = product.image_tag?.trim()
-  return imageTag ? formatVersionLabel(imageTag) : undefined
+  const digest = product.current_digest?.trim().replace(/^sha256:/, '').slice(0, 12)
+  if (imageTag && digest) return `image ${imageTag} · ${digest}`
+  return digest ? `image ${digest}` : undefined
 }
 
 type UpdateRowProps = {
@@ -261,12 +267,14 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
 
     try {
       let applyAccepted = false
+      let jobId = ''
       try {
         const result = await workframeAuthApi.applyAdminUpdate(target, { timeoutMs: APPLY_TIMEOUT_MS })
         if (!result.ok) {
           throw new Error(result.error || 'Update failed')
         }
         applyAccepted = true
+        jobId = result.job_id || ''
       } catch (err) {
         if (!isStackRestartError(err)) {
           throw err
@@ -277,14 +285,18 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
       await new Promise((resolve) => window.setTimeout(resolve, 450))
       advance('health', 'Waiting for stack…')
 
-      const healthy = await waitForStackHealth({
+      const healthy = await waitForStackUpdate({
+        target,
+        jobId: jobId || undefined,
         signal: waitAbort.signal,
-        onPoll: (attempt) => {
+        onPoll: (attempt, state) => {
           setUpdateSteps((current) =>
             advanceUpdateSteps(
               current,
               'health',
-              attempt === 1 ? 'Waiting for stack…' : `Still waiting… (${attempt})`,
+              attempt === 1
+                ? 'Waiting for verified update…'
+                : `Still waiting… (${attempt}, ${state})`,
             ),
           )
         },

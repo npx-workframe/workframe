@@ -10,10 +10,12 @@ import re
 import shlex
 import socket
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -21,7 +23,18 @@ from typing import Any
 HERMES_DATA = Path(os.environ.get("HERMES_DATA", "/opt/data"))
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8090"))
-VERSION = "0.1.0"
+
+
+def _build_version() -> str:
+    path = Path(__file__).with_name("workframe-supervisor-build.json")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "0.1.0"
+    return str(data.get("package_version") or "0.1.0").strip()
+
+
+VERSION = _build_version()
 NATIVE_PROFILE = os.environ.get("WORKFRAME_NATIVE_PROFILE", "").strip()
 DOCKER_SOCK = os.environ.get("DOCKER_SOCK", "/var/run/docker.sock")
 GATEWAY_CONTAINER_NAME = os.environ.get("WORKFRAME_GATEWAY_CONTAINER", "workframe-gateway")
@@ -35,6 +48,56 @@ ROUTES_JSON = HERMES_DATA / "workframe" / "routes.json"
 SCRIPTS_DIR = Path(os.environ.get("WORKFRAME_SCRIPTS_DIR", "/opt/install/scripts"))
 COMPOSE_DIR = Path(os.environ.get("WORKFRAME_COMPOSE_DIR", "/compose"))
 STACK_APPLY_LOCK_DIR = COMPOSE_DIR / "workframe-api" / "data" / ".stack-apply.lock.d"
+STACK_APPLY_STATUS_PATH = HERMES_DATA / "workframe" / "stack-apply-status.json"
+
+
+def _write_stack_apply_status(payload: dict[str, Any]) -> dict[str, Any]:
+    status = {
+        "ok": True,
+        "job_id": str(payload.get("job_id") or "").strip(),
+        "target": str(payload.get("target") or "").strip(),
+        "state": str(payload.get("state") or "unknown").strip(),
+        "pid": int(payload.get("pid") or 0),
+        "started_at": str(payload.get("started_at") or "").strip(),
+        "finished_at": str(payload.get("finished_at") or "").strip(),
+        "updated_unix": float(payload.get("updated_unix") or time.time()),
+        "error": str(payload.get("error") or "").strip()[:600],
+    }
+    STACK_APPLY_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = STACK_APPLY_STATUS_PATH.with_name(f".{STACK_APPLY_STATUS_PATH.name}.{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(status, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(STACK_APPLY_STATUS_PATH)
+    return status
+
+
+def _read_stack_apply_status(job_id: str = "") -> dict[str, Any]:
+    try:
+        data = json.loads(STACK_APPLY_STATUS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"ok": True, "state": "idle", "job_id": "", "target": ""}
+    if not isinstance(data, dict):
+        return {"ok": True, "state": "idle", "job_id": "", "target": ""}
+    requested = str(job_id or "").strip()
+    if requested and str(data.get("job_id") or "") != requested:
+        return {"ok": False, "state": "unknown", "job_id": requested, "target": "", "error": "job_not_found"}
+    return data
+
+
+def _stack_apply_job_active() -> bool:
+    status = _read_stack_apply_status()
+    state = str(status.get("state") or "").lower()
+    if state == "queued":
+        return time.time() - float(status.get("updated_unix") or 0) < 60
+    if state not in {"running", "restarting"}:
+        return False
+    try:
+        pid = int(status.get("pid") or 0)
+        if pid > 0:
+            os.kill(pid, 0)
+            return True
+    except (OSError, TypeError, ValueError):
+        pass
+    return _stack_apply_lock_held()
 
 
 def _stack_apply_lock_held() -> bool:
@@ -174,28 +237,107 @@ def _stack_apply_async(
     log_dir = HERMES_DATA / "workframe"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "stack-apply.log"
-    quoted_log = shlex.quote(str(log_path))
-    parts = [f": > {quoted_log}", f"date -u +%Y-%m-%dT%H:%M:%SZ >> {quoted_log}"]
-    for script in scripts:
-        qscript = shlex.quote(str(script))
-        parts.append(f"echo '=== {script.name} ===' >> {quoted_log}")
-        parts.append(f"bash {qscript} >> {quoted_log} 2>&1")
-    shell = "set -euo pipefail; " + "; ".join(parts)
+    job_id = uuid.uuid4().hex
+    started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    _write_stack_apply_status(
+        {
+            "job_id": job_id,
+            "target": target,
+            "state": "queued",
+            "started_at": started_at,
+        },
+    )
     cwd = str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None
     proc = subprocess.Popen(
-        ["bash", "-lc", shell],
+        [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "--stack-apply-job",
+            job_id,
+            target,
+            str(log_path),
+            *[str(script) for script in scripts],
+        ],
         env=env,
         cwd=cwd,
         start_new_session=True,
     )
+    current = _read_stack_apply_status(job_id)
+    if str(current.get("state") or "") in {"queued", "running"}:
+        _write_stack_apply_status(
+            {
+                "job_id": job_id,
+                "target": target,
+                "state": "running",
+                "pid": proc.pid,
+                "started_at": started_at,
+            },
+        )
     return {
         "ok": True,
         "accepted": True,
         "async": True,
         "target": target,
+        "job_id": job_id,
         "pid": proc.pid,
         "log": str(log_path),
     }
+
+
+def _run_stack_apply_job(job_id: str, target: str, log_path: Path, scripts: list[Path]) -> int:
+    started_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    _write_stack_apply_status(
+        {
+            "job_id": job_id,
+            "target": target,
+            "state": "running",
+            "pid": os.getpid(),
+            "started_at": started_at,
+        },
+    )
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("w", encoding="utf-8") as log:
+            log.write(started_at + "\n")
+            log.flush()
+            for script in scripts:
+                log.write(f"=== {script.name} ===\n")
+                log.flush()
+                proc = subprocess.run(
+                    ["bash", str(script)],
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    timeout=900,
+                    env=os.environ.copy(),
+                    cwd=str(COMPOSE_DIR) if COMPOSE_DIR.is_dir() else None,
+                )
+                if proc.returncode != 0:
+                    raise ValueError(f"update_failed:{script.name}:exit_{proc.returncode}")
+        _write_stack_apply_status(
+            {
+                "job_id": job_id,
+                "target": target,
+                "state": "succeeded",
+                "pid": os.getpid(),
+                "started_at": started_at,
+                "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            },
+        )
+        return 0
+    except Exception as exc:  # noqa: BLE001
+        _write_stack_apply_status(
+            {
+                "job_id": job_id,
+                "target": target,
+                "state": "failed",
+                "pid": os.getpid(),
+                "started_at": started_at,
+                "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "error": str(exc),
+            },
+        )
+        return 1
 
 
 def _stack_apply(
@@ -230,7 +372,7 @@ def _stack_apply(
         host_compose_dir=host_compose_dir,
         host_project_root=host_project_root,
     )
-    if async_apply and _stack_apply_lock_held():
+    if async_apply and (_stack_apply_lock_held() or _stack_apply_job_active()):
         raise ValueError("stack_apply_in_progress")
     if async_apply:
         return _stack_apply_async(prepared_target, scripts, env)
@@ -256,6 +398,92 @@ def _gateway_image_digest() -> tuple[str, str]:
         if tags:
             ref = str(tags[0])
     return digest, ref
+
+
+def _gateway_agent_version() -> str:
+    try:
+        code, out = _docker_exec(
+            GATEWAY_CONTAINER_NAME,
+            ["/opt/hermes/bin/hermes", "--version"],
+            bypass_secret_policy=True,
+        )
+    except Exception:  # noqa: BLE001
+        return ""
+    if code != 0:
+        return ""
+    match = re.search(r"Hermes Agent v(\d+\.\d+\.\d+)", out)
+    return match.group(1) if match else ""
+
+
+def _build_stamp_version(path: Path) -> str:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ""
+    return str(data.get("package_version") or "").strip() if isinstance(data, dict) else ""
+
+
+def _compose_service_file_version(service: str, container_path: str) -> str:
+    try:
+        proc = _compose_run(["ps", "-q", service], timeout=10.0)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if proc.returncode != 0:
+        return ""
+    container_id = next((line.strip() for line in proc.stdout.splitlines() if line.strip()), "")
+    if not container_id:
+        return ""
+    try:
+        code, out = _docker_exec(container_id, ["cat", container_path], bypass_secret_policy=True)
+        if code != 0:
+            return ""
+        data = json.loads(out)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return ""
+    return str(data.get("package_version") or "").strip() if isinstance(data, dict) else ""
+
+
+def _stack_release_status() -> dict[str, Any]:
+    api_build = _compose_service_file_version("workframe-api", "/app/workframe-api-build.json")
+    ui_build = ""
+    for service in ("workframe-ui", "workframe"):
+        ui_build = _compose_service_file_version(service, "/usr/share/nginx/html/workframe-build.json")
+        if ui_build:
+            break
+
+    if not api_build:
+        for candidate in (
+            COMPOSE_DIR / "workframe-api" / "workframe-api-build.json",
+            COMPOSE_DIR / "services" / "workframe-api" / "workframe-api-build.json",
+        ):
+            api_build = _build_stamp_version(candidate)
+            if api_build:
+                break
+    if not ui_build:
+        for candidate in (
+            COMPOSE_DIR / "workframe-ui" / "public" / "workframe-build.json",
+            COMPOSE_DIR / "apps" / "web" / "dist" / "workframe-build.json",
+        ):
+            ui_build = _build_stamp_version(candidate)
+            if ui_build:
+                break
+
+    supervisor_build = ""
+    for candidate in (
+        COMPOSE_DIR / "workframe-supervisor" / "workframe-supervisor-build.json",
+        COMPOSE_DIR / "services" / "workframe-supervisor" / "workframe-supervisor-build.json",
+        Path(__file__).with_name("workframe-supervisor-build.json"),
+    ):
+        supervisor_build = _build_stamp_version(candidate)
+        if supervisor_build:
+            break
+    return {
+        "ok": bool(api_build or ui_build or supervisor_build or VERSION),
+        "api_build": api_build,
+        "ui_build": ui_build,
+        "supervisor_build": supervisor_build,
+        "supervisor_runtime": VERSION,
+    }
 
 
 def _hermes_device_oauth_start(home: str, hermes_auth_id: str, log_path: str) -> tuple[int, str]:
@@ -863,15 +1091,23 @@ class Handler(BaseHTTPRequestHandler):
             )
         if path == "/v1/gateway.image":
             digest, ref = _gateway_image_digest()
+            agent_version = _gateway_agent_version()
             return self._json(
                 200,
                 {
-                    "ok": bool(digest or ref),
+                    "ok": bool(digest or ref or agent_version),
                     "digest": digest,
                     "ref": ref,
+                    "agent_version": agent_version,
                     "container": GATEWAY_CONTAINER_NAME,
                 },
             )
+        if path == "/v1/stack.apply/status":
+            qs = urllib.parse.parse_qs(parsed.query)
+            job_id = str((qs.get("job_id") or [""])[0] or "").strip()
+            return self._json(200, _read_stack_apply_status(job_id))
+        if path == "/v1/stack.release":
+            return self._json(200, _stack_release_status())
         return self._json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:
@@ -1033,4 +1269,13 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) >= 6 and sys.argv[1] == "--stack-apply-job":
+        raise SystemExit(
+            _run_stack_apply_job(
+                sys.argv[2],
+                sys.argv[3],
+                Path(sys.argv[4]),
+                [Path(value) for value in sys.argv[5:]],
+            ),
+        )
     main()

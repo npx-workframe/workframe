@@ -176,6 +176,8 @@ export type StackProductUpdateStatus = {
   api_env?: string
   api_build?: string
   ui_build?: string
+  supervisor_build?: string
+  supervisor_runtime?: string
   install_drift?: boolean
   drift_reasons?: string[]
   current_image?: string
@@ -196,6 +198,15 @@ export type StackUpdatesStatus = {
   compose_dir?: string
   project_root?: string
   apply_in_progress?: boolean
+  apply_job?: {
+    ok?: boolean
+    job_id?: string
+    target?: 'hermes' | 'workframe' | 'all' | string
+    state?: 'idle' | 'queued' | 'running' | 'restarting' | 'succeeded' | 'failed' | 'unavailable' | 'unknown'
+    started_at?: string
+    finished_at?: string
+    error?: string
+  }
   workframe: StackProductUpdateStatus & {
     current: string
     latest: string
@@ -1193,7 +1204,7 @@ export const workframeAuthApi = {
   },
 
   applyAdminUpdate(target: 'hermes' | 'workframe' | 'all', options?: { timeoutMs?: number }) {
-    return request<{ ok: boolean; target?: string; log?: string; error?: string }>(
+    return request<{ ok: boolean; target?: string; job_id?: string; accepted?: boolean; log?: string; error?: string }>(
       '/admin/updates/apply',
       {
         method: 'POST',

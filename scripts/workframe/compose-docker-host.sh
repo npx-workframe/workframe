@@ -105,13 +105,49 @@ workframe_compose_recreate() {
   fi
 }
 
+workframe_prune_created_compose_containers() {
+  local svc="$1"
+  local cid state project
+  workframe_compose_prepare
+  project="$(docker compose "${compose_files[@]}" config --format '{{.name}}' 2>/dev/null || true)"
+  [[ -n "$project" ]] || return 0
+  while IFS= read -r cid; do
+    [[ -n "$cid" ]] || continue
+    state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    if [[ "$state" == "created" ]]; then
+      echo "Removing ${svc} container in Created state"
+      docker rm -f "$cid" >/dev/null
+    fi
+  done < <(docker ps -aq \
+    --filter "label=com.docker.compose.project=${project}" \
+    --filter "label=com.docker.compose.service=${svc}" 2>/dev/null || true)
+}
+
+workframe_wait_service_running() {
+  local svc="$1" attempts="${2:-60}"
+  local attempt cid state
+  for attempt in $(seq 1 "$attempts"); do
+    cid="$(workframe_compose_recreate ps -q "$svc" 2>/dev/null | head -n1 || true)"
+    state=""
+    if [[ -n "$cid" ]]; then
+      state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
+    fi
+    if [[ "$state" == "running" ]]; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "ERROR: service ${svc} did not reach running state" >&2
+  return 1
+}
+
 workframe_compose_recreate_file_args() {
   if workframe_compose_host_bindings_available; then
-    printf '%s\n' docker-compose.yml
+    printf '%s\n' -f docker-compose.yml
     if [[ -f "${WORKFRAME_COMPOSE_DIR}/docker-compose.public.yml" ]]; then
-      printf '%s\n' docker-compose.public.yml
+      printf '%s\n' -f docker-compose.public.yml
     fi
-    printf '%s\n' docker-compose.host-bindings.yml
+    printf '%s\n' -f docker-compose.host-bindings.yml
     return 0
   fi
   workframe_compose_prepare

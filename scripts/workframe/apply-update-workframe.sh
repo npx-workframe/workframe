@@ -130,14 +130,15 @@ print(str(data.get("package_version") or "").strip())' "$file" 2>/dev/null || tr
 _wf_verify_version_alignment() {
   local ver="$1"
   [[ -n "$ver" ]] || return 0
-  local pin api_build ui_build env_ver compose_ver running_ver
+  local pin api_build ui_build supervisor_build env_ver compose_ver running_ver
   pin="$(tr -d '\r\n' < "$API_DIR/data/package-version" 2>/dev/null || true)"
   api_build="$(_wf_read_stamp_version "$API_DIR/workframe-api-build.json")"
   ui_build="$(_wf_read_stamp_version "$UI_DIR/workframe-build.json")"
+  supervisor_build="$(_wf_read_stamp_version "$SUP_DIR/workframe-supervisor-build.json")"
   env_ver="$(grep '^WORKFRAME_API_VERSION=' "$compose_cd/.env" 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '\r\n' || true)"
   compose_ver="$(grep -E '^[[:space:]]*- WORKFRAME_API_VERSION=' "$compose_cd/docker-compose.yml" 2>/dev/null | tail -n1 | sed -E 's/^[[:space:]]*- WORKFRAME_API_VERSION=//' | tr -d '\r\n' || true)"
   local mismatch=0
-  for label in api_build:api-build ui_build:ui-build env_ver:.env compose_ver:compose; do
+  for label in api_build:api-build ui_build:ui-build supervisor_build:supervisor-build env_ver:.env compose_ver:compose; do
     local name="${label%%:*}"
     local value="${!name}"
     if [[ -n "$value" && "$value" != "$ver" ]]; then
@@ -232,29 +233,11 @@ _wf_acquire_update_lock() {
   trap '_wf_release_update_lock' EXIT
 }
 
-_wf_prune_created_compose_containers() {
-  local svc="$1"
-  local cid state project
-  workframe_compose_prepare
-  project="$(docker compose "${compose_files[@]}" config --format '{{.name}}' 2>/dev/null || true)"
-  [[ -n "$project" ]] || return 0
-  while IFS= read -r cid; do
-    [[ -n "$cid" ]] || continue
-    state="$(docker inspect --format '{{.State.Status}}' "$cid" 2>/dev/null || true)"
-    if [[ "$state" == "created" ]]; then
-      echo "Removing ${svc} container in Created state ($cid)"
-      docker rm -f "$cid" >/dev/null 2>&1 || true
-    fi
-  done < <(docker ps -aq \
-    --filter "label=com.docker.compose.project=${project}" \
-    --filter "label=com.docker.compose.service=${svc}" 2>/dev/null || true)
-}
-
 _wf_recreate_api_and_supervisor() {
   local attempt
   for attempt in 1 2; do
-    _wf_prune_created_compose_containers workframe-api
-    _wf_prune_created_compose_containers workframe-supervisor
+    workframe_prune_created_compose_containers workframe-api
+    workframe_prune_created_compose_containers workframe-supervisor
     if [[ "${WORKFRAME_UPDATE_FROM_SUPERVISOR:-}" == "1" ]]; then
       if workframe_compose_recreate up -d --no-build --force-recreate --no-deps workframe-api; then
         # This script runs INSIDE the supervisor container — restarting it here
@@ -301,14 +284,20 @@ _wf_ensure_ui_service() {
     _wf_sync_tree "$WF_UPDATE_UI_SRC" "$UI_DIR"
   fi
 
-  _wf_prune_created_compose_containers "$svc"
+  workframe_prune_created_compose_containers "$svc"
 
   # nginx upstreams (gateway/dashboard) must exist, but the UI up must NOT walk
   # the dependency graph: that recreates the supervisor and kills this apply.
   local dep
   for dep in gateway dashboard; do
     if workframe_compose config --services 2>/dev/null | grep -qx "$dep"; then
-      workframe_compose_recreate up -d --no-build --no-deps --no-recreate "$dep" 2>/dev/null || true
+      workframe_prune_created_compose_containers "$dep"
+      echo "Ensuring dependency $dep is running..."
+      if ! workframe_compose_recreate up -d --no-build --no-deps --no-recreate "$dep"; then
+        echo "ERROR: dependency $dep could not start" >&2
+        exit 1
+      fi
+      workframe_wait_service_running "$dep" 60
     fi
   done
 

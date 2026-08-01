@@ -103,6 +103,82 @@ def test_stack_apply_lock_held() -> None:
             supervisor.STACK_APPLY_LOCK_DIR = old_lock
 
 
+def test_stack_apply_status_round_trip() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        old_status = supervisor.STACK_APPLY_STATUS_PATH
+        old_lock = supervisor.STACK_APPLY_LOCK_DIR
+        try:
+            supervisor.STACK_APPLY_STATUS_PATH = Path(tmp) / "stack-apply-status.json"
+            supervisor.STACK_APPLY_LOCK_DIR = Path(tmp) / ".stack-apply.lock.d"
+            written = supervisor._write_stack_apply_status(
+                {
+                    "job_id": "job-1",
+                    "target": "workframe",
+                    "state": "running",
+                    "pid": os.getpid(),
+                    "started_at": "2026-01-01T00:00:00Z",
+                },
+            )
+            assert written["job_id"] == "job-1"
+            assert supervisor._read_stack_apply_status("job-1")["state"] == "running"
+            assert supervisor._stack_apply_job_active()
+            missing = supervisor._read_stack_apply_status("job-2")
+            assert missing["error"] == "job_not_found"
+            supervisor._write_stack_apply_status(
+                {"job_id": "job-1", "target": "workframe", "state": "succeeded"},
+            )
+            assert not supervisor._stack_apply_job_active()
+        finally:
+            supervisor.STACK_APPLY_STATUS_PATH = old_status
+            supervisor.STACK_APPLY_LOCK_DIR = old_lock
+
+
+def test_gateway_agent_version_probe() -> None:
+    old_exec = supervisor._docker_exec
+    try:
+        supervisor._docker_exec = lambda *_args, **_kwargs: (0, "Hermes Agent v0.19.1 (build)")
+        assert supervisor._gateway_agent_version() == "0.19.1"
+        supervisor._docker_exec = lambda *_args, **_kwargs: (1, "failed")
+        assert supervisor._gateway_agent_version() == ""
+    finally:
+        supervisor._docker_exec = old_exec
+
+
+def test_stack_release_status_reads_component_versions() -> None:
+    import json
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        compose_dir = Path(tmp)
+        for rel, version in (
+            ("workframe-api/workframe-api-build.json", "0.1.31"),
+            ("workframe-ui/public/workframe-build.json", "0.1.32"),
+            ("workframe-supervisor/workframe-supervisor-build.json", "0.1.33"),
+        ):
+            path = compose_dir / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"package_version": version}), encoding="utf-8")
+        old_compose = supervisor.COMPOSE_DIR
+        old_run = supervisor._compose_run
+        try:
+            supervisor.COMPOSE_DIR = compose_dir
+            supervisor._compose_run = lambda *_args, **_kwargs: type(
+                "Result",
+                (),
+                {"returncode": 1, "stdout": ""},
+            )()
+            status = supervisor._stack_release_status()
+            assert status["api_build"] == "0.1.31"
+            assert status["ui_build"] == "0.1.32"
+            assert status["supervisor_build"] == "0.1.33"
+            assert status["supervisor_runtime"] == supervisor.VERSION
+        finally:
+            supervisor.COMPOSE_DIR = old_compose
+            supervisor._compose_run = old_run
+
+
 def main() -> None:
     test_secret_read_blocked()
     test_foreign_profile_secrets_blocked()
@@ -112,6 +188,9 @@ def main() -> None:
     test_api_compose_public_has_no_docker_sock()
     test_host_install_paths_reads_env_file()
     test_stack_apply_lock_held()
+    test_stack_apply_status_round_trip()
+    test_gateway_agent_version_probe()
+    test_stack_release_status_reads_component_versions()
     print("supervisor negative tests ok")
 
 

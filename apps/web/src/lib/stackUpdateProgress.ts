@@ -1,5 +1,5 @@
 import type { OperationStep } from '@/components/ui/OperationProgress'
-import { workframeAuthApi } from '@/lib/workframeAuthApi'
+import { workframeAuthApi, type StackUpdatesStatus } from '@/lib/workframeAuthApi'
 
 export type StackUpdateTarget = 'hermes' | 'workframe' | 'all'
 
@@ -92,5 +92,82 @@ export async function waitForStackHealth(options?: {
     })
   }
 
+  return false
+}
+
+export function workframeUpdateAligned(status: StackUpdatesStatus): boolean {
+  const product = status.workframe
+  const target = product.latest?.trim()
+  if (!target || product.update_available || product.install_drift) return false
+  const versions = [
+    product.package_pin || product.current,
+    product.api_env,
+    product.api_build,
+    product.ui_build,
+    product.supervisor_build,
+    product.supervisor_runtime,
+  ]
+  return versions.every((value) => value?.trim() === target)
+}
+
+export function hermesUpdateAligned(status: StackUpdatesStatus): boolean {
+  const product = status.hermes
+  const currentDigest = product.current_digest?.trim()
+  const latestDigest = product.latest_digest?.trim()
+  return Boolean(
+    !product.update_available &&
+      product.agent_version?.trim() &&
+      currentDigest &&
+      latestDigest &&
+      currentDigest === latestDigest,
+  )
+}
+
+export async function waitForStackUpdate(options: {
+  target: StackUpdateTarget
+  jobId?: string
+  intervalMs?: number
+  maxWaitMs?: number
+  onPoll?: (attempt: number, state: string) => void
+  signal?: AbortSignal
+}): Promise<boolean> {
+  const intervalMs = options.intervalMs ?? 2000
+  const maxWaitMs = options.maxWaitMs ?? 15 * 60 * 1000
+  const started = Date.now()
+  let attempt = 0
+
+  while (Date.now() - started < maxWaitMs) {
+    if (options.signal?.aborted) return false
+    attempt += 1
+    try {
+      const status = await workframeAuthApi.getAdminUpdates()
+      const job = status.apply_job
+      const state = job?.state || 'unknown'
+      options.onPoll?.(attempt, state)
+      const sameJob = options.jobId ? job?.job_id === options.jobId : job?.target === options.target
+      if (sameJob && state === 'failed') {
+        throw new Error(job?.error || 'stack_update_failed')
+      }
+      if (sameJob && state === 'succeeded') {
+        const workframeOk = options.target === 'hermes' || workframeUpdateAligned(status)
+        const hermesOk = options.target === 'workframe' || hermesUpdateAligned(status)
+        if (workframeOk && hermesOk) return true
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err ?? '')
+      if (/stack_update_failed|update_failed:/i.test(message)) throw err
+    }
+    await new Promise<void>((resolve) => {
+      const timer = window.setTimeout(resolve, intervalMs)
+      options.signal?.addEventListener(
+        'abort',
+        () => {
+          window.clearTimeout(timer)
+          resolve()
+        },
+        { once: true },
+      )
+    })
+  }
   return false
 }

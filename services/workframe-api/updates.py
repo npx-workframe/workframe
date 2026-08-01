@@ -210,6 +210,7 @@ def _api_build_stamp_paths(project_root: Path) -> list[Path]:
                 root / "services" / "workframe-api" / "workframe-api-build.json",
             ],
         )
+    paths.append(Path(__file__).with_name("workframe-api-build.json"))
     return paths
 
 
@@ -236,6 +237,29 @@ def _ui_build_stamp_paths(project_root: Path) -> list[Path]:
     return paths
 
 
+def _supervisor_build_stamp_paths(project_root: Path) -> list[Path]:
+    roots = [project_root]
+    for raw in (
+        os.environ.get("WORKFRAME_HOST_PROJECT_ROOT", ""),
+        os.environ.get("WORKFRAME_PROJECT_ROOT", ""),
+        os.environ.get("WORKFRAME_COMPOSE_DIR", ""),
+        "/project",
+        "/compose",
+    ):
+        p = Path(str(raw or "").strip())
+        if p.is_dir() and p not in roots:
+            roots.append(p)
+    paths: list[Path] = []
+    for root in roots:
+        paths.extend(
+            [
+                root / "workframe-supervisor" / "workframe-supervisor-build.json",
+                root / "services" / "workframe-supervisor" / "workframe-supervisor-build.json",
+            ],
+        )
+    return paths
+
+
 def _first_build_stamp(paths: list[Path]) -> dict[str, str]:
     seen: set[str] = set()
     for candidate in paths:
@@ -257,16 +281,32 @@ def _read_ui_build_stamp(project_root: Path) -> dict[str, str]:
     return _first_build_stamp(_ui_build_stamp_paths(project_root))
 
 
+def _read_supervisor_build_stamp(project_root: Path) -> dict[str, str]:
+    return _first_build_stamp(_supervisor_build_stamp_paths(project_root))
+
+
 def _normalize_api_env_version(raw: str) -> str:
     text = re.sub(r"^workframe-api-", "", str(raw or "").strip())
     return text
 
 
-def _workframe_install_integrity(installed: dict[str, str], project_root: Path) -> dict[str, Any]:
+def _workframe_install_integrity(
+    installed: dict[str, str],
+    project_root: Path,
+    observed: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    observed = observed or {}
     package_pin = str(installed.get("package") or "").strip()
     api_env = _normalize_api_env_version(str(installed.get("api") or ""))
-    api_build = str(_read_api_build_stamp(project_root).get("package_version") or "").strip()
-    ui_build = str(_read_ui_build_stamp(project_root).get("package_version") or "").strip()
+    api_build = str(
+        observed.get("api_build") or _read_api_build_stamp(project_root).get("package_version") or "",
+    ).strip()
+    ui_build = str(
+        observed.get("ui_build") or _read_ui_build_stamp(project_root).get("package_version") or "",
+    ).strip()
+    supervisor_build = str(
+        observed.get("supervisor_build") or _read_supervisor_build_stamp(project_root).get("package_version") or "",
+    ).strip()
     drift: list[str] = []
 
     if package_pin and api_env and package_pin != api_env:
@@ -275,6 +315,8 @@ def _workframe_install_integrity(installed: dict[str, str], project_root: Path) 
         drift.append(f"API files are v{api_build} but package pin is v{package_pin}")
     if package_pin and ui_build and package_pin != ui_build:
         drift.append(f"UI bundle is v{ui_build} but package pin is v{package_pin}")
+    if package_pin and supervisor_build and package_pin != supervisor_build:
+        drift.append(f"supervisor files are v{supervisor_build} but package pin is v{package_pin}")
     if api_env and api_build and api_env != api_build:
         drift.append(f"API files are v{api_build} but compose env is v{api_env}")
 
@@ -284,6 +326,7 @@ def _workframe_install_integrity(installed: dict[str, str], project_root: Path) 
         "api_env": api_env,
         "api_build": api_build,
         "ui_build": ui_build,
+        "supervisor_build": supervisor_build,
         "drift_reasons": drift,
     }
 
@@ -376,12 +419,12 @@ def _supervisor_configured() -> bool:
     )
 
 
-def _supervisor_gateway_image_digest() -> tuple[str, str]:
-    """Read gateway image digest via workframe-supervisor (SECURE_MODE API has no docker.sock)."""
+def _supervisor_gateway_release() -> tuple[str, str, str]:
+    """Read gateway digest, image ref, and installed Hermes version via supervisor."""
     base = str(os.environ.get("WORKFRAME_SUPERVISOR_URL", "")).rstrip("/")
     token = str(os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "")).strip()
     if not base or not token:
-        return "", ""
+        return "", "", ""
     req = urllib.request.Request(
         f"{base}/v1/gateway.image",
         headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "User-Agent": "workframe-api"},
@@ -390,10 +433,49 @@ def _supervisor_gateway_image_digest() -> tuple[str, str]:
         with urllib.request.urlopen(req, timeout=15.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
-        return "", ""
+        return "", "", ""
     if not isinstance(data, dict) or not data.get("ok"):
-        return "", ""
-    return str(data.get("digest") or "").strip(), str(data.get("ref") or "").strip()
+        return "", "", ""
+    return (
+        str(data.get("digest") or "").strip(),
+        str(data.get("ref") or "").strip(),
+        str(data.get("agent_version") or "").strip(),
+    )
+
+
+def _supervisor_stack_apply_status(job_id: str = "") -> dict[str, Any]:
+    base = str(os.environ.get("WORKFRAME_SUPERVISOR_URL", "")).rstrip("/")
+    token = str(os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "")).strip()
+    if not base or not token:
+        return {"ok": True, "state": "idle", "job_id": "", "target": ""}
+    query = f"?job_id={urllib.parse.quote(job_id)}" if job_id else ""
+    req = urllib.request.Request(
+        f"{base}/v1/stack.apply/status{query}",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "User-Agent": "workframe-api"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return {"ok": False, "state": "unavailable", "job_id": job_id, "target": ""}
+    return data if isinstance(data, dict) else {"ok": False, "state": "unknown", "job_id": job_id, "target": ""}
+
+
+def _supervisor_stack_release() -> dict[str, Any]:
+    base = str(os.environ.get("WORKFRAME_SUPERVISOR_URL", "")).rstrip("/")
+    token = str(os.environ.get("WORKFRAME_SUPERVISOR_TOKEN", "")).strip()
+    if not base or not token:
+        return {}
+    req = urllib.request.Request(
+        f"{base}/v1/stack.release",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "User-Agent": "workframe-api"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) and data.get("ok") else {}
 
 
 def _supervisor_healthy(*, attempts: int = 4, delay_s: float = 2.0) -> tuple[bool, str | None]:
@@ -420,7 +502,7 @@ def _supervisor_healthy(*, attempts: int = 4, delay_s: float = 2.0) -> tuple[boo
     return False, f"workframe-supervisor is unreachable ({detail})."
 
 
-STACK_APPLY_LOCK_MAX_AGE_S = 30 * 60
+STACK_APPLY_LOCK_MAX_AGE_S = 15 * 60
 
 
 def _stack_apply_in_progress() -> bool:
@@ -520,7 +602,10 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     supervisor_ok = _supervisor_configured()
     apply_channel, apply_ready, apply_reason = _update_apply_channel()
     installed = _read_installed_workframe_version(project_root)
-    integrity = _workframe_install_integrity(installed, project_root)
+    supervisor_release = _supervisor_stack_release() if supervisor_ok else {}
+    integrity = _workframe_install_integrity(installed, project_root, supervisor_release)
+    apply_job = _supervisor_stack_apply_status() if supervisor_ok else {"ok": True, "state": "idle"}
+    supervisor_runtime = str(supervisor_release.get("supervisor_runtime") or "").strip()
 
     npm_latest = ""
     try:
@@ -538,11 +623,11 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     if install_drift and not workframe_update:
         workframe_update = True
 
-    hermes_digest, hermes_ref = ("", "")
+    hermes_digest, hermes_ref, supervisor_agent_version = ("", "", "")
     if api_docker:
         hermes_digest, hermes_ref = _container_image_digest(GATEWAY_CONTAINER)
     elif supervisor_ok:
-        hermes_digest, hermes_ref = _supervisor_gateway_image_digest()
+        hermes_digest, hermes_ref, supervisor_agent_version = _supervisor_gateway_release()
     hermes_tag = hermes_ref.rsplit(":", 1)[-1] if hermes_ref and ":" in hermes_ref else HERMES_TAG
     hermes_latest_digest = ""
     try:
@@ -577,18 +662,50 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
     if not workframe_reason and workframe_update and not workframe_latest:
         workframe_reason = "No published npm release to update to yet."
 
+    apply_job_state = str(apply_job.get("state") or "").lower()
+
+    agent_version = (
+        str(hermes_agent_version or "").strip()
+        or supervisor_agent_version
+        or _read_hermes_agent_version()
+    )
+    hermes_current = agent_version or hermes_digest
+
+    if supervisor_runtime:
+        integrity["supervisor_runtime"] = supervisor_runtime
+        expected_supervisor = str(integrity.get("package_pin") or installed_pkg or "").strip()
+        if expected_supervisor and supervisor_runtime != expected_supervisor:
+            integrity["ok"] = False
+            install_drift = True
+            reasons = list(integrity.get("drift_reasons") or [])
+            reasons.append(f"running supervisor is v{supervisor_runtime} but package pin is v{expected_supervisor}")
+            integrity["drift_reasons"] = reasons
+            if not workframe_update:
+                workframe_update = True
+
     # An async apply is running: files may be ahead of the running containers.
-    # Report a calm in-progress state instead of drift + a second Update button.
-    apply_in_progress = _stack_apply_in_progress()
+    # A Workframe job also remains in progress during its deferred supervisor
+    # recreate, even though the update script itself has already exited.
+    apply_in_progress = _stack_apply_in_progress() or apply_job_state in {"queued", "running", "restarting"}
+    expected_supervisor = str(integrity.get("package_pin") or installed_pkg or "").strip()
+    try:
+        apply_job_age = time.time() - float(apply_job.get("updated_unix") or 0)
+    except (TypeError, ValueError):
+        apply_job_age = STACK_APPLY_LOCK_MAX_AGE_S + 1
+    if (
+        apply_job_state == "succeeded"
+        and str(apply_job.get("target") or "") in {"workframe", "all"}
+        and 0 <= apply_job_age < 180
+        and expected_supervisor
+        and supervisor_runtime != expected_supervisor
+    ):
+        apply_in_progress = True
     if apply_in_progress:
         workframe_can_update = False
         hermes_can_update = False
         install_drift = False
         workframe_reason = ""
         hermes_reason = ""
-
-    agent_version = str(hermes_agent_version or "").strip() or _read_hermes_agent_version()
-    hermes_current = agent_version or hermes_tag
 
     return {
         "ok": True,
@@ -600,6 +717,7 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
         "compose_dir": str(compose_dir),
         "project_root": str(project_root),
         "apply_in_progress": apply_in_progress,
+        "apply_job": apply_job,
         "workframe": {
             "current": installed_pkg,
             "latest": workframe_latest,
@@ -616,6 +734,8 @@ def updates_available(*, desktop_version: str = "", hermes_agent_version: str = 
             "api_env": integrity.get("api_env") or "",
             "api_build": integrity.get("api_build") or "",
             "ui_build": integrity.get("ui_build") or "",
+            "supervisor_build": integrity.get("supervisor_build") or "",
+            "supervisor_runtime": integrity.get("supervisor_runtime") or "",
             "install_drift": install_drift,
             "drift_reasons": integrity.get("drift_reasons") or [],
         },
@@ -793,8 +913,9 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
     target = str(target or "all").strip().lower()
     if target not in {"hermes", "workframe", "all"}:
         raise ValueError("invalid_update_target")
-    if _stack_apply_in_progress():
-        raise ValueError("update_already_in_progress")
+    # No hard block on the mtime-based lock here: a crashed apply leaves a stale
+    # lock the API cannot pid-check across containers. The supervisor and the
+    # apply script both hold pid-accurate locks and reject true concurrency.
     channel, apply_ready, apply_reason = _update_apply_channel()
     if not apply_ready:
         raise ValueError(str(apply_reason or "docker_apply_unavailable"))
@@ -814,8 +935,7 @@ def apply_update(target: str, *, user_ack: bool = False) -> dict[str, Any]:
             body["workframe_version"] = workframe_version
         if workframe_tarball:
             body["workframe_tarball"] = workframe_tarball
-        if target in {"workframe", "all"}:
-            body["async"] = True
+        body["async"] = True
         return _supervisor_stack_apply(body)
 
     if not Path(DOCKER_SOCK).exists():

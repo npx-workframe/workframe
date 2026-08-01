@@ -66,6 +66,7 @@ const REQUIRED = [
   'workframe-api/data/.gitkeep',
   'workframe-supervisor/server.py',
   'workframe-supervisor/Dockerfile',
+  'workframe-supervisor/workframe-supervisor-build.json',
   'workframe-ui/public/index.html',
   'workframe-ui/public/workframe-config.json',
   'workframe-ui/public/workframe-build.json',
@@ -299,6 +300,12 @@ for (const pack of PACKS) {
   if (wfBuild.package_version !== pkgVersion) {
     fail(`pack ${pack}: workframe-build package_version expected ${pkgVersion}, got ${wfBuild.package_version}`);
   }
+  const supervisorBuild = JSON.parse(
+    fs.readFileSync(path.join(root, 'workframe-supervisor/workframe-supervisor-build.json'), 'utf8'),
+  );
+  if (supervisorBuild.package_version !== pkgVersion) {
+    fail(`pack ${pack}: supervisor build package_version expected ${pkgVersion}, got ${supervisorBuild.package_version}`);
+  }
   if (wfCfg.package_version !== pkgVersion) {
     fail(`pack ${pack}: workframe-config package_version expected ${pkgVersion}, got ${wfCfg.package_version}`);
   }
@@ -348,6 +355,10 @@ for (const pack of PACKS) {
   }
   if (!fs.existsSync(path.join(root, 'scripts/apply-update-workframe.sh'))) {
     fail(`pack ${pack}: missing scripts/apply-update-workframe.sh`);
+  }
+  const composeHelper = fs.readFileSync(path.join(root, 'scripts/compose-docker-host.sh'), 'utf8');
+  if (!composeHelper.includes("printf '%s\\n' -f docker-compose.host-bindings.yml")) {
+    fail(`pack ${pack}: deferred supervisor restart compose args omit -f flags`);
   }
   const installPs1 = fs.readFileSync(path.join(root, 'scripts/install.ps1'), 'utf8');
   if (!installPs1.includes('open-workframe-ui.ps1')) fail(`pack ${pack}: install.ps1 missing open-workframe-ui`);

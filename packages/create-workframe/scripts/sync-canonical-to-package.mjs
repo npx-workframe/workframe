@@ -72,7 +72,7 @@ function copyIntoPackage(src, dst) {
   }
 }
 
-function writeApiBuildStamp(apiDir) {
+function writeBuildStamp(targetDir, filename) {
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
   const gitRef = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
   const stamp = {
@@ -80,18 +80,21 @@ function writeApiBuildStamp(apiDir) {
     synced_at: new Date().toISOString(),
     git_ref: gitRef.status === 0 ? gitRef.stdout.trim() : '',
   };
-  fs.writeFileSync(path.join(apiDir, 'workframe-api-build.json'), `${JSON.stringify(stamp, null, 2)}\n`);
+  fs.writeFileSync(path.join(targetDir, filename), `${JSON.stringify(stamp, null, 2)}\n`);
   return stamp;
 }
 
 console.log(`Sync canonical BFF: ${CANONICAL_API} -> ${PKG_API}`);
 copyTree(CANONICAL_API, PKG_API);
-const apiStamp = writeApiBuildStamp(PKG_API);
-writeApiBuildStamp(CANONICAL_API);
+const apiStamp = writeBuildStamp(PKG_API, 'workframe-api-build.json');
+writeBuildStamp(CANONICAL_API, 'workframe-api-build.json');
 console.log(`Stamped workframe-api-build.json @ ${apiStamp.package_version}`);
 
 console.log(`Sync canonical supervisor: ${CANONICAL_SUPERVISOR} -> ${PKG_SUPERVISOR}`);
 copyTree(CANONICAL_SUPERVISOR, PKG_SUPERVISOR);
+const supervisorStamp = writeBuildStamp(PKG_SUPERVISOR, 'workframe-supervisor-build.json');
+writeBuildStamp(CANONICAL_SUPERVISOR, 'workframe-supervisor-build.json');
+console.log(`Stamped workframe-supervisor-build.json @ ${supervisorStamp.package_version}`);
 
 const dataDir = path.join(PKG_API, 'data');
 fs.mkdirSync(dataDir, { recursive: true });

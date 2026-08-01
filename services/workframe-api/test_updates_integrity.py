@@ -30,6 +30,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (data_dir / "package-version").write_text("0.1.33\n", encoding="utf-8")
     _write_stamp(root, "workframe-api/workframe-api-build.json", "0.1.29")
     _write_stamp(root, "workframe-ui/public/workframe-build.json", "0.1.33")
+    _write_stamp(root, "workframe-supervisor/workframe-supervisor-build.json", "0.1.31")
 
     os.environ["WORKFRAME_API_DATA_DIR"] = str(data_dir)
     os.environ["WORKFRAME_PROJECT_ROOT"] = str(root)
@@ -41,14 +42,21 @@ with tempfile.TemporaryDirectory() as tmp:
         assert integrity["api_env"] == "0.1.29", integrity
         assert integrity["api_build"] == "0.1.29", integrity
         assert integrity["ui_build"] == "0.1.33", integrity
+        assert integrity["supervisor_build"] == "0.1.31", integrity
         assert not integrity["ok"], integrity
         assert any("compose env" in reason for reason in integrity["drift_reasons"]), integrity
 
         aligned = updates._workframe_install_integrity(
             {"package": "0.1.33", "api": "0.1.33"},
             root,
+            {
+                "api_build": "0.1.33",
+                "ui_build": "0.1.33",
+                "supervisor_build": "0.1.33",
+            },
         )
         _write_stamp(root, "workframe-api/workframe-api-build.json", "0.1.33")
+        _write_stamp(root, "workframe-supervisor/workframe-supervisor-build.json", "0.1.33")
         aligned = updates._workframe_install_integrity(
             {"package": "0.1.33", "api": "0.1.33"},
             root,

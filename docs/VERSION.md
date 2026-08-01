@@ -1,17 +1,23 @@
-# Workframe v0.1.47
+# Workframe v0.1.48
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.47 |
-| workframe API / UI | 0.1.47 (bundled in create-workframe) |
+| create-workframe | 0.1.48 |
+| workframe API / UI | 0.1.48 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.47 MyProject
+npx create-workframe@0.1.48 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.48
+
+- Updater completion now requires durable supervisor job success plus version alignment across the package pin, compose environment, API, UI, and running supervisor.
+- Workframe updates recover stale Created-state gateway/dashboard containers and restart the supervisor with valid Compose overlay arguments.
+- Hermes updates report the installed agent version, verify image-digest convergence, and reload the Workframe UI only after the recreated services are running.
 
 ## 0.1.47
 
