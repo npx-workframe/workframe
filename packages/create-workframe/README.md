@@ -3,7 +3,7 @@
 Published on npm as **create-workframe**.
 
 ```bash
-npx create-workframe@0.1.41 MyProject
+npx create-workframe@0.1.42 MyProject
 ```
 
 Scaffolds an isolated Workframe + Hermes project on Windows, macOS, and Linux.

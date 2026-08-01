@@ -58,6 +58,7 @@ _wf_sync_from_pack_dir() {
   fi
   if [[ -d "$pkg/workframe-ui/public" ]]; then
     echo "Syncing workframe-ui/public -> $UI_DIR"
+    rm -rf "$UI_DIR"
     _wf_sync_tree "$pkg/workframe-ui/public" "$UI_DIR"
   fi
   if [[ -d "$pkg/scripts" ]]; then
