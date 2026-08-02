@@ -252,56 +252,11 @@ services:
 }
 
 function nginxConfYaml() {
-  return `map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
-}
-
-server {
-    listen 80;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Workframe API: snapshot-lite, files, chat history, profile routing
-    location /api/ {
-        proxy_pass http://workframe-api:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_read_timeout 86400s;
-        proxy_send_timeout 86400s;
-        proxy_buffering off;
-        proxy_cache off;
-        add_header X-Accel-Buffering no;
-    }
-
-    # Hermes admin dashboard: ops, secrets, skills
-    location /hermes-dashboard/ {
-        proxy_pass http://dashboard:9119/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Prefix /hermes-dashboard;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
-        proxy_read_timeout 86400s;
-        proxy_send_timeout 86400s;
-    }
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location ~* \\.(js|css|svg|webmanifest|png|jpg|jpeg|gif|ico|woff2?)$ {
-        expires 1h;
-        add_header Cache-Control "public, immutable";
-    }
-}
-`;
+  const nginxPath = path.join(PKG_ROOT, 'workframe-ui', 'docker', 'nginx.conf');
+  if (!fs.existsSync(nginxPath)) {
+    throw new Error(`Missing bundled Workframe nginx config: ${nginxPath}`);
+  }
+  return fs.readFileSync(nginxPath, 'utf8');
 }
 
 function contInitWorkspaceLinkSh() {

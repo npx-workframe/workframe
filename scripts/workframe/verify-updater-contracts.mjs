@@ -14,6 +14,15 @@ const generatorSource = fs.readFileSync(
   path.join(root, 'packages/create-workframe/bin/create-workframe.js'),
   'utf8',
 );
+const syncSource = fs.readFileSync(
+  path.join(root, 'packages/create-workframe/scripts/sync-canonical-to-package.mjs'),
+  'utf8',
+);
+const canonicalNginx = fs.readFileSync(path.join(root, 'apps/web/docker/nginx.conf'), 'utf8');
+const packageNginx = fs.readFileSync(
+  path.join(root, 'packages/create-workframe/workframe-ui/docker/nginx.conf'),
+  'utf8',
+);
 const sourceHostBindings = fs.readFileSync(
   path.join(root, 'infra/compose/workframe/docker-compose.host-bindings.yml'),
   'utf8',
@@ -89,6 +98,31 @@ requireContract(
 requireContract(
   sourceHostBindings.includes('- ${WORKFRAME_HOST_PROJECT_ROOT}/scripts/workframe:/opt/install/scripts:ro'),
   'Source host-bindings overlay must pin the supervisor script mount to the absolute source root.',
+);
+requireContract(
+  applySource.includes('WF_UPDATE_NGINX_SRC="$pkg/workframe-ui/docker/nginx.conf"')
+    && applySource.includes('Syncing workframe-ui/docker/nginx.conf -> $nginx_conf')
+    && applySource.includes('mv -f "$nginx_tmp" "$nginx_conf"'),
+  'Workframe updates must sync the packaged nginx config before recreating the UI.',
+);
+requireContract(
+  generatorSource.includes("path.join(PKG_ROOT, 'workframe-ui', 'docker', 'nginx.conf')")
+    && generatorSource.includes("return fs.readFileSync(nginxPath, 'utf8')"),
+  'Generated installs must consume the packaged canonical nginx config instead of a duplicate template.',
+);
+requireContract(
+  syncSource.includes("path.join(REPO_ROOT, 'apps/web/docker/nginx.conf')")
+    && syncSource.includes('copyIntoPackage(CANONICAL_UI_NGINX, PKG_UI_NGINX)'),
+  'Canonical sync must copy the source UI nginx config into the installer package.',
+);
+requireContract(
+  canonicalNginx === packageNginx,
+  'Canonical and packaged UI nginx configs must be byte-identical.',
+);
+requireContract(
+  canonicalNginx.includes('location = /index.html')
+    && canonicalNginx.includes('Cache-Control "no-cache, no-store, must-revalidate" always'),
+  'Canonical UI nginx must prevent index HTML caching across in-app updates.',
 );
 
 if (failures.length) {

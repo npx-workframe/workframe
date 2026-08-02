@@ -8,7 +8,11 @@ const profilePath = path.join(
   root,
   'apps/web/src/components/workspace/UserProfileSheet.tsx',
 );
-const source = fs.readFileSync(profilePath, 'utf8');
+const profileSource = fs.readFileSync(profilePath, 'utf8');
+const updatesSource = fs.readFileSync(
+  path.join(root, 'apps/web/src/components/workspace/StackUpdatesPanel.tsx'),
+  'utf8',
+);
 const failures = [];
 
 function requireContract(condition, message) {
@@ -16,21 +20,21 @@ function requireContract(condition, message) {
 }
 
 requireContract(
-  source.includes("import { WfActionButton } from '@/components/ui/WfActionButton'"),
+  profileSource.includes("import { WfActionButton } from '@/components/ui/WfActionButton'"),
   'UserProfileSheet must use the theme-aware WfActionButton.',
 );
 requireContract(
-  !source.includes("import { Button } from '@/components/ui/button'"),
+  !profileSource.includes("import { Button } from '@/components/ui/button'"),
   'UserProfileSheet must not import the legacy filled Button.',
 );
 
-const actionsStart = source.indexOf('      actions={');
-const footerStart = source.indexOf('      footer={', actionsStart);
+const actionsStart = profileSource.indexOf('      actions={');
+const footerStart = profileSource.indexOf('      footer={', actionsStart);
 requireContract(actionsStart >= 0, 'UserProfileSheet must provide SettingsSheetFrame actions.');
 requireContract(footerStart > actionsStart, 'UserProfileSheet actions must precede the rail footer.');
 
 if (actionsStart >= 0 && footerStart > actionsStart) {
-  const actions = source.slice(actionsStart, footerStart);
+  const actions = profileSource.slice(actionsStart, footerStart);
   requireContract(actions.includes("tab === 'profile'"), 'Profile Save must only appear on the profile tab.');
   requireContract(actions.includes('<WfActionButton'), 'Profile Save must be a WfActionButton.');
   requireContract(actions.includes('tone="primary"'), 'Profile Save must use the primary theme-aware tone.');
@@ -38,15 +42,28 @@ if (actionsStart >= 0 && footerStart > actionsStart) {
 }
 
 if (footerStart >= 0) {
-  const bodyStart = source.indexOf('\n    >', footerStart);
+  const bodyStart = profileSource.indexOf('\n    >', footerStart);
   if (bodyStart >= 0) {
-    const body = source.slice(bodyStart);
+    const body = profileSource.slice(bodyStart);
     requireContract(
       !body.includes('Save changes'),
       'Profile Save must not be rendered inside scrollable settings body content.',
     );
   }
 }
+
+requireContract(
+  updatesSource.includes("reloadUrl.searchParams.set('_wf_reload', Date.now().toString(36))"),
+  'Stack updater reload must use a unique URL so stale index HTML cannot survive an update.',
+);
+requireContract(
+  updatesSource.includes('window.location.replace(reloadUrl.toString())'),
+  'Stack updater must navigate to the cache-busted Workframe URL after health verification.',
+);
+requireContract(
+  !updatesSource.includes('window.location.reload()'),
+  'Stack updater must not use a cache-reusable location.reload().',
+);
 
 if (failures.length) {
   console.error('UI CONTRACT VERIFY FAILED:');

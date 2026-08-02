@@ -309,7 +309,9 @@ export function StackUpdatesPanel({ onBadgeChange }: StackUpdatesPanelProps) {
       advance('refresh')
       setUpdateSteps((current) => completeUpdateSteps(current))
       await new Promise((resolve) => window.setTimeout(resolve, 500))
-      window.location.reload()
+      const reloadUrl = new URL(window.location.href)
+      reloadUrl.searchParams.set('_wf_reload', Date.now().toString(36))
+      window.location.replace(reloadUrl.toString())
     } catch (err) {
       const notice = formatWorkframeErrorMessage(err, 'Apply update')
       setError(notice)

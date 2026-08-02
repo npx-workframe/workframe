@@ -1,17 +1,23 @@
-# Workframe v0.1.50
+# Workframe v0.1.51
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.50 |
-| workframe API / UI | 0.1.50 (bundled in create-workframe) |
+| create-workframe | 0.1.51 |
+| workframe API / UI | 0.1.51 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.50 MyProject
+npx create-workframe@0.1.51 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.51
+
+- Reload Workframe after an in-app update with a unique URL so stale index HTML cannot survive the restart.
+- Sync the canonical Nginx config through source, package, generated installs, and existing-install updates.
+- Gate generated installs on no-store index HTML while retaining immutable hashed assets.
 
 ## 0.1.50
 

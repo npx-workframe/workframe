@@ -59,6 +59,9 @@ _wf_sync_from_pack_dir() {
   if [[ -d "$pkg/workframe-ui/public" ]]; then
     WF_UPDATE_UI_SRC="$pkg/workframe-ui/public"
   fi
+  if [[ -f "$pkg/workframe-ui/docker/nginx.conf" ]]; then
+    WF_UPDATE_NGINX_SRC="$pkg/workframe-ui/docker/nginx.conf"
+  fi
   if [[ -d "$pkg/scripts" ]]; then
     for script in "$pkg/scripts"/*.sh; do
       [[ -f "$script" ]] || continue
@@ -297,6 +300,15 @@ _wf_ensure_ui_service() {
   [[ -n "$svc" ]] || return 0
 
   local nginx_conf="$compose_cd/workframe-ui/docker/nginx.conf"
+  if [[ -n "${WF_UPDATE_NGINX_SRC:-}" && -f "$WF_UPDATE_NGINX_SRC" ]]; then
+    echo "Syncing workframe-ui/docker/nginx.conf -> $nginx_conf"
+    mkdir -p "$(dirname "$nginx_conf")"
+    local nginx_tmp
+    nginx_tmp="$(mktemp "${nginx_conf}.update.XXXXXX")"
+    cp "$WF_UPDATE_NGINX_SRC" "$nginx_tmp"
+    chmod 0644 "$nginx_tmp" 2>/dev/null || true
+    mv -f "$nginx_tmp" "$nginx_conf"
+  fi
   if [[ ! -f "$nginx_conf" ]]; then
     echo "ERROR: UI nginx config missing: $nginx_conf" >&2
     exit 1

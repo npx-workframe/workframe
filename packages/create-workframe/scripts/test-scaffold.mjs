@@ -286,6 +286,10 @@ for (const pack of PACKS) {
   if (nginx.includes('/hermes-profiles/')) {
     fail(`pack ${pack}: nginx should not include /hermes-profiles/ locations`);
   }
+  if (!nginx.includes('location = /index.html')
+      || !nginx.includes('Cache-Control "no-cache, no-store, must-revalidate" always')) {
+    fail(`pack ${pack}: nginx must disable index HTML caching for in-app reloads`);
+  }
 
   const wfCfg = JSON.parse(fs.readFileSync(path.join(root, 'workframe-ui/public/workframe-config.json'), 'utf8'));
   if (wfCfg.native_profile !== expectedSlug) {

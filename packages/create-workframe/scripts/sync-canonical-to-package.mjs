@@ -15,6 +15,8 @@ const CANONICAL_API = path.join(REPO_ROOT, 'services/workframe-api');
 const PKG_API = path.join(PKG_ROOT, 'workframe-api');
 const CANONICAL_SUPERVISOR = path.join(REPO_ROOT, 'services/workframe-supervisor');
 const PKG_SUPERVISOR = path.join(PKG_ROOT, 'workframe-supervisor');
+const CANONICAL_UI_NGINX = path.join(REPO_ROOT, 'apps/web/docker/nginx.conf');
+const PKG_UI_NGINX = path.join(PKG_ROOT, 'workframe-ui/docker/nginx.conf');
 
 const SKIP_DIRS = new Set([
   'data',
@@ -95,6 +97,9 @@ copyTree(CANONICAL_SUPERVISOR, PKG_SUPERVISOR);
 const supervisorStamp = writeBuildStamp(PKG_SUPERVISOR, 'workframe-supervisor-build.json');
 writeBuildStamp(CANONICAL_SUPERVISOR, 'workframe-supervisor-build.json');
 console.log(`Stamped workframe-supervisor-build.json @ ${supervisorStamp.package_version}`);
+
+console.log(`Sync canonical UI nginx: ${CANONICAL_UI_NGINX} -> ${PKG_UI_NGINX}`);
+copyIntoPackage(CANONICAL_UI_NGINX, PKG_UI_NGINX);
 
 const dataDir = path.join(PKG_API, 'data');
 fs.mkdirSync(dataDir, { recursive: true });
