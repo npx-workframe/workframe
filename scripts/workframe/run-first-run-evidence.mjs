@@ -35,7 +35,11 @@ function run(cmd, cmdArgs, opts = {}) {
 }
 
 function gitRef() {
-  const res = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: root });
+  const res = spawnSync(
+    'git',
+    ['-c', `safe.directory=${root}`, 'rev-parse', '--short', 'HEAD'],
+    { encoding: 'utf8', cwd: root },
+  );
   return res.status === 0 ? res.stdout.trim() : 'unknown';
 }
 
