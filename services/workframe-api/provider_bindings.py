@@ -618,6 +618,20 @@ def _finalize_hermes_device_oauth(user_id: str, provider_id: str, spec: dict[str
     return None
 
 
+def _oauth_broker_unsupported(user_id: str, provider_id: str, spec: dict[str, Any], session_id: str) -> dict[str, Any]:
+    """Return a stable failure after scrubbing a token-bearing Hermes auth file."""
+    _finalize_hermes_device_oauth(user_id, provider_id, spec)
+    _device_oauth_session_patch(session_id, {"status": "error", "finalized": True})
+    return {
+        "ok": False,
+        "provider": provider_id,
+        "session_id": session_id,
+        "status": "error",
+        "error": "oauth_broker_unsupported",
+        "message": "OAuth completed upstream, but this Workframe install has no server-side refresh broker; no runtime token was published.",
+    }
+
+
 def _device_oauth_session_get(session_id: str) -> dict[str, Any] | None:
     with _oauth_device_lock:
         row = _oauth_device_sessions.get(str(session_id or "").strip())
@@ -784,31 +798,11 @@ def device_oauth_status(user_id: str, provider_id: str, session_id: str) -> dict
             "user_code": sess.get("user_code"),
         }
     if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        if not sess.get("finalized"):
-            _finalize_hermes_device_oauth(user_id, provider_id, spec)
-            _device_oauth_session_patch(session_id, {"status": "connected", "finalized": True})
-        return {
-            "ok": True,
-            "provider": provider_id,
-            "session_id": session_id,
-            "status": "connected",
-            "verification_uri": sess.get("verification_uri"),
-            "user_code": sess.get("user_code"),
-        }
+        return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
     lowered = log_text.lower()
     if any(token in lowered for token in ("login successful", "auth added", "credentials saved", "successfully authenticated", "logged in")):
         if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-            if not sess.get("finalized"):
-                _finalize_hermes_device_oauth(user_id, provider_id, spec)
-                _device_oauth_session_patch(session_id, {"status": "connected", "finalized": True})
-            return {
-                "ok": True,
-                "provider": provider_id,
-                "session_id": session_id,
-                "status": "connected",
-                "verification_uri": sess.get("verification_uri"),
-                "user_code": sess.get("user_code"),
-            }
+            return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
     if any(token in lowered for token in ("autherror", "login timed out", "login cancelled", "failed")):
         _device_oauth_session_patch(session_id, {"status": "error"})
         return {
