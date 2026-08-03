@@ -1013,6 +1013,7 @@ def _patch_workspace_integrations(
         if not row:
             return 404, {"ok": False, "error": "workspace_not_found"}
         settings = _srv()._parse_workspace_settings(row)
+        previous_credential_mode = str(settings.get("credential_mode") or "byok").strip().lower()
         gh = settings.get("github_oauth") if isinstance(settings.get("github_oauth"), dict) else {}
         if "github_oauth_client_id" in body:
             gh["client_id"] = str(body.get("github_oauth_client_id") or "").strip()
@@ -1038,6 +1039,10 @@ def _patch_workspace_integrations(
             (json.dumps(settings, sort_keys=True), now_ts, workspace_id),
         )
         conn.commit()
+        if "credential_mode" in body and str(settings.get("credential_mode") or "byok").strip().lower() != previous_credential_mode:
+            # Payer authority changed; every runtime lease in this workspace
+            # must be reissued against the new user/workspace binding.
+            _srv()._revoke_runtime_llm_leases(workspace_id=workspace_id)
         if "messaging" in body:
             sync_result = _srv()._sync_workspace_messaging_gateway(workspace_id)
             if not sync_result.get("ok"):

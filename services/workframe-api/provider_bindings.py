@@ -14,6 +14,7 @@ from typing import Any
 
 import provider_bootstrap
 import credential_lifecycle
+import credential_vault
 
 
 def _srv():
@@ -231,6 +232,43 @@ def _scrub_oauth_auth_material(auth: dict[str, Any], hermes_auth_id: str) -> boo
         if changed:
             auth["credentials"] = kept
     return changed
+
+
+def _quarantine_legacy_oauth(user_id: str, provider_id: str, auth: dict[str, Any]) -> str:
+    """Move legacy runtime OAuth material into the server vault before scrub."""
+    spec = _srv()._catalog_provider(provider_id) or {}
+    auth_id = _hermes_auth_id_for_spec(spec) or str(provider_id or "").strip()
+    block = _extract_oauth_block_from_auth(auth, auth_id)
+    if not isinstance(block, dict):
+        return ""
+    binding_id = str(secrets.token_hex(16))
+    try:
+        credential_vault.store_secret(
+            binding_id,
+            json.dumps({"kind": "legacy_oauth", "provider": provider_id, "authority": block}, sort_keys=True),
+            provider=str(provider_id or "").strip().lower(),
+            scope="user",
+            user_id=user_id,
+        )
+        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
+        now = _srv()._utc_now()
+        conn.execute(
+            """INSERT INTO credential_bindings
+               (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
+                credential_ref, label, is_active, lifecycle_state, created_by, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (binding_id, None, user_id, None, str(provider_id).lower(), "oauth",
+             credential_vault.vault_ref(binding_id), f"Quarantined {auth_id}", 0, "quarantined", user_id, now, now),
+        )
+        conn.commit()
+        conn.close()
+        return binding_id
+    except (OSError, RuntimeError, sqlite3.Error, ValueError):
+        try:
+            credential_vault.delete_secret(binding_id)
+        except Exception:
+            pass
+        return ""
 
 
 def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> bool:
@@ -650,6 +688,9 @@ def _finalize_hermes_device_oauth(user_id: str, provider_id: str, spec: dict[str
 
 def _oauth_broker_unsupported(user_id: str, provider_id: str, spec: dict[str, Any], session_id: str) -> dict[str, Any]:
     """Return a stable failure after scrubbing a token-bearing Hermes auth file."""
+    legacy = _load_user_hermes_auth(user_id)
+    if isinstance(legacy, dict):
+        _quarantine_legacy_oauth(user_id, provider_id, legacy)
     _finalize_hermes_device_oauth(user_id, provider_id, spec)
     _device_oauth_session_patch(session_id, {"status": "error", "finalized": True})
     return {
