@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import provider_bootstrap
+import credential_lifecycle
 
 
 def _srv():
@@ -367,8 +368,8 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
             _srv()._remove_auth_metadata(_srv()._user_hermes_auth_path(user_id), cred_ref or f"env:{env_var}")
         now = _srv()._utc_now()
         conn.execute(
-            "UPDATE credential_bindings SET is_active = 0, deleted_at = ?, updated_at = ? WHERE id = ?",
-            (now, now, credential_id),
+            "UPDATE credential_bindings SET is_active = 0, lifecycle_state = 'revoked', lifecycle_updated_at = ?, deleted_at = ?, updated_at = ? WHERE id = ?",
+            (now, now, now, credential_id),
         )
         conn.commit()
         conn.close()
@@ -379,6 +380,10 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         provider=str(row["provider"]),
         credential_binding_id=credential_id,
     )
+    try:
+        credential_lifecycle.advance_generation(credential_id, state="revoked")
+    except (ValueError, sqlite3.Error):
+        pass
     return {"ok": True, "credential_id": credential_id, "provider": str(row["provider"])}
 
 
