@@ -22,6 +22,7 @@
     "verify:version": "node scripts/workframe/verify-version-agreement.mjs",
     "verify:docs": "node scripts/workframe/verify-docs-claims.mjs",
     "verify:ui-contracts": "node scripts/workframe/verify-ui-contracts.mjs",
+    "verify:ledger": "node scripts/workframe/verify-ledger.mjs",
     "verify:updater-contracts": "node scripts/workframe/verify-updater-contracts.mjs",
     "verify:evidence": "node scripts/workframe/validate-release-evidence.mjs",
     "verify:release-gates": "node scripts/workframe/verify-release-gates.mjs",
@@ -30,7 +31,7 @@
     "test:first-run-evidence": "node scripts/workframe/run-first-run-evidence.mjs",
     "test:api": "pnpm --filter @workframe/workframe-api typecheck",
     "test:scaffold": "node packages/create-workframe/scripts/test-scaffold.mjs",
-    "test:ci": "pnpm verify:version && pnpm verify:docs && pnpm verify:ui-contracts && pnpm verify:updater-contracts && pnpm verify:evidence && pnpm verify:public && pnpm --filter @workframe/workframe-api typecheck && python services/workframe-supervisor/test_supervisor_negative.py && pnpm build:web && node packages/create-workframe/scripts/sync-canonical-to-package.mjs && node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build && pnpm test:scaffold && node scripts/workframe/run-package-install-evidence.mjs --skip-prep && node scripts/workframe/run-negative-install-evidence.mjs"
+    "test:ci": "pnpm verify:version && pnpm verify:docs && pnpm verify:ledger && pnpm verify:ui-contracts && pnpm verify:updater-contracts && pnpm verify:evidence && pnpm verify:public && pnpm --filter @workframe/workframe-api typecheck && python services/workframe-supervisor/test_supervisor_negative.py && pnpm build:web && node packages/create-workframe/scripts/sync-canonical-to-package.mjs && node packages/create-workframe/scripts/bundle-workframe-ui.mjs --skip-build && pnpm test:scaffold && node scripts/workframe/run-package-install-evidence.mjs --skip-prep && node scripts/workframe/run-negative-install-evidence.mjs"
   },
   "devDependencies": {
     "sharp": "^0.35.3",
