@@ -22,6 +22,10 @@ class FailingServer:
     def _user_can_access_room(conn, room_id: str, user_id: str) -> bool:
         return True
 
+    @staticmethod
+    def _log_handler_error(route: str, exc: BaseException) -> None:
+        return None
+
 
 class Handler(handler_workspace.WorkspaceRoutesMixin):
     auth_user = "user-1"
