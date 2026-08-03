@@ -22,15 +22,20 @@ jobs:
       - name: Apply the narrow authorization correction
         run: |
           python - <<'PY'
+          import re
           from pathlib import Path
 
           path = Path("services/workframe-api/auth_gate.py")
           source = path.read_text(encoding="utf-8")
-          old = """            workspace_id = _workspace_id_for_scope(conn, kind, ref)\n            if not workspace_id:\n                return True\n            role = _workspace_role(conn, workspace_id, user_id)\n"""
-          new = """            workspace_id = _workspace_id_for_scope(conn, kind, ref)\n            if not workspace_id:\n                return False\n            role = _workspace_role(conn, workspace_id, user_id)\n"""
-          if source.count(old) != 1:
-              raise SystemExit("expected exactly one scoped fail-open branch")
-          path.write_text(source.replace(old, new), encoding="utf-8")
+          pattern = re.compile(
+              r"(workspace_id = _workspace_id_for_scope\(conn, kind, ref\)\n"
+              r"\s+if not workspace_id:\n\s+)return True"
+              r"(\n\s+role = _workspace_role\(conn, workspace_id, user_id\))"
+          )
+          corrected, count = pattern.subn(r"\1return False\2", source)
+          if count != 1:
+              raise SystemExit(f"expected one scoped fail-open branch, found {count}")
+          path.write_text(corrected, encoding="utf-8")
           PY
       - name: Run authorization regressions
         run: |
