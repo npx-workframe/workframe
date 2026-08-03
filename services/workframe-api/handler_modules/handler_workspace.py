@@ -17,6 +17,7 @@ import activity_feed
 import api_errors
 import chat_bind
 import message_reactions
+import request_body
 from email_sender import APP_BASE_URL, send_branded_invite_email
 
 list_room_sessions = chat_bind.list_room_sessions
@@ -218,19 +219,22 @@ class WorkspaceRoutesMixin:
         viewer_id = str(getattr(self, "auth_user", "") or "")
         try:
             conn = srv._workframe_db()
-            conn.row_factory = sqlite3.Row
-            if not srv._user_can_access_room(conn, rid, viewer_id):
+            try:
+                conn.row_factory = sqlite3.Row
+                if not srv._user_can_access_room(conn, rid, viewer_id):
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                members = conn.execute(
+                    "SELECT * FROM room_memberships WHERE room_id = ? AND deleted_at IS NULL",
+                    (rid,),
+                ).fetchall()
+                payload = srv._enrich_room_members(conn, [dict(m) for m in members])
+            finally:
                 conn.close()
-                self._json(403, {"ok": False, "error": "forbidden"})
-                return
-            members = conn.execute(
-                "SELECT * FROM room_memberships WHERE room_id = ? AND deleted_at IS NULL",
-                (rid,),
-            ).fetchall()
-            payload = srv._enrich_room_members(conn, [dict(m) for m in members])
-            conn.close()
-        except Exception:
-            payload = []
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET room members", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         self._json(200, {"ok": True, "room_id": rid, "members": payload})
 
     def _route_pattern_get_room_live(self, path: str, qs: dict[str, list[str]]) -> None:
@@ -320,49 +324,50 @@ class WorkspaceRoutesMixin:
         if not user_id:
             self._json(401, {"ok": False, "error": "no_session"})
             return
-        limit = int(qs.get("limit", ["50"])[0])
-        offset = int(qs.get("offset", ["0"])[0])
-        room = None
+        try:
+            limit, offset = request_body.parse_pagination(qs)
+        except request_body.RequestBodyError as exc:
+            self._json(exc.status, {"ok": False, "error": exc.code})
+            return
         try:
             conn = srv._workframe_db()
-            room = conn.execute(
-                "SELECT id, history_epoch FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL",
-                (slug_or_id, slug_or_id),
-            ).fetchone()
-            if not room:
+            try:
+                room = conn.execute(
+                    "SELECT id, history_epoch FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL",
+                    (slug_or_id, slug_or_id),
+                ).fetchone()
+                if not room:
+                    self._json(404, {"ok": False, "error": "room_not_found"})
+                    return
+                rid = room["id"]
+                if not srv._user_can_access_room(conn, rid, user_id):
+                    self._json(403, {"ok": False, "error": "forbidden"})
+                    return
+                messages = conn.execute(
+                    """
+                    SELECT * FROM (
+                        SELECT * FROM messages
+                        WHERE room_id = ? AND deleted_at IS NULL
+                        ORDER BY created_at DESC
+                        LIMIT ? OFFSET ?
+                    ) AS recent
+                    ORDER BY created_at ASC
+                    """,
+                    (rid, limit, offset),
+                ).fetchall()
+                total = conn.execute(
+                    "SELECT COUNT(*) FROM messages WHERE room_id = ? AND deleted_at IS NULL",
+                    (rid,),
+                ).fetchone()[0]
+                payload = srv._enrich_room_messages(conn, messages)
+            finally:
                 conn.close()
-                self._json(404, {"error": "room_not_found"})
-                return
-            rid = room["id"]
-            if not srv._user_can_access_room(conn, rid, user_id):
-                conn.close()
-                self._json(403, {"ok": False, "error": "forbidden"})
-                return
-            messages = conn.execute(
-                """
-                SELECT * FROM (
-                    SELECT * FROM messages
-                    WHERE room_id = ? AND deleted_at IS NULL
-                    ORDER BY created_at DESC
-                    LIMIT ? OFFSET ?
-                ) AS recent
-                ORDER BY created_at ASC
-                """,
-                (rid, limit, offset),
-            ).fetchall()
-            total = conn.execute(
-                "SELECT COUNT(*) FROM messages WHERE room_id = ? AND deleted_at IS NULL",
-                (rid,),
-            ).fetchone()[0]
-            payload = srv._enrich_room_messages(conn, messages)
-            conn.close()
-        except Exception:
-            messages = []
-            total = 0
-            payload = []
-        history_epoch = 0
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET room messages", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         try:
-            history_epoch = int(room["history_epoch"] or 0) if room else 0
+            history_epoch = int(room["history_epoch"] or 0)
         except (KeyError, TypeError, ValueError):
             history_epoch = 0
         self._json(
@@ -846,14 +851,19 @@ class WorkspaceRoutesMixin:
             self._json(404, {"ok": False, "error": "workspace_not_found"})
             return
         try:
-            conn = sqlite3.connect(str(srv.AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-            conn.row_factory = sqlite3.Row
-            invites = conn.execute(
-                "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
-                (ws_id,)).fetchall()
-            conn.close()
-        except Exception:
-            invites = []
+            conn = srv._workframe_db()
+            try:
+                conn.row_factory = sqlite3.Row
+                invites = conn.execute(
+                    "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
+                    (ws_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET workspace invites", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         self._json(200, {"ok": True, "invites": [dict(i) for i in invites]})
 
     def _route_pattern_get_invite(self, path: str, qs: dict[str, list[str]]) -> None:
@@ -865,14 +875,19 @@ class WorkspaceRoutesMixin:
         token = parts[2]
         token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
         try:
-            conn = sqlite3.connect(str(srv.AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-            conn.row_factory = sqlite3.Row
-            inv = conn.execute(
-                "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE token_hash = ? AND deleted_at IS NULL",
-                (token_hash,)).fetchone()
-            conn.close()
-        except Exception:
-            inv = None
+            conn = srv._workframe_db()
+            try:
+                conn.row_factory = sqlite3.Row
+                inv = conn.execute(
+                    "SELECT id, workspace_id, email, role, invited_by_user_id, expires_at, created_at, accepted_at, deleted_at FROM workspace_invites WHERE token_hash = ? AND deleted_at IS NULL",
+                    (token_hash,),
+                ).fetchone()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET invite", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         if not inv:
             self._json(404, {"ok": False, "error": "invite_not_found"})
             return
@@ -890,14 +905,19 @@ class WorkspaceRoutesMixin:
             self._json(404, {"ok": False, "error": "workspace_not_found"})
             return
         try:
-            conn = sqlite3.connect(str(srv.AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-            conn.row_factory = sqlite3.Row
-            items = conn.execute(
-                "SELECT * FROM memory_items WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
-                (ws_id,)).fetchall()
-            conn.close()
-        except Exception:
-            items = []
+            conn = srv._workframe_db()
+            try:
+                conn.row_factory = sqlite3.Row
+                items = conn.execute(
+                    "SELECT * FROM memory_items WHERE workspace_id = ? AND deleted_at IS NULL ORDER BY created_at DESC",
+                    (ws_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET workspace memory", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         self._json(200, {"ok": True, "items": [dict(i) for i in items]})
 
     def _route_pattern_get_workspace_budget(self, path: str, qs: dict[str, list[str]]) -> None:
@@ -911,14 +931,19 @@ class WorkspaceRoutesMixin:
             self._json(404, {"ok": False, "error": "workspace_not_found"})
             return
         try:
-            conn = sqlite3.connect(str(srv.AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-            conn.row_factory = sqlite3.Row
-            policies = conn.execute(
-                "SELECT * FROM budget_policies WHERE workspace_id = ? ORDER BY created_at DESC",
-                (ws_id,)).fetchall()
-            conn.close()
-        except Exception:
-            policies = []
+            conn = srv._workframe_db()
+            try:
+                conn.row_factory = sqlite3.Row
+                policies = conn.execute(
+                    "SELECT * FROM budget_policies WHERE workspace_id = ? ORDER BY created_at DESC",
+                    (ws_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET workspace budget", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         self._json(200, {"ok": True, "budget_policies": [dict(p) for p in policies]})
 
     def _route_pattern_get_workspace_grants(self, path: str, qs: dict[str, list[str]]) -> None:
@@ -932,14 +957,19 @@ class WorkspaceRoutesMixin:
             self._json(404, {"ok": False, "error": "workspace_not_found"})
             return
         try:
-            conn = sqlite3.connect(str(srv.AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
-            conn.row_factory = sqlite3.Row
-            grants = conn.execute(
-                "SELECT cg.*, cb.provider AS binding_provider FROM credential_grants cg LEFT JOIN credential_bindings cb ON cb.id = cg.credential_binding_id WHERE cb.workspace_id = ? OR cg.grantee_id = ? ORDER BY cg.created_at DESC",
-                (ws_id, ws_id)).fetchall()
-            conn.close()
-        except Exception:
-            grants = []
+            conn = srv._workframe_db()
+            try:
+                conn.row_factory = sqlite3.Row
+                grants = conn.execute(
+                    "SELECT cg.*, cb.provider AS binding_provider FROM credential_grants cg LEFT JOIN credential_bindings cb ON cb.id = cg.credential_binding_id WHERE cb.workspace_id = ? OR cg.grantee_id = ? ORDER BY cg.created_at DESC",
+                    (ws_id, ws_id),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error as exc:
+            srv._log_handler_error("GET workspace grants", exc)
+            self._json(503, {"ok": False, "error": "database_unavailable"})
+            return
         self._json(200, {"ok": True, "grants": [dict(g) for g in grants]})
 
     def _route_pattern_get_workspace_events(self, path: str, qs: dict[str, list[str]]) -> None:

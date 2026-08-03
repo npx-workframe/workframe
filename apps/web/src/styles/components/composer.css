@@ -369,7 +369,7 @@
 .wf-composer__slash-error {
   padding: 12px;
   font-size: 11px;
-  color: #f87171;
+  color: var(--wf-error-soft);
   margin: 0;
 }
 

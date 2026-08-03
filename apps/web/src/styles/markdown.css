@@ -553,8 +553,8 @@
 }
 
 .wf-markdown .wf-md-callout--warn {
-  border-left: 3px solid #d97706;
-  background: color-mix(in srgb, #d97706 10%, transparent);
+  border-left: 3px solid var(--wf-warning);
+  background: color-mix(in srgb, var(--wf-warning) 10%, transparent);
 }
 
 .wf-markdown .wf-md-callout__title {
@@ -568,7 +568,7 @@
 }
 
 .wf-markdown .wf-md-callout--warn .wf-md-callout__title {
-  color: #d97706;
+  color: var(--wf-warning);
 }
 
 /* Relief identity: Markdown keeps one structure while Neo themes supply depth. */

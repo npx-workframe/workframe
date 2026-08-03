@@ -851,8 +851,8 @@
   display: grid;
   place-items: center;
   border-radius: inherit;
-  background: color-mix(in srgb, var(--wf-bg) 62%, #000);
-  color: #fff;
+  background: color-mix(in srgb, var(--wf-bg) 62%, var(--wf-text));
+  color: var(--wf-primary-foreground);
   opacity: 0;
   transition: opacity 0.15s ease;
   pointer-events: none;

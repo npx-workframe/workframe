@@ -170,7 +170,8 @@ class AuthRoutesMixin:
                 },
             )
         except Exception as exc:
-            self._json(500, {"ok": False, "error": str(exc)})
+            srv._log_handler_error("POST /api/setup", exc)
+            self._json(500, {"ok": False, "error": "internal_error"})
 
     def _route_post_auth_start(self, body: dict) -> None:
         srv = _srv()
