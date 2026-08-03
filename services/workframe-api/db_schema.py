@@ -383,6 +383,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     created_by      TEXT DEFAULT NULL,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL,
+    history_epoch   INTEGER NOT NULL DEFAULT 0,
     deleted_at      TEXT DEFAULT NULL,
     FOREIGN KEY (workspace_id) REFERENCES workspaces (id),
     FOREIGN KEY (agent_profile_id) REFERENCES agent_profiles (id),
@@ -615,6 +616,22 @@ def _migrate_v15_message_reactions(conn: sqlite3.Connection) -> None:
         VALUES ('15', 'message reactions for room and agent-DM chat surfaces', datetime('now'))
         """,
     )
+
+
+def _migrate_v16_room_history_epoch(conn: sqlite3.Connection) -> None:
+    if conn.execute("SELECT 1 FROM schema_migrations WHERE version = '16' LIMIT 1").fetchone():
+        return
+    cols = {str(row[1]) for row in conn.execute("PRAGMA table_info(rooms)")}
+    if "history_epoch" not in cols:
+        conn.execute("ALTER TABLE rooms ADD COLUMN history_epoch INTEGER NOT NULL DEFAULT 0")
+    conn.execute(
+        """
+        INSERT INTO schema_migrations (version, description, applied_at)
+        VALUES ('16', 'durable room history epoch for shared chat resets', datetime('now'))
+        """,
+    )
+
+
 def _migrate_v8_room_avatars(conn: sqlite3.Connection) -> None:
     if conn.execute("SELECT 1 FROM schema_migrations WHERE version = '8' LIMIT 1").fetchone():
         return
@@ -766,6 +783,7 @@ def ensure_workframe_db_schema(open_db: OpenDb) -> None:
         _migrate_v12_adopt_install_keys_to_owners(conn)
         _migrate_v13_workspace_members_in_spaces(conn)
         _migrate_v15_message_reactions(conn)
+        _migrate_v16_room_history_epoch(conn)
         conn.commit()
     finally:
         conn.close()

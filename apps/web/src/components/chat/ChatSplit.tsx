@@ -36,6 +36,7 @@ import { useCrew } from '@/hooks/useCrew'
 import { workframeAuthApi, watchWorkspaceEvents, type WorkspaceRoomMessage } from '@/lib/workframeAuthApi'
 import { uploadBinaryFile } from '@/lib/filesApi'
 import {
+  clearCachedMessages,
   readCachedProjectRoomMessages,
   writeCachedProjectRoomMessages,
 } from '@/lib/workspacePersist'
@@ -143,6 +144,7 @@ export function ChatSplit() {
   const [spaceWaitTurnId, setSpaceWaitTurnId] = useState<string | null>(null)
   const [replyState, setReplyState] = useState<{ scope: string; target: ChatReplyTarget } | null>(null)
   const roomRevisionRef = useRef('')
+  const roomHistoryEpochRef = useRef(0)
   const reloadGenRef = useRef(0)
   const activeHumanRoomIdRef = useRef<string | null>(null)
   const roomStateByIdRef = useRef<Record<string, ChatMessage[]>>({})
@@ -247,6 +249,29 @@ export function ChatSplit() {
     return null
   }, [turnActive, messages])
 
+  const clearRoomHistoryState = useCallback((roomId: string, historyEpoch: number) => {
+    roomHistoryEpochRef.current = Math.max(roomHistoryEpochRef.current, historyEpoch)
+    reloadGenRef.current += 1
+    liveBatcherRef.current.cancel()
+    clearCachedMessages(roomId)
+    roomStateByIdRef.current[roomId] = []
+    if (activeHumanRoomIdRef.current === roomId) {
+      roomMessagesRef.current = []
+      setRoomMessages([])
+    }
+    liveTurnsRef.current = {}
+    setLiveTurns({})
+    completedTurnIdsRef.current.clear()
+    completedTurnMessageIdsRef.current = {}
+    liveMetaRef.current = {}
+    setReplyState(null)
+    setSpaceTurnActive(false)
+    setSpaceTurnStatus(null)
+    setSpaceWaitTurnId(null)
+    setRoomLoading(false)
+    setRoomError('')
+  }, [])
+
   const displayAgentMessages = useMemo(() => {
     if (!connectError) return messages
     const noticeId = connectError.code ?? 'connect-error'
@@ -272,6 +297,10 @@ export function ChatSplit() {
         workframeAuthApi.getMe(),
       ])
       if (gen !== reloadGenRef.current) return null
+      const serverHistoryEpoch = Number(messagesResponse.history_epoch ?? 0)
+      if (serverHistoryEpoch > roomHistoryEpochRef.current) {
+        clearRoomHistoryState(roomId, serverHistoryEpoch)
+      }
       meUserIdRef.current = meResponse.user.user_id
       meAvatarRef.current = meResponse.user.avatar_url ?? null
       const memberNames = (membersResponse.members ?? []).reduce<Record<string, string>>((acc, member) => {
@@ -375,7 +404,7 @@ export function ChatSplit() {
     } finally {
       if (!opts?.silent && gen === reloadGenRef.current) setRoomLoading(false)
     }
-  }, [hydrateRoomState, roomLocalSnapshot])
+  }, [clearRoomHistoryState, hydrateRoomState, roomLocalSnapshot])
 
   const scheduleRoomReload = useDebouncedCallback((roomId: string) => {
     void reloadRoomMessages(roomId, { silent: true })
@@ -383,6 +412,15 @@ export function ChatSplit() {
 
   const handleRoomLive = useCallback(
     (frame: RoomLiveFrame) => {
+      if (frame.type === 'history.cleared') {
+        clearRoomHistoryState(frame.room_id, frame.history_epoch)
+        return
+      }
+      const eventEpoch = frame.type === 'heartbeat' ? 0 : Number(frame.history_epoch ?? 0)
+      if (eventEpoch < roomHistoryEpochRef.current) return
+      if (eventEpoch > roomHistoryEpochRef.current) {
+        roomHistoryEpochRef.current = eventEpoch
+      }
       if (frame.type === 'turn.started' || frame.type === 'turn.snapshot') {
         if (completedTurnIdsRef.current.has(frame.turn_id)) return
         const existingMeta = liveMetaRef.current[frame.turn_id]
@@ -493,7 +531,7 @@ export function ChatSplit() {
         if (humanRoom) void reloadRoomMessages(humanRoom.id, { silent: true })
       }
     },
-    [humanRoom, reloadRoomMessages],
+    [clearRoomHistoryState, humanRoom, reloadRoomMessages],
   )
 
   useEffect(() => {
@@ -509,6 +547,7 @@ export function ChatSplit() {
       completedTurnMessageIdsRef.current = {}
       liveMetaRef.current = {}
       liveBatcherRef.current.cancel()
+      roomHistoryEpochRef.current = 0
     }
 
     activeHumanRoomIdRef.current = nextId
@@ -523,6 +562,7 @@ export function ChatSplit() {
       setRoomLoading(false)
       setRoomError('')
       roomRevisionRef.current = ''
+      roomHistoryEpochRef.current = 0
       setSpaceTurnActive(false)
       setSpaceTurnStatus(null)
       setSpaceWaitTurnId(null)

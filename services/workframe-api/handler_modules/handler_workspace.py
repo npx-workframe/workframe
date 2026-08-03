@@ -322,10 +322,11 @@ class WorkspaceRoutesMixin:
             return
         limit = int(qs.get("limit", ["50"])[0])
         offset = int(qs.get("offset", ["0"])[0])
+        room = None
         try:
             conn = srv._workframe_db()
             room = conn.execute(
-                "SELECT id FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL",
+                "SELECT id, history_epoch FROM rooms WHERE (id = ? OR slug = ?) AND deleted_at IS NULL",
                 (slug_or_id, slug_or_id),
             ).fetchone()
             if not room:
@@ -359,7 +360,22 @@ class WorkspaceRoutesMixin:
             messages = []
             total = 0
             payload = []
-        self._json(200, {"ok": True, "messages": payload, "total": total, "limit": limit, "offset": offset})
+        history_epoch = 0
+        try:
+            history_epoch = int(room["history_epoch"] or 0) if room else 0
+        except (KeyError, TypeError, ValueError):
+            history_epoch = 0
+        self._json(
+            200,
+            {
+                "ok": True,
+                "messages": payload,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "history_epoch": history_epoch,
+            },
+        )
 
     def _route_pattern_post_workspace_rooms(self, path: str, body: dict) -> None:
         srv = _srv()
@@ -494,6 +510,123 @@ class WorkspaceRoutesMixin:
             self._json(status, {"ok": False, **payload})
             return
         self._json(200, payload)
+
+    def _route_pattern_post_room_history_reset(self, path: str, body: dict) -> None:
+        """Clear a shared room transcript and rotate its agent context together."""
+        srv = _srv()
+        rid = path.strip("/").split("/")[-3]
+        user_id = str(getattr(self, "auth_user", "") or "")
+        if not user_id:
+            self._json(401, {"ok": False, "error": "no_session"})
+            return
+
+        active_turns = srv._room_live_active_for_room(rid)
+        if active_turns:
+            self._json(
+                409,
+                {
+                    "ok": False,
+                    "error": "room_turn_active",
+                    "active_turns": len(active_turns),
+                },
+            )
+            return
+
+        conn = srv._workframe_db()
+        try:
+            room = conn.execute(
+                """
+                SELECT id, workspace_id, room_type, history_epoch
+                FROM rooms
+                WHERE id = ? AND deleted_at IS NULL
+                """,
+                (rid,),
+            ).fetchone()
+            if not room:
+                self._json(404, {"ok": False, "error": "room_not_found"})
+                return
+            if not srv._user_can_manage_room_members(conn, rid, user_id):
+                self._json(403, {"ok": False, "error": "forbidden"})
+                return
+            if str(room["room_type"] or "").strip().lower() not in {"channel", "group"}:
+                self._json(400, {"ok": False, "error": "shared_room_required"})
+                return
+
+            now_ts = str(int(time.time()))
+            current_epoch = int(room["history_epoch"] or 0)
+            next_epoch = current_epoch + 1
+            deleted_messages = conn.execute(
+                """
+                UPDATE messages
+                SET deleted_at = ?, updated_at = ?
+                WHERE room_id = ? AND deleted_at IS NULL
+                """,
+                (now_ts, now_ts, rid),
+            ).rowcount
+            deleted_reactions = conn.execute(
+                "SELECT COUNT(*) FROM message_reactions WHERE scope_key = ?",
+                (f"room:{rid}",),
+            ).fetchone()[0]
+            conn.execute(
+                "DELETE FROM message_reactions WHERE scope_key = ?",
+                (f"room:{rid}",),
+            )
+            archived_sessions = conn.execute(
+                """
+                UPDATE room_sessions
+                SET status = 'archived', updated_at = ?
+                WHERE room_id = ? AND deleted_at IS NULL AND status = 'active'
+                """,
+                (now_ts, rid),
+            ).rowcount
+            conn.execute(
+                """
+                UPDATE rooms
+                SET history_epoch = ?, updated_at = ?
+                WHERE id = ? AND deleted_at IS NULL
+                """,
+                (next_epoch, now_ts, rid),
+            )
+            conn.commit()
+        except sqlite3.Error as exc:
+            conn.rollback()
+            self._json(500, {"ok": False, "error": f"db_error: {exc}"})
+            return
+        finally:
+            conn.close()
+
+        srv._bump_workspace_event_state()
+        srv._room_live_publish(
+            rid,
+            {
+                "type": "history.cleared",
+                "room_id": rid,
+                "history_epoch": next_epoch,
+                "ts": int(time.time()),
+            },
+        )
+        self._log_audit(
+            "room_history_cleared",
+            "room",
+            rid,
+            f"messages={deleted_messages} reactions={deleted_reactions} sessions={archived_sessions}",
+            {
+                "deleted_messages": deleted_messages,
+                "deleted_reactions": deleted_reactions,
+                "archived_sessions": archived_sessions,
+            },
+        )
+        self._json(
+            200,
+            {
+                "ok": True,
+                "room_id": rid,
+                "history_epoch": next_epoch,
+                "deleted_messages": deleted_messages,
+                "deleted_reactions": deleted_reactions,
+                "archived_sessions": archived_sessions,
+            },
+        )
 
     def _route_pattern_post_room_messages_send(self, path: str, body: dict) -> None:
         srv = _srv()

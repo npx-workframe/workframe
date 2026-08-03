@@ -200,6 +200,7 @@ _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     ("POST", r"^/api/rooms/[^/]+/members$", "/api/rooms/{id}/members", AuthLevel.SESSION, False, False, "_route_pattern_post_room_members"),
     ("POST", r"^/api/rooms/[^/]+/bind$", "/api/rooms/{id}/bind", AuthLevel.SESSION, False, False, "_route_pattern_post_room_bind"),
     ("POST", r"^/api/rooms/[^/]+/sessions/activate$", "/api/rooms/{id}/sessions/activate", AuthLevel.SESSION, False, False, "_route_pattern_post_room_sessions_activate"),
+    ("POST", r"^/api/rooms/[^/]+/history/reset$", "/api/rooms/{id}/history/reset", AuthLevel.SESSION, False, False, "_route_pattern_post_room_history_reset"),
     ("POST", r"^/api/rooms/[^/]+/messages/send$", "/api/rooms/{id}/messages/send", AuthLevel.SESSION, False, False, "_route_pattern_post_room_messages_send"),
     ("POST", r"^/api/workspace/[^/]+/invites$", "/api/workspace/{id}/invites", AuthLevel.SESSION, False, False, "_route_pattern_post_workspace_invites"),
     ("POST", r"^/api/invites/[^/]+/accept$", "/api/invites/{token}/accept", AuthLevel.SESSION, False, False, "_route_pattern_post_invites_accept"),

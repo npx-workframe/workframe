@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Save, Trash2 } from 'lucide-react'
 
 import { OnboardingIdentityFields } from '@/components/onboarding/OnboardingIdentityFields'
 import { AgentInstructionsFields } from '@/components/settings/AgentInstructionsFields'
@@ -83,6 +83,7 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<WorkspaceRoomMember | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -128,6 +129,19 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
     () => members.some((member) => member.user_id === me?.user_id && ['owner', 'admin'].includes(member.role)),
     [me?.user_id, members],
   )
+
+  const canManageRoom = useMemo(
+    () =>
+      canManageWorkspace ||
+      roomMembers.some(
+        (member) =>
+          member.user_id === me?.user_id &&
+          ['owner', 'admin'].includes(String(member.role || '').toLowerCase()),
+      ),
+    [canManageWorkspace, me?.user_id, roomMembers],
+  )
+
+  const isSharedRoom = activeRoom?.room_type === 'channel' || activeRoom?.room_type === 'group'
 
   const addableMembers = useMemo(() => {
     const inRoom = new Set(roomMembers.map((member) => member.user_id).filter(Boolean))
@@ -315,6 +329,21 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add member')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const clearRoomHistory = async () => {
+    if (!activeRoom?.id || !isSharedRoom || !canManageRoom) return
+    setBusy(true)
+    setError('')
+    setStatus('')
+    try {
+      await workframeAuthApi.resetRoomHistory(activeRoom.id)
+      setStatus('Shared room history cleared. A new agent context will start on the next mention.')
+    } catch (err) {
+      setError(formatWorkframeErrorMessage(err, 'Clear room history'))
     } finally {
       setBusy(false)
     }
@@ -580,6 +609,29 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
                 {activeRoom?.slug ? (
                   <p className="wf-user-settings__hint font-mono">Slug: {activeRoom.slug}</p>
                 ) : null}
+                {isSharedRoom && canManageRoom ? (
+                  <div className="mt-8 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-sm font-semibold">Danger zone</h3>
+                        <p className="mt-1 max-w-lg text-sm text-muted-foreground">
+                          Clear this shared room&apos;s chat for everyone and start fresh agent context.
+                          This cannot be undone.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => setConfirmClearOpen(true)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Clear history
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </SettingsPanelBody>
             ) : projectTab === 'members' ? (
               <SettingsPanelBody error={error} status={status} bare>
@@ -700,6 +752,15 @@ export function ChatSettingsSheet({ open, onClose, initialAgentTab }: ChatSettin
         confirmLabel="Remove"
         confirmVariant="warn"
         onConfirm={() => void removeRoomMember()}
+      />
+      <ConfirmDialog
+        open={confirmClearOpen}
+        onOpenChange={setConfirmClearOpen}
+        title="Clear shared room history?"
+        description="This removes the visible chat history for everyone in this room and archives the current agent context. The next agent mention will start fresh. This cannot be undone."
+        confirmLabel="Clear history"
+        confirmVariant="warn"
+        onConfirm={() => void clearRoomHistory()}
       />
     </>
   )

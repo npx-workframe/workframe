@@ -3,7 +3,7 @@ import { emptyAgentStreamMessage } from '@/lib/chatTypes'
 
 export type RoomLiveFrame =
   | { type: 'heartbeat'; room_id: string; ts: number }
-      | {
+  | {
       type: 'turn.started'
       turn_id: string
       room_id: string
@@ -13,6 +13,7 @@ export type RoomLiveFrame =
       model?: string
       llm_provider?: string
       triggered_by_user_id?: string
+      history_epoch?: number
     }
   | {
       type: 'turn.snapshot'
@@ -23,6 +24,7 @@ export type RoomLiveFrame =
       agent_profile_id?: string
       segments: ChatSegment[]
       status?: string
+      history_epoch?: number
     }
   | {
       type: 'turn.update'
@@ -30,15 +32,18 @@ export type RoomLiveFrame =
       room_id: string
       segments: ChatSegment[]
       status?: string
+      history_epoch?: number
     }
-  | { type: 'turn.complete'; turn_id: string; room_id: string; message_id?: string }
+  | { type: 'turn.complete'; turn_id: string; room_id: string; message_id?: string; history_epoch?: number }
   | {
       type: 'turn.error'
       turn_id: string
       room_id: string
       error: string
       segments?: ChatSegment[]
+      history_epoch?: number
     }
+  | { type: 'history.cleared'; room_id: string; history_epoch: number; ts?: number }
 
 export function watchRoomLive(
   roomId: string,

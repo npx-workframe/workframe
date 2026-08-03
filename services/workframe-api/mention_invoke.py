@@ -27,6 +27,10 @@ def _srv():
     return srv
 
 
+class RoomHistoryReset(Exception):
+    """The shared room was reset while an agent turn was in flight."""
+
+
 def _room_recent_transcript(conn: sqlite3.Connection, room_id: str, limit: int = 24) -> str:
     rows = conn.execute(
         """
@@ -105,6 +109,7 @@ def _invoke_room_agent_mention(
     )
     session_id = ""
     user_text = ""
+    history_epoch = 0
     provider = ""
     auth_decision: run_authority.RunAuthorityDecision | None = None
     run_completed_ok = False
@@ -119,6 +124,7 @@ def _invoke_room_agent_mention(
             "turn_id": turn_id,
             "room_id": room_id,
             "segments": segments,
+            "history_epoch": history_epoch,
         }
         if status:
             payload["status"] = status
@@ -133,6 +139,7 @@ def _invoke_room_agent_mention(
                 "agent_profile_id": agent_db_id,
                 "segments": segments,
                 "status": status or "",
+                "history_epoch": history_epoch,
             }
         )
         last_flush = now
@@ -145,6 +152,7 @@ def _invoke_room_agent_mention(
                 "turn_id": turn_id,
                 "room_id": room_id,
                 "message_id": message_id,
+                "history_epoch": history_epoch,
             },
         )
         rooms._room_live_clear_turn(turn_id)
@@ -196,6 +204,7 @@ def _invoke_room_agent_mention(
                 "room_id": room_id,
                 "error": error,
                 "segments": segments,
+                "history_epoch": history_epoch,
             },
         )
         finish_turn()
@@ -208,6 +217,11 @@ def _invoke_room_agent_mention(
                 (parent_message_id, room_id),
             ).fetchone()
             user_text = str(parent["content"] or "").strip() if parent else ""
+            room_state = conn.execute(
+                "SELECT history_epoch FROM rooms WHERE id = ? AND deleted_at IS NULL",
+                (room_id,),
+            ).fetchone()
+            history_epoch = int(room_state["history_epoch"] or 0) if room_state else 0
         finally:
             conn.close()
 
@@ -223,6 +237,7 @@ def _invoke_room_agent_mention(
                 "model": display_model,
                 "llm_provider": display_provider,
                 "triggered_by_user_id": triggered_by_user_id,
+                "history_epoch": history_epoch,
             },
         )
         rooms._room_live_set_turn(
@@ -235,6 +250,7 @@ def _invoke_room_agent_mention(
                 "agent_profile_id": agent_db_id,
                 "segments": segments,
                 "status": "starting",
+                "history_epoch": history_epoch,
             }
         )
 
@@ -398,6 +414,22 @@ def _invoke_room_agent_mention(
 
         conn = _srv()._workframe_db()
         try:
+            current_room = conn.execute(
+                "SELECT history_epoch FROM rooms WHERE id = ? AND deleted_at IS NULL",
+                (room_id,),
+            ).fetchone()
+            if not current_room or int(current_room["history_epoch"] or 0) != history_epoch:
+                if session_id:
+                    conn.execute(
+                        """
+                        UPDATE room_sessions
+                        SET status = 'archived', updated_at = ?
+                        WHERE room_id = ? AND session_id = ? AND deleted_at IS NULL AND status = 'active'
+                        """,
+                        (str(int(time.time())), room_id, session_id),
+                    )
+                    conn.commit()
+                raise RoomHistoryReset()
             now_ts = str(int(time.time()))
             mid = str(uuid.uuid4())
             conn.execute(
@@ -453,6 +485,11 @@ def _invoke_room_agent_mention(
         )
     except Exception as exc:  # noqa: BLE001
         err_text = str(exc)
+        if isinstance(exc, RoomHistoryReset):
+            # The reset endpoint already published the authoritative clear
+            # event. Never write a synthetic error into the new history epoch.
+            finish_turn()
+            return
         if "no_llm_provider_for_user" in err_text:
             reply = (
                 "I can't reply yet â€” the member who @mentioned me needs to connect an LLM provider "

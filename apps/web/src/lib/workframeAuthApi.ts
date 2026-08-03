@@ -443,6 +443,7 @@ export type WorkspaceRoomMessagesList = {
   total?: number
   limit?: number
   offset?: number
+  history_epoch?: number
 }
 
 export type MessageReaction = {
@@ -709,6 +710,20 @@ export const workframeAuthApi = {
 
   listRoomMessages(roomId: string, limit = 100, offset = 0) {
     return request<WorkspaceRoomMessagesList>(`/rooms/${roomId}/messages?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`)
+  },
+
+  resetRoomHistory(roomId: string) {
+    return request<{
+      ok: boolean
+      room_id: string
+      history_epoch: number
+      deleted_messages: number
+      deleted_reactions: number
+      archived_sessions: number
+    }>(`/rooms/${roomId}/history/reset`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
   },
 
   listMessageReactions(scope: string) {

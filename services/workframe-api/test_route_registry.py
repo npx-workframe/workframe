@@ -126,6 +126,7 @@ _pattern_probes = [
     ("GET", "/api/public/branding/og"),
     ("GET", "/api/workspace/ws-1/rooms"),
     ("GET", "/api/rooms/room-1/messages"),
+    ("POST", "/api/rooms/room-1/history/reset"),
     ("POST", "/api/rooms/room-1/messages/send"),
     ("PATCH", "/api/workspace/ws-1"),
     ("DELETE", "/api/memory/mem-1"),
