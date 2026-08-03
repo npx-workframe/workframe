@@ -28,7 +28,7 @@ OWNER_ADMIN_ROLES = {"owner", "admin"}
 
 
 def _srv():
-    import server as srv  # ponytail: break circular import at module load
+    import server as srv
 
     return srv
 
@@ -301,6 +301,7 @@ def check_auth(request_handler) -> bool:
         token = get_auth_token()
         if token and hmac.compare_digest(auth_header[7:].strip(), token):
             request_handler.auth_user = "service"
+            request_handler.auth_stack_role = "owner"  # type: ignore[attr-defined]
             request_handler.auth_role = "owner"  # type: ignore[attr-defined]
             return True
     sid = session_id_from_request(request_handler)
@@ -480,20 +481,44 @@ def session_id_from_request(handler: BaseHTTPRequestHandler) -> str:
     return handler.headers.get("X-Workframe-Session", "").strip()
 
 
+def _stack_role_for_user(user_id: str) -> str:
+    user = str(user_id or "").strip()
+    if not user:
+        return "member"
+    if user == "service":
+        return "owner"
+    try:
+        conn = _srv()._workframe_db()
+        try:
+            row = conn.execute(
+                "SELECT role FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1",
+                (user,),
+            ).fetchone()
+        finally:
+            conn.close()
+    except (sqlite3.Error, OSError):
+        return "member"
+    role = str(row["role"] or "").strip().lower() if row else ""
+    return role if role in OWNER_ADMIN_ROLES else "member"
+
+
 def workspace_role_for_user(user_id: str) -> str:
+    """Legacy aggregate role for diagnostics only; never target-resource authority."""
     rank = {"owner": 3, "admin": 2, "member": 1}
     best = "member"
     try:
         conn = _srv()._workframe_db()
-        rows = conn.execute(
-            """
-            SELECT role FROM workspace_memberships
-            WHERE user_id = ? AND deleted_at IS NULL AND status = 'active'
-            """,
-            (user_id,),
-        ).fetchall()
-        conn.close()
-    except Exception:
+        try:
+            rows = conn.execute(
+                """
+                SELECT role FROM workspace_memberships
+                WHERE user_id = ? AND deleted_at IS NULL AND status = 'active'
+                """,
+                (user_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+    except (sqlite3.Error, OSError):
         return best
     for row in rows:
         role = str(row["role"] or "member")
@@ -503,12 +528,15 @@ def workspace_role_for_user(user_id: str) -> str:
 
 
 def apply_session_user(handler: BaseHTTPRequestHandler, user_id: str) -> None:
+    stack_role = _stack_role_for_user(user_id)
     handler.auth_user = user_id  # type: ignore[attr-defined]
-    handler.auth_role = workspace_role_for_user(user_id)  # type: ignore[attr-defined]
+    handler.auth_stack_role = stack_role  # type: ignore[attr-defined]
+    handler.auth_role = stack_role  # type: ignore[attr-defined]
+    handler.auth_workspace_id = ""  # type: ignore[attr-defined]
 
 
 def user_is_stack_operator(user_id: str) -> bool:
-    return workspace_role_for_user(user_id) in OWNER_ADMIN_ROLES
+    return _stack_role_for_user(user_id) in OWNER_ADMIN_ROLES
 
 
 def user_can_access_hermes_dashboard(user_id: str) -> bool:
@@ -516,13 +544,194 @@ def user_can_access_hermes_dashboard(user_id: str) -> bool:
         return True
     if not user_id:
         return False
-    return workspace_role_for_user(user_id) in OWNER_ADMIN_ROLES
+    return user_is_stack_operator(user_id)
+
+
+def _workspace_role(
+    conn: sqlite3.Connection,
+    workspace_id: str,
+    user_id: str,
+) -> str | None:
+    row = conn.execute(
+        """
+        SELECT wm.role
+        FROM workspace_memberships wm
+        JOIN workspaces w ON w.id = wm.workspace_id
+        WHERE wm.workspace_id = ?
+          AND wm.user_id = ?
+          AND wm.deleted_at IS NULL
+          AND wm.status = 'active'
+          AND w.deleted_at IS NULL
+          AND w.status = 'active'
+        LIMIT 1
+        """,
+        (workspace_id, user_id),
+    ).fetchone()
+    return str(row["role"] or "member").strip().lower() if row else None
+
+
+def _scoped_request_policy(method: str, path: str) -> tuple[str, str, bool] | None:
+    """Return (resource kind, resource ref, owner/admin required)."""
+    m = str(method or "GET").upper()
+    parts = [urllib.parse.unquote(part) for part in str(path or "").strip("/").split("/")]
+    if len(parts) < 3 or parts[0] != "api":
+        return None
+
+    if parts[1] == "workspace":
+        ref = parts[2]
+        suffix = "/".join(parts[3:])
+        admin = False
+        if not suffix:
+            admin = m in {"PATCH", "DELETE"}
+        elif suffix == "members":
+            admin = m in {"POST", "PATCH", "DELETE"}
+        elif suffix.startswith("credentials"):
+            admin = True
+        elif suffix in {
+            "invites",
+            "budget",
+            "grants",
+            "integrations",
+            "runtime-profiles/purge",
+        }:
+            admin = True
+        return "workspace", ref, admin
+
+    if parts[1] == "rooms":
+        admin = (m == "DELETE" and len(parts) == 3) or (m == "PATCH" and len(parts) == 3)
+        return "room", parts[2], admin
+
+    if parts[1] == "memory":
+        return "memory", parts[2], m == "DELETE"
+
+    if parts[1] == "agents" and len(parts) >= 4 and parts[3] == "credentials":
+        return "agent", parts[2], True
+
+    if parts[1] == "invites":
+        return "invite", parts[2], False
+
+    return None
+
+
+def _workspace_id_for_scope(
+    conn: sqlite3.Connection,
+    kind: str,
+    ref: str,
+) -> str | None:
+    if kind == "workspace":
+        row = conn.execute(
+            "SELECT id FROM workspaces WHERE (id = ? OR slug = ?) AND deleted_at IS NULL LIMIT 1",
+            (ref, ref),
+        ).fetchone()
+        return str(row["id"]) if row else None
+    if kind == "room":
+        row = conn.execute(
+            "SELECT workspace_id FROM rooms WHERE id = ? AND deleted_at IS NULL LIMIT 1",
+            (ref,),
+        ).fetchone()
+        return str(row["workspace_id"]) if row else None
+    if kind == "memory":
+        row = conn.execute(
+            "SELECT workspace_id FROM memory_items WHERE id = ? AND deleted_at IS NULL LIMIT 1",
+            (ref,),
+        ).fetchone()
+        return str(row["workspace_id"]) if row else None
+    if kind == "agent":
+        rows = conn.execute(
+            """
+            SELECT workspace_id FROM agent_profiles
+            WHERE (id = ? OR slug = ?) AND deleted_at IS NULL
+            ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
+            LIMIT 2
+            """,
+            (ref, ref, ref),
+        ).fetchall()
+        if not rows:
+            return None
+        if len(rows) > 1 and str(rows[0]["workspace_id"]) != str(rows[1]["workspace_id"]):
+            return None
+        return str(rows[0]["workspace_id"])
+    return None
+
+
+def _invite_scope_allows(
+    conn: sqlite3.Connection,
+    handler: BaseHTTPRequestHandler,
+    token: str,
+    user_id: str,
+) -> bool:
+    token_hash = hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
+    row = conn.execute(
+        """
+        SELECT wi.workspace_id, wi.email, wi.expires_at, u.email AS user_email
+        FROM workspace_invites wi
+        JOIN users u ON u.id = ? AND u.deleted_at IS NULL
+        WHERE wi.token_hash = ?
+          AND wi.deleted_at IS NULL
+          AND wi.accepted_at IS NULL
+        LIMIT 1
+        """,
+        (user_id, token_hash),
+    ).fetchone()
+    if not row:
+        return False
+    if int(row["expires_at"] or 0) <= int(time.time()):
+        return False
+    invited = str(row["email"] or "").strip().lower()
+    actual = str(row["user_email"] or "").strip().lower()
+    if not invited or invited != actual:
+        return False
+    handler.auth_workspace_id = str(row["workspace_id"])  # type: ignore[attr-defined]
+    handler.auth_role = "invited"  # type: ignore[attr-defined]
+    return True
+
+
+def _authorize_scoped_request(
+    handler: BaseHTTPRequestHandler,
+    method: str,
+    path: str,
+) -> bool:
+    if DEV_LOCAL_UNSAFE or not SECURE_MODE:
+        return True
+    user_id = str(getattr(handler, "auth_user", "") or "").strip()
+    if not user_id:
+        return False
+    if user_id == "service":
+        return True
+    policy = _scoped_request_policy(method, path)
+    if policy is None:
+        return True
+    kind, ref, admin_required = policy
+    try:
+        conn = _srv()._workframe_db()
+        try:
+            if kind == "invite":
+                return _invite_scope_allows(conn, handler, ref, user_id)
+            workspace_id = _workspace_id_for_scope(conn, kind, ref)
+            if not workspace_id:
+                return False
+            role = _workspace_role(conn, workspace_id, user_id)
+        finally:
+            conn.close()
+    except (sqlite3.Error, OSError, ValueError):
+        return False
+    if not role:
+        return False
+    handler.auth_workspace_id = workspace_id  # type: ignore[attr-defined]
+    handler.auth_role = role  # type: ignore[attr-defined]
+    if admin_required and role not in OWNER_ADMIN_ROLES:
+        return False
+    return True
 
 
 def authorize_request(handler: BaseHTTPRequestHandler) -> bool:
     path = urllib.parse.urlparse(handler.path).path
     method = handler.command
     sid = session_id_from_request(handler)
+    install_window_open = _srv()._install_window_open()
+
+    if SECURE_MODE and not DEV_LOCAL_UNSAFE and path == "/api/auth/bootstrap":
+        return False
 
     def _validate(sid_token: str):
         return _zk.validate_session_token(sid_token)
@@ -530,17 +739,25 @@ def authorize_request(handler: BaseHTTPRequestHandler) -> bool:
     def _attach(user_id: str) -> None:
         apply_session_user(handler, user_id)
 
-    return route_registry.authorize_request(
+    allowed = route_registry.authorize_request(
         method,
         path,
         sid,
         deployment_mode=_resolve_deployment_mode(),
         dev_local_unsafe=DEV_LOCAL_UNSAFE,
-        install_window_open=_srv()._install_window_open(),
+        install_window_open=install_window_open,
         validate_session=_validate,
         attach_user=_attach,
-        get_workspace_role=lambda: str(getattr(handler, "auth_role", "") or ""),
+        get_workspace_role=lambda: str(getattr(handler, "auth_stack_role", "") or ""),
     )
+    if not allowed:
+        return False
+    if DEV_LOCAL_UNSAFE:
+        return True
+    if path == "/api/setup":
+        user_id = str(getattr(handler, "auth_user", "") or "").strip()
+        return bool(install_window_open and user_id and user_is_stack_operator(user_id))
+    return _authorize_scoped_request(handler, method, path)
 
 
 def role_allows(handler: BaseHTTPRequestHandler, roles: set[str]) -> bool:
@@ -552,21 +769,26 @@ def role_allows(handler: BaseHTTPRequestHandler, roles: set[str]) -> bool:
 def handler_is_active_workspace_member(handler: BaseHTTPRequestHandler, workspace_id: str = "") -> bool:
     if not SECURE_MODE:
         return True
-    if role_allows(handler, OWNER_ADMIN_ROLES):
-        return True
     user_id = str(getattr(handler, "auth_user", "") or "").strip()
     if not user_id:
         return False
+    if user_id == "service":
+        return True
+    ws_id = str(workspace_id or getattr(handler, "auth_workspace_id", "") or "").strip()
     try:
         conn = _srv()._workframe_db()
         try:
-            ws_id = str(workspace_id or "").strip()
             if ws_id:
-                return _srv()._workspace_member_role(conn, ws_id, user_id) is not None
+                return _workspace_role(conn, ws_id, user_id) is not None
             row = conn.execute(
                 """
-                SELECT 1 FROM workspace_memberships
-                WHERE user_id = ? AND deleted_at IS NULL AND status = 'active'
+                SELECT 1 FROM workspace_memberships wm
+                JOIN workspaces w ON w.id = wm.workspace_id
+                WHERE wm.user_id = ?
+                  AND wm.deleted_at IS NULL
+                  AND wm.status = 'active'
+                  AND w.deleted_at IS NULL
+                  AND w.status = 'active'
                 LIMIT 1
                 """,
                 (user_id,),
