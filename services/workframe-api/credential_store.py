@@ -79,10 +79,11 @@ def _upsert_auth_metadata(auth_path: Path, payload: dict[str, Any]) -> None:
     if auth_path.exists():
         try:
             loaded = json.loads(auth_path.read_text(encoding="utf-8"))
-            if isinstance(loaded, dict):
-                data = loaded
-        except Exception:
-            data = {}
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError("auth_metadata_corrupt") from exc
+        if not isinstance(loaded, dict):
+            raise ValueError("auth_metadata_corrupt")
+        data = loaded
     bindings = data.get("credentials")
     if not isinstance(bindings, list):
         bindings = []
@@ -219,7 +220,9 @@ def _store_workspace_credential(
         ).fetchone()
         if existing:
             cred_id = str(existing[0])
+            operation_id = credential_lifecycle.begin_operation(cred_id, "replace", state="staged")
             credential_lifecycle.advance_generation(cred_id, state="rotating")
+            credential_lifecycle.transition_operation(operation_id, "bound")
             conn.execute(
                 """UPDATE credential_bindings
                    SET credential_ref = ?, label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
@@ -241,6 +244,8 @@ def _store_workspace_credential(
     finally:
         conn.close()
     credential_lifecycle.mark_active(cred_id)
+    if existing:
+        credential_lifecycle.transition_operation(operation_id, "active")
     return {
         "credential_id": cred_id,
         "credential_ref": credential_ref,

@@ -563,6 +563,7 @@ import oauth_redirect
 import mention_invoke
 import credential_resolve
 import credential_store
+import credential_lifecycle
 import turn_overlay
 import chat_sessions
 import docker_gateway
@@ -1355,6 +1356,7 @@ _default_credential_env_var = credential_resolve._default_credential_env_var
 _provider_env_var = credential_resolve._provider_env_var
 _credential_secret = credential_resolve._credential_secret
 _resolve_secret_for_lease = credential_resolve._resolve_secret_for_lease
+_resolve_secret_result_for_lease = credential_resolve._resolve_secret_result_for_lease
 _credential_binding_payload = credential_resolve._credential_binding_payload
 _resolve_credential = credential_resolve._resolve_credential
 
@@ -1571,6 +1573,12 @@ def _sync_agent_profile_db(profile: str, fields: dict[str, Any]) -> None:
     if not updates:
         return
     _ensure_workframe_db_schema()
+    try:
+        recovered = credential_lifecycle.recover_pending_operations()
+        if recovered:
+            print(f"  Credential lifecycle recovery marked {len(recovered)} interrupted operation(s) for retry", flush=True)
+    except (sqlite3.Error, OSError) as exc:
+        raise SystemExit(f"credential lifecycle recovery failed: {exc}") from exc
     conn = _workframe_db()
     try:
         now_ts = str(int(time.time()))

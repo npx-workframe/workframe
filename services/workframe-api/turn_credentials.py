@@ -316,6 +316,15 @@ def resolve_lease_secret(lease: dict[str, Any], resolve_secret_fn) -> tuple[str,
     return resolve_secret_fn(payer, workspace, provider, binding_id)
 
 
+def resolve_lease_secret_result(lease: dict[str, Any], resolve_result_fn):
+    """Resolve a lease through the typed vault boundary."""
+    binding_id = str(lease.get("credential_binding_id") or "").strip()
+    provider = str(lease.get("provider") or "openrouter")
+    payer = str(lease.get("payer_user_id") or "")
+    workspace = str(lease.get("workspace_id") or "")
+    return resolve_result_fn(payer, workspace, provider, binding_id)
+
+
 if __name__ == "__main__":
     ensure_schema()
     rid = "run-selfcheck"

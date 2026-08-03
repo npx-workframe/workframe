@@ -24,6 +24,42 @@ def _srv():
 
 _load_profile_auth_json = provider_bootstrap._load_profile_auth_json
 
+_RAW_AUTHORITY_KEYS = frozenset({
+    "access_token", "refresh_token", "authorization_code", "id_token", "api_key", "client_secret"
+})
+
+
+def _runtime_auth_contains_raw_authority(value: Any) -> bool:
+    """Return true when runtime auth metadata contains reusable upstream authority."""
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if str(key).lower() in _RAW_AUTHORITY_KEYS and str(child or "").strip():
+                return True
+            if _runtime_auth_contains_raw_authority(child):
+                return True
+    elif isinstance(value, list):
+        return any(_runtime_auth_contains_raw_authority(child) for child in value)
+    return False
+
+
+def _scan_runtime_auth_files(root: Path) -> list[dict[str, str]]:
+    """Scan runtime auth metadata without returning any secret values."""
+    findings: list[dict[str, str]] = []
+    base = Path(root)
+    if not base.is_dir():
+        return findings
+    for path in sorted(base.rglob("auth.json")):
+        try:
+            parsed = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            findings.append({"path": str(path), "kind": "malformed"})
+            continue
+        if not isinstance(parsed, dict):
+            findings.append({"path": str(path), "kind": "malformed"})
+        elif _runtime_auth_contains_raw_authority(parsed):
+            findings.append({"path": str(path), "kind": "raw_authority"})
+    return findings
+
 def _user_provider_bindings(user_id: str) -> dict[str, dict[str, Any]]:
     by_provider: dict[str, dict[str, Any]] = {}
     try:
@@ -390,6 +426,8 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         if not row:
             conn.close()
             return {"ok": False, "error": "credential_not_found"}
+        operation_id = credential_lifecycle.begin_operation(str(row["id"]), "revoke", state="staged")
+        credential_lifecycle.advance_generation(str(row["id"]), state="revoking")
         cred_ref = str(row["credential_ref"] or "")
         env_var = cred_ref[4:] if cred_ref.startswith("env:") else ""
         if not env_var:
@@ -412,10 +450,7 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         provider=str(row["provider"]),
         credential_binding_id=credential_id,
     )
-    try:
-        credential_lifecycle.advance_generation(credential_id, state="revoked")
-    except (ValueError, sqlite3.Error):
-        pass
+    credential_lifecycle.transition_operation(operation_id, "active", details={"result": "revoked"})
     return {"ok": True, "credential_id": credential_id, "provider": str(row["provider"])}
 
 
@@ -428,7 +463,9 @@ def _remove_hermes_oauth_provider(user_id: str, hermes_auth_id: str) -> None:
         try:
             loaded = json.loads(auth_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            loaded = {}
+            # A malformed auth file is a visible quarantine condition. Never
+            # replace it with an empty object as part of disconnect cleanup.
+            loaded = None
         if isinstance(loaded, dict):
             providers = loaded.get("providers")
             if isinstance(providers, dict):

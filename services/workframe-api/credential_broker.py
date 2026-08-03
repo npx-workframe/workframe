@@ -9,6 +9,7 @@ from typing import Any, Callable
 import broker_audit
 import internal_proxy_auth
 import turn_credentials
+import credential_vault
 
 LEASE_PREFIX = turn_credentials.LEASE_PREFIX
 
@@ -56,6 +57,7 @@ class BrokerLeaseAuth:
     status: int = 200
     error: str = ""
     deny_reason: str = ""
+    credential_status: str = ""
 
 
 def authorize_broker_lease(
@@ -132,23 +134,54 @@ def authorize_broker_lease(
             profile_status,
         )
 
-    env_var, secret = turn_credentials.resolve_lease_secret(lease, resolve_secret)
+    result_resolver = getattr(resolve_secret, "_typed_result_resolver", None)
+    if result_resolver is None:
+        # The API resolver is a module function; keep the compatibility path
+        # for isolated callers and older tests.
+        try:
+            import credential_resolve
+
+            if resolve_secret is credential_resolve._resolve_secret_for_lease:
+                result_resolver = credential_resolve._resolve_secret_result_for_lease
+        except ImportError:
+            result_resolver = None
+    if result_resolver is not None:
+        env_var, read_result = turn_credentials.resolve_lease_secret_result(lease, result_resolver)
+        secret = read_result.secret if read_result.ok else ""
+        credential_status = read_result.status.value
+    else:
+        env_var, secret = turn_credentials.resolve_lease_secret(lease, resolve_secret)
+        credential_status = (
+            credential_vault.CredentialReadStatus.OK.value
+            if secret
+            else credential_vault.CredentialReadStatus.MISSING.value
+        )
     if not secret:
         return _audit(
             BrokerLeaseAuth(
                 ok=False,
                 status=402,
                 error="no credential",
-                deny_reason="no_credential",
+                deny_reason=f"credential_{credential_status}",
                 lease=lease,
+                credential_status=credential_status,
             ),
             402,
         )
-    return _audit(BrokerLeaseAuth(ok=True, lease=lease, secret=secret, env_var=env_var), 200)
+    return _audit(
+        BrokerLeaseAuth(
+            ok=True,
+            lease=lease,
+            secret=secret,
+            env_var=env_var,
+            credential_status=credential_status,
+        ),
+        200,
+    )
 
 
 def broker_error_body(auth: BrokerLeaseAuth) -> bytes:
-    return json.dumps({"error": auth.error}).encode()
+    return json.dumps({"error": auth.error, "credential_status": auth.credential_status or None}).encode()
 
 
 if __name__ == "__main__":

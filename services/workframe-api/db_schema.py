@@ -328,6 +328,20 @@ CREATE INDEX IF NOT EXISTS idx_credential_bindings_user_active
 CREATE INDEX IF NOT EXISTS idx_credential_bindings_agent_active
     ON credential_bindings(agent_profile_id, provider, is_active, deleted_at);
 
+CREATE TABLE IF NOT EXISTS credential_lifecycle_operations (
+    operation_id TEXT PRIMARY KEY,
+    binding_id TEXT NOT NULL,
+    operation_type TEXT NOT NULL,
+    state TEXT NOT NULL,
+    capability_generation INTEGER NOT NULL,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_credential_lifecycle_binding
+    ON credential_lifecycle_operations(binding_id, updated_at);
+
 CREATE TABLE IF NOT EXISTS audit_events (
     id              TEXT PRIMARY KEY,
     user_id         TEXT DEFAULT NULL,
