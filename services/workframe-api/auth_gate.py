@@ -709,7 +709,7 @@ def _authorize_scoped_request(
                 return _invite_scope_allows(conn, handler, ref, user_id)
             workspace_id = _workspace_id_for_scope(conn, kind, ref)
             if not workspace_id:
-                return True
+                return False
             role = _workspace_role(conn, workspace_id, user_id)
         finally:
             conn.close()
