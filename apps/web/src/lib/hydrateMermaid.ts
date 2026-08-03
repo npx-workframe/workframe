@@ -24,7 +24,7 @@ const DIAGRAM_USE_MAX_WIDTH_FALSE = {
   block: { useMaxWidth: false },
 } as const
 
-const MERMAID_THEME_VARIABLES = {
+const MERMAID_FALLBACK_VARIABLES = {
   darkMode: true,
   background: 'transparent',
   primaryColor: '#2d2640',
@@ -58,23 +58,84 @@ const MERMAID_THEME_VARIABLES = {
   classText: '#e8e8ee',
 } as const
 
+type MermaidThemeVariables = Record<string, string | boolean>
+
+function cssToken(name: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
+
+function readMermaidThemeVariables(): MermaidThemeVariables {
+  const bg = cssToken('--wf-bg', MERMAID_FALLBACK_VARIABLES.background)
+  const surface = cssToken('--wf-surface', MERMAID_FALLBACK_VARIABLES.secondaryColor)
+  const text = cssToken('--wf-text', MERMAID_FALLBACK_VARIABLES.textColor)
+  const muted = cssToken('--wf-muted', MERMAID_FALLBACK_VARIABLES.lineColor)
+  const border = cssToken('--wf-border-strong', MERMAID_FALLBACK_VARIABLES.primaryBorderColor)
+  const accent = cssToken('--wf-accent', MERMAID_FALLBACK_VARIABLES.primaryBorderColor)
+  const primary = cssToken('--wf-primary', MERMAID_FALLBACK_VARIABLES.primaryColor)
+  const primaryForeground = cssToken('--wf-primary-foreground', MERMAID_FALLBACK_VARIABLES.primaryTextColor)
+  const warning = cssToken('--wf-warning', MERMAID_FALLBACK_VARIABLES.todayLineColor)
+  const darkMode = typeof document !== 'undefined'
+    ? document.documentElement.dataset.colorMode === 'dark'
+    : MERMAID_FALLBACK_VARIABLES.darkMode
+
+  return {
+    darkMode,
+    background: 'transparent',
+    primaryColor: primary,
+    primaryTextColor: primaryForeground,
+    primaryBorderColor: border,
+    lineColor: muted,
+    secondaryColor: surface,
+    tertiaryColor: bg,
+    mainBkg: primary,
+    textColor: text,
+    titleColor: text,
+    nodeBorder: accent,
+    clusterBkg: surface,
+    edgeLabelBackground: surface,
+    actorBorder: border,
+    actorBkg: primary,
+    actorTextColor: primaryForeground,
+    signalColor: text,
+    signalTextColor: text,
+    labelBoxBkgColor: primary,
+    labelBoxBorderColor: border,
+    labelTextColor: primaryForeground,
+    taskBkgColor: accent,
+    taskTextColor: primaryForeground,
+    taskTextLightColor: primaryForeground,
+    taskBorderColor: border,
+    sectionBkgColor: surface,
+    altSectionBkgColor: primary,
+    gridColor: muted,
+    todayLineColor: warning,
+    classText: text,
+  }
+}
+
 let mermaidReady: Promise<typeof import('mermaid').default> | null = null
 
 function loadMermaid() {
   if (!mermaidReady) {
     mermaidReady = import('mermaid').then(({ default: mermaid }) => {
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'loose',
-        theme: 'dark',
-        themeVariables: MERMAID_THEME_VARIABLES,
-        fontFamily: 'Inter Tight, ui-sans-serif, system-ui, sans-serif',
-        ...DIAGRAM_USE_MAX_WIDTH_FALSE,
-      })
+      configureMermaid(mermaid)
       return mermaid
     })
   }
   return mermaidReady
+}
+
+function configureMermaid(mermaid: typeof import('mermaid').default) {
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: readMermaidThemeVariables(),
+    fontFamily: 'Inter Tight, ui-sans-serif, system-ui, sans-serif',
+    ...DIAGRAM_USE_MAX_WIDTH_FALSE,
+  })
 }
 
 function nextDiagramId() {
@@ -172,6 +233,7 @@ export function mountMermaidSvg(container: HTMLElement, svgHtml: string) {
 
 export async function renderMermaidDiagram(source: string) {
   const mermaid = await loadMermaid()
+  configureMermaid(mermaid)
   return mermaid.render(nextDiagramId(), source)
 }
 
@@ -180,6 +242,7 @@ export async function hydrateMermaid(root: ParentNode) {
   if (nodes.length === 0) return
 
   const mermaid = await loadMermaid()
+  configureMermaid(mermaid)
 
   for (const node of nodes) {
     const source = readMermaidSource(node)

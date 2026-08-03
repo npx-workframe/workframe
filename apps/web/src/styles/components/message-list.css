@@ -1097,9 +1097,9 @@ button.wf-message__reply-context.wf-tool-btn {
   transition: background 0.15s, border-color 0.15s;
 }
 .wf-composer__stop:hover {
-  background: color-mix(in srgb, #ef4444 15%, transparent);
-  border-color: color-mix(in srgb, #ef4444 40%, transparent);
-  color: #ef4444;
+  background: color-mix(in srgb, var(--wf-error) 15%, transparent);
+  border-color: color-mix(in srgb, var(--wf-error) 40%, transparent);
+  color: var(--wf-error);
 }
 .wf-composer__stop svg { width: 14px; height: 14px; }
 
@@ -1195,7 +1195,7 @@ button.wf-message__reply-context.wf-tool-btn {
 }
 
 .wf-tool-run--error .wf-tool-run__icon {
-  color: #ef4444;
+  color: var(--wf-error);
 }
 
 .wf-tool-run__icon--spin {

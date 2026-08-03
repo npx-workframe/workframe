@@ -111,7 +111,9 @@ ROUTES: tuple[Route, ...] = (
     Route("POST", "/api/auth/bootstrap", AuthLevel.PUBLIC, "_route_post_auth_bootstrap"),
     Route("POST", "/api/auth/google/start", AuthLevel.PUBLIC, "_route_post_auth_google_start"),
     Route("POST", "/api/auth/local-bootstrap", AuthLevel.PUBLIC, "_route_post_auth_local_bootstrap"),
-    Route("POST", "/api/setup", AuthLevel.PUBLIC, "_route_post_setup"),
+    # Legacy bootstrap mutation: only the install window + stack operator may use it.
+    # Keep it session-gated so auth_gate can apply the narrower install-window rule.
+    Route("POST", "/api/setup", AuthLevel.SESSION, "_route_post_setup"),
     # --- session POST ---
     Route("POST", "/api/hermes/model", AuthLevel.SESSION, "_route_post_hermes_model"),
     Route("POST", "/api/hermes/model/apply-default", AuthLevel.SESSION, "_route_post_hermes_model_apply_default"),

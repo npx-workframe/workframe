@@ -184,8 +184,8 @@
 }
 
 .wf-desktop-titlebar__btn--close:hover {
-  color: #fff;
-  background: #e81123;
+  color: var(--wf-primary-foreground);
+  background: var(--wf-error);
 }
 
 .wf-desktop-titlebar--mac .wf-desktop-titlebar__btn {
@@ -194,7 +194,7 @@
 }
 
 .wf-desktop-titlebar--mac .wf-desktop-titlebar__btn--close:hover {
-  background: color-mix(in srgb, #ef4444 22%, transparent);
+  background: color-mix(in srgb, var(--wf-error) 22%, transparent);
   color: var(--wf-text);
 }
 
@@ -256,7 +256,7 @@
 
 .wf-shell__window-btn--close:hover {
   color: var(--wf-text);
-  background: color-mix(in srgb, #ef4444 22%, transparent);
+  background: color-mix(in srgb, var(--wf-error) 22%, transparent);
 }
 
 .wf-workspace-logo {

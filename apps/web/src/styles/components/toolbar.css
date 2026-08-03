@@ -76,12 +76,12 @@ button.wf-tool-btn.wf-tool-btn--emphasis:hover:not(:disabled) {
 button.wf-tool-btn.wf-tool-btn--send {
   background: var(--wf-violet-glow);
   border-color: color-mix(in srgb, var(--wf-violet-glow) 55%, var(--wf-border-strong));
-  color: #fff;
+  color: var(--wf-primary-foreground);
 }
 
 button.wf-tool-btn.wf-tool-btn--send:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--wf-violet-glow) 88%, white);
-  color: #fff;
+  background: color-mix(in srgb, var(--wf-violet-glow) 88%, var(--wf-surface));
+  color: var(--wf-primary-foreground);
 }
 
 button.wf-tool-btn.wf-tool-btn--send:disabled {
