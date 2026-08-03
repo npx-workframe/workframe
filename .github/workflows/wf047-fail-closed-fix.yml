@@ -1,0 +1,46 @@
+name: Apply WF-047 fail-closed correction
+
+on:
+  push:
+    branches:
+      - fix/wf-047-ambiguous-scope-fail-closed
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/wf-047-ambiguous-scope-fail-closed
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply the narrow authorization correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("services/workframe-api/auth_gate.py")
+          source = path.read_text(encoding="utf-8")
+          old = """            workspace_id = _workspace_id_for_scope(conn, kind, ref)\n            if not workspace_id:\n                return True\n            role = _workspace_role(conn, workspace_id, user_id)\n"""
+          new = """            workspace_id = _workspace_id_for_scope(conn, kind, ref)\n            if not workspace_id:\n                return False\n            role = _workspace_role(conn, workspace_id, user_id)\n"""
+          if source.count(old) != 1:
+              raise SystemExit("expected exactly one scoped fail-open branch")
+          path.write_text(source.replace(old, new), encoding="utf-8")
+          PY
+      - name: Run authorization regressions
+        run: |
+          python services/workframe-api/test_resource_scope.py
+          python services/workframe-api/test_route_registry.py
+      - name: Commit the verified correction and remove this one-shot workflow
+        run: |
+          rm .github/workflows/wf047-fail-closed-fix.yml
+          git config user.name "workframe-security-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add services/workframe-api/auth_gate.py .github/workflows/wf047-fail-closed-fix.yml
+          git commit -m "fix(security): deny missing or ambiguous resource scope"
+          git push origin HEAD:fix/wf-047-ambiguous-scope-fail-closed
