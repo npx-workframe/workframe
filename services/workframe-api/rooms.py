@@ -494,7 +494,12 @@ def _workspace_membership_update_payload(
     ).fetchone()
     if not updated:
         return 404, {"ok": False, "error": "member_not_found", "workspace_id": workspace_id, "user_id": user_id}
-    return 200, {"ok": True, "membership": _workspace_member_payload(updated)}
+    authority_changed = status != "active" or role != str(row["role"])
+    return 200, {
+        "ok": True,
+        "membership": _workspace_member_payload(updated),
+        "_revoke_runtime": authority_changed,
+    }
 
 
 def _patch_workspace_members(
@@ -529,6 +534,7 @@ def _patch_workspace_members(
             if not bulk:
                 return 400, {"ok": False, "error": "memberships list cannot be empty"}
             results = []
+            revocation_users: list[str] = []
             for item in bulk:
                 if not isinstance(item, dict):
                     return 400, {"ok": False, "error": "each membership update must be an object"}
@@ -538,8 +544,13 @@ def _patch_workspace_members(
                 status, payload = _workspace_membership_update_payload(conn, workspace_id, user_id, item, actor_user_id)
                 if status != 200:
                     return status, payload
+                if payload.pop("_revoke_runtime", False):
+                    revocation_users.append(str(payload["membership"].get("user_id") or ""))
                 results.append(payload["membership"])
             conn.commit()
+            for removed_user in revocation_users:
+                if removed_user:
+                    _srv()._revoke_runtime_llm_leases(payer_user_id=removed_user, workspace_id=workspace_id)
             return 200, {"ok": True, "workspace_id": workspace_id, "memberships": results}
 
         user_id = str(body.get("user_id", "") or "").strip()
@@ -552,6 +563,10 @@ def _patch_workspace_members(
         status, payload = _workspace_membership_update_payload(conn, workspace_id, user_id, update_body, actor_user_id)
         if status == 200:
             conn.commit()
+            if payload.pop("_revoke_runtime", False):
+                removed_user = str(payload["membership"].get("user_id") or "")
+                if removed_user:
+                    _srv()._revoke_runtime_llm_leases(payer_user_id=removed_user, workspace_id=workspace_id)
         return status, payload
     except sqlite3.Error as exc:
         conn.rollback()
@@ -998,6 +1013,7 @@ def _patch_workspace_integrations(
         if not row:
             return 404, {"ok": False, "error": "workspace_not_found"}
         settings = _srv()._parse_workspace_settings(row)
+        previous_credential_mode = str(settings.get("credential_mode") or "byok").strip().lower()
         gh = settings.get("github_oauth") if isinstance(settings.get("github_oauth"), dict) else {}
         if "github_oauth_client_id" in body:
             gh["client_id"] = str(body.get("github_oauth_client_id") or "").strip()
@@ -1023,6 +1039,21 @@ def _patch_workspace_integrations(
             (json.dumps(settings, sort_keys=True), now_ts, workspace_id),
         )
         conn.commit()
+        if "credential_mode" in body and str(settings.get("credential_mode") or "byok").strip().lower() != previous_credential_mode:
+            # Payer authority changed; every runtime lease in this workspace
+            # must be reissued against the new user/workspace binding.
+            _srv()._revoke_runtime_llm_leases(workspace_id=workspace_id)
+            if previous_credential_mode == "workspace" and str(settings.get("credential_mode") or "byok").strip().lower() != "workspace":
+                workspace_bindings = [
+                    str(item[0])
+                    for item in conn.execute(
+                        """SELECT id FROM credential_bindings
+                           WHERE workspace_id = ? AND deleted_at IS NULL AND is_active = 1""",
+                        (workspace_id,),
+                    ).fetchall()
+                ]
+                for binding_id in workspace_bindings:
+                    _srv()._credential_lifecycle_revoke_binding(binding_id, reason="payer_changed")
         if "messaging" in body:
             sync_result = _srv()._sync_workspace_messaging_gateway(workspace_id)
             if not sync_result.get("ok"):

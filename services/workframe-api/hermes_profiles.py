@@ -851,13 +851,23 @@ def _default_session_title(profile: str) -> str:
 
 def _create_profile_session_via_api(profile: str, session_id: str, title: str) -> tuple[int, Any, str]:
     base_title = (title or "").strip() or _default_session_title(profile)
+    # Hermes can otherwise seed a new API-server session with the runtime
+    # profile slug (for example ``mybusiness-agent``) instead of the model
+    # selected in the profile config.  That slug is not a provider model ID,
+    # so the first turn is rejected by the internal LLM proxy.  Pin the
+    # session to the same model that the gateway config exposes.
+    _provider, configured_model = _srv()._read_model_from_config(profile)
+    session_model = str(configured_model or "").strip()
     candidate = base_title
     for attempt in range(1, 25):
+        payload: dict[str, Any] = {"session_id": session_id, "title": candidate}
+        if session_model:
+            payload["model"] = session_model
         status, data = _srv()._profile_api_request(
             profile,
             "POST",
             "/api/sessions",
-            {"session_id": session_id, "title": candidate},
+            payload,
         )
         if status < 300:
             return status, data, candidate

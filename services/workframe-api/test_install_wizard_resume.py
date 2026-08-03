@@ -29,7 +29,19 @@ conn.executescript(
         id TEXT PRIMARY KEY, slug TEXT, display_name TEXT, owner_id TEXT,
         settings_json TEXT, deleted_at INTEGER, status TEXT, created_at TEXT, updated_at TEXT
     );
+    CREATE TABLE users (
+        id TEXT PRIMARY KEY, role TEXT, updated_at TEXT
+    );
+    CREATE TABLE workspace_memberships (
+        id TEXT PRIMARY KEY, workspace_id TEXT, user_id TEXT, role TEXT,
+        status TEXT, deleted_at INTEGER, updated_at TEXT, created_at TEXT
+    );
     """
+)
+conn.execute("INSERT INTO users (id, role, updated_at) VALUES ('u1', 'user', '1')")
+conn.execute(
+    "INSERT INTO workspace_memberships (id, workspace_id, user_id, role, status, deleted_at, updated_at, created_at) "
+    "VALUES ('mem1', 'ws1', 'u1', 'member', 'active', NULL, '1', '1')",
 )
 conn.execute(
     "INSERT INTO workspaces (id, slug, display_name, owner_id, settings_json, deleted_at, status, created_at, updated_at) "
@@ -42,6 +54,11 @@ stack_config.patch_stack_config(
     {"smtp": {"admin_email": "owner@example.com"}, "wizard_step": "smtp"},
 )
 assert install_api.install_owner_claimed(db_path)
+assert install_api.claim_install_owner(db_path, "u1")
+conn = sqlite3.connect(db_path)
+assert conn.execute("SELECT role FROM users WHERE id = 'u1'").fetchone()[0] == "owner"
+assert conn.execute("SELECT role FROM workspace_memberships WHERE id = 'mem1'").fetchone()[0] == "owner"
+conn.close()
 assert install_api.resolve_install_wizard_step(db_path) == "welcome"
 
 # SMTP saved + tested

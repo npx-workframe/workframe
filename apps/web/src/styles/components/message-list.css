@@ -1045,7 +1045,7 @@ button.wf-message__reply-context.wf-tool-btn {
   margin-top: 3px;
   margin-bottom: 3px;
   border-radius: 50%;
-  background: var(--wf-accent, #a78bfa);
+  background: var(--wf-accent);
   flex-shrink: 0;
   animation: wf-pulse 1.2s ease-in-out infinite;
 }
@@ -1079,7 +1079,10 @@ button.wf-message__reply-context.wf-tool-btn {
   outline: none;
 }
 .wf-composer__steer-input::placeholder { color: var(--wf-muted); }
-.wf-composer__steer-input:focus { border-color: var(--wf-accent, #a78bfa); }
+.wf-composer__steer-input:focus-visible {
+  border-color: var(--field-focus-border, var(--wf-accent));
+  box-shadow: var(--wf-focus-ring);
+}
 
 .wf-composer__stop {
   display: inline-flex;

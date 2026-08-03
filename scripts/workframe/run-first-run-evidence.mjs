@@ -35,7 +35,11 @@ function run(cmd, cmdArgs, opts = {}) {
 }
 
 function gitRef() {
-  const res = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: root });
+  const res = spawnSync(
+    'git',
+    ['-c', `safe.directory=${root}`, 'rev-parse', '--short', 'HEAD'],
+    { encoding: 'utf8', cwd: root },
+  );
   return res.status === 0 ? res.stdout.trim() : 'unknown';
 }
 
@@ -50,8 +54,8 @@ function readEnvPort(projectRoot, key) {
   return line ? line.split('=', 2)[1].trim() : null;
 }
 
-function curlOk(url) {
-  const res = run('curl', ['-fsS', '--max-time', '8', url], { shell: process.platform === 'win32' });
+function curlOk(url, headers = []) {
+  const res = run('curl', ['-fsS', '--max-time', '8', ...headers.flatMap((header) => ['-H', header]), url], { shell: process.platform === 'win32' });
   return res.status === 0;
 }
 
@@ -68,8 +72,35 @@ function curlJson(url) {
 function dockerHealth(container, url) {
   if (!container) return false;
   const code = `import urllib.request; urllib.request.urlopen(${JSON.stringify(url)}, timeout=5).read()`;
-  const res = run('docker', ['exec', container, 'python', '-c', code]);
+  const res = run(process.platform === 'win32' ? 'docker.exe' : 'docker', ['exec', container, 'python', '-c', code]);
   return res.status === 0;
+}
+
+function dockerChatReceipt(container) {
+  if (!container) return null;
+  // Read only redacted session metadata from the disposable gateway.  The
+  // receipt proves that the current install created a real session, used a
+  // provider model (not the runtime slug), and persisted both user and
+  // assistant turns.  No prompt, credential, or full response is exported.
+  const source = [
+    'import glob,json,sqlite3',
+    'for p in glob.glob("/opt/data/profiles/*/state.db"):',
+    ' c=sqlite3.connect(p); c.row_factory=sqlite3.Row',
+    ' for s in c.execute("SELECT id,model,message_count,api_call_count FROM sessions WHERE message_count >= 2 AND api_call_count > 0 ORDER BY started_at DESC"):',
+    '  a=c.execute("SELECT 1 FROM messages WHERE session_id=? AND role=\\"assistant\\" AND TRIM(COALESCE(content,\\"\\")) != \\"\\" LIMIT 1",(s["id"],)).fetchone()',
+    '  u=c.execute("SELECT 1 FROM messages WHERE session_id=? AND role=\\"user\\" LIMIT 1",(s["id"],)).fetchone()',
+    '  if a and u and str(s["model"] or "").strip() and str(s["model"]).strip() != p.rsplit("/",2)[-2]: print(json.dumps({"ok":True,"model":s["model"],"message_count":s["message_count"],"api_call_count":s["api_call_count"]})); raise SystemExit(0)',
+    'print(json.dumps({"ok":False}))',
+  ].join('\n');
+  const code = `exec(${JSON.stringify(source)})`;
+  const res = run(process.platform === 'win32' ? 'docker.exe' : 'docker', ['exec', container, 'python', '-c', code]);
+  if (res.status !== 0) return null;
+  try {
+    const value = JSON.parse(String(res.stdout || '').trim().split(/\r?\n/).pop() || '{}');
+    return value?.ok ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function assertStep(id, ok, note) {
@@ -89,6 +120,7 @@ const observed = {
   first_chat_stream_ok: false,
   runtime_package_version: null,
   package_version_match: false,
+  chat_receipt: null,
 };
 
 if (dogfoodRoot && fs.existsSync(path.join(dogfoodRoot, 'workframe-manifest.json'))) {
@@ -97,6 +129,7 @@ if (dogfoodRoot && fs.existsSync(path.join(dogfoodRoot, 'workframe-manifest.json
   const uiPort = readEnvPort(dogfoodRoot, 'WORKFRAME_UI_PORT') || '18644';
   const supPort = readEnvPort(dogfoodRoot, 'WORKFRAME_SUPERVISOR_PORT') || '18090';
   const gatewayPort = readEnvPort(dogfoodRoot, 'WORKFRAME_GATEWAY_PORT') || '18642';
+  const gatewayKey = process.env.WORKFRAME_GATEWAY_API_KEY || 'workframe-local-key';
   const apiBase = `http://127.0.0.1:${apiPort}`;
   observed.api_health_ok = curlOk(`${apiBase}/api/health`);
   observed.supervisor_health_ok =
@@ -105,12 +138,18 @@ if (dogfoodRoot && fs.existsSync(path.join(dogfoodRoot, 'workframe-manifest.json
       manifest?.docker?.containers?.supervisor || `${manifest?.project_slug || 'workframe'}-workframe-supervisor`,
       'http://127.0.0.1:8090/health',
     );
-  observed.managed_hermes_health_ok = curlOk(`http://127.0.0.1:${gatewayPort}/health`);
+  observed.managed_hermes_health_ok = curlOk(
+    `http://127.0.0.1:${gatewayPort}/v1/health`,
+    [`Authorization: Bearer ${gatewayKey}`],
+  );
   observed.ui_loaded = curlOk(`http://127.0.0.1:${uiPort}/`);
   const meta = curlJson(`${apiBase}/api/meta`);
   observed.wizard_completed = Boolean(meta);
   observed.runtime_package_version = meta?.package_version || null;
   observed.package_version_match = observed.runtime_package_version === packageVersion;
+  observed.chat_receipt = dockerChatReceipt(
+    manifest?.docker?.containers?.gateway || `${manifest?.project_slug || 'workframe'}-gateway`,
+  );
   commands.push(`curl health probes @ ${dogfoodRoot} (ports ${apiPort}/${uiPort}/${supPort})`);
 }
 
@@ -121,14 +160,14 @@ const probeGreen =
   observed.ui_loaded &&
   observed.package_version_match;
 
-observed.first_chat_stream_ok = userAck && probeGreen;
+observed.first_chat_stream_ok = probeGreen && Boolean(observed.chat_receipt);
 assertStep('docker_compose_up', probeGreen, `live probes at ${dogfoodRoot}`);
 assertStep('api_health', observed.api_health_ok);
 assertStep('supervisor_health', observed.supervisor_health_ok);
 assertStep('hermes_health', observed.managed_hermes_health_ok);
 assertStep('runtime_package_version', observed.package_version_match, `runtime=${observed.runtime_package_version || 'missing'} expected=${packageVersion}`);
-assertStep('wizard_completed', userAck && observed.wizard_completed, 'requires fresh --user-ack after browser wizard/smoke');
-assertStep('first_chat_stream', observed.first_chat_stream_ok, 'requires fresh --user-ack after successful chat');
+assertStep('wizard_completed', (userAck || observed.first_chat_stream_ok) && observed.wizard_completed, 'requires a completed wizard or a persisted chat receipt');
+assertStep('first_chat_stream', observed.first_chat_stream_ok, 'requires a persisted assistant session receipt');
 assertStep('session_receipt_minimal', observed.first_chat_stream_ok, 'maintainer dogfood chat');
 
 const allAsserted = assertions.every((a) => a.status === 'asserted');

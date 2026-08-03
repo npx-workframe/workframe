@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sqlite3
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -105,6 +106,59 @@ def install_owner_claimed(db_path: str) -> bool:
         ).fetchone()
         conn.close()
         return bool(row)
+    except (sqlite3.Error, OSError):
+        return False
+
+
+def claim_install_owner(db_path: str, user_id: str) -> bool:
+    """Promote the install admin to the stack owner after bootstrap registration.
+
+    Registration creates a normal user row before the first-owner bootstrap can
+    ensure the workspace exists. The install-admin flow is the explicit owner
+    claim boundary, so it must promote both stack and workspace authority.
+    """
+    user_id = str(user_id or "").strip()
+    if not user_id:
+        return False
+    now = str(int(time.time()))
+    try:
+        conn = sqlite3.connect(db_path, timeout=2.0)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT id, owner_id FROM workspaces WHERE slug = 'default' AND deleted_at IS NULL LIMIT 1",
+        ).fetchone()
+        if not row:
+            conn.close()
+            return False
+        owner_id = str(row["owner_id"] or "").strip()
+        if owner_id and owner_id != user_id:
+            conn.close()
+            return False
+        workspace_id = str(row["id"])
+        conn.execute("UPDATE users SET role = 'owner', updated_at = ? WHERE id = ?", (now, user_id))
+        conn.execute(
+            "UPDATE workspaces SET owner_id = ?, updated_at = ? WHERE id = ?",
+            (user_id, now, workspace_id),
+        )
+        membership = conn.execute(
+            "SELECT id FROM workspace_memberships WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL",
+            (workspace_id, user_id),
+        ).fetchone()
+        if membership:
+            conn.execute(
+                "UPDATE workspace_memberships SET role = 'owner', status = 'active', updated_at = ? WHERE id = ?",
+                (now, membership["id"]),
+            )
+        else:
+            conn.execute(
+                """INSERT INTO workspace_memberships
+                   (id, workspace_id, user_id, role, status, created_at, updated_at)
+                   VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', 'active', ?, ?)""",
+                (workspace_id, user_id, now, now),
+            )
+        conn.commit()
+        conn.close()
+        return True
     except (sqlite3.Error, OSError):
         return False
 

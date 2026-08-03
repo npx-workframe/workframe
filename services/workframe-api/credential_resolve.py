@@ -32,15 +32,22 @@ def _provider_env_var(provider: str) -> str:
 
 
 def _credential_secret(resolved: dict[str, Any], user_id: str = "") -> str:
+    result = _credential_secret_result(resolved, user_id)
+    return result.secret if result is not None and result.ok else ""
+
+
+def _credential_secret_result(
+    resolved: dict[str, Any], user_id: str = ""
+) -> credential_vault.CredentialReadResult | None:
     ref = str(resolved.get("credential_ref") or "")
     binding_id = credential_vault.parse_vault_ref(ref)
     if binding_id:
-        return credential_vault.read_secret(binding_id)
+        return credential_vault.read_secret_result(binding_id)
     env_var = str(resolved.get("env_var") or "")
     if not env_var and ref.startswith("env:"):
         env_var = ref[4:]
     if not env_var:
-        return ""
+        return credential_vault.CredentialReadResult(credential_vault.CredentialReadStatus.MISSING)
     scope = str(resolved.get("scope") or "")
     secret = ""
     if scope == "user":
@@ -63,7 +70,10 @@ def _credential_secret(resolved: dict[str, Any], user_id: str = "") -> str:
         secret = _srv()._stack_profile_env().get(env_var, "")
     elif scope == "stack":
         secret = _srv()._stack_profile_env().get(env_var, "")
-    return secret
+    return credential_vault.CredentialReadResult(
+        credential_vault.CredentialReadStatus.OK if secret else credential_vault.CredentialReadStatus.MISSING,
+        secret,
+    )
 
 
 def _resolve_secret_for_lease(
@@ -72,19 +82,36 @@ def _resolve_secret_for_lease(
     provider: str,
     binding_id: str,
 ) -> tuple[str, str]:
+    env_var, result = _resolve_secret_result_for_lease(
+        payer_user_id, workspace_id, provider, binding_id
+    )
+    return env_var, result.secret if result is not None and result.ok else ""
+
+
+def _resolve_secret_result_for_lease(
+    payer_user_id: str,
+    workspace_id: str,
+    provider: str,
+    binding_id: str,
+) -> tuple[str, credential_vault.CredentialReadResult]:
+    """Resolve a lease without collapsing vault failures into an empty secret."""
     provider = str(provider or "openrouter").strip().lower()
     binding_id = str(binding_id or "").strip()
     if binding_id:
-        secret = credential_vault.read_secret(binding_id)
-        if secret:
-            return _provider_env_var(provider), secret
+        result = credential_vault.read_secret_result(binding_id)
+        return _provider_env_var(provider), result
     resolved = _resolve_credential(payer_user_id, workspace_id, provider, user_only=True)
     if not resolved:
         resolved = _resolve_credential(payer_user_id, workspace_id, provider, user_only=False)
     if not resolved:
-        return "", ""
+        return _provider_env_var(provider), credential_vault.CredentialReadResult(
+            credential_vault.CredentialReadStatus.MISSING
+        )
     env_var = str(resolved.get("env_var") or "") or _provider_env_var(provider)
-    return env_var, _credential_secret(resolved, payer_user_id)
+    result = _credential_secret_result(resolved, payer_user_id)
+    return env_var, result or credential_vault.CredentialReadResult(
+        credential_vault.CredentialReadStatus.MISSING
+    )
 def _credential_binding_payload(row: sqlite3.Row, scope: str) -> dict[str, Any]:
     """Return the safe metadata payload for a resolved credential binding."""
     return {

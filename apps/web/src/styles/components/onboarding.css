@@ -244,7 +244,7 @@
 
 .wf-onboarding-wizard__steps li.is-done .wf-onboarding-wizard__step-detail,
 .wf-onboarding-wizard__steps li.is-configured .wf-onboarding-wizard__step-detail {
-  color: color-mix(in srgb, var(--wf-cyan) 70%, var(--wf-muted));
+  color: color-mix(in srgb, var(--wf-success) 70%, var(--wf-muted));
 }
 
 .wf-onboarding-wizard__steps li.is-current .wf-onboarding-wizard__step-detail {
@@ -361,7 +361,7 @@
 }
 
 .wf-operation-progress__item--error {
-  color: var(--wf-danger, #f87171);
+  color: var(--wf-error);
 }
 
 .wf-operation-progress__icon {
@@ -802,7 +802,7 @@
   padding: 0;
   border: none;
   border-radius: var(--wf-copy-input-btn-radius);
-  background: var(--wf-control-bg-raised, color-mix(in srgb, var(--wf-surface) 88%, white));
+  background: var(--wf-control-bg-raised);
   color: var(--wf-muted);
   cursor: pointer;
   box-shadow: var(--wf-control-shadow-highlight, var(--wf-control-shadow-elevated, none));
@@ -1252,7 +1252,7 @@
 }
 
 .wf-onboarding-stepper li.is-done {
-  color: color-mix(in srgb, var(--wf-cyan) 75%, var(--wf-text));
+  color: color-mix(in srgb, var(--wf-success) 75%, var(--wf-text));
 }
 
 .wf-onboarding-stepper__dot {
@@ -1264,11 +1264,11 @@
 
 .wf-onboarding-stepper li.is-current .wf-onboarding-stepper__dot {
   background: var(--wf-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wf-accent) 25%, transparent);
+  box-shadow: var(--wf-focus-ring);
 }
 
 .wf-onboarding-stepper li.is-done .wf-onboarding-stepper__dot {
-  background: var(--wf-cyan);
+  background: var(--wf-success);
 }
 
 .wf-onboarding-intro {
@@ -1616,13 +1616,13 @@
 }
 
 .wf-onboarding-smtp-status__badge.is-tested {
-  color: color-mix(in srgb, var(--wf-cyan) 80%, var(--wf-text));
-  background: color-mix(in srgb, var(--wf-cyan) 14%, transparent);
+  color: color-mix(in srgb, var(--wf-success) 80%, var(--wf-text));
+  background: color-mix(in srgb, var(--wf-success) 14%, transparent);
 }
 
 .wf-onboarding-smtp-status__badge.is-ready {
-  color: color-mix(in srgb, var(--wf-cyan) 80%, var(--wf-text));
-  background: color-mix(in srgb, var(--wf-cyan) 22%, transparent);
+  color: color-mix(in srgb, var(--wf-success) 80%, var(--wf-text));
+  background: color-mix(in srgb, var(--wf-success) 22%, transparent);
 }
 
 [data-color-mode='light'] .wf-onboarding-smtp-status__badge.is-ready {

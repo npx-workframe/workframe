@@ -49,11 +49,6 @@ def authority_context_for_user(
     mode = _srv()._workspace_credential_mode(None, ws)
     user_only = _srv()._provider_user_only(provider_name)
     oauth_connected = False
-    oauth_spec = _srv()._oauth_llm_provider_spec(provider_name)
-    if oauth_spec and user:
-        oauth_connected = _srv()._hermes_oauth_tokens_present(
-            user, _srv()._hermes_auth_id_for_spec(oauth_spec),
-        )
     user_resolved = _srv()._resolve_credential(user, ws, provider_name, user_only=True) if user else None
     user_has = bool(user_resolved and _srv()._credential_secret(user_resolved, user))
     ws_has = False

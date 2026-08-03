@@ -1127,17 +1127,12 @@ class WorkspaceRoutesMixin:
             conn = sqlite3.connect(str(srv.AUTH_DB_PATH.parent / "workframe.db"), timeout=3.0)
             conn.row_factory = sqlite3.Row
             row = conn.execute(
-                "SELECT provider FROM credential_bindings WHERE id = ? AND workspace_id = ?",
+                "SELECT provider FROM credential_bindings WHERE id = ? AND workspace_id = ? AND deleted_at IS NULL",
                 (binding_id, ws_id),
             ).fetchone()
             provider = str(row["provider"] or "").strip().lower() if row else ""
-            cur = conn.execute(
-                "UPDATE credential_bindings SET is_active = 0, updated_at = ? WHERE id = ? AND workspace_id = ?",
-                (str(int(time.time())), binding_id, ws_id),
-            )
-            conn.commit()
-            affected = cur.rowcount
             conn.close()
+            affected = 1 if row and srv._credential_lifecycle_revoke_binding(binding_id, reason="workspace_disconnect") else 0
         except sqlite3.Error as exc:
             self._json(500, {"error": f"db_error: {exc}"})
             return
@@ -1651,6 +1646,10 @@ class WorkspaceRoutesMixin:
         if not affected:
             self._json(404, {"ok": False, "error": "member_not_found"})
             return
+        # Membership removal changes run authority for this workspace. Revoke
+        # only the removed member's workspace-scoped runtime leases; their
+        # personal credential may remain valid in other workspaces.
+        srv._revoke_runtime_llm_leases(payer_user_id=target_user_id, workspace_id=ws_id)
         self._log_audit(
             "workspace_member_removed",
             "workspace_membership",

@@ -1296,7 +1296,7 @@
 .wf-profile-entity-card--interactive:not(:disabled):hover,
 .wf-profile-entity-card--interactive:not(:disabled):focus-visible {
   border-color: color-mix(in srgb, var(--wf-accent) 35%, var(--wf-border));
-  box-shadow: var(--wf-control-shadow-highlight, 0 0 0 1px color-mix(in srgb, var(--wf-accent) 20%, transparent));
+  box-shadow: var(--wf-control-shadow-highlight);
   outline: none;
 }
 
@@ -1310,7 +1310,7 @@
   border-radius: 50%;
   background: color-mix(in srgb, var(--wf-surface-soft) 70%, transparent);
   border: var(--wf-border-width, 1px) solid var(--wf-chrome-border);
-  box-shadow: var(--wf-control-shadow-inset, inset 0 1px 2px color-mix(in srgb, var(--wf-bg) 35%, transparent));
+  box-shadow: var(--wf-control-shadow-inset);
 }
 
 .wf-profile-entity-card__avatar-img {

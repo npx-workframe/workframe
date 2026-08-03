@@ -31,10 +31,10 @@ const CREW_COLORS = [
   'var(--wf-violet-glow)',
   'var(--wf-cyan)',
   'var(--wf-mint)',
-  '#f59e0b',
-  '#ec4899',
-  '#6366f1',
-  '#14b8a6',
+  'var(--wf-warning)',
+  'var(--wf-violet-glow)',
+  'var(--wf-accent)',
+  'var(--wf-cyan)',
 ] as const
 
 function profileCode(displayName: string): string {

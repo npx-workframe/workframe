@@ -1,10 +1,17 @@
+import { createRequire } from 'node:module'
+
 /**
  * One-shot visual QA for shell + settings (ABX campaign).
  * Run: node .harness/visual-qa-abx.mjs
  */
-import { chromium } from 'playwright'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+
+const require = createRequire(import.meta.url)
+// The Windows dogfood/QA runtime is supplied by the browser harness rather
+// than bundled into the product workspace. Keep this runner aligned with the
+// other local visual-QA scripts so it works from a clean source checkout.
+const { chromium } = require('C:/Users/alan/.cursor/plugins/cache/cursor-public/browse/release_v0.2.4/node_modules/playwright')
 
 const BASE = process.env.WF_QA_URL || 'http://127.0.0.1:18644'
 const EMAIL = process.env.WF_QA_EMAIL

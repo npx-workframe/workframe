@@ -125,7 +125,7 @@
 }
 
 [data-style='glass'][data-color-mode='dark'] {
-  --switch-thumb: rgb(255 255 255 / 0.9);
+  --switch-thumb: var(--wf-primary-foreground);
   --switch-track-on: var(--glass-surface-emphasis);
 }
 
@@ -135,7 +135,7 @@
 }
 
 [data-style='glass'][data-color-mode] .archi-switch__input::after {
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.14);
+  box-shadow: var(--wf-shadow-sm);
   transition:
     transform var(--motion-base) var(--ar-ease),
     background 250ms ease;
@@ -154,7 +154,7 @@
 }
 
 [data-style='glass'][data-color-mode='dark'] .archi-switch__input:checked::after {
-  background: rgb(255 255 255 / 0.96);
+  background: color-mix(in srgb, var(--wf-surface) 96%, var(--wf-text));
 }
 
 .wf-input:disabled { cursor: not-allowed; opacity: 0.5; }

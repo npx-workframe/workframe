@@ -212,7 +212,7 @@ ${proxyVol}      - ./scripts:/opt/install/scripts:ro
 function gatewayProxyBootstrap(profileEsc) {
   const proxy =
     'if [ -z "$WORKFRAME_PROXY_TOKEN" ] && [ -f /run/workframe-proxy/token ]; then export WORKFRAME_PROXY_TOKEN="$(tr -d \'\\r\\n\' < /run/workframe-proxy/token)"; fi; ';
-  const base = `mkdir -p /opt/data/Avatars; chmod 0777 /opt/data/Avatars 2>/dev/null || true; if [ -d /opt/data/profiles/${profileEsc} ]; then export HERMES_HOME=/opt/data/profiles/${profileEsc}; export HOME=/opt/data/profiles/${profileEsc}; cd /opt/data/profiles/${profileEsc}; PROFILE_FLAG='-p ${profileEsc}'; else export HERMES_HOME=/opt/data; export HOME=/opt/data; PROFILE_FLAG=''; fi; exec /opt/hermes/bin/hermes $PROFILE_FLAG gateway run --replace`;
+  const base = `mkdir -p /opt/data/Avatars; chmod 0777 /opt/data/Avatars 2>/dev/null || true; if [ -d /opt/data/profiles/${profileEsc} ]; then export HERMES_HOME=/opt/data/profiles/${profileEsc}; export HOME=/opt/data/profiles/${profileEsc}; cd /opt/data/profiles/${profileEsc}; exec /opt/hermes/bin/hermes -p ${profileEsc} gateway run --replace; else export HERMES_HOME=/opt/data; export HOME=/opt/data; exec /opt/hermes/bin/hermes gateway run --replace; fi`;
   return proxy + base;
 }
 
@@ -894,6 +894,10 @@ docker run --rm --name "${stack}-bootstrap-api-host" --entrypoint hermes \\
   -v "$ROOT/Agents:/opt/data" \\
   -v "$ROOT/Files:/opt/data/workspace" \\
   ${docker.image} -p ${nativeProfile} config set platforms.api_server.extra.host 0.0.0.0 2>/dev/null || true
+docker run --rm --name "${stack}-bootstrap-api-port" --entrypoint hermes \\
+  -v "$ROOT/Agents:/opt/data" \\
+  -v "$ROOT/Files:/opt/data/workspace" \\
+  ${docker.image} -p ${nativeProfile} config set platforms.api_server.extra.port 8642 2>/dev/null || true
 docker run --rm --name "${stack}-bootstrap-api-key" --entrypoint hermes \\
   -v "$ROOT/Agents:/opt/data" \\
   -v "$ROOT/Files:/opt/data/workspace" \\
@@ -950,6 +954,10 @@ function configureProfileApiPs1(nativeProfile, docker) {
     -v "$Root\\Agents:/opt/data" \`
     -v "$Root\\Files:/opt/data/workspace" \`
     ${docker.image} -p ${nativeProfile} config set platforms.api_server.extra.host 0.0.0.0 2>$null
+  docker run --rm --name "${stack}-bootstrap-api-port" --entrypoint hermes \`
+    -v "$Root\\Agents:/opt/data" \`
+    -v "$Root\\Files:/opt/data/workspace" \`
+    ${docker.image} -p ${nativeProfile} config set platforms.api_server.extra.port 8642 2>$null
   docker run --rm --name "${stack}-bootstrap-api-key" --entrypoint hermes \`
     -v "$Root\\Agents:/opt/data" \`
     -v "$Root\\Files:/opt/data/workspace" \`

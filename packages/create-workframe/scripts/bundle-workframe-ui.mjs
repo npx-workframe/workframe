@@ -60,7 +60,10 @@ console.log(`Copying ${dist} -> ${UI_DEST}`);
 copyTree(dist, UI_DEST);
 
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
-const gitRef = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
+// Worktrees created by the desktop runner can have a different filesystem
+// owner than the invoking process.  Read the ref without mutating global git
+// config so package provenance is still recorded in that environment.
+const gitRef = spawnSync('git', ['-c', 'safe.directory=*', 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
 const bundledAt = new Date().toISOString();
 const assetRevision = `${pkgVersion}-${Date.parse(bundledAt).toString(36)}`;
 const bundledIndexPath = path.join(UI_DEST, 'index.html');

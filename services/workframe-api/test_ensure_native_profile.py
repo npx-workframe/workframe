@@ -26,4 +26,24 @@ assert (td / "profiles" / slug / "config.yaml").is_file()
 routes = json.loads((td / "workframe" / "routes.json").read_text(encoding="utf-8"))
 assert any(row.get("profile") == slug for row in routes.get("routes", []))
 
+# Session creation must carry the configured provider model.  Without this,
+# Hermes API-server sessions can persist the runtime slug as their model and
+# the internal LLM proxy rejects the first turn.
+cfg = td / "profiles" / slug / "config.yaml"
+cfg.write_text("model:\n  default: openrouter/test-model\n  provider: custom\n", encoding="utf-8")
+calls = []
+original_profile_api_request = server._profile_api_request
+server._profile_api_request = lambda profile, method, path, body=None: (
+    calls.append((profile, method, path, body)) or (201, {"ok": True})
+)
+try:
+    status, _data, title = server._create_profile_session_via_api(
+        slug, "wf-model-contract", "Model contract",
+    )
+finally:
+    server._profile_api_request = original_profile_api_request
+assert status == 201
+assert title == "Model contract"
+assert calls[-1][3]["model"] == "openrouter/test-model"
+
 print("ensure native profile self-check ok")

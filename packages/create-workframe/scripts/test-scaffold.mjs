@@ -343,6 +343,7 @@ for (const pack of PACKS) {
 
   const bootstrapNative = fs.readFileSync(path.join(root, 'scripts/bootstrap-native.ps1'), 'utf8');
   if (!bootstrapNative.includes(`profile use ${expectedSlug}`)) fail(`pack ${pack}: bootstrap-native missing profile use`);
+  if (!bootstrapNative.includes('platforms.api_server.extra.port 8642')) fail(`pack ${pack}: bootstrap-native must align native api_server port with compose`);
   if (!bootstrapNative.includes('routes.json')) fail(`pack ${pack}: bootstrap-native must write Agents/workframe/routes.json`);
   if (!bootstrapNative.includes('SETUP.md')) fail(`pack ${pack}: bootstrap-native missing SETUP copy`);
   if (!bootstrapNative.includes('Agents\\SOUL.md')) fail(`pack ${pack}: bootstrap-native must install Agents/SOUL.md`);

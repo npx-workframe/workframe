@@ -20,6 +20,7 @@ from typing import Any
 from http.server import BaseHTTPRequestHandler
 
 import provider_model_catalog
+import credential_broker
 import profile_config_yaml
 import user_prefs
 
@@ -381,19 +382,15 @@ def _live_suggestions_for_connected_llm_providers(
     """Discover the models each effective credential can use right now."""
     credentials: dict[str, str] = {}
     for provider in sorted(connected):
-        spec = _srv()._catalog_provider_for_llm(provider) or {}
-        if str(spec.get("connect_mode") or "") == "oauth":
-            auth_id = str(spec.get("hermes_auth_id") or provider)
-            auth = _srv()._load_user_hermes_auth(user_id) if user_id else None
-            credentials[provider] = provider_model_catalog.oauth_access_token(auth, auth_id)
-            continue
         resolved = _srv()._resolve_credential(
             user_id,
             workspace_id,
             provider,
             user_only=_srv()._provider_user_only(provider),
         )
-        credentials[provider] = _srv()._credential_secret(resolved or {}, user_id) if resolved else ""
+        raw_secret = _srv()._credential_secret(resolved or {}, user_id) if resolved else ""
+        binding_id = str((resolved or {}).get("credential_binding_id") or (resolved or {}).get("credential_id") or "")
+        credentials[provider] = credential_broker.materialize_provider_secret(provider, binding_id, raw_secret)[0]
     return provider_model_catalog.discover_many(credentials, timeout=8)
 
 

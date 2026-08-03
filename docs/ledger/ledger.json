@@ -1,206 +1,202 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "1.0",
   "project": "workframe",
-  "updated": "2026-08-02",
-  "release_target": "multi-user beta",
-  "versions": {
-    "create_workframe": "0.1.51",
-    "standalone_cli": "0.4.1"
-  },
-  "vision": "Start a security-first semi-autonomous multiplayer AI organization through one reviewed Architectonic plan, with Workframe as the shared UI/workspace/supervision surface and Hermes as the first replaceable runtime adapter.",
-  "authority": {
-    "stack_operator": "operates one installation and release surface; does not inherit workspace or secret-retrieval authority",
-    "workspace_role": "resolved in the target workspace for every workspace-owned resource",
-    "user_proxy": "private runtime, capability, memory, payer, and session context bound to one user and one shared workspace agent identity",
-    "credential": "raw upstream secret is non-retrievable through normal product APIs; runtimes receive opaque revocable capabilities",
-    "apply": "discovery and planning are read-only; writes, deployment, adoption, and destructive operations require explicit immutable plan authority"
-  },
-  "history": {
-    "previous_schema": "1.0",
-    "previous_main_commit": "c88132fc3cbf7f594115a3cfefe21968c779543d",
-    "previous_ledger_blob": "3e3553fcde564870b3a111bed0d78ebd792fa01e",
-    "note": "The detailed item-by-item development rail, evidence, obsolete version campaigns, and deferred runtime-adapter rows remain immutable in Git history. This file is the smaller active release authority."
-  },
-  "completed_baseline": {
-    "evidence_location": "Git history at history.previous_main_commit and the retained specs, release-evidence fixtures, package/install harness, CLI campaign files, and merged pull requests.",
-    "capabilities": [
-      "version, package, docs-claim, UI, updater, release-evidence, and negative-install gates",
-      "empty-target install authority, mutation-free doctor, run authority, supervisor denial tests, and public-deploy preflight",
-      "real multiplayer workspace, room, message, file, invite, activity, credential, budget, grant, and agent surfaces",
-      "Hermes-native profile/runtime provisioning and user-proxy cohort behavior",
-      "standalone CLI Socratic begin, inference, constitutional draft, Architectonic plan/apply handoff, Workframe deployment plan, and immutable apply boundaries",
-      "create-workframe 0.1.51 and standalone workframe CLI 0.4.1 source/package truth"
-    ],
-    "limitations": [
-      "Historical completion means the named bounded contract passed; it does not imply public multi-user beta readiness.",
-      "Electron, second runtime adapter, and generative in-app UI remain unshipped product work.",
-      "The four target cells have not yet passed one immutable beta artifact matrix."
-    ]
-  },
+  "updated": "2026-08-03",
+  "roadmap_ref": "docs/ledger/north-star.md",
   "items": [
     {
       "id": "WF-047",
       "title": "Remove legacy public mutations and bind every scoped request to its target workspace",
+      "summary": "Fail closed on ambiguous scope and separate stack authority from workspace roles.",
       "status": "done",
       "priority": "P0",
       "owner_role": "architect",
-      "issue": 18,
-      "pull_request": 19,
       "acceptance": [
-        "Stack role and target-workspace role are separate.",
-        "Workspace, room, memory, agent-credential, and invite paths resolve target scope before handler execution.",
-        "Owner of A receives only their actual role in B.",
-        "Invite access is bound to authenticated email and expiry.",
-        "Legacy auth bootstrap is denied in secure mode and setup is install-window plus stack-owner only.",
-        "Two-workspace adversarial matrix runs in the normal harness."
+        "Scoped requests resolve the target workspace before handler execution.",
+        "Ambiguous or missing resource scope fails closed.",
+        "The two-workspace adversarial authorization matrix passes."
       ],
+      "depends_on": [],
       "evidence": [
         "services/workframe-api/auth_gate.py",
         "services/workframe-api/test_resource_scope.py",
         "services/workframe-api/test_route_registry.py",
-        ".harness/feature_list.json",
-        "docs/specs/WF-047.md",
-        "GitHub Actions CI run 30773814922: every version/docs/UI/updater/harness/package/negative-install step green."
-      ]
+        "PR #19 merged as 669586a",
+        "PR #26 merged as 9b8d0ed"
+      ],
+      "sources": ["docs/specs/WF-047.md"],
+      "stop_line": "Do not reopen unless a scoped-resource regression is found.",
+      "extensions": {"issue": 18, "pull_requests": [19, 26]}
     },
     {
       "id": "WF-048",
       "title": "Make credential use capability-based, non-retrievable, atomic, and revocable",
-      "status": "todo",
+      "summary": "Move credential authority behind typed vault reads, durable generations, opaque leases, and fail-closed OAuth handling.",
+      "status": "in_progress",
       "priority": "P0",
       "owner_role": "architect",
-      "issue": 20,
-      "depends_on": [
-        "WF-047"
+      "claim": {"assignee": "architect", "claimed_at": "2026-08-03T04:00:00-03:00"},
+      "acceptance": [
+        "Typed vault reads distinguish missing, sealed, corrupt, unavailable, and ok.",
+        "Binding lifecycle state and monotonically increasing capability generation are durable.",
+        "Leases are generation-bound and stale generations are rejected.",
+        "Replacement, disconnect, revoke, expiry, restore, and payer changes revoke prior generations.",
+        "Reusable OAuth material is migrated or quarantined and never published to runtime auth.json.",
+        "Interruption, migration, revocation, recovery, and raw-secret scan fixtures pass."
       ],
-      "stop_line": "No public multi-user beta claim until replacement, removal, restore, and expiry revocation fixtures pass."
+      "depends_on": ["WF-047"],
+      "evidence": [
+        "docs/specs/WF-048.md",
+        "services/workframe-api/credential_vault.py",
+        "services/workframe-api/turn_credentials.py",
+        "services/workframe-api/credential_lifecycle.py",
+        "services/workframe-api/credential_store.py",
+        "services/workframe-api/provider_bindings.py",
+        "services/workframe-api/oauth_redirect.py",
+        "services/workframe-api/handler_modules/handler_provider.py",
+        "services/workframe-api/handler_modules/handler_workspace.py",
+        "services/workframe-api/rooms.py",
+        "services/workframe-api/test_credential_vault_status.py",
+        "services/workframe-api/test_credential_lease_matrix.py",
+        "services/workframe-api/test_credential_lifecycle.py",
+        "services/workframe-api/test_wf048_authority_scan.py",
+        "docs/public/security.md",
+        ".github/workflows/ci.yml"
+      ],
+      "sources": ["docs/specs/WF-048.md", "PR #27 specification-only"],
+      "stop_line": "No public multi-user beta claim until replacement, removal, restore, and expiry revocation fixtures pass.",
+      "extensions": {"issue": 20, "pull_request": 27, "implementation_branch": "architect/wf-048-capability-lifecycle-implementation"}
     },
     {
       "id": "WF-049",
       "title": "Persist runtime ownership, endpoints, secrets, and idempotent mutation identity",
-      "status": "todo",
+      "summary": "Make runtime mutations recoverable and safe to retry after WF-048.",
+      "status": "backlog",
       "priority": "P0",
       "owner_role": "architect",
-      "issue": 21,
-      "depends_on": [
-        "WF-047",
-        "WF-048"
+      "acceptance": [
+        "Runtime ownership and endpoint identity survive restart and restore.",
+        "Mutations have durable idempotency identity and resumable recovery."
       ],
-      "stop_line": "No public multi-user runtime cleanup or automatic mutative retry until ownership and idempotency are durable."
+      "depends_on": ["WF-047", "WF-048"],
+      "evidence": [],
+      "stop_line": "No automatic mutative retry until ownership and idempotency are durable.",
+      "extensions": {"issue": 21}
     },
     {
       "id": "WF-050",
       "title": "Bound HTTP input and distinguish failures from valid empty state",
+      "summary": "Reject malformed or oversized input and make backend failures explicit.",
       "status": "done",
       "priority": "P0",
       "owner_role": "architect",
-      "issue": 22,
-      "pull_request": 28,
-      "depends_on": [
-        "WF-047"
+      "acceptance": [
+        "Strict bounded request-body and pagination parsing runs before dispatch.",
+        "Malformed input returns stable client errors.",
+        "Database and internal failures never masquerade as empty success."
       ],
+      "depends_on": ["WF-047"],
       "evidence": [
-        "services/workframe-api/request_body.py owns bounded strict body and pagination parsing.",
-        "POST/PATCH/DELETE and internal proxy/record paths reject malformed or oversized bodies before dispatch.",
-        "Room members/messages and workspace invite/memory/budget/grant failures return database_unavailable rather than empty success.",
-        "test_request_body.py, test_truthful_failures.py, test_resource_scope.py, and test_route_registry.py pass."
+        "services/workframe-api/request_body.py",
+        "services/workframe-api/test_request_body.py",
+        "services/workframe-api/test_truthful_failures.py",
+        "services/workframe-api/test_resource_scope.py",
+        "PR #28 merged after CI verify succeeded"
       ],
-      "stop_line": "No production-ready API claim while malformed input or backend failure can masquerade as valid empty state."
+      "sources": ["docs/specs/WF-050.md"],
+      "stop_line": "No production-ready API claim while malformed input or backend failure can masquerade as valid empty state.",
+      "extensions": {"issue": 22, "pull_request": 28}
     },
     {
       "id": "WF-051",
       "title": "Make one immutable installation manifest the updater source of truth",
-      "status": "todo",
+      "summary": "Prevent package, running component, and updater identity drift.",
+      "status": "backlog",
       "priority": "P0",
       "owner_role": "architect",
-      "issue": 23,
-      "depends_on": [
-        "WF-050"
+      "acceptance": [
+        "The package pins one immutable installation manifest.",
+        "Running components report the same identity used by the updater."
       ],
-      "stop_line": "Do not freeze beta while running component identity can disagree with the package pin."
+      "depends_on": ["WF-050"],
+      "evidence": [],
+      "stop_line": "Do not freeze beta while running component identity can disagree with the package pin.",
+      "extensions": {"issue": 23}
     },
     {
       "id": "WF-052",
       "title": "Scope Hermes profile operations and revoke long-lived room access",
-      "status": "todo",
+      "summary": "Carry workspace and revocation authority through profile and stream operations.",
+      "status": "backlog",
       "priority": "P0",
       "owner_role": "architect",
-      "issue": 24,
-      "depends_on": [
-        "WF-047",
-        "WF-048",
-        "WF-049"
+      "acceptance": [
+        "Profile operations remain bound to the target workspace and user.",
+        "Long-lived room and stream access is revoked when authority changes."
       ],
-      "stop_line": "No external multiplayer beta until profile and stream authority survives two-workspace and revocation matrices."
+      "depends_on": ["WF-047", "WF-048", "WF-049"],
+      "evidence": [],
+      "stop_line": "No external multiplayer beta until profile and stream authority survives revocation matrices.",
+      "extensions": {"issue": 24}
     },
     {
       "id": "WF-046",
       "title": "Freeze and prove one immutable baseline across all four Workframe instances",
-      "status": "external_acceptance_required",
+      "summary": "Operator acceptance of the exact packed artifact across the target cells.",
+      "status": "approval_required",
       "priority": "P0",
       "owner_role": "operator_tests",
-      "issue": 15,
-      "depends_on": [
-        "WF-047",
-        "WF-048",
-        "WF-049",
-        "WF-050",
-        "WF-051",
-        "WF-052"
+      "acceptance": [
+        "One immutable package/config baseline passes the four target-cell matrix.",
+        "Cross-workspace, raw-key, runtime-ownership, restore, and revocation matrices are recorded."
       ],
-      "targets": [
-        "demo.workfra.me",
-        "abx.alanborger.com",
-        "team.click.blue",
-        "dev.glitchtrader.com"
-      ],
-      "blocked_reason": "Requires deployment credentials, target-cell access, invited test identities, backup/restore exercise, and one exact packed artifact on all four cells."
+      "depends_on": ["WF-047", "WF-048", "WF-049", "WF-050", "WF-051", "WF-052"],
+      "evidence": [],
+      "stop_line": "Requires deployment credentials, invited identities, backup/restore exercise, and exact artifact evidence.",
+      "extensions": {"issue": 15, "targets": ["demo.workfra.me", "abx.alanborger.com", "team.click.blue", "dev.glitchtrader.com"]}
     },
     {
       "id": "WF-053",
       "title": "Unify CLI, Electron, Architectonic bootstrap, runtime adapters, and generative organization UI",
-      "status": "planned",
+      "summary": "Future product architecture after the security rail is complete.",
+      "status": "backlog",
       "priority": "P1",
       "owner_role": "product_architecture",
-      "issue": 25,
-      "depends_on": [
-        "WF-047",
-        "WF-048",
-        "WF-049",
-        "WF-051",
-        "WF-052"
+      "acceptance": [
+        "One versioned bootstrap plan is consumed by cloud, local, and Electron surfaces.",
+        "A second runtime adapter is added only after the Hermes contract is stable."
       ],
-      "delivery_order": [
-        "canonical versioned bootstrap plan schema",
-        "cloud/local/Electron consumption of the same plan",
-        "Hermes profile and Architectonic archetype/skill manifests",
-        "sandboxed in-app browser plugin surface",
-        "one bounded generated project dashboard",
-        "one second runtime adapter after the Hermes contract is stable"
-      ],
-      "stop_line": "Do not market Electron, future adapters, or generative UI as shipped before bounded end-to-end acceptance."
+      "depends_on": ["WF-047", "WF-048", "WF-049", "WF-051", "WF-052"],
+      "evidence": [],
+      "stop_line": "Do not market future adapters or generative UI as shipped.",
+      "extensions": {"issue": 25, "delivery_order": ["bootstrap plan", "cloud/local/Electron consumption", "runtime manifests", "browser plugin", "generated dashboard", "second runtime adapter"]}
     },
     {
       "id": "WF-BETA-01",
       "title": "External multi-user beta promotion",
-      "status": "external_acceptance_required",
+      "summary": "Operator promotion after all P0 security and acceptance rails are complete.",
+      "status": "approval_required",
       "priority": "P0",
       "owner_role": "operator",
-      "depends_on": [
-        "WF-046",
-        "WF-048",
-        "WF-049",
-        "WF-050",
-        "WF-051",
-        "WF-052"
-      ],
       "acceptance": [
-        "One immutable source/package/config baseline passes every target cell.",
-        "Cross-workspace, raw-key, runtime-ownership, malformed-input, restore, and revocation matrices are green.",
-        "Owner and invited-member login, user-user and user-agent DM, Space mention, files, provider use, restart, backup, restore, doctor, and public preflight pass.",
-        "Known product limitations are explicit and the operator approves the named artifact for beta."
+        "Every required source, package, runtime, restore, and target-cell matrix is green.",
+        "The operator explicitly approves the named artifact for beta."
       ],
+      "depends_on": ["WF-046", "WF-048", "WF-049", "WF-050", "WF-051", "WF-052"],
+      "evidence": [],
       "stop_line": "No external invitation or production-ready claim before explicit operator promotion."
     }
-  ]
+  ],
+  "extensions": {
+    "release_target": "multi-user beta",
+    "vision": "Start a security-first semi-autonomous multiplayer AI organization through one reviewed Architectonic plan, with Workframe as the shared UI/workspace/supervision surface and Hermes as the first replaceable runtime adapter.",
+    "authority": {
+      "stack_operator": "operates one installation and release surface; does not inherit workspace or secret-retrieval authority",
+      "workspace_role": "resolved in the target workspace for every workspace-owned resource",
+      "user_proxy": "private runtime, capability, memory, payer, and session context bound to one user and one shared workspace agent identity",
+      "credential": "raw upstream secret is non-retrievable through normal product APIs",
+      "apply": "writes, deployment, adoption, and destructive operations require explicit immutable plan authority"
+    },
+    "legacy_schema": "2.0 ledger preserved in Git history; current file conforms to Architectonic Rail 1.0"
+  }
 }
