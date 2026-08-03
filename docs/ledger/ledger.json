@@ -66,17 +66,12 @@
     {
       "id": "WF-048",
       "title": "Make credential use capability-based, non-retrievable, atomic, and revocable",
-      "status": "ready",
+      "status": "todo",
       "priority": "P0",
       "owner_role": "architect",
       "issue": 20,
-      "pull_request": 27,
       "depends_on": [
         "WF-047"
-      ],
-      "evidence": [
-        "docs/specs/WF-048.md is reviewed specification-only scope; implementation is not yet merged.",
-        "Existing credential_vault.py, turn_credentials.py, provider_bindings.py, and OAuth paths are the named implementation surface."
       ],
       "stop_line": "No public multi-user beta claim until replacement, removal, restore, and expiry revocation fixtures pass."
     },

@@ -8,8 +8,6 @@ import os
 import secrets
 import sqlite3
 import time
-from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -20,24 +18,6 @@ DATA_DIR = Path(os.environ.get("WORKFRAME_API_DATA_DIR", "/app/data"))
 VAULT_DB = DATA_DIR / "credential_vault.db"
 LEGACY_V1 = 1
 ENVELOPE_V2 = 2
-
-
-class CredentialReadStatus(StrEnum):
-    OK = "ok"
-    MISSING = "missing"
-    SEALED = "sealed"
-    CORRUPT = "corrupt"
-    UNAVAILABLE = "unavailable"
-
-
-@dataclass(frozen=True)
-class CredentialReadResult:
-    status: CredentialReadStatus
-    secret: str = ""
-
-    @property
-    def ok(self) -> bool:
-        return self.status is CredentialReadStatus.OK
 
 
 def _connect() -> sqlite3.Connection:
@@ -382,26 +362,15 @@ def store_secret(
 
 
 def read_secret(binding_id: str) -> str:
-    result = read_secret_result(binding_id)
-    return result.secret if result.ok else ""
-
-
-def read_secret_result(binding_id: str) -> CredentialReadResult:
-    """Read with an explicit failure class; callers must not confuse sealed with missing."""
     binding_id = str(binding_id or "").strip()
     if not binding_id:
-        return CredentialReadResult(CredentialReadStatus.MISSING)
+        return ""
     ensure_schema()
     if not vault_kek.kek_in_memory():
         status = vault_status()
         if status["passphrase_enabled"]:
-            return CredentialReadResult(CredentialReadStatus.SEALED)
-        try:
-            bootstrap_vault(allow_generate_file=True)
-        except (OSError, RuntimeError):
-            return CredentialReadResult(CredentialReadStatus.UNAVAILABLE)
-        if not vault_kek.kek_in_memory():
-            return CredentialReadResult(CredentialReadStatus.SEALED)
+            return ""
+        bootstrap_vault(allow_generate_file=True)
     conn = _connect()
     try:
         row = conn.execute(
@@ -409,14 +378,11 @@ def read_secret_result(binding_id: str) -> CredentialReadResult:
             (binding_id,),
         ).fetchone()
         if not row:
-            return CredentialReadResult(CredentialReadStatus.MISSING)
+            return ""
         blob = str(row["encrypted_secret"] or "")
-        try:
-            plain = _decrypt(blob)
-        except (ValueError, KeyError, TypeError, json.JSONDecodeError, RuntimeError, OSError):
-            return CredentialReadResult(CredentialReadStatus.CORRUPT)
+        plain = _decrypt(blob)
         if not plain or not vault_kek.kek_in_memory():
-            return CredentialReadResult(CredentialReadStatus.CORRUPT if plain == "" else CredentialReadStatus.SEALED)
+            return plain
         try:
             parsed = json.loads(blob)
             if isinstance(parsed, dict) and int(parsed.get("v") or 0) != ENVELOPE_V2:
@@ -429,7 +395,7 @@ def read_secret_result(binding_id: str) -> CredentialReadResult:
                 conn.commit()
         except json.JSONDecodeError:
             pass
-        return CredentialReadResult(CredentialReadStatus.OK, plain)
+        return plain
     finally:
         conn.close()
 

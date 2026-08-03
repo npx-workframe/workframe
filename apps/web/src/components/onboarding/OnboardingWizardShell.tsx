@@ -101,7 +101,6 @@ export function OnboardingWizardShell({
                     const idx = steps.findIndex((s) => s.id === item.id)
                     const state = idx < stepIndex ? 'done' : idx === stepIndex ? 'current' : 'upcoming'
                     const clickable = Boolean(onStepSelect) && idx >= 0 && idx <= reachable && state !== 'current'
-                    const locked = state === 'upcoming' && idx > reachable
                     const mark = state === 'done' ? '✓' : String(idx + 1)
                     const inner = (
                       <>
@@ -132,13 +131,7 @@ export function OnboardingWizardShell({
                             {inner}
                           </button>
                         ) : (
-                          <div
-                            className={`wf-onboarding-wizard__step-btn is-static${locked ? ' is-locked' : ''}`}
-                            aria-disabled={locked ? 'true' : undefined}
-                            title={locked ? `${item.label} is locked until the previous setup step is complete` : undefined}
-                          >
-                            {inner}
-                          </div>
+                          <div className="wf-onboarding-wizard__step-btn is-static">{inner}</div>
                         )}
                       </li>
                     )

@@ -52,16 +52,12 @@ def ensure_schema() -> None:
                 provider TEXT NOT NULL,
                 credential_binding_id TEXT DEFAULT NULL,
                 profile_slug TEXT NOT NULL,
-                capability_generation INTEGER NOT NULL DEFAULT 1,
                 expires_at TEXT NOT NULL,
                 revoked_at TEXT DEFAULT NULL,
                 created_at TEXT NOT NULL
             )
             """
         )
-        columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(turn_credential_leases)").fetchall()}
-        if "capability_generation" not in columns:
-            conn.execute("ALTER TABLE turn_credential_leases ADD COLUMN capability_generation INTEGER NOT NULL DEFAULT 1")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_turn_leases_token "
             "ON turn_credential_leases(token_hash)"
@@ -115,25 +111,6 @@ def issue_lease(
         raise ValueError("ttl_seconds must be positive")
 
     ensure_schema()
-    capability_generation = 1
-    if credential_binding_id:
-        conn = _connect()
-        try:
-            try:
-                row = conn.execute(
-                    "SELECT capability_generation, lifecycle_state FROM credential_bindings WHERE id = ?",
-                    (str(credential_binding_id),),
-                ).fetchone()
-            except sqlite3.OperationalError:
-                # Isolated lease tests and pre-WF-048 databases may not have the
-                # product binding table; the opaque lease remains generation 1.
-                row = None
-            if row:
-                capability_generation = max(1, int(row[0] or 1))
-                if str(row[1] or "active") != "active":
-                    raise ValueError("credential_binding_not_active")
-        finally:
-            conn.close()
     raw = secrets.token_hex(32)
     token = f"{LEASE_PREFIX}{raw}"
     now = datetime.now(timezone.utc)
@@ -145,8 +122,8 @@ def issue_lease(
             """
             INSERT INTO turn_credential_leases (
                 run_id, token_hash, payer_user_id, workspace_id, provider,
-                credential_binding_id, profile_slug, capability_generation, expires_at, created_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?)
+                credential_binding_id, profile_slug, expires_at, created_at
+            ) VALUES (?,?,?,?,?,?,?,?,?)
             ON CONFLICT(run_id) DO UPDATE SET
                 token_hash = excluded.token_hash,
                 payer_user_id = excluded.payer_user_id,
@@ -154,7 +131,6 @@ def issue_lease(
                 provider = excluded.provider,
                 credential_binding_id = excluded.credential_binding_id,
                 profile_slug = excluded.profile_slug,
-                capability_generation = excluded.capability_generation,
                 expires_at = excluded.expires_at,
                 revoked_at = NULL,
                 created_at = excluded.created_at
@@ -167,7 +143,6 @@ def issue_lease(
                 provider,
                 str(credential_binding_id or "") or None,
                 profile_slug,
-                capability_generation,
                 expires_at,
                 created_at,
             ),
@@ -195,7 +170,6 @@ def _lease_row_to_meta(row: sqlite3.Row) -> dict[str, Any]:
         "provider": str(row["provider"]),
         "credential_binding_id": str(row["credential_binding_id"] or ""),
         "profile_slug": str(row["profile_slug"]),
-        "capability_generation": max(1, int(row["capability_generation"] or 1)),
     }
 
 
@@ -211,7 +185,6 @@ def inspect_lease(token: str) -> tuple[str | None, dict[str, Any] | None]:
             """
             SELECT run_id, payer_user_id, workspace_id, provider,
                    credential_binding_id, profile_slug, expires_at, revoked_at
-                   , capability_generation
             FROM turn_credential_leases
             WHERE token_hash = ?
             """,
@@ -222,25 +195,6 @@ def inspect_lease(token: str) -> tuple[str | None, dict[str, Any] | None]:
     if not row:
         return "not_found", None
     meta = _lease_row_to_meta(row)
-    binding_id = str(row["credential_binding_id"] or "").strip()
-    if binding_id:
-        current = _connect()
-        binding_table_available = True
-        try:
-            try:
-                binding = current.execute(
-                    "SELECT capability_generation, lifecycle_state FROM credential_bindings WHERE id = ?",
-                    (binding_id,),
-                ).fetchone()
-            except sqlite3.OperationalError:
-                binding_table_available = False
-                binding = None
-        finally:
-            current.close()
-        if binding_table_available and (not binding or str(binding[1] or "active") != "active"):
-            return "stale_generation", meta
-        if binding_table_available and int(binding[0] or 1) != int(row["capability_generation"] or 1):
-            return "stale_generation", meta
     if row["revoked_at"]:
         return "revoked", meta
     if _expired(str(row["expires_at"] or "")):
