@@ -754,6 +754,17 @@ def authorize_request(handler: BaseHTTPRequestHandler) -> bool:
         return False
     if DEV_LOCAL_UNSAFE:
         return True
+    # Public and install-window routes do not necessarily have a user identity
+    # yet. In particular, stack inspection and mutation must remain usable
+    # before the first admin email is registered; applying workspace scoping
+    # here turns those bootstrap routes into an unexpected 401. Mutation
+    # handlers apply their narrower owner gate separately.
+    spec = route_registry.lookup_auth(method, path)
+    if spec is not None and (
+        spec.auth == route_registry.AuthLevel.PUBLIC
+        or (spec.install_window and install_window_open)
+    ):
+        return True
     if path == "/api/setup":
         user_id = str(getattr(handler, "auth_user", "") or "").strip()
         return bool(install_window_open and user_id and user_is_stack_operator(user_id))
