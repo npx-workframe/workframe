@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import json
+import sqlite3
+import time
+import urllib.parse
+import urllib.request
+import urllib.error
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -12,6 +17,74 @@ import turn_credentials
 import credential_vault
 
 LEASE_PREFIX = turn_credentials.LEASE_PREFIX
+
+
+def _oauth_bundle(secret: str) -> dict[str, Any] | None:
+    try:
+        value = json.loads(str(secret or ""))
+    except (TypeError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) and value.get("kind") == "oauth" else None
+
+
+def materialize_provider_secret(provider: str, binding_id: str, secret: str) -> tuple[str, str]:
+    """Return an outbound token while keeping OAuth bundles vault-only.
+
+    The lease path is the only caller that receives the materialized token.
+    Refresh is provider-neutral and opt-in: a bundle must provide its token
+    endpoint and client id. Missing refresh metadata fails closed instead of
+    falling back to runtime auth files.
+    """
+    bundle = _oauth_bundle(secret)
+    if not bundle:
+        return str(secret or ""), "ok" if str(secret or "").strip() else "missing"
+    access = str(bundle.get("access_token") or "").strip()
+    expires_at = float(bundle.get("expires_at") or 0)
+    if access and (not expires_at or expires_at > time.time() + 30):
+        return access, "ok"
+    refresh = str(bundle.get("refresh_token") or "").strip()
+    token_url = str(bundle.get("token_url") or "").strip()
+    client_id = str(bundle.get("client_id") or "").strip()
+    if not refresh or not token_url or not client_id:
+        return "", "oauth_refresh_unavailable"
+    form = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh,
+        "client_id": client_id,
+    }
+    client_secret = str(bundle.get("client_secret") or "").strip()
+    if client_secret:
+        form["client_secret"] = client_secret
+    req = urllib.request.Request(
+        token_url,
+        data=urllib.parse.urlencode(form).encode("utf-8"),
+        headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8", errors="replace"))
+    except (OSError, urllib.error.URLError, json.JSONDecodeError):
+        return "", "oauth_refresh_failed"
+    if not isinstance(payload, dict) or not str(payload.get("access_token") or "").strip():
+        return "", "oauth_refresh_failed"
+    new_bundle = dict(bundle)
+    new_bundle["access_token"] = str(payload["access_token"])
+    if payload.get("refresh_token"):
+        new_bundle["refresh_token"] = str(payload["refresh_token"])
+    if payload.get("expires_in"):
+        new_bundle["expires_at"] = time.time() + float(payload["expires_in"])
+    target_id = str(binding_id or "").strip()
+    if target_id:
+        try:
+            import credential_lifecycle
+
+            credential_lifecycle.advance_generation(target_id, state="rotating")
+            credential_vault.store_secret(target_id, json.dumps(new_bundle, sort_keys=True), provider=provider, scope="user")
+            credential_lifecycle.mark_active(target_id)
+        except (OSError, RuntimeError, ValueError, sqlite3.Error):
+            return "", "oauth_refresh_persist_failed"
+    return str(new_bundle["access_token"]), "ok"
 
 
 def extract_bearer(headers: dict[str, str]) -> str:
@@ -156,15 +229,16 @@ def authorize_broker_lease(
             if secret
             else credential_vault.CredentialReadStatus.MISSING.value
         )
+    secret, material_status = materialize_provider_secret(provider, str(lease.get("credential_binding_id") or ""), secret)
     if not secret:
         return _audit(
             BrokerLeaseAuth(
                 ok=False,
                 status=402,
-                error="no credential",
-                deny_reason=f"credential_{credential_status}",
+                error="oauth refresh unavailable" if material_status.startswith("oauth_") else "no credential",
+                deny_reason=f"credential_{material_status or credential_status}",
                 lease=lease,
-                credential_status=credential_status,
+                credential_status=material_status or credential_status,
             ),
             402,
         )

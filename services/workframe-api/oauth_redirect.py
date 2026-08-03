@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import sqlite3
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -210,7 +211,14 @@ def _complete_github_oauth(user_id: str, code: str, state: str) -> dict[str, Any
         return {"ok": False, "error": "github_missing_access_token"}
     spec = provider_catalog.catalog_provider("github") or {}
     env_var = str(spec.get("env_var") or "GITHUB_TOKEN")
-    payload = _srv()._store_user_credential(user_id, "github", "oauth", access_token, env_var, "GitHub OAuth")
+    oauth_bundle = json.dumps({
+        "kind": "oauth",
+        "provider": "github",
+        "access_token": access_token,
+        "token_type": str(token_data.get("token_type") or "bearer"),
+        "client_id": client_id,
+    }, sort_keys=True)
+    payload = _srv()._store_user_credential(user_id, "github", "oauth", oauth_bundle, env_var, "GitHub OAuth")
     cred_ref = str(payload["credential_ref"])
     now = _srv()._utc_now()
     # _store_user_credential creates the vault row first; use that same
@@ -320,7 +328,17 @@ def _complete_stripe_oauth(user_id: str, code: str, state: str) -> dict[str, Any
     spec = provider_catalog.catalog_provider("stripe") or {}
     env_var = str(spec.get("env_var") or "STRIPE_SECRET_KEY")
     label = f"Stripe Connect ({stripe_user_id})" if stripe_user_id else "Stripe Connect"
-    payload = _srv()._store_user_credential(user_id, "stripe", "oauth", access_token, env_var, label)
+    oauth_bundle = json.dumps({
+        "kind": "oauth",
+        "provider": "stripe",
+        "access_token": access_token,
+        "refresh_token": str(token_data.get("refresh_token") or ""),
+        "expires_at": time.time() + float(token_data.get("expires_in") or 0),
+        "token_url": "https://connect.stripe.com/oauth/token",
+        "client_id": str(cfg.get("client_id") or ""),
+        "client_secret": client_secret,
+    }, sort_keys=True)
+    payload = _srv()._store_user_credential(user_id, "stripe", "oauth", oauth_bundle, env_var, label)
     cred_ref = str(payload["credential_ref"])
     now = _srv()._utc_now()
     cred_id = str(payload["credential_id"])
