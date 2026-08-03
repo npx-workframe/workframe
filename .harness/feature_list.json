@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "description": "Workframe harness scenarios — backend/install-gate focus; UI dogfood is local-only.",
-  "updated": "2026-07-11",
+  "updated": "2026-08-02",
   "scenarios": [
     {
       "id": "api-typecheck",
@@ -28,6 +28,20 @@
       "id": "api-provider-models",
       "description": "Provider model surface regression",
       "verify": "python services/workframe-api/test_provider_model_surface.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-route-registry",
+      "description": "Declarative route/auth registry consistency",
+      "verify": "python services/workframe-api/test_route_registry.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-resource-scope",
+      "description": "Two-workspace target authorization and legacy bootstrap closure",
+      "verify": "python services/workframe-api/test_resource_scope.py",
       "passes": true,
       "owner": "cursor-cloud"
     },
