@@ -42,6 +42,17 @@ jobs:
       - name: Updater contract gate
         run: pnpm verify:updater-contracts
 
+      - name: WF-048 credential lifecycle matrix
+        env:
+          WORKFRAME_API_DATA_DIR: ${{ runner.temp }}/workframe-api-data
+        run: |
+          python -m py_compile services/workframe-api/credential_vault.py services/workframe-api/credential_lifecycle.py services/workframe-api/credential_resolve.py services/workframe-api/credential_store.py services/workframe-api/provider_bindings.py services/workframe-api/turn_credentials.py
+          python services/workframe-api/test_credential_vault_status.py
+          python services/workframe-api/test_credential_lease_matrix.py
+          python services/workframe-api/test_credential_lifecycle.py
+          python services/workframe-api/test_wf048_authority_scan.py
+          python services/workframe-api/test_provider_bindings.py
+
       - name: Release evidence fixtures
         run: node scripts/workframe/validate-release-evidence.mjs
 

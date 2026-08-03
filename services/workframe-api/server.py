@@ -1005,6 +1005,8 @@ disconnect_user_credential = provider_bindings.disconnect_user_credential
 disconnect_user_provider = provider_bindings.disconnect_user_provider
 device_oauth_status = provider_bindings.device_oauth_status
 start_user_oauth = provider_bindings.start_user_oauth
+_credential_lifecycle_revoke_binding = credential_lifecycle.revoke_binding
+_credential_lifecycle_revoke_other_bindings = credential_lifecycle.revoke_other_bindings
 
 # WF-032: provider_catalog re-exports
 PROVIDER_CONNECT_CATALOG = provider_catalog.PROVIDER_CONNECT_CATALOG
@@ -1575,8 +1577,11 @@ def _sync_agent_profile_db(profile: str, fields: dict[str, Any]) -> None:
     _ensure_workframe_db_schema()
     try:
         recovered = credential_lifecycle.recover_pending_operations()
+        expired = credential_lifecycle.expire_bindings()
         if recovered:
             print(f"  Credential lifecycle recovery marked {len(recovered)} interrupted operation(s) for retry", flush=True)
+        if expired:
+            print(f"  Credential lifecycle expired {expired} binding(s)", flush=True)
     except (sqlite3.Error, OSError) as exc:
         raise SystemExit(f"credential lifecycle recovery failed: {exc}") from exc
     conn = _workframe_db()

@@ -387,6 +387,13 @@ def read_secret(binding_id: str) -> str:
 
 
 def read_secret_result(binding_id: str) -> CredentialReadResult:
+    try:
+        return _read_secret_result(binding_id)
+    except (OSError, sqlite3.Error, RuntimeError):
+        return CredentialReadResult(CredentialReadStatus.UNAVAILABLE)
+
+
+def _read_secret_result(binding_id: str) -> CredentialReadResult:
     """Read with an explicit failure class; callers must not confuse sealed with missing."""
     binding_id = str(binding_id or "").strip()
     if not binding_id:

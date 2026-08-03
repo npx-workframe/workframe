@@ -26,6 +26,13 @@ def main() -> None:
         state TEXT NOT NULL, capability_generation INTEGER NOT NULL, details_json TEXT NOT NULL,
         created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
     conn.execute("INSERT INTO credential_bindings VALUES ('b1', 2, 'active')")
+    conn.execute("ALTER TABLE credential_bindings ADD COLUMN credential_ref TEXT DEFAULT 'vault:b1'")
+    conn.execute("ALTER TABLE credential_bindings ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
+    conn.execute("ALTER TABLE credential_bindings ADD COLUMN deleted_at TEXT")
+    conn.execute("ALTER TABLE credential_bindings ADD COLUMN updated_at TEXT")
+    conn.execute("ALTER TABLE credential_bindings ADD COLUMN lifecycle_updated_at TEXT")
+    conn.execute("ALTER TABLE credential_bindings ADD COLUMN expires_at TEXT")
+    conn.execute("INSERT INTO credential_bindings (id, capability_generation, lifecycle_state, credential_ref, expires_at) VALUES ('b2', 1, 'active', 'vault:b2', '1970-01-01T00:00:00+00:00')")
     conn.commit()
     conn.close()
 
@@ -38,6 +45,16 @@ def main() -> None:
     state = conn.execute("SELECT state FROM credential_lifecycle_operations WHERE operation_id = ?", (operation_id,)).fetchone()[0]
     conn.close()
     assert state == "failed"
+
+    deleted: list[str] = []
+    credential_lifecycle.credential_vault.delete_secret = lambda binding_id: deleted.append(binding_id)
+    credential_lifecycle.turn_credentials.revoke_matching_leases = lambda **_kwargs: 1
+    assert credential_lifecycle.revoke_binding("b2", reason="test")
+    conn = sqlite3.connect(str(db))
+    row = conn.execute("SELECT capability_generation, lifecycle_state, is_active FROM credential_bindings WHERE id = 'b2'").fetchone()
+    conn.close()
+    assert row == (2, "revoked", 0)
+    assert deleted == ["b2"]
     print("credential lifecycle operations ok")
 
 

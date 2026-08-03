@@ -165,6 +165,8 @@ class ProviderRoutesMixin:
         try:
             conn = sqlite3.connect(str(srv._workframe_db_path()), timeout=3.0)
             conn.row_factory = sqlite3.Row
+            old_bindings: list[tuple[str, str]] = []
+            operation_id = ""
             existing = conn.execute(
                 """SELECT id FROM credential_bindings
                    WHERE user_id = ? AND provider = ? AND credential_type = ?
@@ -174,6 +176,7 @@ class ProviderRoutesMixin:
             ).fetchone()
             if existing:
                 cred_id = str(existing["id"])
+                operation_id = credential_lifecycle.begin_operation(cred_id, "replace", state="staged")
                 credential_lifecycle.advance_generation(cred_id, state="rotating")
                 conn.execute(
                     """UPDATE credential_bindings
@@ -190,6 +193,12 @@ class ProviderRoutesMixin:
                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (cred_id, None, user_id, None, provider, credential_type, cred_ref, label, 1, user_id, now, now),
                 )
+            old_rows = conn.execute(
+                """SELECT id, credential_ref FROM credential_bindings
+                   WHERE user_id = ? AND provider = ? AND deleted_at IS NULL AND id != ?""",
+                (user_id, provider, cred_id),
+            ).fetchall()
+            old_bindings = [(str(row["id"]), str(row["credential_ref"] or "")) for row in old_rows]
             conn.execute(
                 """UPDATE credential_bindings
                    SET is_active = 0, lifecycle_state = 'revoked',
@@ -201,10 +210,17 @@ class ProviderRoutesMixin:
             conn.commit()
             conn.close()
             credential_lifecycle.mark_active(cred_id)
+            if operation_id:
+                credential_lifecycle.transition_operation(operation_id, "completed")
         except sqlite3.Error as exc:
             self._json(500, {"ok": False, "error": f"db_error: {exc}"})
             return
         srv._invalidate_user_llm_picker_cache(user_id)
+        for old_id, _old_ref in old_bindings:
+            # The row was already made inactive in the transaction above;
+            # central lifecycle cleanup now removes its vault authority and
+            # records the revocation operation without reopening it.
+            credential_lifecycle.revoke_binding(old_id, reason="user_replacement")
         srv._revoke_runtime_llm_leases(payer_user_id=user_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
         # Credential persistence must not depend on an upstream network round-trip.

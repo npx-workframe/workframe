@@ -76,7 +76,10 @@ function copyIntoPackage(src, dst) {
 
 function writeBuildStamp(targetDir, filename) {
   const pkgVersion = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')).version;
-  const gitRef = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
+  // Worktrees created by the desktop runner can have a different filesystem
+  // owner than the invoking process. Keep provenance readable without
+  // mutating global git configuration.
+  const gitRef = spawnSync('git', ['-c', 'safe.directory=*', 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8', cwd: REPO_ROOT });
   const stamp = {
     package_version: pkgVersion,
     synced_at: new Date().toISOString(),

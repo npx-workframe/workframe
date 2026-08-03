@@ -211,6 +211,7 @@ def _store_workspace_credential(
     )
     _remove_env_secret(_srv()._profile_dir(primary) / ".env", env_var)
     conn = _srv()._workframe_db()
+    old_vault_id = ""
     try:
         existing = conn.execute(
             """SELECT id FROM credential_bindings
@@ -220,6 +221,8 @@ def _store_workspace_credential(
         ).fetchone()
         if existing:
             cred_id = str(existing[0])
+            old_ref_row = conn.execute("SELECT credential_ref FROM credential_bindings WHERE id = ?", (cred_id,)).fetchone()
+            old_vault_id = credential_vault.parse_vault_ref(str(old_ref_row[0] or "")) if old_ref_row else ""
             operation_id = credential_lifecycle.begin_operation(cred_id, "replace", state="staged")
             credential_lifecycle.advance_generation(cred_id, state="rotating")
             credential_lifecycle.transition_operation(operation_id, "bound")
@@ -244,6 +247,8 @@ def _store_workspace_credential(
     finally:
         conn.close()
     credential_lifecycle.mark_active(cred_id)
+    if old_vault_id and old_vault_id != cred_id:
+        credential_vault.delete_secret(old_vault_id)
     if existing:
         credential_lifecycle.transition_operation(operation_id, "active")
     return {

@@ -426,8 +426,6 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         if not row:
             conn.close()
             return {"ok": False, "error": "credential_not_found"}
-        operation_id = credential_lifecycle.begin_operation(str(row["id"]), "revoke", state="staged")
-        credential_lifecycle.advance_generation(str(row["id"]), state="revoking")
         cred_ref = str(row["credential_ref"] or "")
         env_var = cred_ref[4:] if cred_ref.startswith("env:") else ""
         if not env_var:
@@ -436,21 +434,16 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         if env_var:
             _srv()._remove_env_secret(_srv()._user_hermes_env_path(user_id), env_var)
             _srv()._remove_auth_metadata(_srv()._user_hermes_auth_path(user_id), cred_ref or f"env:{env_var}")
-        now = _srv()._utc_now()
-        conn.execute(
-            "UPDATE credential_bindings SET is_active = 0, lifecycle_state = 'revoked', lifecycle_updated_at = ?, deleted_at = ?, updated_at = ? WHERE id = ?",
-            (now, now, now, credential_id),
-        )
-        conn.commit()
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
+    if not credential_lifecycle.revoke_binding(credential_id, reason="user_disconnect"):
+        return {"ok": False, "error": "credential_revoke_failed"}
     _srv()._revoke_runtime_llm_leases(
         payer_user_id=user_id,
         provider=str(row["provider"]),
         credential_binding_id=credential_id,
     )
-    credential_lifecycle.transition_operation(operation_id, "active", details={"result": "revoked"})
     return {"ok": True, "credential_id": credential_id, "provider": str(row["provider"])}
 
 

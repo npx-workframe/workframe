@@ -494,7 +494,12 @@ def _workspace_membership_update_payload(
     ).fetchone()
     if not updated:
         return 404, {"ok": False, "error": "member_not_found", "workspace_id": workspace_id, "user_id": user_id}
-    return 200, {"ok": True, "membership": _workspace_member_payload(updated)}
+    authority_changed = status != "active" or role != str(row["role"])
+    return 200, {
+        "ok": True,
+        "membership": _workspace_member_payload(updated),
+        "_revoke_runtime": authority_changed,
+    }
 
 
 def _patch_workspace_members(
@@ -529,6 +534,7 @@ def _patch_workspace_members(
             if not bulk:
                 return 400, {"ok": False, "error": "memberships list cannot be empty"}
             results = []
+            revocation_users: list[str] = []
             for item in bulk:
                 if not isinstance(item, dict):
                     return 400, {"ok": False, "error": "each membership update must be an object"}
@@ -538,8 +544,13 @@ def _patch_workspace_members(
                 status, payload = _workspace_membership_update_payload(conn, workspace_id, user_id, item, actor_user_id)
                 if status != 200:
                     return status, payload
+                if payload.pop("_revoke_runtime", False):
+                    revocation_users.append(str(payload["membership"].get("user_id") or ""))
                 results.append(payload["membership"])
             conn.commit()
+            for removed_user in revocation_users:
+                if removed_user:
+                    _srv()._revoke_runtime_llm_leases(payer_user_id=removed_user, workspace_id=workspace_id)
             return 200, {"ok": True, "workspace_id": workspace_id, "memberships": results}
 
         user_id = str(body.get("user_id", "") or "").strip()
@@ -552,6 +563,10 @@ def _patch_workspace_members(
         status, payload = _workspace_membership_update_payload(conn, workspace_id, user_id, update_body, actor_user_id)
         if status == 200:
             conn.commit()
+            if payload.pop("_revoke_runtime", False):
+                removed_user = str(payload["membership"].get("user_id") or "")
+                if removed_user:
+                    _srv()._revoke_runtime_llm_leases(payer_user_id=removed_user, workspace_id=workspace_id)
         return status, payload
     except sqlite3.Error as exc:
         conn.rollback()

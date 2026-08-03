@@ -213,7 +213,10 @@ def _complete_github_oauth(user_id: str, code: str, state: str) -> dict[str, Any
     payload = _srv()._store_user_credential(user_id, "github", "oauth", access_token, env_var, "GitHub OAuth")
     cred_ref = str(payload["credential_ref"])
     now = _srv()._utc_now()
-    cred_id = str(uuid.uuid4())
+    # _store_user_credential creates the vault row first; use that same
+    # identity for the binding so lifecycle generation and vault cleanup have
+    # one owner instead of leaving orphaned OAuth ciphertext.
+    cred_id = str(payload["credential_id"])
     try:
         conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
         conn.execute(
@@ -232,6 +235,9 @@ def _complete_github_oauth(user_id: str, code: str, state: str) -> dict[str, Any
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
+    _srv()._credential_lifecycle_revoke_other_bindings(
+        user_id=user_id, provider="github", keep_id=cred_id, reason="oauth_replacement"
+    )
     return {"ok": True, "provider": "github", "credential_id": cred_id}
 
 
@@ -317,7 +323,7 @@ def _complete_stripe_oauth(user_id: str, code: str, state: str) -> dict[str, Any
     payload = _srv()._store_user_credential(user_id, "stripe", "oauth", access_token, env_var, label)
     cred_ref = str(payload["credential_ref"])
     now = _srv()._utc_now()
-    cred_id = str(uuid.uuid4())
+    cred_id = str(payload["credential_id"])
     try:
         conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
         conn.execute(
@@ -336,6 +342,9 @@ def _complete_stripe_oauth(user_id: str, code: str, state: str) -> dict[str, Any
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
+    _srv()._credential_lifecycle_revoke_other_bindings(
+        user_id=user_id, provider="stripe", keep_id=cred_id, reason="oauth_replacement"
+    )
     return {"ok": True, "provider": "stripe", "credential_id": cred_id, "stripe_user_id": stripe_user_id}
 def _start_discord_oauth(user_id: str, workspace_id: str = "") -> dict[str, Any]:
     cfg = platform_auth.resolved_discord_oauth()

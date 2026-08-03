@@ -22,10 +22,15 @@ With `SECURE_MODE=true`:
 
 ## Credentials
 
-- **BYOK default** — user keys in per-user Hermes homes
+- **BYOK default** — user authority is envelope-encrypted in the Workframe vault; per-user Hermes homes contain only opaque Workframe lease material and nonsecret provider metadata. OAuth authority is never published to runtime `auth.json`.
 - **`user_only` providers** — no workspace fallback
 - **Vault** — envelope encryption; not mounted on the gateway container
 - **Per-turn leases** — gateway proxy tokens instead of shared raw secrets
+
+This is a non-retrieval guarantee through normal Workframe product authority,
+not a host-compromise guarantee. A person controlling the host, API process
+memory, vault database, or KEK boundary can observe provider authority while an
+outbound request is being made.
 
 ## Agent egress and the credential broker
 
