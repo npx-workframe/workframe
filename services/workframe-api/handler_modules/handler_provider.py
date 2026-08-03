@@ -9,6 +9,7 @@ import action_proxy
 import internal_proxy_auth
 import llm_proxy
 import platform_auth
+import request_body
 import run_surface_wiring
 
 
@@ -26,8 +27,11 @@ class ProviderRoutesMixin:
             return False
         body: bytes | None = None
         if method.upper() in {"POST", "PUT", "PATCH"}:
-            length = int(self.headers.get("Content-Length") or 0)
-            body = self.rfile.read(length) if length > 0 else b""
+            try:
+                body = request_body.read_body_bytes(self.rfile, self.headers)
+            except request_body.RequestBodyError as exc:
+                self._json(exc.status, {"ok": False, "error": exc.code})
+                return True
         return llm_proxy.handle_proxy_request(
             self,
             path,
@@ -42,8 +46,11 @@ class ProviderRoutesMixin:
             return False
         body: bytes | None = None
         if method.upper() in {"POST", "PUT", "PATCH"}:
-            length = int(self.headers.get("Content-Length") or 0)
-            body = self.rfile.read(length) if length > 0 else b""
+            try:
+                body = request_body.read_body_bytes(self.rfile, self.headers)
+            except request_body.RequestBodyError as exc:
+                self._json(exc.status, {"ok": False, "error": exc.code})
+                return True
         return action_proxy.handle_proxy_request(
             self,
             path,
@@ -66,11 +73,13 @@ class ProviderRoutesMixin:
                 raise ValueError("body must be a JSON object")
             result = run_surface_wiring.record_automated_surface_run(body)
             self._json(200, result)
+        except request_body.RequestBodyError as exc:
+            self._json(exc.status, {"ok": False, "error": exc.code})
         except ValueError as exc:
             self._json(400, {"ok": False, "error": str(exc)})
         except Exception as exc:  # noqa: BLE001
             srv._log_handler_error("internal.runs.record", exc)
-            self._json(500, {"ok": False, "error": str(exc)})
+            self._json(500, {"ok": False, "error": "internal_error"})
         return True
 
     def _route_get_user_credentials(self, qs: dict[str, list[str]]) -> None:

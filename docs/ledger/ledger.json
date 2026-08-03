@@ -91,12 +91,19 @@
     {
       "id": "WF-050",
       "title": "Bound HTTP input and distinguish failures from valid empty state",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
       "owner_role": "architect",
       "issue": 22,
+      "pull_request": 28,
       "depends_on": [
         "WF-047"
+      ],
+      "evidence": [
+        "services/workframe-api/request_body.py owns bounded strict body and pagination parsing.",
+        "POST/PATCH/DELETE and internal proxy/record paths reject malformed or oversized bodies before dispatch.",
+        "Room members/messages and workspace invite/memory/budget/grant failures return database_unavailable rather than empty success.",
+        "test_request_body.py, test_truthful_failures.py, test_resource_scope.py, and test_route_registry.py pass."
       ],
       "stop_line": "No production-ready API claim while malformed input or backend failure can masquerade as valid empty state."
     },

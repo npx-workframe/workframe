@@ -85,7 +85,7 @@ def read_json_object(
     except json.JSONDecodeError as exc:
         raise RequestBodyError(400, "invalid_json") from exc
     if not isinstance(value, dict):
-        raise RequestBodyError(400, "invalid_body")
+        raise RequestBodyError(400, "json_object_required")
     return value
 
 

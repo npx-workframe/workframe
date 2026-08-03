@@ -26,7 +26,7 @@ class RequestBodyTests(unittest.TestCase):
 
     def test_malformed_or_nonobject_json_is_rejected(self) -> None:
         self.assert_error("invalid_json", 400, lambda: self.read_json(b"{", length="1"))
-        self.assert_error("invalid_body", 400, lambda: self.read_json(b"[]", length="2"))
+        self.assert_error("json_object_required", 400, lambda: self.read_json(b"[]", length="2"))
         self.assert_error("invalid_utf8", 400, lambda: self.read_json(b"\xff", length="1"))
 
     def test_content_length_is_strict_and_bounded(self) -> None:

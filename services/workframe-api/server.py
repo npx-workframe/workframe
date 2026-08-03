@@ -39,6 +39,7 @@ from typing import Any, Iterator
 from email_sender import APP_BASE_URL, send_branded_invite_email, send_email, send_verification_email
 import profile_config_yaml
 import route_registry
+import request_body
 from handler_modules import (
     AdminRoutesMixin,
     AuthRoutesMixin,
@@ -1935,12 +1936,7 @@ class Handler(
             return
 
     def _read_json(self) -> dict[str, Any]:
-        length = int(self.headers.get("Content-Length") or 0)
-        raw = self.rfile.read(length) if length else b"{}"
-        try:
-            return json.loads(raw.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            return {}
+        return request_body.read_json_object(self.rfile, self.headers)
 
     # ------------------------------------------------------------------
     # Security headers (Sprint B: helmet equivalent)
@@ -2038,7 +2034,8 @@ class Handler(
         except (BrokenPipeError, ConnectionResetError, OSError):
             return
         except Exception as exc:  # noqa: BLE001
-            return self._json(500, {"ok": False, "error": str(exc)})
+            _log_handler_error(f"GET {path}", exc)
+            return self._json(500, {"ok": False, "error": "internal_error"})
 
     # ------------------------------------------------------------------
     # First-owner bootstrap (Sprint C: secure single-user install)
@@ -2270,13 +2267,20 @@ class Handler(
         if not _auth_check(self):
             return self._json(401, {"ok": False, "error": "no_session"})
 
-        body = self._read_json() if self.headers.get("Content-Length") else {}
-        if route_registry.dispatch_pattern(
-            "DELETE", self, path, body=body if isinstance(body, dict) else {},
-        ):
-            return
+        ct = self.headers.get("Content-Type", "")
+        if SECURE_MODE and self.headers.get("Content-Length") and not _is_json_content_type(ct):
+            return self._json(415, {"ok": False, "error": "unsupported_media_type"})
 
-        return self._json(404, {"error": "not_found"})
+        try:
+            body = self._read_json() if self.headers.get("Content-Length") else {}
+            if route_registry.dispatch_pattern("DELETE", self, path, body=body):
+                return
+            return self._json(404, {"error": "not_found"})
+        except request_body.RequestBodyError as exc:
+            return self._json(exc.status, {"ok": False, "error": exc.code})
+        except Exception as exc:  # noqa: BLE001
+            _log_handler_error(f"DELETE {path}", exc)
+            return self._json(500, {"ok": False, "error": "internal_error"})
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
@@ -2297,7 +2301,7 @@ class Handler(
                 return self._json(403, {"error": "invalid origin"})
         ct = self.headers.get("Content-Type", "")
         if SECURE_MODE and not _is_json_content_type(ct):
-            return self._json(415, {"error": "Content-Type must be application/json"})
+            return self._json(415, {"ok": False, "error": "unsupported_media_type"})
 
         # Auth middleware â€” returns 401 if session required and missing/invalid.
         if not _auth_check(self):
@@ -2305,7 +2309,7 @@ class Handler(
 
         try:
             body = self._read_json()
-            post_body = body if isinstance(body, dict) else {}
+            post_body = body
             self._post_qs = qs
 
             if route_registry.dispatch_post(self, path, post_body):
@@ -2313,10 +2317,13 @@ class Handler(
             if route_registry.dispatch_pattern("POST", self, path, body=post_body):
                 return
             return self._json(404, {"error": "not found"})
+        except request_body.RequestBodyError as exc:
+            return self._json(exc.status, {"ok": False, "error": exc.code})
         except ValueError as exc:
             return self._json(400, {"error": str(exc)})
         except Exception as exc:  # noqa: BLE001
-            return self._json(500, {"ok": False, "error": str(exc)})
+            _log_handler_error(f"POST {path}", exc)
+            return self._json(500, {"ok": False, "error": "internal_error"})
 
     def do_PATCH(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
@@ -2330,25 +2337,28 @@ class Handler(
                 return self._json(403, {"error": "invalid origin"})
         ct = self.headers.get("Content-Type", "")
         if SECURE_MODE and not _is_json_content_type(ct):
-            return self._json(415, {"error": "Content-Type must be application/json"})
+            return self._json(415, {"ok": False, "error": "unsupported_media_type"})
 
         if not _auth_check(self):
             return self._json(401, {"ok": False, "error": "no_session"})
 
         try:
             body = self._read_json()
-            if route_registry.dispatch_patch(self, path, body if isinstance(body, dict) else {}):
+            if route_registry.dispatch_patch(self, path, body):
                 return
             if route_registry.dispatch_pattern(
-                "PATCH", self, path, body=body if isinstance(body, dict) else {},
+                "PATCH", self, path, body=body,
             ):
                 return
 
             return self._json(404, {"error": "not found"})
+        except request_body.RequestBodyError as exc:
+            return self._json(exc.status, {"ok": False, "error": exc.code})
         except ValueError as exc:
             return self._json(400, {"error": str(exc)})
         except Exception as exc:  # noqa: BLE001
-            return self._json(500, {"ok": False, "error": str(exc)})
+            _log_handler_error(f"PATCH {path}", exc)
+            return self._json(500, {"ok": False, "error": "internal_error"})
 
 
 
