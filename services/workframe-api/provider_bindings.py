@@ -162,21 +162,51 @@ def _merge_oauth_auth_into_profile(
     return changed
 
 
+def _scrub_oauth_auth_material(auth: dict[str, Any], hermes_auth_id: str) -> bool:
+    """Remove reusable OAuth material from runtime auth metadata.
+
+    Workframe does not yet have a provider refresh broker. Keeping a refresh or
+    access token in a profile auth.json would make the runtime a second secret
+    authority, so unsupported OAuth is deliberately fail-closed and scrubbed.
+    """
+    keys = _hermes_oauth_auth_keys(hermes_auth_id)
+    changed = False
+    providers = auth.get("providers")
+    if isinstance(providers, dict):
+        for key in list(providers):
+            if str(key).lower() in keys:
+                providers.pop(key, None)
+                changed = True
+    pool = auth.get("credential_pool")
+    if isinstance(pool, dict):
+        for key in list(pool):
+            if str(key).lower() in keys:
+                pool.pop(key, None)
+                changed = True
+    credentials = auth.get("credentials")
+    if isinstance(credentials, list):
+        kept = []
+        for row in credentials:
+            provider = str(row.get("provider") or row.get("id") or "").lower() if isinstance(row, dict) else ""
+            if provider in keys:
+                changed = True
+                continue
+            kept.append(row)
+        if changed:
+            auth["credentials"] = kept
+    return changed
+
+
 def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> bool:
     spec = _oauth_llm_provider_spec(provider)
     if not spec:
         return False
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
-    if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        return False
     prof = _srv().resolve_hermes_profile(profile)
     auth = _load_profile_auth_json(prof)
-    user_auth = _load_user_hermes_auth(user_id)
-    if not isinstance(user_auth, dict):
-        return False
     auth_path = _srv()._profile_dir(prof) / "auth.json"
     before = json.dumps(auth, sort_keys=True, separators=(",", ":"))
-    if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+    if not _scrub_oauth_auth_material(auth, hermes_auth_id):
         return False
     after = json.dumps(auth, sort_keys=True, separators=(",", ":"))
     if after == before:
@@ -186,7 +216,7 @@ def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> boo
     auth_path.parent.mkdir(parents=True, exist_ok=True)
     auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _srv()._publish_profile_gateway_secrets(prof)
-    return True
+    return False
 
 
 def _hermes_oauth_tokens_present(user_id: str, hermes_auth_id: str) -> bool:
@@ -268,8 +298,10 @@ def _read_gateway_data_file(rel_path: str) -> str:
 def _user_provider_connected(user_id: str, spec: dict[str, Any]) -> bool:
     """Connected = this user's credential resolves with a live secret (no stack/install bleed)."""
     if str(spec.get("connect_mode") or "") == "oauth":
-        if _hermes_oauth_tokens_present(user_id, _hermes_auth_id_for_spec(spec)):
-            return True
+        # Reusable OAuth requires a server-owned refresh broker. Until that
+        # exists, never expose a runtime auth.json token as a connected
+        # Workframe credential or allow it to flow into a profile.
+        return False
     provider_id = str(spec["id"])
     if str(spec.get("category") or "") == "llm":
         resolved = _srv()._resolve_credential(user_id, "", provider_id, user_only=True)
@@ -543,11 +575,17 @@ def _device_oauth_error_from_log(log_text: str) -> str | None:
 
 
 def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: str) -> None:
-    if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        return
-    user_auth = _load_user_hermes_auth(user_id)
-    if not isinstance(user_auth, dict):
-        return
+    # OAuth refresh/access material must never be copied into runtime profiles.
+    # Existing material is scrubbed during the migration/connection path.
+    user_auth_path = _srv()._user_hermes_auth_path(user_id)
+    if user_auth_path.is_file():
+        try:
+            user_auth = json.loads(user_auth_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            user_auth = None
+        if isinstance(user_auth, dict) and _scrub_oauth_auth_material(user_auth, hermes_auth_id):
+            user_auth["updated_at"] = _srv()._utc_now()
+            user_auth_path.write_text(json.dumps(user_auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     user_part = re.sub(r"[^a-z0-9]+", "-", _srv()._user_hermes_dir_slug(user_id).lower()).strip("-")[:20] or "user"
     prefix = f"u-{user_part}-"
     profiles_dir = _srv().HERMES_DATA / "profiles"
@@ -558,10 +596,7 @@ def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: 
             continue
         auth_path = prof_dir / "auth.json"
         auth = _load_profile_auth_json(prof_dir.name)
-        user_auth = _load_user_hermes_auth(user_id)
-        if not isinstance(user_auth, dict):
-            continue
-        if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+        if not _scrub_oauth_auth_material(auth, hermes_auth_id):
             continue
         auth["version"] = 1
         auth["updated_at"] = _srv()._utc_now()
@@ -578,7 +613,9 @@ def _finalize_hermes_device_oauth(user_id: str, provider_id: str, spec: dict[str
     # invalidation path never runs; clear it before selecting/bootstraping the
     # new provider or the completed Codex connection remains invisible.
     _srv()._invalidate_user_llm_picker_cache(user_id)
-    _srv()._bootstrap_model_after_llm_connect(user_id, "", provider_id)
+    # Do not claim OAuth is connected until a server-side refresh broker exists.
+    # The caller can surface the stable error while the scrub keeps runtime files safe.
+    return None
 
 
 def _device_oauth_session_get(session_id: str) -> dict[str, Any] | None:

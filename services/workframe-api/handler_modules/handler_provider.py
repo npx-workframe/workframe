@@ -6,6 +6,7 @@ import sqlite3
 from typing import Any
 
 import action_proxy
+import credential_lifecycle
 import internal_proxy_auth
 import llm_proxy
 import platform_auth
@@ -173,6 +174,7 @@ class ProviderRoutesMixin:
             ).fetchone()
             if existing:
                 cred_id = str(existing["id"])
+                credential_lifecycle.advance_generation(cred_id, state="rotating")
                 conn.execute(
                     """UPDATE credential_bindings
                        SET label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
@@ -190,12 +192,15 @@ class ProviderRoutesMixin:
                 )
             conn.execute(
                 """UPDATE credential_bindings
-                   SET is_active = 0, deleted_at = ?, updated_at = ?
+                   SET is_active = 0, lifecycle_state = 'revoked',
+                       capability_generation = capability_generation + 1,
+                       lifecycle_updated_at = ?, deleted_at = ?, updated_at = ?
                    WHERE user_id = ? AND provider = ? AND deleted_at IS NULL AND id != ?""",
-                (now, now, user_id, provider, cred_id),
+                (now, now, now, user_id, provider, cred_id),
             )
             conn.commit()
             conn.close()
+            credential_lifecycle.mark_active(cred_id)
         except sqlite3.Error as exc:
             self._json(500, {"ok": False, "error": f"db_error: {exc}"})
             return

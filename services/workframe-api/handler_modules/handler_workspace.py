@@ -1132,8 +1132,12 @@ class WorkspaceRoutesMixin:
             ).fetchone()
             provider = str(row["provider"] or "").strip().lower() if row else ""
             cur = conn.execute(
-                "UPDATE credential_bindings SET is_active = 0, updated_at = ? WHERE id = ? AND workspace_id = ?",
-                (str(int(time.time())), binding_id, ws_id),
+                """UPDATE credential_bindings
+                   SET is_active = 0, lifecycle_state = 'revoked',
+                       capability_generation = capability_generation + 1,
+                       lifecycle_updated_at = ?, updated_at = ?
+                   WHERE id = ? AND workspace_id = ?""",
+                (str(int(time.time())), str(int(time.time())), binding_id, ws_id),
             )
             conn.commit()
             affected = cur.rowcount

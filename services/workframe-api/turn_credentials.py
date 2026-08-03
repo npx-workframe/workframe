@@ -222,6 +222,10 @@ def inspect_lease(token: str) -> tuple[str | None, dict[str, Any] | None]:
     if not row:
         return "not_found", None
     meta = _lease_row_to_meta(row)
+    if row["revoked_at"]:
+        return "revoked", meta
+    if _expired(str(row["expires_at"] or "")):
+        return "expired", meta
     binding_id = str(row["credential_binding_id"] or "").strip()
     if binding_id:
         current = _connect()
@@ -241,10 +245,6 @@ def inspect_lease(token: str) -> tuple[str | None, dict[str, Any] | None]:
             return "stale_generation", meta
         if binding_table_available and int(binding[0] or 1) != int(row["capability_generation"] or 1):
             return "stale_generation", meta
-    if row["revoked_at"]:
-        return "revoked", meta
-    if _expired(str(row["expires_at"] or "")):
-        return "expired", meta
     return None, meta
 
 

@@ -329,7 +329,7 @@
   flex: 0 0 auto;
   border-radius: 50%;
   background: conic-gradient(from 220deg, var(--wf-violet), var(--wf-cyan), var(--wf-violet));
-  box-shadow: 0 0 20px color-mix(in srgb, var(--wf-violet) 22%, transparent), inset 0 0 12px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--wf-violet) 22%, transparent), inset 0 0 12px color-mix(in srgb, var(--wf-surface) 10%, transparent);
   position: relative;
 }
 

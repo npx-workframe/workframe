@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import credential_vault
+import credential_lifecycle
 
 
 def _srv():
@@ -218,6 +219,7 @@ def _store_workspace_credential(
         ).fetchone()
         if existing:
             cred_id = str(existing[0])
+            credential_lifecycle.advance_generation(cred_id, state="rotating")
             conn.execute(
                 """UPDATE credential_bindings
                    SET credential_ref = ?, label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
@@ -238,6 +240,7 @@ def _store_workspace_credential(
         conn.commit()
     finally:
         conn.close()
+    credential_lifecycle.mark_active(cred_id)
     return {
         "credential_id": cred_id,
         "credential_ref": credential_ref,

@@ -64,6 +64,18 @@ def test_merge_oauth_auth_into_profile() -> None:
     assert merged["credential_pool"].get("openai-codex")
 
 
+def test_scrub_oauth_auth_material() -> None:
+    auth = {
+        "providers": {"openai-codex": {"tokens": {"refresh_token": "secret"}}, "github": {"ok": True}},
+        "credential_pool": {"openai-codex": [{"refresh_token": "secret"}], "github": [{"id": "x"}]},
+        "credentials": [{"provider": "openai-codex"}, {"provider": "github"}],
+    }
+    assert provider_bindings._scrub_oauth_auth_material(auth, "openai-codex")
+    assert "openai-codex" not in auth["providers"]
+    assert "openai-codex" not in auth["credential_pool"]
+    assert auth["credentials"] == [{"provider": "github"}]
+
+
 def test_parse_device_oauth_log() -> None:
     text = "Open this URL\n  https://auth.openai.com/device\nEnter this code\n  ABCD-1234"
     parsed = provider_bindings._parse_device_oauth_log(text)
@@ -128,7 +140,6 @@ def test_finalize_device_oauth_invalidates_model_picker_before_bootstrap(monkeyp
     assert calls == [
         ("sync", "user-1:openai-codex"),
         ("invalidate", "user-1"),
-        ("bootstrap", "user-1:openai-codex"),
     ]
 
 

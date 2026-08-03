@@ -1,7 +1,20 @@
-/* GitHub light (Neo Light / Neo Blue) + Strato Dark syntax — code + markdown fenced blocks. */
+/* Workframe syntax roles — resolved from the active Architectonic theme. */
+
+.wf-syntax {
+  --wf-syntax-fg: var(--wf-text);
+  --wf-syntax-keyword: var(--wf-error);
+  --wf-syntax-title: var(--wf-accent);
+  --wf-syntax-literal: var(--wf-primary);
+  --wf-syntax-string: var(--wf-success);
+  --wf-syntax-built-in: var(--wf-warning);
+  --wf-syntax-comment: var(--wf-muted);
+  --wf-syntax-section: var(--wf-primary);
+  --wf-syntax-added-bg: color-mix(in srgb, var(--wf-success) 12%, transparent);
+  --wf-syntax-removed-bg: color-mix(in srgb, var(--wf-error) 12%, transparent);
+}
 
 [data-color-mode='light'] .wf-syntax .hljs {
-  color: #24292e;
+  color: var(--wf-syntax-fg);
   background: transparent;
 }
 
@@ -12,14 +25,14 @@
 [data-color-mode='light'] .wf-syntax .hljs-template-variable,
 [data-color-mode='light'] .wf-syntax .hljs-type,
 [data-color-mode='light'] .wf-syntax .hljs-variable.language_ {
-  color: #d73a49;
+  color: var(--wf-syntax-keyword);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-title,
 [data-color-mode='light'] .wf-syntax .hljs-title.class_,
 [data-color-mode='light'] .wf-syntax .hljs-title.class_.inherited__,
 [data-color-mode='light'] .wf-syntax .hljs-title.function_ {
-  color: #6f42c1;
+  color: var(--wf-syntax-title);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-attr,
@@ -32,68 +45,68 @@
 [data-color-mode='light'] .wf-syntax .hljs-selector-attr,
 [data-color-mode='light'] .wf-syntax .hljs-selector-class,
 [data-color-mode='light'] .wf-syntax .hljs-selector-id {
-  color: #005cc5;
+  color: var(--wf-syntax-literal);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-regexp,
 [data-color-mode='light'] .wf-syntax .hljs-string,
 [data-color-mode='light'] .wf-syntax .hljs-meta .hljs-string {
-  color: #032f62;
+  color: var(--wf-syntax-string);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-built_in,
 [data-color-mode='light'] .wf-syntax .hljs-symbol {
-  color: #e36209;
+  color: var(--wf-syntax-built-in);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-comment,
 [data-color-mode='light'] .wf-syntax .hljs-code,
 [data-color-mode='light'] .wf-syntax .hljs-formula {
-  color: #6a737d;
+  color: var(--wf-syntax-comment);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-name,
 [data-color-mode='light'] .wf-syntax .hljs-quote,
 [data-color-mode='light'] .wf-syntax .hljs-selector-tag,
 [data-color-mode='light'] .wf-syntax .hljs-selector-pseudo {
-  color: #22863a;
+  color: var(--wf-success);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-subst {
-  color: #24292e;
+  color: var(--wf-syntax-fg);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-section {
-  color: #005cc5;
+  color: var(--wf-syntax-section);
   font-weight: bold;
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-bullet {
-  color: #735c0f;
+  color: var(--wf-syntax-built-in);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-emphasis {
-  color: #24292e;
+  color: var(--wf-syntax-fg);
   font-style: italic;
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-strong {
-  color: #24292e;
+  color: var(--wf-syntax-fg);
   font-weight: bold;
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-addition {
-  color: #22863a;
-  background-color: #f0fff4;
+  color: var(--wf-success);
+  background-color: var(--wf-syntax-added-bg);
 }
 
 [data-color-mode='light'] .wf-syntax .hljs-deletion {
-  color: #b31d28;
-  background-color: #ffeef0;
+  color: var(--wf-error);
+  background-color: var(--wf-syntax-removed-bg);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs {
-  color: #c9d1d9;
+  color: var(--wf-syntax-fg);
   background: transparent;
 }
 
@@ -104,14 +117,14 @@
 [data-color-mode='dark'] .wf-syntax .hljs-template-variable,
 [data-color-mode='dark'] .wf-syntax .hljs-type,
 [data-color-mode='dark'] .wf-syntax .hljs-variable.language_ {
-  color: #ff7b72;
+  color: var(--wf-syntax-keyword);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-title,
 [data-color-mode='dark'] .wf-syntax .hljs-title.class_,
 [data-color-mode='dark'] .wf-syntax .hljs-title.class_.inherited__,
 [data-color-mode='dark'] .wf-syntax .hljs-title.function_ {
-  color: #d2a8ff;
+  color: var(--wf-syntax-title);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-attr,
@@ -124,62 +137,62 @@
 [data-color-mode='dark'] .wf-syntax .hljs-selector-attr,
 [data-color-mode='dark'] .wf-syntax .hljs-selector-class,
 [data-color-mode='dark'] .wf-syntax .hljs-selector-id {
-  color: #79c0ff;
+  color: var(--wf-syntax-literal);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-regexp,
 [data-color-mode='dark'] .wf-syntax .hljs-string,
 [data-color-mode='dark'] .wf-syntax .hljs-meta .hljs-string {
-  color: #a5d6ff;
+  color: var(--wf-syntax-string);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-built_in,
 [data-color-mode='dark'] .wf-syntax .hljs-symbol {
-  color: #ffa657;
+  color: var(--wf-syntax-built-in);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-comment,
 [data-color-mode='dark'] .wf-syntax .hljs-code,
 [data-color-mode='dark'] .wf-syntax .hljs-formula {
-  color: #8b949e;
+  color: var(--wf-syntax-comment);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-name,
 [data-color-mode='dark'] .wf-syntax .hljs-quote,
 [data-color-mode='dark'] .wf-syntax .hljs-selector-tag,
 [data-color-mode='dark'] .wf-syntax .hljs-selector-pseudo {
-  color: #7ee787;
+  color: var(--wf-success);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-subst {
-  color: #c9d1d9;
+  color: var(--wf-syntax-fg);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-section {
-  color: #1f6feb;
+  color: var(--wf-syntax-section);
   font-weight: bold;
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-bullet {
-  color: #f2cc60;
+  color: var(--wf-syntax-built-in);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-emphasis {
-  color: #c9d1d9;
+  color: var(--wf-syntax-fg);
   font-style: italic;
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-strong {
-  color: #c9d1d9;
+  color: var(--wf-syntax-fg);
   font-weight: bold;
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-addition {
-  color: #aff5b4;
-  background-color: #033a16;
+  color: var(--wf-success);
+  background-color: var(--wf-syntax-added-bg);
 }
 
 [data-color-mode='dark'] .wf-syntax .hljs-deletion {
-  color: #ffdcd7;
-  background-color: #67060c;
+  color: var(--wf-error);
+  background-color: var(--wf-syntax-removed-bg);
 }
