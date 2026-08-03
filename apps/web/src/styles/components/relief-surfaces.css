@@ -277,7 +277,7 @@
 
 [data-chrome-mode='relief'] .wf-browser-chrome__address:focus-visible {
   outline: none;
-  box-shadow: var(--wf-control-shadow-inset);
+  box-shadow: var(--wf-control-shadow-inset), var(--wf-focus-ring);
 }
 
 [data-chrome-mode='relief'] .wf-browser-chrome__modes {
@@ -294,7 +294,7 @@
 [data-chrome-mode='relief'] .wf-composer__input:focus-visible {
   outline: none;
   background: var(--wf-control-bg-raised);
-  box-shadow: var(--wf-control-shadow-inset);
+  box-shadow: var(--wf-control-shadow-inset), var(--wf-focus-ring);
 }
 
 [data-chrome-mode='relief'] .wf-browser-tabs {
@@ -446,8 +446,8 @@
   .wf-dialog__search
 ):focus-visible {
   outline: none;
-  border-color: transparent;
-  box-shadow: var(--wf-control-shadow-inset);
+  border-color: var(--field-focus-border);
+  box-shadow: var(--wf-control-shadow-inset), var(--wf-focus-ring);
 }
 
 [data-chrome-mode='relief'] :is(

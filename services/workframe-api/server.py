@@ -2597,6 +2597,12 @@ def main() -> None:
     credential_vault.bootstrap_vault(
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )
+    try:
+        recovered = credential_lifecycle.recover_pending_operations()
+        if recovered:
+            print(f"  Credential lifecycle startup recovery marked {len(recovered)} interrupted operation(s)", flush=True)
+    except (sqlite3.Error, OSError) as exc:
+        raise SystemExit(f"credential lifecycle startup recovery failed: {exc}") from exc
     internal_proxy_auth.bootstrap_proxy_token(
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )

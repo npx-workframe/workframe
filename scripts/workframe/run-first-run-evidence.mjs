@@ -50,8 +50,8 @@ function readEnvPort(projectRoot, key) {
   return line ? line.split('=', 2)[1].trim() : null;
 }
 
-function curlOk(url) {
-  const res = run('curl', ['-fsS', '--max-time', '8', url], { shell: process.platform === 'win32' });
+function curlOk(url, headers = []) {
+  const res = run('curl', ['-fsS', '--max-time', '8', ...headers.flatMap((header) => ['-H', header]), url], { shell: process.platform === 'win32' });
   return res.status === 0;
 }
 
@@ -68,7 +68,7 @@ function curlJson(url) {
 function dockerHealth(container, url) {
   if (!container) return false;
   const code = `import urllib.request; urllib.request.urlopen(${JSON.stringify(url)}, timeout=5).read()`;
-  const res = run('docker', ['exec', container, 'python', '-c', code]);
+  const res = run(process.platform === 'win32' ? 'docker.exe' : 'docker', ['exec', container, 'python', '-c', code]);
   return res.status === 0;
 }
 
@@ -97,6 +97,7 @@ if (dogfoodRoot && fs.existsSync(path.join(dogfoodRoot, 'workframe-manifest.json
   const uiPort = readEnvPort(dogfoodRoot, 'WORKFRAME_UI_PORT') || '18644';
   const supPort = readEnvPort(dogfoodRoot, 'WORKFRAME_SUPERVISOR_PORT') || '18090';
   const gatewayPort = readEnvPort(dogfoodRoot, 'WORKFRAME_GATEWAY_PORT') || '18642';
+  const gatewayKey = process.env.WORKFRAME_GATEWAY_API_KEY || 'workframe-local-key';
   const apiBase = `http://127.0.0.1:${apiPort}`;
   observed.api_health_ok = curlOk(`${apiBase}/api/health`);
   observed.supervisor_health_ok =
@@ -105,7 +106,10 @@ if (dogfoodRoot && fs.existsSync(path.join(dogfoodRoot, 'workframe-manifest.json
       manifest?.docker?.containers?.supervisor || `${manifest?.project_slug || 'workframe'}-workframe-supervisor`,
       'http://127.0.0.1:8090/health',
     );
-  observed.managed_hermes_health_ok = curlOk(`http://127.0.0.1:${gatewayPort}/health`);
+  observed.managed_hermes_health_ok = curlOk(
+    `http://127.0.0.1:${gatewayPort}/v1/health`,
+    [`Authorization: Bearer ${gatewayKey}`],
+  );
   observed.ui_loaded = curlOk(`http://127.0.0.1:${uiPort}/`);
   const meta = curlJson(`${apiBase}/api/meta`);
   observed.wizard_completed = Boolean(meta);

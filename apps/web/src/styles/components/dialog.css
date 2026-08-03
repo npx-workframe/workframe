@@ -894,11 +894,16 @@ textarea.wf-dialog-input {
   font: inherit;
 }
 
-.wf-dialog__option:hover,
-.wf-dialog__option:focus-visible {
+.wf-dialog__option:hover {
   background: color-mix(in srgb, var(--wf-accent) 14%, transparent);
   border-color: color-mix(in srgb, var(--wf-accent) 30%, transparent);
+}
+
+.wf-dialog__option:focus-visible {
+  background: color-mix(in srgb, var(--wf-accent) 14%, transparent);
+  border-color: var(--field-focus-border);
   outline: none;
+  box-shadow: var(--wf-focus-ring);
 }
 
 .wf-dialog__option[data-current='true'] {

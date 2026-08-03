@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
 import uuid
 from pathlib import Path
 from typing import Any
@@ -149,26 +150,42 @@ def _store_user_credential(
     cred_id = str(uuid.uuid4())
     credential_ref = credential_vault.vault_ref(cred_id)
     now = _srv()._utc_now()
-    credential_vault.store_secret(
-        cred_id,
-        secret,
-        env_var=env_var,
-        provider=provider,
-        scope="user",
-        user_id=user_id,
+    conn = _srv()._workframe_db()
+    conn.execute(
+        """INSERT INTO credential_bindings
+           (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
+            credential_ref, label, is_active, lifecycle_state, created_by, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (cred_id, None, user_id, None, provider, credential_type, credential_ref, label,
+         0, "staged", user_id, now, now),
     )
-    _remove_env_secret(_srv()._user_hermes_env_path(user_id), env_var)
-    _upsert_auth_metadata(
-        auth_path,
-        {
-            "provider": provider,
-            "credential_type": credential_type,
-            "credential_ref": credential_ref,
-            "env_var": env_var,
-            "label": label,
-            "updated_at": now,
-        },
-    )
+    conn.commit()
+    conn.close()
+    operation_id = credential_lifecycle.begin_operation(cred_id, "create", state="staged")
+    try:
+        credential_vault.store_secret(cred_id, secret, env_var=env_var, provider=provider, scope="user", user_id=user_id)
+        credential_lifecycle.transition_operation(operation_id, "bound")
+        _remove_env_secret(_srv()._user_hermes_env_path(user_id), env_var)
+        _upsert_auth_metadata(
+            auth_path,
+            {
+                "provider": provider,
+                "credential_type": credential_type,
+                "credential_ref": credential_ref,
+                "env_var": env_var,
+                "label": label,
+                "updated_at": now,
+            },
+        )
+        credential_lifecycle.transition_operation(operation_id, "published")
+        conn = _srv()._workframe_db()
+        conn.execute("UPDATE credential_bindings SET is_active = 1, lifecycle_state = 'active', updated_at = ? WHERE id = ?", (_srv()._utc_now(), cred_id))
+        conn.commit()
+        conn.close()
+        credential_lifecycle.transition_operation(operation_id, "completed")
+    except Exception:
+        credential_lifecycle.transition_operation(operation_id, "failed", details={"reason": "publication_failed"})
+        raise
     return {
         "profile_home": str(user_home),
         "credential_id": cred_id,

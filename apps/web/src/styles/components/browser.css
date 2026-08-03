@@ -563,7 +563,7 @@
 
 .wf-browser-edit__textarea:focus-visible {
   outline: none;
-  box-shadow: none;
+  box-shadow: var(--wf-focus-ring);
 }
 
 .wf-file-tree {

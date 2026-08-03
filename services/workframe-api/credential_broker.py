@@ -231,14 +231,15 @@ def authorize_broker_lease(
         )
     secret, material_status = materialize_provider_secret(provider, str(lease.get("credential_binding_id") or ""), secret)
     if not secret:
+        effective_status = material_status if material_status not in {"", "ok", "missing"} else credential_status
         return _audit(
             BrokerLeaseAuth(
                 ok=False,
                 status=402,
                 error="oauth refresh unavailable" if material_status.startswith("oauth_") else "no credential",
-                deny_reason=f"credential_{material_status or credential_status}",
+                deny_reason=f"credential_{effective_status}",
                 lease=lease,
-                credential_status=material_status or credential_status,
+                credential_status=effective_status,
             ),
             402,
         )

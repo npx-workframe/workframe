@@ -194,8 +194,11 @@ def _merge_oauth_auth_into_profile(
             auth["credential_pool"] = pool
         for key, entries in user_pool.items():
             if str(key).lower() in keys and isinstance(entries, list) and entries:
-                pool[hermes_auth_id] = entries
-                changed = True
+                for entry in entries:
+                    if isinstance(entry, dict) and entry:
+                        pool[hermes_auth_id] = [entry]
+                        changed = True
+                        break
     return changed
 
 
@@ -690,7 +693,17 @@ def _oauth_broker_unsupported(user_id: str, provider_id: str, spec: dict[str, An
     """Return a stable failure after scrubbing a token-bearing Hermes auth file."""
     legacy = _load_user_hermes_auth(user_id)
     if isinstance(legacy, dict):
-        _quarantine_legacy_oauth(user_id, provider_id, legacy)
+        quarantined = _quarantine_legacy_oauth(user_id, provider_id, legacy)
+        if _auth_json_has_oauth_material(legacy) and not quarantined:
+            _device_oauth_session_patch(session_id, {"status": "error", "finalized": False})
+            return {
+                "ok": False,
+                "provider": provider_id,
+                "session_id": session_id,
+                "status": "error",
+                "error": "oauth_quarantine_failed",
+                "message": "OAuth material was not quarantined; runtime authority was left untouched.",
+            }
     _finalize_hermes_device_oauth(user_id, provider_id, spec)
     _device_oauth_session_patch(session_id, {"status": "error", "finalized": True})
     return {
