@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import sqlite3
 import uuid
 from pathlib import Path
 from typing import Any
@@ -178,6 +177,19 @@ def _store_user_credential(
             },
         )
         credential_lifecycle.transition_operation(operation_id, "published")
+        prior_ids = credential_lifecycle.active_binding_ids(
+            user_id=user_id,
+            provider=provider,
+            keep_id=cred_id,
+        )
+        revoked = credential_lifecycle.revoke_other_bindings(
+            user_id=user_id,
+            provider=provider,
+            keep_id=cred_id,
+            reason="user_replacement",
+        )
+        if revoked != len(prior_ids):
+            raise RuntimeError("credential_replacement_revoke_failed")
         conn = _srv()._workframe_db()
         conn.execute("UPDATE credential_bindings SET is_active = 1, lifecycle_state = 'active', updated_at = ? WHERE id = ?", (_srv()._utc_now(), cred_id))
         conn.commit()
@@ -218,17 +230,7 @@ def _store_workspace_credential(
     cred_id = str(uuid.uuid4())
     credential_ref = credential_vault.vault_ref(cred_id)
     now = _srv()._utc_now()
-    credential_vault.store_secret(
-        cred_id,
-        secret.strip(),
-        env_var=env_var,
-        provider=provider,
-        scope="workspace",
-        workspace_id=workspace_id,
-    )
-    _remove_env_secret(_srv()._profile_dir(primary) / ".env", env_var)
     conn = _srv()._workframe_db()
-    old_vault_id = ""
     try:
         existing = conn.execute(
             """SELECT id FROM credential_bindings
@@ -236,38 +238,53 @@ def _store_workspace_credential(
                ORDER BY updated_at DESC LIMIT 1""",
             (workspace_id, provider),
         ).fetchone()
-        if existing:
-            cred_id = str(existing[0])
-            old_ref_row = conn.execute("SELECT credential_ref FROM credential_bindings WHERE id = ?", (cred_id,)).fetchone()
-            old_vault_id = credential_vault.parse_vault_ref(str(old_ref_row[0] or "")) if old_ref_row else ""
-            operation_id = credential_lifecycle.begin_operation(cred_id, "replace", state="staged")
-            credential_lifecycle.advance_generation(cred_id, state="rotating")
-            credential_lifecycle.transition_operation(operation_id, "bound")
-            conn.execute(
-                """UPDATE credential_bindings
-                   SET credential_ref = ?, label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
-                   WHERE id = ?""",
-                (credential_ref, label, now, cred_id),
-            )
-        else:
-            conn.execute(
-                """INSERT INTO credential_bindings
-                   (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-                    credential_ref, label, is_active, created_by, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (
-                    cred_id, workspace_id, None, None, provider, credential_type,
-                    credential_ref, label, 1, created_by, now, now,
-                ),
-            )
+        conn.execute(
+            """INSERT INTO credential_bindings
+               (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
+                credential_ref, label, is_active, lifecycle_state, created_by, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (cred_id, workspace_id, None, None, provider, credential_type, credential_ref, label,
+             0, "staged", created_by, now, now),
+        )
         conn.commit()
     finally:
         conn.close()
-    credential_lifecycle.mark_active(cred_id)
-    if old_vault_id and old_vault_id != cred_id:
-        credential_vault.delete_secret(old_vault_id)
-    if existing:
-        credential_lifecycle.transition_operation(operation_id, "active")
+    operation_id = credential_lifecycle.begin_operation(
+        cred_id,
+        "replace" if existing else "create",
+        state="staged",
+        details={"replaces_binding_id": str(existing[0]) if existing else ""},
+    )
+    try:
+        credential_vault.store_secret(
+            cred_id,
+            secret.strip(),
+            env_var=env_var,
+            provider=provider,
+            scope="workspace",
+            workspace_id=workspace_id,
+        )
+        credential_lifecycle.transition_operation(operation_id, "bound")
+        _remove_env_secret(_srv()._profile_dir(primary) / ".env", env_var)
+        credential_lifecycle.transition_operation(operation_id, "published")
+        prior_ids = credential_lifecycle.active_binding_ids(
+            workspace_id=workspace_id,
+            provider=provider,
+            keep_id=cred_id,
+        )
+        revoked = credential_lifecycle.revoke_other_bindings(
+            workspace_id=workspace_id,
+            provider=provider,
+            keep_id=cred_id,
+            reason="workspace_replacement",
+        )
+        if revoked != len(prior_ids):
+            raise RuntimeError("credential_replacement_revoke_failed")
+        credential_lifecycle.mark_active(cred_id)
+        credential_lifecycle.transition_operation(operation_id, "completed")
+    except Exception:
+        credential_lifecycle.transition_operation(operation_id, "failed", details={"reason": "publication_failed"})
+        raise
     return {
         "credential_id": cred_id,
         "credential_ref": credential_ref,

@@ -50,6 +50,13 @@ jobs:
           python services/workframe-api/test_credential_vault_status.py
           python services/workframe-api/test_credential_lease_matrix.py
           python services/workframe-api/test_credential_lifecycle.py
+          python services/workframe-api/test_credential_store.py
+          python services/workframe-api/test_credential_broker.py
+          python services/workframe-api/test_credential_resolve.py
+          python services/workframe-api/test_oauth_llm.py
+          python services/workframe-api/test_oauth_pending.py
+          python services/workframe-api/test_install_wizard_resume.py
+          python services/workframe-api/test_stack_config_install_smtp.py
           python services/workframe-api/test_wf048_authority_scan.py
           python services/workframe-api/test_provider_bindings.py
 

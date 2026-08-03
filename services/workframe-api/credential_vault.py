@@ -393,6 +393,32 @@ def read_secret_result(binding_id: str) -> CredentialReadResult:
         return CredentialReadResult(CredentialReadStatus.UNAVAILABLE)
 
 
+def read_secret_metadata(binding_id: str) -> dict[str, Any]:
+    """Return nonsecret vault metadata needed for an in-place refresh."""
+    binding_id = str(binding_id or "").strip()
+    if not binding_id:
+        return {}
+    ensure_schema()
+    conn = _connect()
+    try:
+        row = conn.execute(
+            """SELECT env_var, provider, scope, user_id, workspace_id
+                 FROM credential_secrets WHERE binding_id = ?""",
+            (binding_id,),
+        ).fetchone()
+        if not row:
+            return {}
+        return {
+            "env_var": str(row[0] or ""),
+            "provider": str(row[1] or ""),
+            "scope": str(row[2] or "user"),
+            "user_id": str(row[3] or ""),
+            "workspace_id": str(row[4] or ""),
+        }
+    finally:
+        conn.close()
+
+
 def _read_secret_result(binding_id: str) -> CredentialReadResult:
     """Read with an explicit failure class; callers must not confuse sealed with missing."""
     binding_id = str(binding_id or "").strip()

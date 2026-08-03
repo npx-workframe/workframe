@@ -1091,7 +1091,7 @@ textarea.wf-dialog-input {
 .wf-llm-models__slot.is-active {
   border-color: color-mix(in srgb, var(--wf-violet-glow) 55%, transparent);
   background: color-mix(in srgb, var(--wf-violet-glow) 10%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--wf-violet-glow) 18%, transparent);
+  box-shadow: var(--wf-control-shadow-active);
 }
 
 .wf-llm-models__slot.is-filled:not(.is-active) {
@@ -1448,7 +1448,8 @@ textarea.wf-dialog-input {
 
 .wf-dialog__search:focus-visible {
   outline: none;
-  border-color: color-mix(in srgb, var(--wf-violet-glow) 50%, transparent);
+  border-color: var(--field-focus-border, var(--wf-accent));
+  box-shadow: var(--wf-focus-ring);
 }
 
 .wf-dialog__help-row {

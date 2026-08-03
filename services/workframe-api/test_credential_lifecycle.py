@@ -46,6 +46,22 @@ def main() -> None:
     conn.close()
     assert state == "failed"
 
+    conn = sqlite3.connect(str(db))
+    conn.execute(
+        "INSERT INTO credential_bindings (id, capability_generation, lifecycle_state, credential_ref, is_active) VALUES ('b3', 1, 'staged', 'vault:b3', 0)"
+    )
+    conn.commit()
+    conn.close()
+    operation_id = credential_lifecycle.begin_operation("b3", "create")
+    credential_lifecycle.credential_vault.read_secret_result = lambda _binding_id: credential_lifecycle.credential_vault.CredentialReadResult(credential_lifecycle.credential_vault.CredentialReadStatus.OK, "opaque")
+    pending = credential_lifecycle.recover_pending_operations()
+    assert any(item["operation_id"] == operation_id for item in pending)
+    conn = sqlite3.connect(str(db))
+    state = conn.execute("SELECT state FROM credential_lifecycle_operations WHERE operation_id = ?", (operation_id,)).fetchone()[0]
+    binding_state = conn.execute("SELECT lifecycle_state, is_active FROM credential_bindings WHERE id = 'b3'").fetchone()
+    conn.close()
+    assert state == "completed" and binding_state == ("active", 1)
+
     deleted: list[str] = []
     credential_lifecycle.credential_vault.delete_secret = lambda binding_id: deleted.append(binding_id)
     credential_lifecycle.turn_credentials.revoke_matching_leases = lambda **_kwargs: 1

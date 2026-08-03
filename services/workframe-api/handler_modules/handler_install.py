@@ -88,6 +88,7 @@ class InstallRoutesMixin:
         self.auth_user = user_id
         self._ensure_user(user_id, display, email)
         self._first_owner_bootstrap(user_id, display, email)
+        install_api.claim_install_owner(str(srv._workframe_db_path()), user_id)
         use_secure = srv._session_cookie_secure()
         cookie_val = _zk.session_cookie_value(result["session_id"], secure=use_secure)
         me_payload = srv._session_profile_payload(user_id)

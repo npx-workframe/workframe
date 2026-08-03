@@ -39,7 +39,14 @@ import { isAgentChatRoom, resolveHermesProfileSlug, templateProfileSlug } from '
 import { WORKFRAME_RAIL_LABEL } from '@/lib/panelDisplayLabels'
 import { isProjectRoom } from '@/lib/roomChat'
 
-const PROJECT_COLORS = ['#6c5ce7', '#00b894', '#0984e3', '#e17055', '#fdcb6e', '#a29bfe']
+const PROJECT_COLORS = [
+  'var(--wf-accent)',
+  'var(--wf-success)',
+  'var(--wf-cyan)',
+  'var(--wf-warning)',
+  'var(--wf-violet-glow)',
+  'var(--wf-mint)',
+] as const
 
 function routeStatusLabel(status: string | undefined): string | null {
   if (!status || status === 'online') return null

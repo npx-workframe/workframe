@@ -76,13 +76,30 @@ def materialize_provider_secret(provider: str, binding_id: str, secret: str) -> 
         new_bundle["expires_at"] = time.time() + float(payload["expires_in"])
     target_id = str(binding_id or "").strip()
     if target_id:
+        operation_id = ""
         try:
             import credential_lifecycle
 
+            metadata = credential_vault.read_secret_metadata(target_id)
+            operation_id = credential_lifecycle.begin_operation(target_id, "refresh", state="rotating")
             credential_lifecycle.advance_generation(target_id, state="rotating")
-            credential_vault.store_secret(target_id, json.dumps(new_bundle, sort_keys=True), provider=provider, scope="user")
+            credential_vault.store_secret(
+                target_id,
+                json.dumps(new_bundle, sort_keys=True),
+                env_var=metadata.get("env_var", ""),
+                provider=metadata.get("provider") or provider,
+                scope=metadata.get("scope") or "user",
+                user_id=metadata.get("user_id", ""),
+                workspace_id=metadata.get("workspace_id", ""),
+            )
             credential_lifecycle.mark_active(target_id)
+            credential_lifecycle.transition_operation(operation_id, "completed")
         except (OSError, RuntimeError, ValueError, sqlite3.Error):
+            if operation_id:
+                try:
+                    credential_lifecycle.transition_operation(operation_id, "rotating", details={"reason": "refresh_persist_failed"})
+                except Exception:
+                    pass
             return "", "oauth_refresh_persist_failed"
     return str(new_bundle["access_token"]), "ok"
 

@@ -1043,6 +1043,17 @@ def _patch_workspace_integrations(
             # Payer authority changed; every runtime lease in this workspace
             # must be reissued against the new user/workspace binding.
             _srv()._revoke_runtime_llm_leases(workspace_id=workspace_id)
+            if previous_credential_mode == "workspace" and str(settings.get("credential_mode") or "byok").strip().lower() != "workspace":
+                workspace_bindings = [
+                    str(item[0])
+                    for item in conn.execute(
+                        """SELECT id FROM credential_bindings
+                           WHERE workspace_id = ? AND deleted_at IS NULL AND is_active = 1""",
+                        (workspace_id,),
+                    ).fetchall()
+                ]
+                for binding_id in workspace_bindings:
+                    _srv()._credential_lifecycle_revoke_binding(binding_id, reason="payer_changed")
         if "messaging" in body:
             sync_result = _srv()._sync_workspace_messaging_gateway(workspace_id)
             if not sync_result.get("ok"):

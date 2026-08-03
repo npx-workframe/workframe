@@ -219,30 +219,7 @@ def _complete_github_oauth(user_id: str, code: str, state: str) -> dict[str, Any
         "client_id": client_id,
     }, sort_keys=True)
     payload = _srv()._store_user_credential(user_id, "github", "oauth", oauth_bundle, env_var, "GitHub OAuth")
-    cred_ref = str(payload["credential_ref"])
-    now = _srv()._utc_now()
-    # _store_user_credential creates the vault row first; use that same
-    # identity for the binding so lifecycle generation and vault cleanup have
-    # one owner instead of leaving orphaned OAuth ciphertext.
     cred_id = str(payload["credential_id"])
-    try:
-        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
-        conn.execute(
-            """
-            INSERT INTO credential_bindings
-            (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-             credential_ref, label, is_active, created_by, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                cred_id, None, user_id, None, "github", "oauth", cred_ref,
-                "GitHub OAuth", 1, user_id, now, now,
-            ),
-        )
-        conn.commit()
-        conn.close()
-    except sqlite3.Error as exc:
-        return {"ok": False, "error": f"db_error: {exc}"}
     _srv()._credential_lifecycle_revoke_other_bindings(
         user_id=user_id, provider="github", keep_id=cred_id, reason="oauth_replacement"
     )
@@ -339,27 +316,7 @@ def _complete_stripe_oauth(user_id: str, code: str, state: str) -> dict[str, Any
         "client_secret": client_secret,
     }, sort_keys=True)
     payload = _srv()._store_user_credential(user_id, "stripe", "oauth", oauth_bundle, env_var, label)
-    cred_ref = str(payload["credential_ref"])
-    now = _srv()._utc_now()
     cred_id = str(payload["credential_id"])
-    try:
-        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
-        conn.execute(
-            """
-            INSERT INTO credential_bindings
-            (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-             credential_ref, label, is_active, created_by, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                cred_id, None, user_id, None, "stripe", "oauth", cred_ref,
-                label, 1, user_id, now, now,
-            ),
-        )
-        conn.commit()
-        conn.close()
-    except sqlite3.Error as exc:
-        return {"ok": False, "error": f"db_error: {exc}"}
     _srv()._credential_lifecycle_revoke_other_bindings(
         user_id=user_id, provider="stripe", keep_id=cred_id, reason="oauth_replacement"
     )

@@ -361,7 +361,7 @@
 }
 
 .wf-operation-progress__item--error {
-  color: var(--wf-danger, #f87171);
+  color: var(--wf-error);
 }
 
 .wf-operation-progress__icon {
@@ -802,7 +802,7 @@
   padding: 0;
   border: none;
   border-radius: var(--wf-copy-input-btn-radius);
-  background: var(--wf-control-bg-raised, color-mix(in srgb, var(--wf-surface) 88%, white));
+  background: var(--wf-control-bg-raised);
   color: var(--wf-muted);
   cursor: pointer;
   box-shadow: var(--wf-control-shadow-highlight, var(--wf-control-shadow-elevated, none));
@@ -1264,7 +1264,7 @@
 
 .wf-onboarding-stepper li.is-current .wf-onboarding-stepper__dot {
   background: var(--wf-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wf-accent) 25%, transparent);
+  box-shadow: var(--wf-focus-ring);
 }
 
 .wf-onboarding-stepper li.is-done .wf-onboarding-stepper__dot {

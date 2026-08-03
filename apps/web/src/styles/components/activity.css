@@ -342,11 +342,11 @@
 }
 
 .wf-activity-tree__status--active {
-  color: var(--wf-cyan);
+  color: var(--wf-accent);
 }
 
 .wf-activity-tree__status--completed {
-  color: var(--wf-mint);
+  color: var(--wf-success);
 }
 
 .wf-activity-tree__status--failed {

@@ -61,16 +61,80 @@ def transition_operation(operation_id: str, state: str, *, details: dict[str, An
 
 
 def recover_pending_operations() -> list[dict[str, Any]]:
-    """Mark abandoned pre-publication operations failed; callers may retry by operation type."""
+    """Reconcile operations left open by a process interruption.
+
+    Recovery is deliberately idempotent: an already-active binding with a
+    readable vault record has completed publication, while an incomplete
+    binding is either resumed to active or revoked without exposing secret
+    material. The operation record is the durable retry boundary.
+    """
     conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=5.0)
     conn.row_factory = sqlite3.Row
     try:
         rows = conn.execute(
-            "SELECT operation_id, binding_id, operation_type, state, capability_generation FROM credential_lifecycle_operations WHERE state IN ('staged','bound','published','rotating')"
+            """SELECT operation_id, binding_id, operation_type, state,
+                      capability_generation, details_json
+                 FROM credential_lifecycle_operations
+                WHERE state IN ('staged','bound','published','rotating')"""
         ).fetchall()
         now = _srv()._utc_now()
         for row in rows:
-            conn.execute("UPDATE credential_lifecycle_operations SET state = 'failed', details_json = ?, updated_at = ? WHERE operation_id = ?", (json.dumps({"reason": "recovery_required"}), now, row["operation_id"]))
+            binding = conn.execute(
+                """SELECT credential_ref, is_active, lifecycle_state
+                     FROM credential_bindings WHERE id = ?""",
+                (row["binding_id"],),
+            ).fetchone()
+            vault_id = credential_vault.parse_vault_ref(str(binding[0] or "")) if binding else ""
+            if str(row["operation_type"] or "") == "revoke":
+                conn.execute(
+                    """UPDATE credential_bindings
+                          SET is_active = 0, lifecycle_state = 'revoked',
+                              lifecycle_updated_at = ?, deleted_at = COALESCE(deleted_at, ?),
+                              updated_at = ?
+                        WHERE id = ?""",
+                    (now, now, now, row["binding_id"]),
+                )
+                if vault_id:
+                    credential_vault.delete_secret(vault_id)
+                conn.execute(
+                    """UPDATE credential_lifecycle_operations
+                          SET state = 'completed', details_json = ?, updated_at = ?
+                        WHERE operation_id = ?""",
+                    (json.dumps({"reason": "recovered_revoke"}, sort_keys=True), now, row["operation_id"]),
+                )
+                continue
+            readable = False
+            if vault_id:
+                readable = credential_vault.read_secret_result(vault_id).ok
+            if binding and readable:
+                conn.execute(
+                    """UPDATE credential_bindings
+                          SET is_active = 1, lifecycle_state = 'active',
+                              lifecycle_updated_at = ?, updated_at = ?
+                        WHERE id = ?""",
+                    (now, now, row["binding_id"]),
+                )
+                conn.execute(
+                    """UPDATE credential_lifecycle_operations
+                          SET state = 'completed', details_json = ?, updated_at = ?
+                        WHERE operation_id = ?""",
+                    (json.dumps({"reason": "recovered_published"}, sort_keys=True), now, row["operation_id"]),
+                )
+            else:
+                conn.execute(
+                    """UPDATE credential_bindings
+                          SET is_active = 0, lifecycle_state = 'revoked',
+                              lifecycle_updated_at = ?, deleted_at = COALESCE(deleted_at, ?),
+                              updated_at = ?
+                        WHERE id = ?""",
+                    (now, now, now, row["binding_id"]),
+                )
+                conn.execute(
+                    """UPDATE credential_lifecycle_operations
+                          SET state = 'failed', details_json = ?, updated_at = ?
+                        WHERE operation_id = ?""",
+                    (json.dumps({"reason": "recovery_incomplete"}, sort_keys=True), now, row["operation_id"]),
+                )
         conn.commit()
         return [dict(row) for row in rows]
     finally:
@@ -230,4 +294,34 @@ def revoke_other_bindings(
     finally:
         conn.close()
     return sum(1 for row in rows if revoke_binding(str(row[0]), reason=reason))
+
+
+def active_binding_ids(
+    *,
+    user_id: str = "",
+    workspace_id: str = "",
+    provider: str,
+    keep_id: str = "",
+) -> list[str]:
+    """Return the active authority rows that a replacement must retire."""
+    clauses = ["deleted_at IS NULL", "is_active = 1", "LOWER(provider) = ?"]
+    params: list[str] = [str(provider or "").strip().lower()]
+    if user_id:
+        clauses.append("user_id = ?")
+        params.append(str(user_id))
+    if workspace_id:
+        clauses.append("workspace_id = ?")
+        params.append(str(workspace_id))
+    if keep_id:
+        clauses.append("id != ?")
+        params.append(str(keep_id))
+    conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=5.0)
+    try:
+        rows = conn.execute(
+            f"SELECT id FROM credential_bindings WHERE {' AND '.join(clauses)}",
+            params,
+        ).fetchall()
+    finally:
+        conn.close()
+    return [str(row[0]) for row in rows]
 
