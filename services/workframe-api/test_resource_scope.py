@@ -117,9 +117,13 @@ def seed() -> None:
         "INSERT INTO memory_items (id, workspace_id, created_by_user_id, deleted_at) "
         "VALUES ('memory-b', 'ws-b', 'member-b', NULL)"
     )
-    conn.execute(
-        "INSERT INTO agent_profiles (id, workspace_id, slug, deleted_at) "
-        "VALUES ('agent-b', 'ws-b', 'architect', NULL)"
+    conn.executemany(
+        "INSERT INTO agent_profiles (id, workspace_id, slug, deleted_at) VALUES (?, ?, ?, NULL)",
+        [
+            ("agent-b", "ws-b", "architect"),
+            ("agent-b-safe", "ws-b", "auditor"),
+            ("agent-a-collision", "ws-a", "agent-b"),
+        ],
     )
     conn.execute(
         """
@@ -189,8 +193,11 @@ try:
     # Indirect resource scopes resolve back to their owning workspace.
     assert authorize("owner-a-only", "GET", "/api/rooms/room-b/members") is None
     assert authorize("owner-a-only", "POST", "/api/memory/memory-b") is None
+
+    # Agent ID/slug collisions across workspaces are ambiguous and must fail closed.
     assert authorize("owner-a-only", "GET", "/api/agents/agent-b/credentials") is None
-    agent_admin = authorize("owner-b", "GET", "/api/agents/agent-b/credentials")
+    assert authorize("owner-b", "GET", "/api/agents/agent-b/credentials") is None
+    agent_admin = authorize("owner-b", "GET", "/api/agents/agent-b-safe/credentials")
     assert agent_admin is not None and agent_admin.auth_role == "owner"
 
     # Invite metadata and acceptance are bound to the authenticated invited email.
