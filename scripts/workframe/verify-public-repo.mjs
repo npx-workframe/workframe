@@ -75,6 +75,20 @@ function loadOperatorPatterns() {
     .map((literal) => new RegExp(literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
 }
 
+function removeDeclaredPublicTargets(rel, text) {
+  if (rel !== 'docs/ledger/ledger.json') return text;
+  try {
+    const ledger = JSON.parse(text);
+    const targets = ledger.items
+      .flatMap((item) => (Array.isArray(item.targets) ? item.targets : []))
+      .map((target) => String(target).trim())
+      .filter(Boolean);
+    return targets.reduce((out, target) => out.replaceAll(target, ''), text);
+  } catch {
+    return text;
+  }
+}
+
 for (const forbidden of forbiddenPaths) {
   const tracked = gitLsFiles(forbidden);
   if (tracked.length > 0) {
@@ -103,6 +117,8 @@ for (const rel of gitLsAllFiles()) {
   } catch {
     continue;
   }
+
+  text = removeDeclaredPublicTargets(rel, text);
 
   for (const pattern of patterns) {
     if (pattern.test(text)) {
