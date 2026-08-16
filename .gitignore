@@ -94,6 +94,12 @@ scripts/workframe/verify-public-patterns.local.json
 
 # visual QA screenshots (local only)
 .harness/qa-screenshots/
+.harness/_brand_bundle.py
+.harness/_query_sessions.py
+.tmp/
+apps/website/.tmp/
+docs/ledger/audits/
+packages/create-workframe/*.tgz.sha512
 
 # OS/editor
 .DS_Store
