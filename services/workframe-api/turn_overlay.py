@@ -674,26 +674,6 @@ def _require_user_provider(user_id: str, workspace_id: str, provider: str) -> di
 
 def _require_runtime_owner_provider(user_id: str, workspace_id: str, provider: str) -> dict[str, Any]:
     provider = str(provider or "openrouter").strip().lower()
-    oauth_spec = _srv()._oauth_llm_provider_spec(provider)
-    if oauth_spec and _srv()._hermes_oauth_tokens_present(user_id, _srv()._hermes_auth_id_for_spec(oauth_spec)):
-        hermes_auth_id = _srv()._hermes_auth_id_for_spec(oauth_spec)
-        return {
-            "credential_binding_id": None,
-            "credential_id": None,
-            "credential_ref": f"oauth:{hermes_auth_id}",
-            "scope": "user",
-            "provider": provider,
-            "credential_type": "oauth",
-            "label": hermes_auth_id,
-            "env_var": "",
-            "user_id": user_id,
-            "workspace_id": None,
-            "agent_profile_id": None,
-            "created_by": user_id,
-            "created_at": None,
-            "updated_at": None,
-            "expires_at": None,
-        }
     resolved = _srv()._resolve_credential(user_id, workspace_id, provider, user_only=True)
     if resolved and _srv()._credential_secret(resolved, user_id):
         return resolved

@@ -6,6 +6,7 @@ import json
 import os
 import secrets
 import sqlite3
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -210,28 +211,18 @@ def _complete_github_oauth(user_id: str, code: str, state: str) -> dict[str, Any
         return {"ok": False, "error": "github_missing_access_token"}
     spec = provider_catalog.catalog_provider("github") or {}
     env_var = str(spec.get("env_var") or "GITHUB_TOKEN")
-    payload = _srv()._store_user_credential(user_id, "github", "oauth", access_token, env_var, "GitHub OAuth")
-    cred_ref = str(payload["credential_ref"])
-    now = _srv()._utc_now()
-    cred_id = str(uuid.uuid4())
-    try:
-        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
-        conn.execute(
-            """
-            INSERT INTO credential_bindings
-            (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-             credential_ref, label, is_active, created_by, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                cred_id, None, user_id, None, "github", "oauth", cred_ref,
-                "GitHub OAuth", 1, user_id, now, now,
-            ),
-        )
-        conn.commit()
-        conn.close()
-    except sqlite3.Error as exc:
-        return {"ok": False, "error": f"db_error: {exc}"}
+    oauth_bundle = json.dumps({
+        "kind": "oauth",
+        "provider": "github",
+        "access_token": access_token,
+        "token_type": str(token_data.get("token_type") or "bearer"),
+        "client_id": client_id,
+    }, sort_keys=True)
+    payload = _srv()._store_user_credential(user_id, "github", "oauth", oauth_bundle, env_var, "GitHub OAuth")
+    cred_id = str(payload["credential_id"])
+    _srv()._credential_lifecycle_revoke_other_bindings(
+        user_id=user_id, provider="github", keep_id=cred_id, reason="oauth_replacement"
+    )
     return {"ok": True, "provider": "github", "credential_id": cred_id}
 
 
@@ -314,28 +305,21 @@ def _complete_stripe_oauth(user_id: str, code: str, state: str) -> dict[str, Any
     spec = provider_catalog.catalog_provider("stripe") or {}
     env_var = str(spec.get("env_var") or "STRIPE_SECRET_KEY")
     label = f"Stripe Connect ({stripe_user_id})" if stripe_user_id else "Stripe Connect"
-    payload = _srv()._store_user_credential(user_id, "stripe", "oauth", access_token, env_var, label)
-    cred_ref = str(payload["credential_ref"])
-    now = _srv()._utc_now()
-    cred_id = str(uuid.uuid4())
-    try:
-        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
-        conn.execute(
-            """
-            INSERT INTO credential_bindings
-            (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-             credential_ref, label, is_active, created_by, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            """,
-            (
-                cred_id, None, user_id, None, "stripe", "oauth", cred_ref,
-                label, 1, user_id, now, now,
-            ),
-        )
-        conn.commit()
-        conn.close()
-    except sqlite3.Error as exc:
-        return {"ok": False, "error": f"db_error: {exc}"}
+    oauth_bundle = json.dumps({
+        "kind": "oauth",
+        "provider": "stripe",
+        "access_token": access_token,
+        "refresh_token": str(token_data.get("refresh_token") or ""),
+        "expires_at": time.time() + float(token_data.get("expires_in") or 0),
+        "token_url": "https://connect.stripe.com/oauth/token",
+        "client_id": str(cfg.get("client_id") or ""),
+        "client_secret": client_secret,
+    }, sort_keys=True)
+    payload = _srv()._store_user_credential(user_id, "stripe", "oauth", oauth_bundle, env_var, label)
+    cred_id = str(payload["credential_id"])
+    _srv()._credential_lifecycle_revoke_other_bindings(
+        user_id=user_id, provider="stripe", keep_id=cred_id, reason="oauth_replacement"
+    )
     return {"ok": True, "provider": "stripe", "credential_id": cred_id, "stripe_user_id": stripe_user_id}
 def _start_discord_oauth(user_id: str, workspace_id: str = "") -> dict[str, Any]:
     cfg = platform_auth.resolved_discord_oauth()

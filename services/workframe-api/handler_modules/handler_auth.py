@@ -263,24 +263,7 @@ class AuthRoutesMixin:
         if srv._install_window_open():
             stack_config.mark_install_admin_verified(email)
             try:
-                conn = srv._workframe_db()
-                ws = conn.execute(
-                    """
-                    SELECT id FROM workspaces
-                    WHERE slug = 'default' AND deleted_at IS NULL
-                    LIMIT 1
-                    """,
-                ).fetchone()
-                if ws:
-                    ws_id = str(ws["id"])
-                    srv._promote_workspace_owner_if_unclaimed(conn, ws_id, result["user_id"])
-                    conn.execute(
-                        "UPDATE users SET role = 'owner', updated_at = ? WHERE id = ?",
-                        (str(int(time.time())), result["user_id"]),
-                    )
-                    conn.commit()
-                conn.close()
-                if not ws:
+                if not install_api.claim_install_owner(str(srv._workframe_db_path()), result["user_id"]):
                     self._first_owner_bootstrap(result["user_id"], email, email)
             except Exception:
                 pass
