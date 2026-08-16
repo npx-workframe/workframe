@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import provider_bootstrap
+import credential_lifecycle
+import credential_vault
 
 
 def _srv():
@@ -22,6 +24,42 @@ def _srv():
 
 
 _load_profile_auth_json = provider_bootstrap._load_profile_auth_json
+
+_RAW_AUTHORITY_KEYS = frozenset({
+    "access_token", "refresh_token", "authorization_code", "id_token", "api_key", "client_secret"
+})
+
+
+def _runtime_auth_contains_raw_authority(value: Any) -> bool:
+    """Return true when runtime auth metadata contains reusable upstream authority."""
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if str(key).lower() in _RAW_AUTHORITY_KEYS and str(child or "").strip():
+                return True
+            if _runtime_auth_contains_raw_authority(child):
+                return True
+    elif isinstance(value, list):
+        return any(_runtime_auth_contains_raw_authority(child) for child in value)
+    return False
+
+
+def _scan_runtime_auth_files(root: Path) -> list[dict[str, str]]:
+    """Scan runtime auth metadata without returning any secret values."""
+    findings: list[dict[str, str]] = []
+    base = Path(root)
+    if not base.is_dir():
+        return findings
+    for path in sorted(base.rglob("auth.json")):
+        try:
+            parsed = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            findings.append({"path": str(path), "kind": "malformed"})
+            continue
+        if not isinstance(parsed, dict):
+            findings.append({"path": str(path), "kind": "malformed"})
+        elif _runtime_auth_contains_raw_authority(parsed):
+            findings.append({"path": str(path), "kind": "raw_authority"})
+    return findings
 
 def _user_provider_bindings(user_id: str) -> dict[str, dict[str, Any]]:
     by_provider: dict[str, dict[str, Any]] = {}
@@ -156,9 +194,84 @@ def _merge_oauth_auth_into_profile(
             auth["credential_pool"] = pool
         for key, entries in user_pool.items():
             if str(key).lower() in keys and isinstance(entries, list) and entries:
-                pool[hermes_auth_id] = entries
-                changed = True
+                for entry in entries:
+                    if isinstance(entry, dict) and entry:
+                        pool[hermes_auth_id] = [entry]
+                        changed = True
+                        break
     return changed
+
+
+def _scrub_oauth_auth_material(auth: dict[str, Any], hermes_auth_id: str) -> bool:
+    """Remove reusable OAuth material from runtime auth metadata.
+
+    Workframe does not yet have a provider refresh broker. Keeping a refresh or
+    access token in a profile auth.json would make the runtime a second secret
+    authority, so unsupported OAuth is deliberately fail-closed and scrubbed.
+    """
+    keys = _hermes_oauth_auth_keys(hermes_auth_id)
+    changed = False
+    providers = auth.get("providers")
+    if isinstance(providers, dict):
+        for key in list(providers):
+            if str(key).lower() in keys:
+                providers.pop(key, None)
+                changed = True
+    pool = auth.get("credential_pool")
+    if isinstance(pool, dict):
+        for key in list(pool):
+            if str(key).lower() in keys:
+                pool.pop(key, None)
+                changed = True
+    credentials = auth.get("credentials")
+    if isinstance(credentials, list):
+        kept = []
+        for row in credentials:
+            provider = str(row.get("provider") or row.get("id") or "").lower() if isinstance(row, dict) else ""
+            if provider in keys:
+                changed = True
+                continue
+            kept.append(row)
+        if changed:
+            auth["credentials"] = kept
+    return changed
+
+
+def _quarantine_legacy_oauth(user_id: str, provider_id: str, auth: dict[str, Any]) -> str:
+    """Move legacy runtime OAuth material into the server vault before scrub."""
+    spec = _srv()._catalog_provider(provider_id) or {}
+    auth_id = _hermes_auth_id_for_spec(spec) or str(provider_id or "").strip()
+    block = _extract_oauth_block_from_auth(auth, auth_id)
+    if not isinstance(block, dict):
+        return ""
+    binding_id = str(secrets.token_hex(16))
+    try:
+        credential_vault.store_secret(
+            binding_id,
+            json.dumps({"kind": "legacy_oauth", "provider": provider_id, "authority": block}, sort_keys=True),
+            provider=str(provider_id or "").strip().lower(),
+            scope="user",
+            user_id=user_id,
+        )
+        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
+        now = _srv()._utc_now()
+        conn.execute(
+            """INSERT INTO credential_bindings
+               (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
+                credential_ref, label, is_active, lifecycle_state, created_by, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (binding_id, None, user_id, None, str(provider_id).lower(), "oauth",
+             credential_vault.vault_ref(binding_id), f"Quarantined {auth_id}", 0, "quarantined", user_id, now, now),
+        )
+        conn.commit()
+        conn.close()
+        return binding_id
+    except (OSError, RuntimeError, sqlite3.Error, ValueError):
+        try:
+            credential_vault.delete_secret(binding_id)
+        except Exception:
+            pass
+        return ""
 
 
 def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> bool:
@@ -166,16 +279,11 @@ def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> boo
     if not spec:
         return False
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
-    if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        return False
     prof = _srv().resolve_hermes_profile(profile)
     auth = _load_profile_auth_json(prof)
-    user_auth = _load_user_hermes_auth(user_id)
-    if not isinstance(user_auth, dict):
-        return False
     auth_path = _srv()._profile_dir(prof) / "auth.json"
     before = json.dumps(auth, sort_keys=True, separators=(",", ":"))
-    if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+    if not _scrub_oauth_auth_material(auth, hermes_auth_id):
         return False
     after = json.dumps(auth, sort_keys=True, separators=(",", ":"))
     if after == before:
@@ -185,7 +293,7 @@ def _sync_oauth_llm_to_profile(profile: str, user_id: str, provider: str) -> boo
     auth_path.parent.mkdir(parents=True, exist_ok=True)
     auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     _srv()._publish_profile_gateway_secrets(prof)
-    return True
+    return False
 
 
 def _hermes_oauth_tokens_present(user_id: str, hermes_auth_id: str) -> bool:
@@ -267,8 +375,10 @@ def _read_gateway_data_file(rel_path: str) -> str:
 def _user_provider_connected(user_id: str, spec: dict[str, Any]) -> bool:
     """Connected = this user's credential resolves with a live secret (no stack/install bleed)."""
     if str(spec.get("connect_mode") or "") == "oauth":
-        if _hermes_oauth_tokens_present(user_id, _hermes_auth_id_for_spec(spec)):
-            return True
+        # Reusable OAuth requires a server-owned refresh broker. Until that
+        # exists, never expose a runtime auth.json token as a connected
+        # Workframe credential or allow it to flow into a profile.
+        return False
     provider_id = str(spec["id"])
     if str(spec.get("category") or "") == "llm":
         resolved = _srv()._resolve_credential(user_id, "", provider_id, user_only=True)
@@ -365,15 +475,11 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         if env_var:
             _srv()._remove_env_secret(_srv()._user_hermes_env_path(user_id), env_var)
             _srv()._remove_auth_metadata(_srv()._user_hermes_auth_path(user_id), cred_ref or f"env:{env_var}")
-        now = _srv()._utc_now()
-        conn.execute(
-            "UPDATE credential_bindings SET is_active = 0, deleted_at = ?, updated_at = ? WHERE id = ?",
-            (now, now, credential_id),
-        )
-        conn.commit()
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
+    if not credential_lifecycle.revoke_binding(credential_id, reason="user_disconnect"):
+        return {"ok": False, "error": "credential_revoke_failed"}
     _srv()._revoke_runtime_llm_leases(
         payer_user_id=user_id,
         provider=str(row["provider"]),
@@ -391,7 +497,9 @@ def _remove_hermes_oauth_provider(user_id: str, hermes_auth_id: str) -> None:
         try:
             loaded = json.loads(auth_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            loaded = {}
+            # A malformed auth file is a visible quarantine condition. Never
+            # replace it with an empty object as part of disconnect cleanup.
+            loaded = None
         if isinstance(loaded, dict):
             providers = loaded.get("providers")
             if isinstance(providers, dict):
@@ -538,11 +646,17 @@ def _device_oauth_error_from_log(log_text: str) -> str | None:
 
 
 def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: str) -> None:
-    if not _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        return
-    user_auth = _load_user_hermes_auth(user_id)
-    if not isinstance(user_auth, dict):
-        return
+    # OAuth refresh/access material must never be copied into runtime profiles.
+    # Existing material is scrubbed during the migration/connection path.
+    user_auth_path = _srv()._user_hermes_auth_path(user_id)
+    if user_auth_path.is_file():
+        try:
+            user_auth = json.loads(user_auth_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            user_auth = None
+        if isinstance(user_auth, dict) and _scrub_oauth_auth_material(user_auth, hermes_auth_id):
+            user_auth["updated_at"] = _srv()._utc_now()
+            user_auth_path.write_text(json.dumps(user_auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     user_part = re.sub(r"[^a-z0-9]+", "-", _srv()._user_hermes_dir_slug(user_id).lower()).strip("-")[:20] or "user"
     prefix = f"u-{user_part}-"
     profiles_dir = _srv().HERMES_DATA / "profiles"
@@ -553,10 +667,7 @@ def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: 
             continue
         auth_path = prof_dir / "auth.json"
         auth = _load_profile_auth_json(prof_dir.name)
-        user_auth = _load_user_hermes_auth(user_id)
-        if not isinstance(user_auth, dict):
-            continue
-        if not _merge_oauth_auth_into_profile(auth, user_auth, hermes_auth_id):
+        if not _scrub_oauth_auth_material(auth, hermes_auth_id):
             continue
         auth["version"] = 1
         auth["updated_at"] = _srv()._utc_now()
@@ -573,7 +684,36 @@ def _finalize_hermes_device_oauth(user_id: str, provider_id: str, spec: dict[str
     # invalidation path never runs; clear it before selecting/bootstraping the
     # new provider or the completed Codex connection remains invisible.
     _srv()._invalidate_user_llm_picker_cache(user_id)
-    _srv()._bootstrap_model_after_llm_connect(user_id, "", provider_id)
+    # Do not claim OAuth is connected until a server-side refresh broker exists.
+    # The caller can surface the stable error while the scrub keeps runtime files safe.
+    return None
+
+
+def _oauth_broker_unsupported(user_id: str, provider_id: str, spec: dict[str, Any], session_id: str) -> dict[str, Any]:
+    """Return a stable failure after scrubbing a token-bearing Hermes auth file."""
+    legacy = _load_user_hermes_auth(user_id)
+    if isinstance(legacy, dict):
+        quarantined = _quarantine_legacy_oauth(user_id, provider_id, legacy)
+        if _auth_json_has_oauth_material(legacy) and not quarantined:
+            _device_oauth_session_patch(session_id, {"status": "error", "finalized": False})
+            return {
+                "ok": False,
+                "provider": provider_id,
+                "session_id": session_id,
+                "status": "error",
+                "error": "oauth_quarantine_failed",
+                "message": "OAuth material was not quarantined; runtime authority was left untouched.",
+            }
+    _finalize_hermes_device_oauth(user_id, provider_id, spec)
+    _device_oauth_session_patch(session_id, {"status": "error", "finalized": True})
+    return {
+        "ok": False,
+        "provider": provider_id,
+        "session_id": session_id,
+        "status": "error",
+        "error": "oauth_broker_unsupported",
+        "message": "OAuth completed upstream, but this Workframe install has no server-side refresh broker; no runtime token was published.",
+    }
 
 
 def _device_oauth_session_get(session_id: str) -> dict[str, Any] | None:
@@ -742,31 +882,11 @@ def device_oauth_status(user_id: str, provider_id: str, session_id: str) -> dict
             "user_code": sess.get("user_code"),
         }
     if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        if not sess.get("finalized"):
-            _finalize_hermes_device_oauth(user_id, provider_id, spec)
-            _device_oauth_session_patch(session_id, {"status": "connected", "finalized": True})
-        return {
-            "ok": True,
-            "provider": provider_id,
-            "session_id": session_id,
-            "status": "connected",
-            "verification_uri": sess.get("verification_uri"),
-            "user_code": sess.get("user_code"),
-        }
+        return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
     lowered = log_text.lower()
     if any(token in lowered for token in ("login successful", "auth added", "credentials saved", "successfully authenticated", "logged in")):
         if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-            if not sess.get("finalized"):
-                _finalize_hermes_device_oauth(user_id, provider_id, spec)
-                _device_oauth_session_patch(session_id, {"status": "connected", "finalized": True})
-            return {
-                "ok": True,
-                "provider": provider_id,
-                "session_id": session_id,
-                "status": "connected",
-                "verification_uri": sess.get("verification_uri"),
-                "user_code": sess.get("user_code"),
-            }
+            return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
     if any(token in lowered for token in ("autherror", "login timed out", "login cancelled", "failed")):
         _device_oauth_session_patch(session_id, {"status": "error"})
         return {

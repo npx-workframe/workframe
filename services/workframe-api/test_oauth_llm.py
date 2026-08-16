@@ -1,4 +1,4 @@
-"""ponytail self-check: OAuth LLM providers (Codex/Nous) must pass chat gates without API keys.
+"""ponytail self-check: unsupported device OAuth never becomes runtime authority.
 
 Run: python services/workframe-api/test_oauth_llm.py
 """
@@ -26,7 +26,7 @@ merged: dict = {"version": 1, "providers": {}, "credential_pool": {}}
 assert server._merge_oauth_auth_into_profile(merged, pool_only, "openai-codex")
 assert merged["credential_pool"].get("openai-codex")
 
-# Without live tokens require path must fail
+# Device OAuth must fail closed until a server-owned provider adapter exists.
 try:
     server._require_runtime_owner_provider("user-1", "ws-1", "codex")
     raise AssertionError("expected ValueError without oauth tokens")
@@ -42,13 +42,15 @@ def _fake_present(_user: str, _auth_id: str) -> bool:
 
 server._hermes_oauth_tokens_present = _fake_present
 try:
-    resolved = server._require_runtime_owner_provider(
-        "550e8400-e29b-41d4-a716-446655440000",
-        "ws-1",
-        "codex",
-    )
-    assert resolved.get("credential_type") == "oauth"
-    assert resolved.get("credential_ref") == "oauth:openai-codex"
+    try:
+        server._require_runtime_owner_provider(
+            "550e8400-e29b-41d4-a716-446655440000",
+            "ws-1",
+            "codex",
+        )
+        raise AssertionError("runtime auth.json must not satisfy device OAuth")
+    except ValueError:
+        pass
 finally:
     server._hermes_oauth_tokens_present = _orig
 

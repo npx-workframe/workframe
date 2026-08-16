@@ -309,6 +309,9 @@ CREATE TABLE IF NOT EXISTS credential_bindings (
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL,
     deleted_at      TEXT DEFAULT NULL,
+    capability_generation INTEGER NOT NULL DEFAULT 1,
+    lifecycle_state TEXT NOT NULL DEFAULT 'active',
+    lifecycle_updated_at TEXT DEFAULT NULL,
     CHECK (
         (workspace_id IS NOT NULL AND user_id IS NULL AND agent_profile_id IS NULL)
         OR (workspace_id IS NULL AND user_id IS NOT NULL AND agent_profile_id IS NULL)
@@ -324,6 +327,20 @@ CREATE INDEX IF NOT EXISTS idx_credential_bindings_user_active
 
 CREATE INDEX IF NOT EXISTS idx_credential_bindings_agent_active
     ON credential_bindings(agent_profile_id, provider, is_active, deleted_at);
+
+CREATE TABLE IF NOT EXISTS credential_lifecycle_operations (
+    operation_id TEXT PRIMARY KEY,
+    binding_id TEXT NOT NULL,
+    operation_type TEXT NOT NULL,
+    state TEXT NOT NULL,
+    capability_generation INTEGER NOT NULL,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_credential_lifecycle_binding
+    ON credential_lifecycle_operations(binding_id, updated_at);
 
 CREATE TABLE IF NOT EXISTS audit_events (
     id              TEXT PRIMARY KEY,
@@ -632,6 +649,25 @@ def _migrate_v16_room_history_epoch(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v17_credential_lifecycle(conn: sqlite3.Connection) -> None:
+    """Add durable generation/state so leases cannot outlive a binding change."""
+    if conn.execute("SELECT 1 FROM schema_migrations WHERE version = '17' LIMIT 1").fetchone():
+        return
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(credential_bindings)").fetchall()}
+    if "capability_generation" not in columns:
+        conn.execute("ALTER TABLE credential_bindings ADD COLUMN capability_generation INTEGER NOT NULL DEFAULT 1")
+    if "lifecycle_state" not in columns:
+        conn.execute("ALTER TABLE credential_bindings ADD COLUMN lifecycle_state TEXT NOT NULL DEFAULT 'active'")
+    if "lifecycle_updated_at" not in columns:
+        conn.execute("ALTER TABLE credential_bindings ADD COLUMN lifecycle_updated_at TEXT DEFAULT NULL")
+    conn.execute(
+        """
+        INSERT INTO schema_migrations (version, description, applied_at)
+        VALUES ('17', 'credential binding lifecycle generations and states', datetime('now'))
+        """,
+    )
+
+
 def _migrate_v8_room_avatars(conn: sqlite3.Connection) -> None:
     if conn.execute("SELECT 1 FROM schema_migrations WHERE version = '8' LIMIT 1").fetchone():
         return
@@ -784,6 +820,7 @@ def ensure_workframe_db_schema(open_db: OpenDb) -> None:
         _migrate_v13_workspace_members_in_spaces(conn)
         _migrate_v15_message_reactions(conn)
         _migrate_v16_room_history_epoch(conn)
+        _migrate_v17_credential_lifecycle(conn)
         conn.commit()
     finally:
         conn.close()
@@ -797,6 +834,7 @@ def ensure_oauth_pending_migrations(open_db: OpenDb) -> None:
         _migrate_v12_adopt_install_keys_to_owners(conn)
         _migrate_v13_workspace_members_in_spaces(conn)
         _migrate_v15_message_reactions(conn)
+        _migrate_v17_credential_lifecycle(conn)
         conn.commit()
     finally:
         conn.close()

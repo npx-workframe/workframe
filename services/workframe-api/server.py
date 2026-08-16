@@ -563,6 +563,7 @@ import oauth_redirect
 import mention_invoke
 import credential_resolve
 import credential_store
+import credential_lifecycle
 import turn_overlay
 import chat_sessions
 import docker_gateway
@@ -1004,6 +1005,8 @@ disconnect_user_credential = provider_bindings.disconnect_user_credential
 disconnect_user_provider = provider_bindings.disconnect_user_provider
 device_oauth_status = provider_bindings.device_oauth_status
 start_user_oauth = provider_bindings.start_user_oauth
+_credential_lifecycle_revoke_binding = credential_lifecycle.revoke_binding
+_credential_lifecycle_revoke_other_bindings = credential_lifecycle.revoke_other_bindings
 
 # WF-032: provider_catalog re-exports
 PROVIDER_CONNECT_CATALOG = provider_catalog.PROVIDER_CONNECT_CATALOG
@@ -1355,6 +1358,7 @@ _default_credential_env_var = credential_resolve._default_credential_env_var
 _provider_env_var = credential_resolve._provider_env_var
 _credential_secret = credential_resolve._credential_secret
 _resolve_secret_for_lease = credential_resolve._resolve_secret_for_lease
+_resolve_secret_result_for_lease = credential_resolve._resolve_secret_result_for_lease
 _credential_binding_payload = credential_resolve._credential_binding_payload
 _resolve_credential = credential_resolve._resolve_credential
 
@@ -1571,6 +1575,15 @@ def _sync_agent_profile_db(profile: str, fields: dict[str, Any]) -> None:
     if not updates:
         return
     _ensure_workframe_db_schema()
+    try:
+        recovered = credential_lifecycle.recover_pending_operations()
+        expired = credential_lifecycle.expire_bindings()
+        if recovered:
+            print(f"  Credential lifecycle recovery marked {len(recovered)} interrupted operation(s) for retry", flush=True)
+        if expired:
+            print(f"  Credential lifecycle expired {expired} binding(s)", flush=True)
+    except (sqlite3.Error, OSError) as exc:
+        raise SystemExit(f"credential lifecycle recovery failed: {exc}") from exc
     conn = _workframe_db()
     try:
         now_ts = str(int(time.time()))
@@ -2584,6 +2597,12 @@ def main() -> None:
     credential_vault.bootstrap_vault(
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )
+    try:
+        recovered = credential_lifecycle.recover_pending_operations()
+        if recovered:
+            print(f"  Credential lifecycle startup recovery marked {len(recovered)} interrupted operation(s)", flush=True)
+    except (sqlite3.Error, OSError) as exc:
+        raise SystemExit(f"credential lifecycle startup recovery failed: {exc}") from exc
     internal_proxy_auth.bootstrap_proxy_token(
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )

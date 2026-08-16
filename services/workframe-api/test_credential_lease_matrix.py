@@ -73,6 +73,32 @@ def test_revoked_lease() -> None:
     assert not auth.ok and auth.deny_reason == "revoked" and auth.status == 401
 
 
+def test_stale_binding_generation() -> None:
+    conn = sqlite3.connect(str(turn_credentials.WORKFRAME_DB))
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS credential_bindings (
+           id TEXT PRIMARY KEY, capability_generation INTEGER NOT NULL DEFAULT 1,
+           lifecycle_state TEXT NOT NULL DEFAULT 'active')"""
+    )
+    conn.execute(
+        "INSERT OR REPLACE INTO credential_bindings (id, capability_generation, lifecycle_state) VALUES (?,?,?)",
+        ("bind-stale", 1, "active"),
+    )
+    conn.execute(
+        "INSERT OR REPLACE INTO credential_bindings (id, capability_generation, lifecycle_state) VALUES (?,?,?)",
+        ("bind-1", 1, "active"),
+    )
+    conn.commit()
+    conn.close()
+    tok = _issue(run_id="run-stale", binding="bind-stale")
+    conn = sqlite3.connect(str(turn_credentials.WORKFRAME_DB))
+    conn.execute("UPDATE credential_bindings SET capability_generation = 2 WHERE id = ?", ("bind-stale",))
+    conn.commit()
+    conn.close()
+    reason, _ = turn_credentials.inspect_lease(tok)
+    assert reason == "stale_generation"
+
+
 def test_expired_lease() -> None:
     tok = _issue(run_id="run-expired")
     past = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
@@ -158,6 +184,7 @@ def test_broker_audit_on_deny() -> None:
 def main() -> None:
     test_active_lease_ok()
     test_revoked_lease()
+    test_stale_binding_generation()
     test_expired_lease()
     test_provider_mismatch()
     test_profile_mismatch()

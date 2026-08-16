@@ -6,6 +6,7 @@ import sqlite3
 from typing import Any
 
 import action_proxy
+import credential_lifecycle
 import internal_proxy_auth
 import llm_proxy
 import platform_auth
@@ -159,46 +160,13 @@ class ProviderRoutesMixin:
             self._json(400, {"ok": False, "error": "secret required"})
             return
         payload = srv._store_user_credential(user_id, provider, credential_type, secret, env_var, label)
-        cred_ref = str(payload["credential_ref"])
-        now = srv._utc_now()
-        try:
-            conn = sqlite3.connect(str(srv._workframe_db_path()), timeout=3.0)
-            conn.row_factory = sqlite3.Row
-            existing = conn.execute(
-                """SELECT id FROM credential_bindings
-                   WHERE user_id = ? AND provider = ? AND credential_type = ?
-                     AND credential_ref = ? AND deleted_at IS NULL
-                   ORDER BY updated_at DESC, created_at DESC LIMIT 1""",
-                (user_id, provider, credential_type, cred_ref),
-            ).fetchone()
-            if existing:
-                cred_id = str(existing["id"])
-                conn.execute(
-                    """UPDATE credential_bindings
-                       SET label = ?, is_active = 1, updated_at = ?, deleted_at = NULL
-                       WHERE id = ?""",
-                    (label, now, cred_id),
-                )
-            else:
-                cred_id = str(payload["credential_id"])
-                conn.execute(
-                    """INSERT INTO credential_bindings
-                       (id, workspace_id, user_id, agent_profile_id, provider, credential_type,
-                        credential_ref, label, is_active, created_by, created_at, updated_at)
-                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (cred_id, None, user_id, None, provider, credential_type, cred_ref, label, 1, user_id, now, now),
-                )
-            conn.execute(
-                """UPDATE credential_bindings
-                   SET is_active = 0, deleted_at = ?, updated_at = ?
-                   WHERE user_id = ? AND provider = ? AND deleted_at IS NULL AND id != ?""",
-                (now, now, user_id, provider, cred_id),
-            )
-            conn.commit()
-            conn.close()
-        except sqlite3.Error as exc:
-            self._json(500, {"ok": False, "error": f"db_error: {exc}"})
-            return
+        cred_id = str(payload["credential_id"])
+        credential_lifecycle.revoke_other_bindings(
+            user_id=user_id,
+            provider=provider,
+            keep_id=cred_id,
+            reason="user_replacement",
+        )
         srv._invalidate_user_llm_picker_cache(user_id)
         srv._revoke_runtime_llm_leases(payer_user_id=user_id, provider=provider)
         self._log_audit("credential_stored", "credential_binding", cred_id, f"provider={provider}")
@@ -224,8 +192,8 @@ class ProviderRoutesMixin:
             "label": label,
             "is_active": 1,
             "user_id": user_id,
-            "created_at": now,
-            "updated_at": now,
+            "created_at": payload.get("updated_at"),
+            "updated_at": payload.get("updated_at"),
             "health": health,
             **payload,
         })

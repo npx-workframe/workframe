@@ -99,7 +99,11 @@ def _build_upstream_request(
         upstream_host=_upstream_host(provider),
     )
     if not auth.ok:
-        return None, _error_response(auth.status, auth.error)
+        return None, (
+            auth.status,
+            {"Content-Type": "application/json"},
+            credential_broker.broker_error_body(auth),
+        )
 
     secret = auth.secret
 
