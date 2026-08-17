@@ -1,17 +1,21 @@
-# Workframe v0.1.53
+# Workframe v0.1.54
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.53 |
-| workframe API / UI | 0.1.53 (bundled in create-workframe) |
+| create-workframe | 0.1.54 |
+| workframe API / UI | 0.1.54 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.53 MyProject
+npx create-workframe@0.1.54 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.54
+
+- Close the install → npm publish → in-app updater cycle on a fresh create-workframe cell.
 
 ## 0.1.53
 
