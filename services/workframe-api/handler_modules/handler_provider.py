@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 from typing import Any
 
 import action_proxy
@@ -180,10 +181,6 @@ class ProviderRoutesMixin:
             "provider": provider,
             "status": "stored",
         }
-        try:
-            srv._bootstrap_model_after_llm_connect(user_id, str(body.get("workspace_id") or ""), provider)
-        except (OSError, RuntimeError, ValueError) as exc:
-            srv._log_handler_error("POST /api/me/credentials provider bootstrap", exc)
         self._json(200, {
             "ok": True,
             "credential_id": cred_id,
@@ -197,6 +194,22 @@ class ProviderRoutesMixin:
             "health": health,
             **payload,
         })
+
+        # The credential row/vault write above is the durable save boundary.
+        # Runtime profile reconciliation can restart a gateway and wait for
+        # health; it must not keep the settings request in "Saving…" or turn
+        # a successful credential save into a false failure.
+        def _bootstrap() -> None:
+            try:
+                srv._bootstrap_model_after_llm_connect(
+                    user_id,
+                    str(body.get("workspace_id") or ""),
+                    provider,
+                )
+            except (OSError, RuntimeError, ValueError) as exc:
+                srv._log_handler_error("POST /api/me/credentials provider bootstrap", exc)
+
+        threading.Thread(target=_bootstrap, name="wf-user-provider-bootstrap", daemon=True).start()
 
     def _route_post_me_telegram_link(self, body: dict) -> None:
         srv = _srv()

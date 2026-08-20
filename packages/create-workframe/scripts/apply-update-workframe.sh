@@ -46,6 +46,20 @@ _wf_sync_tree() {
   cp -a "${src}/." "${dest}/"
 }
 
+_wf_validate_ui_tree() {
+  local root="$1" index="$1/index.html" ref rel
+  [[ -f "$index" ]] || { echo "ERROR: staged UI index missing: $index" >&2; return 1; }
+  while IFS= read -r ref; do
+    [[ -n "$ref" ]] || continue
+    rel="${ref#./}"
+    rel="${rel#/}"
+    if [[ ! -f "$root/$rel" ]]; then
+      echo "ERROR: staged UI index references missing asset: $ref" >&2
+      return 1
+    fi
+  done < <(grep -oE '(src|href)="(\./|/)assets/[^"?]+' "$index" | sed -E 's/^[^=]+="//')
+}
+
 _wf_sync_from_pack_dir() {
   local pkg="$1"
   if [[ -d "$pkg/workframe-api" ]]; then
@@ -314,12 +328,19 @@ _wf_ensure_ui_service() {
     exit 1
   fi
 
+  local staged_ui=""
   if [[ -n "${WF_UPDATE_UI_SRC:-}" && -d "$WF_UPDATE_UI_SRC" ]]; then
-    echo "Syncing workframe-ui/public -> $UI_DIR (UI stays up until API rebuild finishes)"
+    staged_ui="${UI_DIR}.update.$$"
+    rm -rf "$staged_ui"
+    echo "Staging workframe-ui/public -> $staged_ui"
+    _wf_sync_tree "$WF_UPDATE_UI_SRC" "$staged_ui"
+    _wf_validate_ui_tree "$staged_ui"
+    echo "UI update staged and entry assets verified"
+    echo "Replacing workframe-ui/public -> $UI_DIR"
     workframe_compose_recreate stop "$svc" 2>/dev/null || true
     workframe_compose_recreate rm -f "$svc" 2>/dev/null || true
     rm -rf "$UI_DIR"
-    _wf_sync_tree "$WF_UPDATE_UI_SRC" "$UI_DIR"
+    mv "$staged_ui" "$UI_DIR"
   fi
 
   workframe_prune_created_compose_containers "$svc"

@@ -11,14 +11,14 @@
 | Command | Purpose | Current boundary |
 | --- | --- | --- |
 | `npx workframe@0.2.2` | Inspect local agent runtimes and model-provider configuration. | Read-only discovery by default. An optional provider test is offered through a consent prompt; use `--no-test` or `--json` to skip interactive testing. |
-| `npx create-workframe@0.1.53 MyProject` | Scaffold a complete Workframe + Hermes project cell. | UI, API, supervisor, Docker Compose, project files, profiles, and guided onboarding. |
+| `npx create-workframe@0.1.55 MyProject` | Scaffold a complete Workframe + Hermes project cell. | UI, API, supervisor, Docker Compose, project files, profiles, and guided onboarding. |
 
 The two packages are complementary but not interchangeable: `workframe` is the adaptive local entrypoint; `create-workframe` installs the full collaboration environment.
 
 ## Quick start: complete cell
 
 ```bash
-npx create-workframe@0.1.53 MyProject
+npx create-workframe@0.1.55 MyProject
 cd MyProject
 ```
 

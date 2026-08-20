@@ -128,7 +128,7 @@ export function WorkspaceMessagingPanel({
           Shared bot for this Workframe. Token is vault-encrypted and synced to the gateway.
         </p>
         <div className="wf-dialog-field">
-          <Label htmlFor="wf-discord-token">Bot token</Label>
+          <Label htmlFor="wf-discord-token">Discord bot token</Label>
           <SecretInput
             id="wf-discord-token"
             value={discordToken}
@@ -168,7 +168,7 @@ export function WorkspaceMessagingPanel({
           Shared bot for this Workframe. Members link their Telegram user ID under Linked accounts.
         </p>
         <div className="wf-dialog-field">
-          <Label htmlFor="wf-telegram-token">Bot token</Label>
+          <Label htmlFor="wf-telegram-token">Telegram bot token</Label>
           <SecretInput
             id="wf-telegram-token"
             value={telegramToken}

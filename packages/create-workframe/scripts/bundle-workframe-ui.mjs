@@ -31,6 +31,16 @@ function copyTree(src, dst) {
   }
 }
 
+function assertEntryAssetClosure(indexPath, root) {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const refs = [...html.matchAll(/(?:src|href)=["']((?:\.\/|\/)assets\/[^"'?#]+)(?:\?[^"']*)?["']/g)]
+    .map((match) => match[1].replace(/^\.\//, '').replace(/^\//, ''));
+  const missing = refs.filter((ref) => !fs.existsSync(path.join(root, ref)));
+  if (missing.length) {
+    throw new Error(`Bundled UI index references missing assets: ${missing.join(', ')}`);
+  }
+}
+
 const skipBuild = process.argv.includes('--skip-build');
 
 if (!fs.existsSync(UI_SRC)) {
@@ -65,10 +75,11 @@ const bundledAt = new Date().toISOString();
 const assetRevision = `${pkgVersion}-${Date.parse(bundledAt).toString(36)}`;
 const bundledIndexPath = path.join(UI_DEST, 'index.html');
 const bundledIndex = fs.readFileSync(bundledIndexPath, 'utf8').replace(
-  /((?:src|href)=["']\/assets\/[^"'?]+)(["'])/g,
+  /((?:src|href)=["'](?:\.\/|\/)assets\/[^"'?]+)(["'])/g,
   `$1?v=${assetRevision}$2`,
 );
 fs.writeFileSync(bundledIndexPath, bundledIndex);
+assertEntryAssetClosure(bundledIndexPath, UI_DEST);
 
 const buildStamp = {
   package_version: pkgVersion,

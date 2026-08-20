@@ -18,6 +18,10 @@ const syncSource = fs.readFileSync(
   path.join(root, 'packages/create-workframe/scripts/sync-canonical-to-package.mjs'),
   'utf8',
 );
+const bundleSource = fs.readFileSync(
+  path.join(root, 'packages/create-workframe/scripts/bundle-workframe-ui.mjs'),
+  'utf8',
+);
 const canonicalNginx = fs.readFileSync(path.join(root, 'apps/web/docker/nginx.conf'), 'utf8');
 const packageNginx = fs.readFileSync(
   path.join(root, 'packages/create-workframe/workframe-ui/docker/nginx.conf'),
@@ -123,6 +127,17 @@ requireContract(
   canonicalNginx.includes('location = /index.html')
     && canonicalNginx.includes('Cache-Control "no-cache, no-store, must-revalidate" always'),
   'Canonical UI nginx must prevent index HTML caching across in-app updates.',
+);
+requireContract(
+  bundleSource.includes('assertEntryAssetClosure')
+    && bundleSource.includes("(?:\\.\\/|\\/)assets\\/")
+    && bundleSource.includes('Bundled UI index references missing assets'),
+  'UI bundling must cache-bust relative and absolute entry assets and reject missing files.',
+);
+requireContract(
+  applySource.includes('_wf_validate_ui_tree')
+    && applySource.includes('UI update staged and entry assets verified'),
+  'In-app Workframe updates must validate a staged UI tree before replacing the live tree.',
 );
 
 if (failures.length) {

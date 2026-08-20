@@ -96,6 +96,13 @@ function sha256File(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+function missingEntryAssets(indexPath, root) {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  return [...html.matchAll(/(?:src|href)=["']((?:\.\/|\/)assets\/[^"'?#]+)(?:\?[^"']*)?["']/g)]
+    .map((match) => match[1].replace(/^\.\//, '').replace(/^\//, ''))
+    .filter((rel) => !fs.existsSync(path.join(root, rel)));
+}
+
 const packageVersion = JSON.parse(fs.readFileSync(path.join(pkgRoot, 'package.json'), 'utf8')).version;
 const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-pie-'));
 const gateDir = path.join(tmpBase, 'pack');
@@ -190,6 +197,12 @@ try {
     uiIdentityNote = 'missing workframe-build.json — run bundle-workframe-ui.mjs';
   }
   assertStep('ui_bundle_identity', uiIdentityOk, uiIdentityNote);
+  const missingUiAssets = missingEntryAssets(uiIndex, path.join(target, 'workframe-ui/public'));
+  assertStep(
+    'ui_entry_asset_closure',
+    missingUiAssets.length === 0,
+    missingUiAssets.length ? `missing ${missingUiAssets.join(', ')}` : undefined,
+  );
 
   const allOk = assertions.every((a) => a.status === 'asserted');
   const evidence = {
