@@ -161,8 +161,7 @@ def _workspace_has_llm_provider(workspace_id: str) -> bool:
         resolved = _srv()._resolve_credential("", workspace_id, provider_id)
         if not resolved:
             continue
-        env_var = str(spec.get("env_var") or "")
-        if env_var and _srv()._stack_profile_env().get(env_var):
+        if _srv()._credential_secret(resolved, ""):
             return True
     return False
 
