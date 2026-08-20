@@ -1,17 +1,21 @@
-# Workframe v0.1.55
+# Workframe v0.1.56
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.55 |
-| workframe API / UI | 0.1.55 (bundled in create-workframe) |
+| create-workframe | 0.1.56 |
+| workframe API / UI | 0.1.56 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.55 MyProject
+npx create-workframe@0.1.56 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.56
+
+- Prefer the configured stack supervisor for in-app updates when Docker is also exposed to the API, avoiding read-only compose mounts that can fail after release download.
 
 ## 0.1.55
 

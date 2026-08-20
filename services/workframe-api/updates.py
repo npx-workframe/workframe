@@ -538,20 +538,29 @@ def _docker_apply_ready() -> tuple[bool, str | None]:
 
 def _update_apply_channel() -> tuple[str, bool, str | None]:
     """Returns (channel, ready, reason). channel: api_docker | supervisor | none."""
+    # Prefer the supervisor whenever it is configured. The API container may
+    # have docker.sock but only a read-only /compose mount; running the host
+    # updater from that container then fails after downloading the release.
+    supervisor_reason: str | None = None
+    if _supervisor_configured():
+        if _script_path("apply-update-workframe.sh") is None and _script_path("apply-update-hermes.sh") is None:
+            supervisor_reason = "Stack update scripts are missing from this install."
+        else:
+            ok, reason = _supervisor_healthy()
+            if ok:
+                return "supervisor", True, None
+            supervisor_reason = reason
+
     api_docker = Path(DOCKER_SOCK).exists()
     if api_docker:
         ok, reason = _docker_apply_ready()
         if ok:
             return "api_docker", True, None
-        if not _supervisor_configured():
-            return "none", False, reason
+        if supervisor_reason is None:
+            supervisor_reason = reason
+
     if _supervisor_configured():
-        if _script_path("apply-update-workframe.sh") is None and _script_path("apply-update-hermes.sh") is None:
-            return "supervisor", False, "Stack update scripts are missing from this install."
-        ok, reason = _supervisor_healthy()
-        if not ok:
-            return "supervisor", False, reason
-        return "supervisor", True, None
+        return "supervisor", False, supervisor_reason or "workframe-supervisor is unavailable."
     if api_docker:
         _, reason = _docker_apply_ready()
         return "none", False, reason
