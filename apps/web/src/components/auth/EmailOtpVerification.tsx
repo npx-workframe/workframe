@@ -173,6 +173,7 @@ export function EmailOtpVerification({
         if (message === 'no_session') {
           throw new Error(
             'Sign-in succeeded but no session was saved. Use the same URL host as your invite link (127.0.0.1, not localhost).',
+            { cause: err },
           )
         }
         throw err

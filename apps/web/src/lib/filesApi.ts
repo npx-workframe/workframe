@@ -172,6 +172,8 @@ function normalizedSelectedPaths(paths: string[]): string[] {
 }
 
 function safeDownloadName(value: string, fallback: string): string {
+  // Control characters are intentionally removed from user-controlled filenames.
+  // eslint-disable-next-line no-control-regex
   const normalized = value.trim().replace(/[<>:"/\\|?*\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ')
   return normalized || fallback
 }

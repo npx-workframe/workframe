@@ -46,6 +46,7 @@ export function restoreWorkspacePanel(
   panelId: string,
   _projectName: string,
 ) {
+  void _projectName
   if (panelId === PANEL_IDS.crew) return
   if (!isWorkspacePanelId(panelId) || api.getPanel(panelId)) return
 

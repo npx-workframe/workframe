@@ -63,7 +63,7 @@ const PATTERN_RULES = PHRASES.patterns.map((rule) => ({
 }))
 
 const SNAKE_CODE_RE = /^[a-z][a-z0-9_]{2,63}$/
-const TRACE_RE = /\n(?:Traceback|  File )/m
+const TRACE_RE = /\n(?:Traceback| {2}File )/m
 const API_PREFIX_RE = /^(?:GET|POST|PATCH|PUT|DELETE) \S+ failed:\s*/i
 
 function extractHttpApiError(raw: string): string {
@@ -134,7 +134,7 @@ function isLikelyInternalError(text: string): boolean {
   const trimmed = scrubInternalText(text)
   if (!trimmed) return true
   if (TRACE_RE.test(text)) return true
-  if (/PermissionError|Traceback|  File "/i.test(text)) return true
+  if (/PermissionError|Traceback| {2}File "/i.test(text)) return true
   if (/runtime profile create failed:/i.test(text) && trimmed.length > 120) return true
   if (trimmed.includes('/') && trimmed.includes('.py')) return true
   return false
@@ -440,7 +440,7 @@ export function formatHttpStatus(status: number): WorkframeNoticeInfo {
 
 export async function parseApiErrorResponse(response: Response): Promise<WorkframeNoticeInfo> {
   const status = response.status
-  let text = ''
+  let text: string
   try {
     text = await response.text()
   } catch {

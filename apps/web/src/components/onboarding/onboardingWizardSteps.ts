@@ -292,6 +292,7 @@ export function railStepToConciergeStep(
   current?: ConciergeStep,
   _adminVerified?: boolean,
 ): ConciergeStep {
+  void _adminVerified
   if (railId === 'smtp' && current === 'admin_auth') return 'admin_auth'
   return railId as ConciergeStep
 }

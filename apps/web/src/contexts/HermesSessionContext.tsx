@@ -130,7 +130,9 @@ export function HermesSessionProvider({ children }: { children: ReactNode }) {
       const url = new URL(window.location.href)
       const src = (url.searchParams.get('source') || url.searchParams.get('wf_source') || '').trim()
       if (src) refs.sourceIdRef.current = src
-    } catch {}
+    } catch {
+      // URL source metadata is optional; the session can still use its defaults.
+    }
     refs.clientIdRef.current = getOrCreateClientId()
   }
 

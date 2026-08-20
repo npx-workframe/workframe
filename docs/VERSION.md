@@ -1,13 +1,13 @@
-# Workframe v0.1.63
+# Workframe v0.1.64
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.63 |
-| workframe API / UI | 0.1.63 (bundled in create-workframe) |
+| create-workframe | 0.1.64 |
+| workframe API / UI | 0.1.64 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.63 MyProject
+npx create-workframe@0.1.64 MyProject
 npx workframe@0.2.2
 ```
 

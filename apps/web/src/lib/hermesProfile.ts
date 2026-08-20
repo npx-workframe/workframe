@@ -131,7 +131,7 @@ export function findAgentByProfile(
   profileOrKey: string,
 ): WorkframeAgent | undefined {
   const needle = profileOrKey.toLowerCase()
-  let hit = crew.find(
+  const hit = crew.find(
     (member) =>
       member.profile.toLowerCase() === needle ||
       member.key.toLowerCase() === needle ||

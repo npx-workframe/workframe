@@ -578,7 +578,7 @@ async function request<T>(
       retryOn401,
     )
   } catch (err) {
-    if (controller?.signal.aborted) throw new Error('request_timeout')
+    if (controller?.signal.aborted) throw new Error('request_timeout', { cause: err })
     throw err
   } finally {
     if (timeout !== null) window.clearTimeout(timeout)

@@ -47,9 +47,13 @@ export async function loadWorkframeRuntimeConfig(): Promise<WorkframeRuntimeConf
 
 /** Strip ANSI escape sequences from Hermes PTY / TUI output. */
 export function stripAnsi(text: string): string {
+  // These control-character ranges are intentional PTY sanitization.
   return text
+    // eslint-disable-next-line no-control-regex
     .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
+    // eslint-disable-next-line no-control-regex
     .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, '')
+    // eslint-disable-next-line no-control-regex
     .replace(/\x1b[@-_]/g, '')
 }
 
@@ -58,6 +62,7 @@ export function normalizePtyChunk(text: string): string {
   return stripAnsi(text)
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
 }
 

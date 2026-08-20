@@ -148,7 +148,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
         })
         room = patched.room
       } catch (err) {
-        throw new Error(formatWorkframeErrorMessage(err, 'Save agent room'))
+        throw new Error(formatWorkframeErrorMessage(err, 'Save agent room'), { cause: err })
       }
     }
     await new Promise((resolve) => window.setTimeout(resolve, 400))
@@ -203,7 +203,7 @@ export function CreateAgentDialog({ open, onOpenChange, onCreated }: CreateAgent
             profileSlug,
           )
         } catch (err) {
-          throw new Error(formatWorkframeErrorMessage(err, 'Save agent fallbacks'))
+          throw new Error(formatWorkframeErrorMessage(err, 'Save agent fallbacks'), { cause: err })
         }
       }
       await finishCreated({

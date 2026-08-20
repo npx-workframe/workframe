@@ -20,6 +20,7 @@ export function isWorkspacePanelId(id: string): id is WorkspacePanelId {
 
 /** Shortcuts shown on the rail when a panel is closed. */
 export function railPanelShortcuts(_projectName: string): RailPanelShortcut[] {
+  void _projectName
   return [
     { id: PANEL_IDS.chat, label: panelDisplayTitle(PANEL_IDS.chat), icon: MessageSquare },
     { id: PANEL_IDS.files, label: panelDisplayTitle(PANEL_IDS.files), icon: FolderTree },

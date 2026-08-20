@@ -73,6 +73,7 @@ export function getStoredRefreshToken(): string {
 }
 
 export function setStoredSessionTokens(sessionId: string, _refreshToken?: string): void {
+  void _refreshToken
   writeSession(sessionId)
 }
 
