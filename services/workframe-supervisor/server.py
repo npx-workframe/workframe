@@ -54,9 +54,13 @@ STACK_APPLY_STATUS_PATH = HERMES_DATA / "workframe" / "stack-apply-status.json"
 def _update_script(name: str) -> Path | None:
     """Resolve updater scripts from the bind mount or canonical install tree."""
     for candidate in (
+        # New package layouts keep the supervisor-aware scripts under
+        # scripts/workframe. Prefer them when a stale root-level wrapper is
+        # still present in an older installation's bind mount.
+        SCRIPTS_DIR / "workframe" / name,
         SCRIPTS_DIR / name,
-        COMPOSE_DIR / "scripts" / name,
         COMPOSE_DIR / "scripts" / "workframe" / name,
+        COMPOSE_DIR / "scripts" / name,
     ):
         if candidate.is_file():
             return candidate

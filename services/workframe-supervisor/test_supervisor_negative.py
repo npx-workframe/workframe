@@ -160,6 +160,29 @@ def test_update_script_falls_back_to_compose_tree() -> None:
             supervisor.COMPOSE_DIR = old_compose
 
 
+def test_update_script_prefers_canonical_nested_mount_over_stale_wrapper() -> None:
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        scripts = root / "scripts"
+        nested = scripts / "workframe"
+        nested.mkdir(parents=True)
+        stale = scripts / "apply-update-workframe.sh"
+        canonical = nested / "apply-update-workframe.sh"
+        stale.write_text("#!/usr/bin/env bash\n# stale wrapper\n", encoding="utf-8")
+        canonical.write_text("#!/usr/bin/env bash\n# canonical supervisor-aware script\n", encoding="utf-8")
+        old_scripts = supervisor.SCRIPTS_DIR
+        old_compose = supervisor.COMPOSE_DIR
+        try:
+            supervisor.SCRIPTS_DIR = scripts
+            supervisor.COMPOSE_DIR = root / "compose"
+            assert supervisor._update_script("apply-update-workframe.sh") == canonical
+        finally:
+            supervisor.SCRIPTS_DIR = old_scripts
+            supervisor.COMPOSE_DIR = old_compose
+
+
 def test_gateway_agent_version_probe() -> None:
     old_exec = supervisor._docker_exec
     try:
@@ -215,6 +238,7 @@ def main() -> None:
     test_stack_apply_lock_held()
     test_stack_apply_status_round_trip()
     test_update_script_falls_back_to_compose_tree()
+    test_update_script_prefers_canonical_nested_mount_over_stale_wrapper()
     test_gateway_agent_version_probe()
     test_stack_release_status_reads_component_versions()
     print("supervisor negative tests ok")

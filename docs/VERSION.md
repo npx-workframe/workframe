@@ -1,17 +1,21 @@
-# Workframe v0.1.60
+# Workframe v0.1.61
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.60 |
-| workframe API / UI | 0.1.60 (bundled in create-workframe) |
+| create-workframe | 0.1.61 |
+| workframe API / UI | 0.1.61 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.60 MyProject
+npx create-workframe@0.1.61 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.61
+
+- Prefer the canonical supervisor-aware updater when older root-level script wrappers remain mounted.
 
 ## 0.1.60
 

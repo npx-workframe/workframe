@@ -384,8 +384,8 @@ def _project_root() -> Path:
 
 def _script_path(name: str) -> Path | None:
     roots = [
-        Path(f"/opt/install/scripts/{name}"),
         Path(f"/opt/install/scripts/workframe/{name}"),
+        Path(f"/opt/install/scripts/{name}"),
     ]
     mode = str(os.environ.get("WORKFRAME_DEPLOYMENT_MODE") or "trusted_team").strip().lower()
     if mode == "single_user_local":
