@@ -1,17 +1,21 @@
-# Workframe v0.1.56
+# Workframe v0.1.57
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.56 |
-| workframe API / UI | 0.1.56 (bundled in create-workframe) |
+| create-workframe | 0.1.57 |
+| workframe API / UI | 0.1.57 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.56 MyProject
+npx create-workframe@0.1.57 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.57
+
+- Resume an install with an existing owner through the visible owner-auth gate when a setup mutation returns forbidden.
 
 ## 0.1.56
 

@@ -123,8 +123,19 @@ export function useConciergeFlow({
   const patchInstallStackWhenAllowed = useCallback(async (data: Record<string, unknown>) => {
     const status = await workframeAuthApi.getInstallStatus()
     if (status.install_window_open && !status.install_complete) {
-      await workframeAuthApi.patchInstallStack(data)
-      return true
+      try {
+        await workframeAuthApi.patchInstallStack(data)
+        return true
+      } catch (err) {
+        // A previously bootstrapped install must resume through the owner
+        // gate instead of leaving the wizard on a generic forbidden alert.
+        const message = String(err instanceof Error ? err.message : err).toLowerCase()
+        if (message.includes('permission') || message.includes('forbidden')) {
+          setOwnerSignInRequired(true)
+          return false
+        }
+        throw err
+      }
     }
     const session = await workframeAuthApi.peekSession()
     if (!session) {
