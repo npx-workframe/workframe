@@ -74,13 +74,9 @@ function isThemeShowcasePath(): boolean {
 function App() {
   useIphoneStandalonePwa()
 
-  if (isButtonShowcasePath()) {
-    return <ButtonShowcasePage />
-  }
-
-  if (isThemeShowcasePath()) {
-    return <ThemeShowcasePage />
-  }
+  const buttonShowcase = isButtonShowcasePath()
+  const themeShowcase = isThemeShowcasePath()
+  const devShowcase = buttonShowcase || themeShowcase
 
   const projectName = import.meta.env.VITE_WORKFRAME_PROJECT?.trim() || 'Workframe'
   useSiteMeta()
@@ -102,11 +98,15 @@ function App() {
   const resolvingPhaseRef = useRef(false)
 
   useEffect(() => {
-    const returned = peekProviderConnectReturn()
-    if (!returned) return
-    setProviderConnectNotice(returned)
-    clearProviderConnectReturn()
-  }, [])
+    if (devShowcase) return
+    const timer = window.setTimeout(() => {
+      const returned = peekProviderConnectReturn()
+      if (!returned) return
+      setProviderConnectNotice(returned)
+      clearProviderConnectReturn()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [devShowcase])
 
   const navigate = useCallback((path: string) => {
     window.history.pushState({}, '', path)
@@ -147,6 +147,7 @@ function App() {
   )
 
   const resolvePhase = useCallback(async () => {
+    if (devShowcase) return
     if (resolvingPhaseRef.current) return
     resolvingPhaseRef.current = true
     try {
@@ -223,18 +224,20 @@ function App() {
     } finally {
       resolvingPhaseRef.current = false
     }
-  }, [fetchInstallStatus, inviteToken, markInstallWindow, navigate, routeInstallWizard])
+  }, [devShowcase, fetchInstallStatus, inviteToken, markInstallWindow, navigate, routeInstallWizard])
 
   useEffect(() => {
+    if (devShowcase) return
     void resolvePhase()
     const onPop = () => {
       void resolvePhase()
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [resolvePhase])
+  }, [devShowcase, resolvePhase])
 
   useEffect(() => {
+    if (devShowcase) return
     const onSessionExpired = () => {
       if (installWindowRef.current) {
         // expected while first-run onboarding runs without a session
@@ -250,7 +253,7 @@ function App() {
     }
     window.addEventListener(WORKFRAME_SESSION_EXPIRED, onSessionExpired)
     return () => window.removeEventListener(WORKFRAME_SESSION_EXPIRED, onSessionExpired)
-  }, [resolvePhase])
+  }, [devShowcase, resolvePhase])
 
   const handleAuthenticated = useCallback(async () => {
     try {
@@ -297,7 +300,11 @@ function App() {
 
   let content: ReactNode
 
-  if (phase === 'boot') {
+  if (buttonShowcase) {
+    content = <ButtonShowcasePage />
+  } else if (themeShowcase) {
+    content = <ThemeShowcasePage />
+  } else if (phase === 'boot') {
     content = <BootScreen label={`Loading ${projectName}`} />
   } else if (phase === 'install') {
     content = <InstallShell projectName={projectName} onReady={handleInstallReady} />
