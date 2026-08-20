@@ -62,6 +62,20 @@ def main() -> None:
     conn.close()
     assert state == "completed" and binding_state == ("active", 1)
 
+    conn = sqlite3.connect(str(db))
+    conn.execute(
+        "UPDATE credential_bindings SET is_active = 0, lifecycle_state = 'rotating', deleted_at = 'old' WHERE id = 'b3'"
+    )
+    conn.commit()
+    conn.close()
+    credential_lifecycle.mark_active("b3")
+    conn = sqlite3.connect(str(db))
+    binding_state = conn.execute(
+        "SELECT lifecycle_state, is_active, deleted_at FROM credential_bindings WHERE id = 'b3'"
+    ).fetchone()
+    conn.close()
+    assert binding_state == ("active", 1, None)
+
     deleted: list[str] = []
     credential_lifecycle.credential_vault.delete_secret = lambda binding_id: deleted.append(binding_id)
     credential_lifecycle.turn_credentials.revoke_matching_leases = lambda **_kwargs: 1

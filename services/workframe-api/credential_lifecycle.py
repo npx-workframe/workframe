@@ -192,9 +192,13 @@ def mark_active(binding_id: str) -> None:
         return
     conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=5.0)
     try:
+        now = _srv()._utc_now()
         conn.execute(
-            "UPDATE credential_bindings SET lifecycle_state = 'active', lifecycle_updated_at = ?, updated_at = ? WHERE id = ?",
-            (_srv()._utc_now(), _srv()._utc_now(), binding_id),
+            """UPDATE credential_bindings
+                  SET is_active = 1, lifecycle_state = 'active',
+                      lifecycle_updated_at = ?, updated_at = ?, deleted_at = NULL
+                WHERE id = ?""",
+            (now, now, binding_id),
         )
         conn.commit()
     finally:
