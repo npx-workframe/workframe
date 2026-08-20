@@ -1,17 +1,21 @@
-# Workframe v0.1.57
+# Workframe v0.1.58
 
 | Component | Version |
 |-----------|---------|
-| create-workframe | 0.1.57 |
-| workframe API / UI | 0.1.57 (bundled in create-workframe) |
+| create-workframe | 0.1.58 |
+| workframe API / UI | 0.1.58 (bundled in create-workframe) |
 | workframe CLI (`npx workframe`) | 0.2.2 |
 
 ```bash
-npx create-workframe@0.1.57 MyProject
+npx create-workframe@0.1.58 MyProject
 npx workframe@0.2.2
 ```
 
 Hermes gateway image: `nousresearch/hermes-agent:latest` (updated via stack admin).
+
+## 0.1.58
+
+- Claim the verified install admin as the default workspace owner and active owner membership during setup resume.
 
 ## 0.1.57
 

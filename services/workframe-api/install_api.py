@@ -9,6 +9,7 @@ import sqlite3
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -112,6 +113,64 @@ def install_owner_claimed(db_path: str) -> bool:
 def install_mutations_require_owner(db_path: str) -> bool:
     """After admin verify, install stack mutations require the owner session."""
     return install_owner_claimed(db_path) or stack_config.install_admin_verified()
+
+
+def claim_install_owner(db_path: str, user_id: str) -> bool:
+    """Bind the verified install admin to the default workspace owner role."""
+    normalized_user_id = str(user_id or "").strip()
+    if not normalized_user_id:
+        return False
+    conn = sqlite3.connect(db_path, timeout=5.0)
+    conn.row_factory = sqlite3.Row
+    try:
+        workspace = conn.execute(
+            """
+            SELECT id, owner_id FROM workspaces
+            WHERE slug = 'default' AND deleted_at IS NULL
+            ORDER BY created_at ASC
+            LIMIT 1
+            """,
+        ).fetchone()
+        if not workspace:
+            return False
+        owner_id = str(workspace["owner_id"] or "").strip()
+        if owner_id and owner_id != normalized_user_id:
+            return False
+        now = str(int(__import__("time").time()))
+        conn.execute(
+            "UPDATE workspaces SET owner_id = ?, updated_at = ? WHERE id = ?",
+            (normalized_user_id, now, workspace["id"]),
+        )
+        conn.execute(
+            "UPDATE users SET role = 'owner', updated_at = ? WHERE id = ?",
+            (now, normalized_user_id),
+        )
+        membership = conn.execute(
+            """
+            SELECT id FROM workspace_memberships
+            WHERE workspace_id = ? AND user_id = ? AND deleted_at IS NULL
+            LIMIT 1
+            """,
+            (workspace["id"], normalized_user_id),
+        ).fetchone()
+        if membership:
+            conn.execute(
+                "UPDATE workspace_memberships SET role = 'owner', status = 'active', updated_at = ? WHERE id = ?",
+                (now, membership["id"]),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO workspace_memberships
+                (id, workspace_id, user_id, role, status, created_at, updated_at)
+                VALUES (?, ?, ?, 'owner', 'active', ?, ?)
+                """,
+                (str(uuid.uuid4()), workspace["id"], normalized_user_id, now, now),
+            )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
 
 
 def _default_workspace_settings(db_path: str) -> dict[str, Any]:
