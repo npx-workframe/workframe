@@ -347,16 +347,31 @@ _wf_ensure_ui_service() {
 
   # nginx upstreams (gateway/dashboard) must exist, but the UI up must NOT walk
   # the dependency graph: that recreates the supervisor and kills this apply.
+  # When the absolute host-bindings overlay is available, recreate these
+  # dependencies so an older relative bind (for example /compose/Agents) cannot
+  # survive an update. The overlay points at the canonical runtime data and
+  # does not remove or replace Agents/, Files/, or API data.
+  _wf_ensure_ui_dependency() {
+    local dependency="$1"
+    workframe_prune_created_compose_containers "$dependency"
+    echo "Ensuring dependency $dependency is running..."
+    local recreate_args=(up -d --no-build --no-deps)
+    if workframe_compose_host_bindings_available; then
+      recreate_args+=(--force-recreate)
+    else
+      recreate_args+=(--no-recreate)
+    fi
+    if ! workframe_compose_recreate "${recreate_args[@]}" "$dependency"; then
+      echo "ERROR: dependency $dependency could not start" >&2
+      exit 1
+    fi
+    workframe_wait_service_running "$dependency" 60
+  }
+
   local dep
   for dep in gateway dashboard; do
     if workframe_compose config --services 2>/dev/null | grep -qx "$dep"; then
-      workframe_prune_created_compose_containers "$dep"
-      echo "Ensuring dependency $dep is running..."
-      if ! workframe_compose_recreate up -d --no-build --no-deps --no-recreate "$dep"; then
-        echo "ERROR: dependency $dep could not start" >&2
-        exit 1
-      fi
-      workframe_wait_service_running "$dep" 60
+      _wf_ensure_ui_dependency "$dep"
     fi
   done
 

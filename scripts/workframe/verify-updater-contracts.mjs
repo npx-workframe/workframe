@@ -110,6 +110,12 @@ requireContract(
   'Workframe updates must sync the packaged nginx config before recreating the UI.',
 );
 requireContract(
+  applySource.includes('workframe_compose_host_bindings_available')
+    && applySource.includes('recreate_args+=(--force-recreate)')
+    && applySource.includes('_wf_ensure_ui_dependency'),
+  'Workframe updates must recreate gateway dependencies when absolute host bindings are available.',
+);
+requireContract(
   generatorSource.includes("path.join(PKG_ROOT, 'workframe-ui', 'docker', 'nginx.conf')")
     && generatorSource.includes("return fs.readFileSync(nginxPath, 'utf8')"),
   'Generated installs must consume the packaged canonical nginx config instead of a duplicate template.',
