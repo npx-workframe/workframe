@@ -5,6 +5,7 @@ import json
 import os
 import queue
 import re
+import secrets
 import shlex
 import shutil
 import sqlite3
@@ -121,8 +122,7 @@ def _configure_profile_api(profile: str) -> tuple[bool, str, int]:
             api["extra"] = extra
         extra["host"] = "0.0.0.0"
         extra["port"] = port
-        if not str(extra.get("key") or "").strip():
-            extra["key"] = "workframe-local-key"
+        _ensure_profile_api_server_key(prof, extra)
         cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
         return True, "ok", port
     except (OSError, ImportError) as exc:
@@ -262,8 +262,52 @@ def profile_gateway_lifecycle(profile: str, action: str, *, bootstrap_providers:
 
 
 
+_PLACEHOLDER_PROFILE_API_KEY = "workframe-local-key"
+
+
+def _read_profile_api_server_key(profile: str) -> str:
+    """Hermes 0.20+ named-profile /api/sessions auth uses .env API_SERVER_KEY."""
+    prof = str(profile or "").strip()
+    if not prof:
+        return ""
+    try:
+        env_path = _srv()._profile_dir(prof) / ".env"
+        key = str(_srv()._read_env_map(env_path).get("API_SERVER_KEY") or "").strip()
+        if key:
+            return key
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        cfg_path = _srv()._profile_gateway_config_path(prof)
+        if cfg_path and cfg_path.is_file():
+            import yaml
+
+            loaded = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            extra = (((loaded.get("platforms") or {}).get("api_server") or {}).get("extra") or {})
+            key = str((extra or {}).get("key") or "").strip()
+            if key and key != _PLACEHOLDER_PROFILE_API_KEY:
+                return key
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
+def _ensure_profile_api_server_key(profile: str, extra: dict[str, Any]) -> str:
+    """Keep yaml extra.key and profile .env API_SERVER_KEY in lockstep."""
+    key = _read_profile_api_server_key(profile) or secrets.token_hex(32)
+    extra["key"] = key
+    try:
+        env_path = _srv()._profile_dir(profile) / ".env"
+        current = str(_srv()._read_env_map(env_path).get("API_SERVER_KEY") or "").strip()
+        if current != key:
+            _srv()._upsert_env_secret(env_path, "API_SERVER_KEY", key)
+    except Exception:  # noqa: BLE001
+        pass
+    return key
+
+
 def _profile_api_key(profile: str) -> str:
-    return "workframe-local-key"
+    return _read_profile_api_server_key(profile) or _PLACEHOLDER_PROFILE_API_KEY
 
 
 def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[str, Any]:
