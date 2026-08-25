@@ -358,7 +358,14 @@ def smtp_setup_complete() -> bool:
     if not smtp_tested():
         return False
     stack = _stack_smtp_raw()
-    return bool(str(stack.get("admin_email") or "").strip()) and smtp_has_password() and smtp_configured()
+    if not str(stack.get("admin_email") or "").strip():
+        return False
+    if not smtp_configured():
+        return False
+    user = str(stack.get("user") or "").strip()
+    if user and not smtp_has_password():
+        return False
+    return True
 
 
 def install_admin_verified() -> bool:

@@ -115,4 +115,26 @@ conn.close()
 
 assert install_api.resolve_install_wizard_step(db_path) == "billing"
 
+# Open relay (Mailpit): tested + admin_email + host, no user/password, is complete.
+td2 = Path(tempfile.mkdtemp())
+stack_config.DATA_DIR = td2
+stack_config.CONFIG_PATH = td2 / "stack_config.json"
+stack_config.patch_stack_config(
+    {
+        "smtp": {
+            "host": "wf-mailpit",
+            "port": 1025,
+            "secure": "none",
+            "admin_email": "bot@click.blue",
+            "from": "bot@click.blue",
+        }
+    }
+)
+stack_config.mark_smtp_tested()
+assert stack_config.smtp_configured()
+assert stack_config.smtp_tested()
+assert not stack_config.smtp_has_password()
+assert stack_config.smtp_setup_complete()
+
 print("test_install_wizard_resume: ok")
+
