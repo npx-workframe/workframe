@@ -661,6 +661,19 @@ export function useConciergeFlow({
     setStep,
   })
 
+
+  async function skipAgentModel() {
+    if (isInvitee) {
+      await finishInviteeOnboarding()
+      return
+    }
+    if (deploymentMode === 'single_user_local') {
+      await finishInstall()
+      return
+    }
+    setStep('invites')
+  }
+
   async function continueFromIntro() {
     const email = adminEmail.trim().toLowerCase()
     if (!email || !email.includes('@')) {
@@ -979,6 +992,7 @@ export function useConciergeFlow({
     saveWorkframe,
     saveProfile,
     saveAgentModel,
+    skipAgentModel,
     saveAgent,
     refreshAgentModelStep: () => {
       if (workspaceId) void reloadWorkspaceStatus(workspaceId)
