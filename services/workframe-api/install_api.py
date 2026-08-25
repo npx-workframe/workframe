@@ -112,7 +112,8 @@ def install_owner_claimed(db_path: str) -> bool:
 
 def install_mutations_require_owner(db_path: str) -> bool:
     """After admin verify, install stack mutations require the owner session."""
-    return install_owner_claimed(db_path) or stack_config.install_admin_verified()
+    del db_path  # ponytail: reserved for future per-install DB path checks
+    return stack_config.install_admin_verified()
 
 
 def claim_install_owner(db_path: str, user_id: str) -> bool:
@@ -206,11 +207,27 @@ def _derive_install_wizard_step(db_path: str) -> str:
     smtp = cfg.get("smtp") if isinstance(cfg.get("smtp"), dict) else {}
     if not str(smtp.get("admin_email") or "").strip():
         return "intro"
-    if not install_owner_claimed(db_path):
-        return "intro"
     mode = str(cfg.get("deployment_mode") or "").strip()
     if not mode:
-        return "welcome"
+        saved = str(stack_config.read_stack_raw().get("wizard_step") or "").strip()
+        if saved == "admin_auth" and not stack_config.smtp_setup_complete():
+            return "smtp"
+        if saved in (
+            "smtp",
+            "publish",
+            "workframe",
+            "billing",
+            "integrations",
+            "profile",
+            "agent",
+            "agent_model",
+            "invites",
+            "done",
+        ):
+            return "welcome"
+        if saved == "welcome":
+            return "welcome"
+        return "theme"
     if mode == "public_multi_user" and not str(cfg.get("app_base_url") or "").strip():
         return "publish"
     if mode != "single_user_local" and not stack_config.install_admin_verified():
@@ -227,12 +244,20 @@ def _derive_install_wizard_step(db_path: str) -> str:
     return "profile"
 
 
+def _clamp_install_wizard_step(step: str) -> str:
+    """Never resume at admin OTP before SMTP is tested and saved."""
+    if step == "admin_auth" and not stack_config.smtp_setup_complete():
+        return "smtp"
+    return step
+
+
 def resolve_install_wizard_step(db_path: str) -> str:
     """Resume ConciergeFlow at the last persisted or derived wizard step."""
-    derived = _derive_install_wizard_step(db_path)
+    derived = _clamp_install_wizard_step(_derive_install_wizard_step(db_path))
     raw = stack_config.read_stack_raw()
     saved = str(raw.get("wizard_step") or "").strip()
     if saved in INSTALL_WIZARD_STEPS:
+        saved = _clamp_install_wizard_step(saved)
         derived_idx = _wizard_step_index(derived)
         saved_idx = _wizard_step_index(saved)
         # Never resume ahead of incomplete gates (e.g. saved smtp before deployment).

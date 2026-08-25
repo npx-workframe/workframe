@@ -1177,7 +1177,7 @@ export const workframeAuthApi = {
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
       return Promise.reject(new Error('email_required'))
     }
-    return request<SessionProfile & { user_id?: string; session_id?: string; refresh_token?: string }>(
+    return request<{ ok: boolean; admin_email?: string; session_id?: string; refresh_token?: string }>(
       '/install/register-admin',
       {
         method: 'POST',
@@ -1190,8 +1190,9 @@ export const workframeAuthApi = {
     ).then((data) => {
       if (data.session_id) {
         setStoredSessionTokens(data.session_id, data.refresh_token)
+        return rememberSessionProfile(data as SessionProfile & { session_id?: string; refresh_token?: string })
       }
-      return rememberSessionProfile(data)
+      return data
     })
   },
 

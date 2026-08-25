@@ -19,7 +19,58 @@ db_path = str(td / "workframe.db")
 
 assert install_api.resolve_install_wizard_step(db_path) == "intro"
 
-# Registered admin + stale saved smtp must not skip deployment.
+# Admin email saved during intro — no owner claim, no session required.
+stack_config.patch_stack_config(
+    {"smtp": {"admin_email": "owner@example.com"}, "wizard_step": "theme"},
+)
+assert not install_api.install_owner_claimed(db_path)
+assert install_api.resolve_install_wizard_step(db_path) == "theme"
+
+# Stale saved smtp before deployment must not skip deployment.
+stack_config.patch_stack_config({"wizard_step": "smtp"})
+assert install_api.resolve_install_wizard_step(db_path) == "welcome"
+
+# admin_auth resume must clamp to smtp when SMTP is not tested yet.
+stack_config.patch_stack_config({"wizard_step": "admin_auth"})
+assert install_api.resolve_install_wizard_step(db_path) == "smtp"
+
+# SMTP saved + tested
+stack_config.patch_stack_config(
+    {
+        "deployment_mode": "public_multi_user",
+        "app_base_url": "https://dev.example.com",
+        "wizard_step": "smtp",
+        "smtp": {
+            "host": "smtp.example.com",
+            "port": 587,
+            "user": "relay@example.com",
+            "password": "secret",
+            "from": "noreply@example.com",
+            "admin_email": "owner@example.com",
+        },
+    }
+)
+stack_config.mark_smtp_tested()
+
+assert stack_config.smtp_setup_complete()
+assert not stack_config.install_admin_verified()
+assert install_api.resolve_install_wizard_step(db_path) == "admin_auth"
+
+# Install stack mutations stay open until admin email is verified.
+assert not install_api.install_mutations_require_owner(db_path)
+
+stack_config.mark_install_admin_verified("owner@example.com")
+assert stack_config.install_admin_verified()
+assert install_api.install_mutations_require_owner(db_path)
+raw = stack_config.read_stack_raw()
+assert raw["smtp"]["admin_email"] == "owner@example.com"
+assert raw.get("wizard_step") == "workframe"
+
+payload = stack_config.public_stack_payload()
+assert payload["smtp"]["admin_email"] == "owner@example.com"
+assert payload["smtp"]["admin_verified"] is True
+
+# Owner claim only after verify + bootstrap (simulate post-OTP workspace bind).
 import sqlite3
 
 conn = sqlite3.connect(db_path)
@@ -37,47 +88,6 @@ conn.execute(
 )
 conn.commit()
 conn.close()
-
-stack_config.patch_stack_config(
-    {"smtp": {"admin_email": "owner@example.com"}, "wizard_step": "smtp"},
-)
-assert install_api.install_owner_claimed(db_path)
-assert install_api.resolve_install_wizard_step(db_path) == "welcome"
-
-# SMTP saved + tested
-stack_config.patch_stack_config(
-    {
-        "deployment_mode": "public_multi_user",
-        "app_base_url": "https://dev.example.com",
-        "smtp": {
-            "host": "smtp.example.com",
-            "port": 587,
-            "user": "relay@example.com",
-            "password": "secret",
-            "from": "noreply@example.com",
-        },
-    }
-)
-stack_config.mark_smtp_tested()
-stack_config.patch_stack_config({"smtp": {"admin_email": "owner@example.com"}})
-
-assert stack_config.smtp_setup_complete()
-assert not stack_config.install_admin_verified()
-assert install_api.resolve_install_wizard_step(db_path) == "admin_auth"
-
-# Registered owner before verify still resumes at OTP (register ≠ verify).
-assert install_api.install_owner_claimed(db_path)
-assert install_api.resolve_install_wizard_step(db_path) == "admin_auth"
-
-stack_config.mark_install_admin_verified("owner@example.com")
-assert stack_config.install_admin_verified()
-raw = stack_config.read_stack_raw()
-assert raw["smtp"]["admin_email"] == "owner@example.com"
-assert raw.get("wizard_step") == "workframe"
-
-payload = stack_config.public_stack_payload()
-assert payload["smtp"]["admin_email"] == "owner@example.com"
-assert payload["smtp"]["admin_verified"] is True
 
 wizard = install_api.install_wizard_public_payload(db_path)
 assert wizard["admin_verified"] is True

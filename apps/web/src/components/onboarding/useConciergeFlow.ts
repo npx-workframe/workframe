@@ -22,6 +22,10 @@ import {
   resolveSmtpAdminEmail,
   type SmtpProgressPhase,
 } from '@/components/onboarding/conciergeFlowUtils'
+import {
+  resolveConciergeResumeStep,
+  stackHasSmtpAdminEmail,
+} from '@/components/onboarding/conciergeFlowResume'
 import { type OperationStep } from '@/components/ui/OperationProgress'
 import { formatWorkframeError, type WorkframeNoticeInfo } from '@/lib/workframeErrors'
 import { DEFAULT_USER_AVATAR, DEFAULT_WORKSPACE_LOGO } from '@/lib/workframeAssets'
@@ -301,16 +305,15 @@ export function useConciergeFlow({
           }
         }
         const wizard = cfg?.wizard
-        const smtpAdmin = String(cfg?.smtp?.admin_email || '').trim()
+        const smtpAdmin = stackHasSmtpAdminEmail(cfg)
         if (smtpAdmin) {
           setAdminEmail(smtpAdmin)
         }
         const installAdminVerified = Boolean(
           wizard?.admin_verified || cfg?.smtp?.admin_verified,
         )
-        const ownerClaimed = Boolean(wizard?.owner_claimed)
-        if (session || ownerClaimed) {
-          setHasAdminSession(Boolean(session))
+        if (session) {
+          setHasAdminSession(true)
         }
         if (installAdminVerified) {
           setAdminVerified(true)
@@ -318,31 +321,14 @@ export function useConciergeFlow({
         if (cfg?.deployment_mode) {
           setModeChosen(true)
         }
-        const resumeRaw = String(wizard?.resume_step || '').trim()
-        let resumeStep = (
-          resumeRaw === 'admin_auth' && installAdminVerified
-            ? 'workframe'
-            : resumeRaw === 'smtp' && installAdminVerified && cfg?.smtp?.setup_complete
-              ? 'workframe'
-              : resumeRaw
-        ) as ConciergeStep
-        const deploymentChosen = Boolean(cfg?.deployment_mode)
-        if (
-          !deploymentChosen
-          && ['theme', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing', 'integrations', 'profile', 'agent', 'agent_model', 'invites'].includes(
-            resumeStep,
-          )
-        ) {
-          resumeStep = ownerClaimed || smtpAdmin ? 'welcome' : 'intro'
-        }
-        if (!ownerClaimed && !smtpAdmin && resumeStep !== 'intro') {
-          resumeStep = 'intro'
-        }
-        const allowedSteps: ConciergeStep[] = [
-          'intro', 'theme', 'welcome', 'publish', 'smtp', 'admin_auth', 'workframe', 'billing',
-          'integrations', 'profile', 'agent', 'agent_model', 'invites', 'done',
-        ]
-        if (allowedSteps.includes(resumeStep) && resumeStep !== 'intro') {
+        const resumeStep = resolveConciergeResumeStep({
+          resumeRaw: String(wizard?.resume_step || '').trim(),
+          installAdminVerified,
+          smtpAdminEmail: smtpAdmin,
+          deploymentChosen: Boolean(cfg?.deployment_mode),
+          smtpSetupComplete: Boolean(cfg?.smtp?.setup_complete),
+        })
+        if (resumeStep) {
           setStep(resumeStep)
         }
         try {
@@ -544,10 +530,6 @@ export function useConciergeFlow({
       } else if (mode === 'public_multi_user') {
         setStep('publish')
       } else {
-        await workframeAuthApi.completeSetup({
-          workframe_name: resolveWorkframeName(),
-          agent_name: agentName,
-        })
         setStep('smtp')
       }
     } catch (err) {
@@ -670,12 +652,10 @@ export function useConciergeFlow({
     setBusy(true)
     setError(null)
     try {
-      const profile = await workframeAuthApi.registerInstallAdmin(
+      await workframeAuthApi.registerInstallAdmin(
         displayName || email.split('@')[0] || 'Owner',
         email,
       )
-      setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
-      setHasAdminSession(true)
       setStep('theme')
     } catch (err) {
       setError(formatWorkframeError(err, 'Admin email'))
@@ -691,7 +671,7 @@ export function useConciergeFlow({
     setAdminVerified(true)
     setHasAdminSession(true)
     setSmtpFieldsDirty(false)
-    if (deploymentMode === 'public_multi_user') {
+    if (deploymentMode === 'public_multi_user' || deploymentMode === 'trusted_team') {
       void workframeAuthApi
         .completeSetup({
           workframe_name: resolveWorkframeName(),
@@ -784,8 +764,12 @@ export function useConciergeFlow({
     setBusy(true)
     setError(null)
     try {
-      await workframeAuthApi.updateMe({ theme })
+      const session = await workframeAuthApi.peekSession()
+      if (session) {
+        await workframeAuthApi.updateMe({ theme })
+      }
       setThemeConfirmed(true)
+      await patchInstallStackWhenAllowed({ wizard_step: 'welcome' })
       setStep(isInvitee ? 'profile' : 'welcome')
     } catch (err) {
       setError(formatWorkframeError(err, 'Save theme'))
