@@ -28,6 +28,8 @@ def normalize_smtp_secure(port: int, secure: str) -> str:
         return "none"
     if p == 465:
         return "ssl"
+    if p in {25, 1025}:
+        return "none"
     if s in {"starttls", "tls"}:
         return "starttls"
     if p in {587, 2525}:

@@ -26,7 +26,7 @@ export function ConciergeFlow({ projectName, onComplete, inviteToken = '', invit
     return <BootScreen label="Loading setup wizard" />
   }
 
-  if (flow.ownerSignInRequired) {
+  if (flow.ownerSignInRequired && (flow.smtpSetupComplete || flow.adminVerified)) {
     return (
       <OnboardingAuthGate title="Sign in to continue setup" description="Sign in as the Workframe admin to resume setup.">
         <EmailOtpVerification
