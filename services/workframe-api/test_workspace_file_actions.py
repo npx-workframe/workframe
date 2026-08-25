@@ -117,3 +117,14 @@ def test_files_delete_removes_selected_files_and_routes_require_session(
     assert not second.exists()
     assert route_registry.resolve_auth_level("POST", "/api/files/archive") == route_registry.AuthLevel.SESSION
     assert route_registry.resolve_auth_level("POST", "/api/files/delete") == route_registry.AuthLevel.SESSION
+
+
+def test_workspace_root_is_not_protected(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    root = _workspace(monkeypatch, tmp_path)
+    (root / "hello.txt").write_text("hi", encoding="utf-8")
+    assert workspace_files.workspace_protected_reason("") is None
+    assert workspace_files.workspace_protected_reason(".") is None
+    listed = workspace_files.files_list("")
+    assert listed["ok"] is True
+    names = {child["name"] for child in listed["children"]}
+    assert "hello.txt" in names
