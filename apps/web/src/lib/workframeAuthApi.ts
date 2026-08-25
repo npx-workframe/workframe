@@ -130,6 +130,7 @@ export type SessionWorkspace = {
   description?: string | null
   tagline?: string | null
   avatar_url?: string | null
+  role?: string | null
 }
 
 export type WorkspaceDetail = SessionWorkspace & {

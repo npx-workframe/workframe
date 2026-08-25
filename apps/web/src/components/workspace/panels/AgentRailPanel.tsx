@@ -97,10 +97,13 @@ export function AgentRailPanel({ api }: { api?: IDockviewPanelProps['api'] } = {
   const currentUserId = me?.user?.user_id ?? ''
   const profileName = me?.user?.display_name || me?.user?.email || 'Profile'
   const profileEmail = me?.user?.email || 'Signed in'
-  const canInvite = useMemo(
-    () => workspaceMembers.some((member) => member.user_id === currentUserId && ['owner', 'admin'].includes(member.role)),
-    [currentUserId, workspaceMembers],
-  )
+  const canInvite = useMemo(() => {
+    const sessionRole = currentWorkspace?.role?.trim() || ''
+    if (['owner', 'admin'].includes(sessionRole)) return true
+    return workspaceMembers.some(
+      (member) => member.user_id === currentUserId && ['owner', 'admin'].includes(member.role),
+    )
+  }, [currentUserId, currentWorkspace?.role, workspaceMembers])
 
   const openChatPanel = useCallback(() => {
     openPanel(PANEL_IDS.chat)
