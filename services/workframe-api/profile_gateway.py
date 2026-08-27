@@ -121,8 +121,7 @@ def _configure_profile_api(profile: str) -> tuple[bool, str, int]:
             api["extra"] = extra
         extra["host"] = "0.0.0.0"
         extra["port"] = port
-        if not str(extra.get("key") or "").strip():
-            extra["key"] = "workframe-local-key"
+        extra["key"] = _resolve_profile_api_key(prof, extra.get("key"))
         cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
         return True, "ok", port
     except (OSError, ImportError) as exc:
@@ -262,8 +261,53 @@ def profile_gateway_lifecycle(profile: str, action: str, *, bootstrap_providers:
 
 
 
+def _read_profile_gateway_api_key(profile: str) -> str:
+    """Read platforms.api_server.extra.key from a profile config.yaml."""
+    cfg_path = _srv()._profile_gateway_config_path(profile)
+    if not cfg_path or not cfg_path.is_file():
+        return ""
+    try:
+        import yaml
+
+        loaded = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    except (OSError, ImportError):
+        return ""
+    cfg = loaded if isinstance(loaded, dict) else {}
+    extra = ((cfg.get("platforms") or {}).get("api_server") or {})
+    extra = extra.get("extra") if isinstance(extra, dict) else {}
+    if not isinstance(extra, dict):
+        return ""
+    return str(extra.get("key") or "").strip()
+
+
+def _is_placeholder_api_key(key: str) -> bool:
+    value = str(key or "").strip()
+    return (not value) or value == "workframe-local-key" or len(value) < 16
+
+
+def _resolve_profile_api_key(profile: str, existing: Any = None) -> str:
+    """Prefer the live Hermes key. Never replace a strong key with the placeholder."""
+    current = str(existing or "").strip() or _read_profile_gateway_api_key(profile)
+    if not _is_placeholder_api_key(current):
+        return current
+    primary = ""
+    try:
+        primary = str(_srv()._primary_profile() or "").strip()
+    except Exception:
+        primary = ""
+    if primary and primary != str(profile or "").strip():
+        native = _read_profile_gateway_api_key(primary)
+        if not _is_placeholder_api_key(native):
+            return native
+    return current or "workframe-local-key"
+
+
 def _profile_api_key(profile: str) -> str:
-    return "workframe-local-key"
+    try:
+        prof = _srv().resolve_hermes_profile(profile)
+    except Exception:
+        prof = str(profile or "").strip()
+    return _resolve_profile_api_key(prof)
 
 
 def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[str, Any]:
@@ -319,6 +363,10 @@ def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[st
         payload["model"] = model
     if provider and provider not in {"custom", "auto", ""}:
         payload["provider"] = provider
+    # Hermes keeps the session-created model (often leftover OpenRouter)
+    # unless the turn is an execution lock.
+    if model or (provider and provider not in {"custom", "auto", ""}):
+        payload["require_model_lock"] = True
     return payload
 
 

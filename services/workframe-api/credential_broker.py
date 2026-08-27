@@ -45,7 +45,10 @@ def materialize_provider_secret(provider: str, binding_id: str, secret: str) -> 
     client_id = str(bundle.get("client_id") or "").strip()
     can_refresh = bool(refresh and token_url and client_id)
     known_fresh = bool(access and expires_at and expires_at > time.time() + 30)
-    if known_fresh:
+    # ChatGPT Codex access can be revoked while expires_at is still in the
+    # future. Refresh on every materialize when the broker has the metadata.
+    provider_id = str(provider or "").strip().lower()
+    if known_fresh and provider_id not in {"codex", "openai-codex"}:
         return access, "ok"
     if not can_refresh:
         if access and not expires_at:
@@ -62,7 +65,11 @@ def materialize_provider_secret(provider: str, binding_id: str, secret: str) -> 
     req = urllib.request.Request(
         token_url,
         data=urllib.parse.urlencode(form).encode("utf-8"),
-        headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"},
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "User-Agent": "hermes-cli/workframe",
+        },
         method="POST",
     )
     try:

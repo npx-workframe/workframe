@@ -219,6 +219,8 @@ def classify_upstream(
     low = msg.lower()
     model_id = model or _model_from_text(msg)
 
+    if "gateway api key" in low or "gateway_auth_failed" in low:
+        return playbook_entry("provider_gateway_error", provider=provider)
     if (
         status == 401
         or "invalid api key" in low
@@ -269,6 +271,8 @@ def classify_exception_text(text: str) -> dict[str, Any]:
         return classify_upstream(429, raw)
     if "credit" in low:
         return classify_upstream(402, raw)
+    if "gateway api key" in low or "gateway_auth_failed" in low:
+        return classify_upstream(401, raw)
     if "api key" in low or "unauthorized" in low or "user not found" in low:
         return classify_upstream(401, raw)
     return playbook_entry("unknown_provider_error", detail=raw[:200])
@@ -318,4 +322,8 @@ if __name__ == "__main__":
     p = classify_stream_error("HTTP 401: User not found.", provider="openrouter")
     assert p["code"] == "provider_invalid_key"
     assert p.get("action", {}).get("type") == "open_settings"
+    g = classify_exception_text(
+        '{"error": {"message": "Invalid gateway API key (API_SERVER_KEY)", "code": "gateway_auth_failed"}}'
+    )
+    assert g["code"] == "provider_gateway_error"
     print("llm_error_glossary ok")

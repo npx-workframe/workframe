@@ -52,6 +52,21 @@ finally:
     urllib.request.urlopen = _orig_urlopen
 
 
+future_codex = json.dumps({
+    "kind": "oauth",
+    "access_token": "still-listed-as-live",
+    "refresh_token": "rt",
+    "expires_at": 4102444800,
+    "token_url": "https://auth.openai.com/oauth/token",
+    "client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
+})
+urllib.request.urlopen = lambda *_a, **_k: _Resp()  # type: ignore[assignment]
+try:
+    materialized, status = credential_broker.materialize_provider_secret("codex", "", future_codex)
+    assert materialized == "new-access" and status == "ok"
+finally:
+    urllib.request.urlopen = _orig_urlopen
+
 no_expiry = json.dumps({
     "kind": "oauth",
     "access_token": "stale",

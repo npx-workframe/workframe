@@ -793,7 +793,7 @@ def _publish_turn_oauth_access(
     label = str(authority.get("label") or "").strip()
     entry_id = str(authority.get("id") or "").strip() or "workframe-turn"
     if _codex_oauth_provider(provider, hermes_auth_id):
-        auth_type = auth_type or CODEX_OAUTH_AUTH_TYPE
+        auth_type = CODEX_OAUTH_AUTH_TYPE
         base_url = base_url or CODEX_OAUTH_BASE_URL
         label = label or "Codex"
     entry = {

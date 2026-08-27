@@ -487,15 +487,12 @@ def _apply_turn_credential_lease(
             parsed = None
         if isinstance(parsed, dict):
             authority = parsed.get("authority") if isinstance(parsed.get("authority"), dict) else parsed
-        if not _srv()._profile_routing_matches_billing(prof, provider):
-            current_model = str(_srv()._read_model_from_config(prof)[1] or "").strip()
-            if not current_model:
-                current_model = str(
-                    (_srv().PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
-                ).strip()
-            _srv()._apply_model_for_billing_provider(prof, provider, current_model, user_id)
-        else:
-            _srv()._sync_oauth_llm_to_profile(prof, user_id, provider)
+        current_model = str(_srv()._read_model_from_config(prof)[1] or "").strip()
+        if not current_model:
+            current_model = str(
+                (_srv().PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
+            ).strip()
+        _srv()._apply_model_for_billing_provider(prof, provider, current_model, user_id)
         _srv()._publish_turn_oauth_access(prof, provider, access, authority)
         return ""
     binding_id = str(
