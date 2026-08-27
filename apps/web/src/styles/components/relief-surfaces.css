@@ -570,12 +570,20 @@
 
 /* Inactive Neo actions remain flush and quiet; only an available primary action carries relief. */
 [data-chrome-mode='relief'] .wf-action-btn[data-tone='inactive'],
-[data-chrome-mode='relief'] .wf-action-btn[data-tone='inactive']:hover:not(:disabled),
-[data-chrome-mode='relief'] .wf-action-btn[data-tone='primary']:disabled {
+[data-chrome-mode='relief'] .wf-action-btn[data-tone='inactive']:hover:not(:disabled) {
   background: var(--wf-control-bg-flush);
   border: none;
   box-shadow: var(--wf-relief-flat);
   color: var(--wf-btn-fg-inactive);
+}
+
+/* Primary CTAs stay visibly raised when disabled (empty email, incomplete OTP). */
+[data-chrome-mode='relief'] .wf-action-btn[data-tone='primary']:disabled {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-relief-outset-s);
+  color: var(--wf-btn-fg-inactive);
+  opacity: 0.72;
 }
 
 [data-chrome-mode='relief'] .wf-dialog-close {
@@ -1074,8 +1082,14 @@
 }
 
 /* Neo relief — purple label on raised chrome (not a filled brand block). */
-[data-color-mode='light'][data-chrome-mode='relief'] .wf-onboarding-wizard .wf-action-btn[data-tone='primary']:not(:disabled),
-[data-color-mode='light'][data-chrome-mode='relief'] .wf-onboarding-wizard .wf-action-btn[data-tone='primary']:hover:not(:disabled) {
+[data-color-mode='light'][data-chrome-mode='relief'] :is(
+  .wf-onboarding-wizard,
+  .wf-dialog-content.wf-auth-dialog
+) .wf-action-btn[data-tone='primary']:not(:disabled),
+[data-color-mode='light'][data-chrome-mode='relief'] :is(
+  .wf-onboarding-wizard,
+  .wf-dialog-content.wf-auth-dialog
+) .wf-action-btn[data-tone='primary']:hover:not(:disabled) {
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-relief-outset-s);

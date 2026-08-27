@@ -9,6 +9,7 @@ type MessageNavigatorProps = {
   messages: ChatMessage[]
   activeMessageId: string
   onJump: (messageId: string) => void
+  visible?: boolean
 }
 
 const MAX_MARKERS = 48
@@ -34,11 +35,16 @@ function navigatorMessages(messages: ChatMessage[], activeMessageId: string) {
   return samples.map((index) => ({ message: messages[index], index }))
 }
 
-export function MessageNavigator({ messages, activeMessageId, onJump }: MessageNavigatorProps) {
+export function MessageNavigator({
+  messages,
+  activeMessageId,
+  onJump,
+  visible = true,
+}: MessageNavigatorProps) {
   const [hoveredMarkerIndex, setHoveredMarkerIndex] = useState<number | null>(null)
   const [focusedMarkerIndex, setFocusedMarkerIndex] = useState<number | null>(null)
 
-  if (messages.length < 2) return null
+  if (!visible || messages.length < 2) return null
 
   const markerItems = navigatorMessages(messages, activeMessageId)
   const interactionIndex = hoveredMarkerIndex ?? focusedMarkerIndex

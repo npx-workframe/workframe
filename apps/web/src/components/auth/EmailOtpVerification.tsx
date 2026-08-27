@@ -69,7 +69,7 @@ export function emailOtpCopy(step: EmailOtpStep, email: string, devOtpHint: stri
   }
   return purpose === 'register'
     ? 'Register with your email to become the Workframe admin.'
-    : 'Sign in with your email to open Workframe.'
+    : 'Sign in with your email to open\u00a0Workframe.'
 }
 
 export function EmailOtpVerification({
@@ -321,7 +321,7 @@ export function EmailOtpVerification({
           ) : null}
           <WfActionButton
             wizardSize
-            tone={busy || !email.trim() ? 'inactive' : 'primary'}
+            tone="primary"
             type="submit"
             form="wf-email-otp-email-form"
             disabled={busy || !email.trim()}
@@ -335,7 +335,7 @@ export function EmailOtpVerification({
       <>
         <WfActionButton
           wizardSize
-          tone={busy || otp.length !== OTP_LENGTH ? 'inactive' : 'primary'}
+          tone="primary"
           type="submit"
           form="wf-email-otp-code-form"
           disabled={busy || otp.length !== OTP_LENGTH}
@@ -402,7 +402,7 @@ export function EmailOtpVerification({
               ) : null}
               <WfActionButton
                 wizardSize
-                tone={busy || !email.trim() ? 'inactive' : 'primary'}
+                tone="primary"
                 type="submit"
                 disabled={busy || !email.trim()}
               >
@@ -469,7 +469,7 @@ export function EmailOtpVerification({
                   ) : null}
                   <WfActionButton
                     wizardSize
-                    tone={busy || otp.length !== OTP_LENGTH ? 'inactive' : 'primary'}
+                    tone="primary"
                     type="submit"
                     disabled={busy || otp.length !== OTP_LENGTH}
                   >
