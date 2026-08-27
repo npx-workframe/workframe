@@ -388,6 +388,25 @@ def stream_profile_chat(handler: BaseHTTPRequestHandler, profile: str, payload: 
         raise ValueError("session_id required")
     if not text:
         raise ValueError("text required")
+    model_block = _srv()._read_model_block(prof)
+    llm_provider = _srv()._llm_billing_provider(
+        prof, user_id=_triggering_user, workspace_id=_workspace_id, block=model_block,
+    )
+    model_used = str(model_block.get("default") or "").strip()
+    api_port = _srv()._profile_api_port(prof)
+    if _triggering_user and not _srv()._user_can_use_llm(_triggering_user, _workspace_id, llm_provider):
+        # Skip Agent's Model: do not bootstrap/reload Hermes just to say no key.
+        _open_profile_stream(
+            handler,
+            prof,
+            model_used=model_used,
+            llm_provider=llm_provider,
+            api_port=api_port,
+        )
+        entry = concierge.respond(text, situation="no_provider")
+        _log_llm_failure(handler, str(entry.get("code") or "no_llm_provider"), provider=llm_provider, profile=prof)
+        _emit_stream_concierge(handler, entry)
+        return
     # Bootstrap before reading the model block. Existing generated profiles may
     # need provider/model migrations; reading first dispatches one stale turn.
     bootstrapped = _srv()._bootstrap_profile_providers(prof, _triggering_user, _workspace_id)

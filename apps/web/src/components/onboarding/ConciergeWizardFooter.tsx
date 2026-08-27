@@ -23,6 +23,7 @@ type ConciergeWizardFooterProps = {
   onSaveWorkframe: () => void
   onSaveProfile: () => void
   onSaveAgentModel: () => void
+  onSkipAgentModel: () => void
   onSelectAgentModel: () => void
   agentModelTab: 'keys' | 'model'
   agentModelsComplete: boolean
@@ -57,6 +58,7 @@ export function ConciergeWizardFooter({
   onSaveWorkframe,
   onSaveProfile,
   onSaveAgentModel,
+  onSkipAgentModel,
   onSelectAgentModel,
   agentModelTab,
   agentModelsComplete,
@@ -157,29 +159,39 @@ export function ConciergeWizardFooter({
       if (!workspaceId) return null
       if (agentModelTab === 'keys') {
         return (
-          <WfActionButton
-            wizardSize
-            tone="primary"
-            disabled={busy || connectedProviderCount < 1}
-            onClick={onSelectAgentModel}
-          >
-            Select Model
-          </WfActionButton>
+          <>
+            <WfActionButton wizardSize disabled={busy} onClick={onSkipAgentModel}>
+              Skip for now
+            </WfActionButton>
+            <WfActionButton
+              wizardSize
+              tone="primary"
+              disabled={busy || connectedProviderCount < 1}
+              onClick={onSelectAgentModel}
+            >
+              Select Model
+            </WfActionButton>
+          </>
         )
       }
       return (
-        <WfActionButton
-          wizardSize
-          tone="primary"
-          disabled={busy || !agentModelsComplete}
-          onClick={onSaveAgentModel}
-        >
-          {busy
-            ? 'Saving…'
-            : isInvitee || deploymentMode === 'single_user_local'
-              ? 'Launch Workframe'
-              : 'Continue'}
-        </WfActionButton>
+        <>
+          <WfActionButton wizardSize disabled={busy} onClick={onSkipAgentModel}>
+            Skip for now
+          </WfActionButton>
+          <WfActionButton
+            wizardSize
+            tone="primary"
+            disabled={busy || !agentModelsComplete}
+            onClick={onSaveAgentModel}
+          >
+            {busy
+              ? 'Saving…'
+              : isInvitee || deploymentMode === 'single_user_local'
+                ? 'Launch Workframe'
+                : 'Continue'}
+          </WfActionButton>
+        </>
       )
     case 'agent':
       return (

@@ -19,8 +19,17 @@ db_path = str(td / "workframe.db")
 
 assert install_api.resolve_install_wizard_step(db_path) == "intro"
 
-# Registered admin + stale saved smtp must not skip deployment.
+# Admin email saved, owner not claimed, smtp empty -> still intro until email? No:
+# after Get started we persist admin_email without claiming owner.
+# Resume must leave intro (welcome) instead of jumping to admin_auth.
 import sqlite3
+
+stack_config.patch_stack_config({"smtp": {"admin_email": "owner@example.com"}, "wizard_step": "theme"})
+assert not install_api.install_owner_claimed(db_path)
+assert install_api.resolve_install_wizard_step(db_path) == "welcome"
+assert install_api.install_wizard_public_payload(db_path)["resume_step"] != "admin_auth"
+
+# Registered admin + stale saved smtp must not skip deployment.
 
 conn = sqlite3.connect(db_path)
 conn.executescript(
@@ -43,6 +52,11 @@ stack_config.patch_stack_config(
 )
 assert install_api.install_owner_claimed(db_path)
 assert install_api.resolve_install_wizard_step(db_path) == "welcome"
+
+# Owner claimed + trusted_team + empty SMTP stays on smtp, never admin_auth.
+stack_config.patch_stack_config({"deployment_mode": "trusted_team"})
+assert not stack_config.smtp_setup_complete()
+assert install_api.resolve_install_wizard_step(db_path) == "smtp"
 
 # SMTP saved + tested
 stack_config.patch_stack_config(
@@ -101,4 +115,26 @@ conn.close()
 
 assert install_api.resolve_install_wizard_step(db_path) == "billing"
 
+# Open relay (Mailpit): tested + admin_email + host, no user/password, is complete.
+td2 = Path(tempfile.mkdtemp())
+stack_config.DATA_DIR = td2
+stack_config.CONFIG_PATH = td2 / "stack_config.json"
+stack_config.patch_stack_config(
+    {
+        "smtp": {
+            "host": "wf-mailpit",
+            "port": 1025,
+            "secure": "none",
+            "admin_email": "bot@click.blue",
+            "from": "bot@click.blue",
+        }
+    }
+)
+stack_config.mark_smtp_tested()
+assert stack_config.smtp_configured()
+assert stack_config.smtp_tested()
+assert not stack_config.smtp_has_password()
+assert stack_config.smtp_setup_complete()
+
 print("test_install_wizard_resume: ok")
+

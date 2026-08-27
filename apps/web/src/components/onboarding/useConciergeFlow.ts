@@ -122,16 +122,16 @@ export function useConciergeFlow({
 
   const patchInstallStackWhenAllowed = useCallback(async (data: Record<string, unknown>) => {
     const status = await workframeAuthApi.getInstallStatus()
+    const smtpReady = Boolean(status.smtp_configured)
     if (status.install_window_open && !status.install_complete) {
       try {
         await workframeAuthApi.patchInstallStack(data)
         return true
       } catch (err) {
-        // A previously bootstrapped install must resume through the owner
-        // gate instead of leaving the wizard on a generic forbidden alert.
+        // Cookie / owner gate is for after SMTP is configured, not Get started.
         const message = String(err instanceof Error ? err.message : err).toLowerCase()
         if (message.includes('permission') || message.includes('forbidden')) {
-          setOwnerSignInRequired(true)
+          if (smtpReady) setOwnerSignInRequired(true)
           return false
         }
         throw err
@@ -139,7 +139,7 @@ export function useConciergeFlow({
     }
     const session = await workframeAuthApi.peekSession()
     if (!session) {
-      setOwnerSignInRequired(true)
+      if (smtpReady || status.install_complete) setOwnerSignInRequired(true)
       return false
     }
     await workframeAuthApi.patchInstallStack(data)
@@ -661,6 +661,19 @@ export function useConciergeFlow({
     setStep,
   })
 
+
+  async function skipAgentModel() {
+    if (isInvitee) {
+      await finishInviteeOnboarding()
+      return
+    }
+    if (deploymentMode === 'single_user_local') {
+      await finishInstall()
+      return
+    }
+    setStep('invites')
+  }
+
   async function continueFromIntro() {
     const email = adminEmail.trim().toLowerCase()
     if (!email || !email.includes('@')) {
@@ -670,12 +683,11 @@ export function useConciergeFlow({
     setBusy(true)
     setError(null)
     try {
-      const profile = await workframeAuthApi.registerInstallAdmin(
-        displayName || email.split('@')[0] || 'Owner',
-        email,
-      )
-      setWorkspaceId(profile.current_workspace?.id || profile.default_workspace?.id || '')
-      setHasAdminSession(true)
+      const patched = await patchInstallStackWhenAllowed({
+        smtp: { admin_email: email },
+        wizard_step: 'theme',
+      })
+      if (!patched) return
       setStep('theme')
     } catch (err) {
       setError(formatWorkframeError(err, 'Admin email'))
@@ -980,6 +992,7 @@ export function useConciergeFlow({
     saveWorkframe,
     saveProfile,
     saveAgentModel,
+    skipAgentModel,
     saveAgent,
     refreshAgentModelStep: () => {
       if (workspaceId) void reloadWorkspaceStatus(workspaceId)

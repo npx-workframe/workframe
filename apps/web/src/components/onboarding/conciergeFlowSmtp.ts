@@ -39,9 +39,11 @@ export function createConciergeSmtpHandlers(deps: ConciergeSmtpDeps) {
     if (requirePassword && !resolvedAdminEmail) {
       throw new Error('Admin email is required')
     }
-    if (requirePassword && !password && !deps.smtpHasPassword) {
+    const smtpUser = deps.smtpUser.trim()
+    if (requirePassword && smtpUser && !password && !deps.smtpHasPassword) {
       throw new Error('SMTP password is required')
     }
+    const secure = port === 465 ? 'ssl' : port === 25 || port === 1025 ? 'none' : 'starttls'
     const patched = await deps.patchInstallStackWhenAllowed({
       smtp: {
         host: deps.smtpHost,
@@ -50,7 +52,7 @@ export function createConciergeSmtpHandlers(deps: ConciergeSmtpDeps) {
         ...(resolvedAdminEmail ? { admin_email: resolvedAdminEmail } : {}),
         ...(password ? { password } : {}),
         ...(from ? { from } : {}),
-        secure: port === 465 ? 'ssl' : 'starttls',
+        secure,
       },
     })
     if (!patched) return false

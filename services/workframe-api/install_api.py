@@ -206,8 +206,6 @@ def _derive_install_wizard_step(db_path: str) -> str:
     smtp = cfg.get("smtp") if isinstance(cfg.get("smtp"), dict) else {}
     if not str(smtp.get("admin_email") or "").strip():
         return "intro"
-    if not install_owner_claimed(db_path):
-        return "intro"
     mode = str(cfg.get("deployment_mode") or "").strip()
     if not mode:
         return "welcome"

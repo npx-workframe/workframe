@@ -73,10 +73,15 @@ class InstallRoutesMixin:
             self._json(400, {"ok": False, "error": "email_required"})
             return
         display = str(body.get("display_name") or "").strip() or email.split("@", 1)[0]
-        stack_config.patch_stack_config({"smtp": {"admin_email": email}, "wizard_step": "welcome"})
+        stack_config.patch_stack_config({"smtp": {"admin_email": email}, "wizard_step": "theme"})
         allowed, deny_meta = install_api.install_auth_email_allowed(email)
         if not allowed:
             self._json(403, {"ok": False, **deny_meta})
+            return
+        # Get started only records the admin email. Session/cookie wait until
+        # SMTP is configured so verify-email can actually send.
+        if not stack_config.smtp_setup_complete():
+            self._json(200, {"ok": True, "admin_email": email, "session": False})
             return
         try:
             result = _zk.create_session_for_email(email)

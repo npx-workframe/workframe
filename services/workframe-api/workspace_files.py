@@ -91,7 +91,10 @@ def _is_env_like_name(name: str) -> bool:
 
 def workspace_protected_reason(rel: str) -> str | None:
     """Return a stable reason when a workspace-relative path is protected."""
-    safe = safe_workspace_path(_normalized_workspace_rel(rel))
+    normalized = _normalized_workspace_rel(rel).rstrip("/")
+    if not normalized or normalized in {".", "./"}:
+        return None
+    safe = safe_workspace_path(normalized)
     workspace = _srv().WORKSPACE.resolve()
     if safe is None:
         return "invalid_path"
