@@ -4,16 +4,17 @@ export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://workfra.me";
 
 export const siteName = "Workframe";
 
-export const siteTitle = "Workframe — The Social OS for Autonomous Businesses";
+export const siteTitle =
+  "Workframe. A workspace for humans and persistent AI coworkers.";
 
 export const siteDescription =
-  "Install a private workspace where humans and agents collaborate through chat, boards, and files. Multi-user, BYOK, self-hosted.";
+  "Communities exchange messages. Workframe teams exchange work.";
 
 export const ogImage = {
   url: "/og-default.png",
   width: 1200,
   height: 630,
-  alt: "Workframe — Autonomous Business Machines",
+  alt: "Workframe. A workspace for humans and persistent AI coworkers.",
   type: "image/png",
 } as const;
 

@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     "Workframe",
     "Hermes",
     "AI agents",
-    "autonomous business",
+    "AI coworkers",
     "multi-agent",
     "self-hosted",
     "BYOK",

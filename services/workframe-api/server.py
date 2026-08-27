@@ -2524,9 +2524,9 @@ def _ensure_workspace_readme() -> None:
         if not readme.is_file():
             readme.write_text(
                 f"# {PROJECT_NAME}\n\n"
-                "Welcome to Workframe â€” your team's social AI collaboration space.\n\n"
-                "Use this file to keep a living record of what this project is, who is on the team, "
-                "sub-projects, agents, kanban guidelines, and anything else newcomers should know.\n",
+                "Workframe. A workspace for humans and persistent AI coworkers.\n\n"
+                "Communities exchange messages. Workframe teams exchange work.\n\n"
+                "This file is the living record of the team and the work.\n",
                 encoding="utf-8",
             )
         agents = WORKSPACE / "AGENTS.md"

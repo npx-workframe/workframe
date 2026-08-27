@@ -1,7 +1,7 @@
 {
   "name": "Workframe",
   "short_name": "Workframe",
-  "description": "Install a private workspace where humans and agents collaborate through chat, boards, and files.",
+  "description": "Communities exchange messages. Workframe teams exchange work.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

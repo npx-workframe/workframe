@@ -1,5 +1,7 @@
 # {projectName}
 
-Welcome to Workframe — your team's social AI collaboration space.
+Workframe. A workspace for humans and persistent AI coworkers.
 
-Use this file to keep a living record of what this project is, who is on the team, sub-projects, agents, kanban guidelines, and anything else newcomers should know. Your Workframe Agent can help you evolve it over time.
+Communities exchange messages. Workframe teams exchange work.
+
+This file is the living record of the team and the work.
