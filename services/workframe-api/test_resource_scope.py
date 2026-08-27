@@ -189,6 +189,8 @@ try:
     assert authorize("owner-b", "POST", "/api/workspace/ws-b/members") is not None
     assert authorize("owner-b", "DELETE", "/api/rooms/room-b") is not None
     assert authorize("owner-b", "DELETE", "/api/memory/memory-b") is not None
+    assert authorize("owner-b", "DELETE", "/api/workspace/ws-b") is not None
+    assert authorize("member-b", "DELETE", "/api/workspace/ws-b") is None
 
     # Indirect resource scopes resolve back to their owning workspace.
     assert authorize("owner-a-only", "GET", "/api/rooms/room-b/members") is None
@@ -199,6 +201,8 @@ try:
     assert authorize("owner-b", "GET", "/api/agents/agent-b/credentials") is None
     agent_admin = authorize("owner-b", "GET", "/api/agents/agent-b-safe/credentials")
     assert agent_admin is not None and agent_admin.auth_role == "owner"
+    assert authorize("owner-b", "DELETE", "/api/agents/agent-b-safe") is not None
+    assert authorize("member-b", "DELETE", "/api/agents/agent-b-safe") is None
 
     # Invite metadata and acceptance are bound to the authenticated invited email.
     invited = authorize("invitee", "GET", f"/api/invites/{INVITE_TOKEN}")

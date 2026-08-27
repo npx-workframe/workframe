@@ -1617,6 +1617,27 @@ class WorkspaceRoutesMixin:
                 )
             self._json(status, payload)
 
+    def _route_pattern_delete_workspace(self, path: str, body: dict) -> None:
+        srv = _srv()
+        workspace_delete_match = re.fullmatch(r"/api/workspace/([^/]+)", path)
+        if not workspace_delete_match:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        user_id = str(getattr(self, "auth_user", "") or "")
+        ws_id = srv._resolve_wid(workspace_delete_match.group(1))
+        if not ws_id:
+            self._json(404, {"ok": False, "error": "workspace_not_found"})
+            return
+        status, payload = srv._delete_workspace(ws_id, user_id)
+        if status == 200:
+            self._log_audit(
+                "workspace_deleted",
+                "workspace",
+                ws_id,
+                f"workspace={ws_id}",
+            )
+        self._json(status, payload)
+
     def _route_pattern_delete_workspace_members(self, path: str, body: dict) -> None:
         srv = _srv()
         parts = path.strip("/").split("/")
@@ -1649,7 +1670,9 @@ class WorkspaceRoutesMixin:
         # Membership removal changes run authority for this workspace. Revoke
         # only the removed member's workspace-scoped runtime leases; their
         # personal credential may remain valid in other workspaces.
-        srv._revoke_runtime_llm_leases(payer_user_id=target_user_id, workspace_id=ws_id)
+        import credential_revocation
+
+        credential_revocation.revoke_member_workspace_access(target_user_id, ws_id)
         self._log_audit(
             "workspace_member_removed",
             "workspace_membership",

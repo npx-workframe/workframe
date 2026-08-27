@@ -302,6 +302,24 @@ class ProviderRoutesMixin:
             return
         self._json(200, srv.disconnect_user_provider(user_id, parts[3]))
 
+    def _route_pattern_delete_agent(self, path: str, body: dict) -> None:
+        srv = _srv()
+        parts = path.strip("/").split("/")
+        if len(parts) != 3 or parts[1] != "agents":
+            self._json(404, {"ok": False, "error": "agent_not_found"})
+            return
+        user_id = str(getattr(self, "auth_user", "") or "")
+        agent_ref = parts[2]
+        status, payload = srv._delete_agent_profile(agent_ref, user_id)
+        if status == 200:
+            self._log_audit(
+                "agent_deleted",
+                "agent_profile",
+                str(payload.get("agent_profile_id") or agent_ref),
+                f"agent={agent_ref}",
+            )
+        self._json(status, payload)
+
     def _route_pattern_delete_me_credentials(self, path: str, body: dict) -> None:
         srv = _srv()
         parts = path.strip("/").split("/")

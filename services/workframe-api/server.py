@@ -454,6 +454,8 @@ _list_rooms = rooms._list_rooms
 _patch_room = rooms._patch_room
 _get_workspace = rooms._get_workspace
 _patch_workspace = rooms._patch_workspace
+_delete_workspace = rooms._delete_workspace
+_delete_agent_profile = rooms._delete_agent_profile
 _patch_workspace_integrations = rooms._patch_workspace_integrations
 _get_room = rooms._get_room
 _create_room = rooms._create_room
@@ -2603,6 +2605,17 @@ def main() -> None:
             print(f"  Credential lifecycle startup recovery marked {len(recovered)} interrupted operation(s)", flush=True)
     except (sqlite3.Error, OSError) as exc:
         raise SystemExit(f"credential lifecycle startup recovery failed: {exc}") from exc
+    try:
+        oauth_migration = provider_bindings.migrate_legacy_runtime_oauth_authority()
+        if oauth_migration.get("scrubbed") or oauth_migration.get("quarantined"):
+            print(
+                "  Credential OAuth migration scrubbed "
+                f"{oauth_migration.get('scrubbed', 0)} runtime auth file(s), "
+                f"quarantined {oauth_migration.get('quarantined', 0)}",
+                flush=True,
+            )
+    except (OSError, RuntimeError, sqlite3.Error, ValueError) as exc:
+        raise SystemExit(f"credential oauth migration failed: {exc}") from exc
     internal_proxy_auth.bootstrap_proxy_token(
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )

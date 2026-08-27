@@ -14,6 +14,7 @@ from typing import Any
 
 import provider_bootstrap
 import credential_lifecycle
+import credential_revocation
 import credential_vault
 
 
@@ -60,6 +61,110 @@ def _scan_runtime_auth_files(root: Path) -> list[dict[str, str]]:
         elif _runtime_auth_contains_raw_authority(parsed):
             findings.append({"path": str(path), "kind": "raw_authority"})
     return findings
+
+
+def _strip_raw_authority_values(value: Any) -> tuple[Any, bool]:
+    """Remove reusable upstream authority keys from runtime metadata."""
+    changed = False
+    if isinstance(value, dict):
+        cleaned: dict[str, Any] = {}
+        for key, child in value.items():
+            if str(key).lower() in _RAW_AUTHORITY_KEYS:
+                if str(child or "").strip():
+                    changed = True
+                continue
+            next_value, child_changed = _strip_raw_authority_values(child)
+            cleaned[key] = next_value
+            changed = changed or child_changed
+        return cleaned, changed
+    if isinstance(value, list):
+        cleaned_list: list[Any] = []
+        for child in value:
+            next_value, child_changed = _strip_raw_authority_values(child)
+            cleaned_list.append(next_value)
+            changed = changed or child_changed
+        return cleaned_list, changed
+    return value, False
+
+
+def _sanitize_oauth_block_for_runtime(block: dict[str, Any]) -> dict[str, Any]:
+    """Keep provider identity metadata; never copy reusable OAuth authority."""
+    sanitized, _changed = _strip_raw_authority_values(dict(block))
+    return sanitized if isinstance(sanitized, dict) else {}
+
+
+def _user_id_for_auth_path(auth_path: Path, profiles_root: Path) -> str:
+    """Best-effort reverse lookup from a profiles/*/auth.json path to a user id."""
+    try:
+        slug = auth_path.parent.name
+    except (AttributeError, ValueError):
+        return ""
+    if not slug:
+        return ""
+    try:
+        conn = sqlite3.connect(str(_srv()._workframe_db_path()), timeout=3.0)
+        rows = conn.execute(
+            "SELECT id FROM users WHERE deleted_at IS NULL",
+        ).fetchall()
+        conn.close()
+    except sqlite3.Error:
+        return ""
+    for row in rows:
+        user_id = str(row[0] or "").strip()
+        if user_id and _srv()._user_hermes_dir_slug(user_id) == slug:
+            return user_id
+    return ""
+
+
+def migrate_legacy_runtime_oauth_authority(hermes_root: Path | None = None) -> dict[str, int]:
+    """Boot/resume scan: quarantine and scrub reusable OAuth authority from runtime files."""
+    profiles_root = Path(hermes_root or _srv().HERMES_DATA) / "profiles"
+    findings = _scan_runtime_auth_files(profiles_root)
+    scrubbed = 0
+    quarantined = 0
+    for item in findings:
+        if str(item.get("kind") or "") != "raw_authority":
+            continue
+        auth_path = Path(str(item.get("path") or ""))
+        if not auth_path.is_file():
+            continue
+        try:
+            auth = json.loads(auth_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(auth, dict):
+            continue
+        before = json.dumps(auth, sort_keys=True, separators=(",", ":"))
+        user_id = _user_id_for_auth_path(auth_path, profiles_root)
+        if user_id:
+            for spec in _srv().PROVIDER_CONNECT_CATALOG:
+                if str(spec.get("connect_mode") or "") != "oauth":
+                    continue
+                provider_id = str(spec.get("id") or "").strip()
+                if _extract_oauth_block_from_auth(auth, _hermes_auth_id_for_spec(spec)):
+                    if _quarantine_legacy_oauth(user_id, provider_id, auth):
+                        quarantined += 1
+        changed = False
+        for spec in _srv().PROVIDER_CONNECT_CATALOG:
+            if str(spec.get("connect_mode") or "") != "oauth":
+                continue
+            if _scrub_oauth_auth_material(auth, _hermes_auth_id_for_spec(spec)):
+                changed = True
+        sanitized, stripped = _strip_raw_authority_values(auth)
+        if stripped and isinstance(sanitized, dict):
+            auth.clear()
+            auth.update(sanitized)
+            changed = True
+        after = json.dumps(auth, sort_keys=True, separators=(",", ":"))
+        if changed and after != before:
+            auth["updated_at"] = _srv()._utc_now()
+            auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            scrubbed += 1
+    return {
+        "findings": len(findings),
+        "scrubbed": scrubbed,
+        "quarantined": quarantined,
+    }
 
 def _user_provider_bindings(user_id: str) -> dict[str, dict[str, Any]]:
     by_provider: dict[str, dict[str, Any]] = {}
@@ -183,7 +288,7 @@ def _merge_oauth_auth_into_profile(
     block = _extract_oauth_block_from_auth(user_auth, hermes_auth_id)
     if isinstance(block, dict):
         merged = auth.get("providers") if isinstance(auth.get("providers"), dict) else {}
-        merged[hermes_auth_id] = block
+        merged[hermes_auth_id] = _sanitize_oauth_block_for_runtime(block)
         auth["providers"] = merged
         changed = True
     user_pool = user_auth.get("credential_pool")
@@ -196,7 +301,7 @@ def _merge_oauth_auth_into_profile(
             if str(key).lower() in keys and isinstance(entries, list) and entries:
                 for entry in entries:
                     if isinstance(entry, dict) and entry:
-                        pool[hermes_auth_id] = [entry]
+                        pool[hermes_auth_id] = [_sanitize_oauth_block_for_runtime(entry)]
                         changed = True
                         break
     return changed
@@ -478,13 +583,13 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
-    if not credential_lifecycle.revoke_binding(credential_id, reason="user_disconnect"):
-        return {"ok": False, "error": "credential_revoke_failed"}
-    _srv()._revoke_runtime_llm_leases(
-        payer_user_id=user_id,
+    revoked = credential_revocation.revoke_provider_disconnect(
+        binding_id=credential_id,
+        user_id=user_id,
         provider=str(row["provider"]),
-        credential_binding_id=credential_id,
     )
+    if not revoked["bindings_revoked"]:
+        return {"ok": False, "error": "credential_revoke_failed"}
     return {"ok": True, "credential_id": credential_id, "provider": str(row["provider"])}
 
 
