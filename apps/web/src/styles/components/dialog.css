@@ -230,6 +230,19 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
   margin-bottom: 0.75rem;
 }
 
+.wf-dialog-content.wf-auth-dialog .wf-dialog-description {
+  text-wrap: pretty;
+}
+
+.wf-dialog-content.wf-auth-dialog .wf-auth__form .wf-auth__row {
+  width: 100%;
+}
+
+.wf-dialog-content.wf-auth-dialog .wf-auth__form .wf-auth__row > .wf-action-btn[data-tone='primary'] {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
 .wf-dialog-content.wf-dialog-content--device-oauth {
   width: min(calc(100vw - 32px), 30rem);
   background: color-mix(in srgb, var(--wf-surface) 96%, var(--wf-bg));

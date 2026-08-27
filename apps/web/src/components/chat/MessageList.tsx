@@ -40,6 +40,7 @@ export function MessageList({
   const [reactionSelf, setReactionSelf] = useState({ userId: '', displayName: 'You', avatarUrl: null as string | null })
   const [reactions, setReactions] = useState<Record<string, ChatReaction[]>>({})
   const [activeMessageId, setActiveMessageId] = useState('')
+  const [listOverflows, setListOverflows] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -227,6 +228,19 @@ export function MessageList({
     stickToBottomRef.current = true
     initialScrollRef.current = false
     setActiveMessageId(displayMessages.at(-1)?.id ?? '')
+    setListOverflows(host.scrollHeight > host.clientHeight + 4)
+  }, [displayMessages])
+
+  useEffect(() => {
+    const host = scrollRef.current
+    if (!host || typeof ResizeObserver === 'undefined') return
+    const updateOverflow = () => {
+      setListOverflows(host.scrollHeight > host.clientHeight + 4)
+    }
+    updateOverflow()
+    const observer = new ResizeObserver(updateOverflow)
+    observer.observe(host)
+    return () => observer.disconnect()
   }, [displayMessages])
 
   return (
@@ -235,6 +249,7 @@ export function MessageList({
         messages={displayMessages}
         activeMessageId={activeMessageId}
         onJump={jumpToMessage}
+        visible={listOverflows}
       />
       <ScrollArea
         ref={scrollRef}
