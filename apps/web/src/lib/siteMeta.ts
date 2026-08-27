@@ -54,7 +54,7 @@ function upsertLink(rel: string, href: string, type?: string) {
 }
 
 export function applySiteMeta(meta: PublicSiteMeta) {
-  document.title = meta.title || 'Workframe'
+  document.title = meta.title || 'Workframe. A workspace for humans and persistent AI coworkers.'
   upsertMeta('name', 'description', meta.description)
   upsertMeta('name', 'theme-color', meta.theme_color)
   upsertMeta('property', 'og:type', 'website')

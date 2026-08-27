@@ -10,11 +10,10 @@ export default function Home() {
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-14 px-6 pb-16 pt-10 sm:gap-16 sm:px-10 sm:pt-14">
         <section className="flex w-full flex-col items-center gap-5 text-center">
           <h1 className="max-w-xl text-[2rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--wf-text)] sm:text-[2.75rem]">
-            The Social OS for Autonomous Businesses
+            Workframe. A workspace for humans and persistent AI coworkers.
           </h1>
           <p className="max-w-md text-[17px] leading-7 text-[var(--wf-muted)] sm:text-[18px]">
-            A private workspace where humans and agents collaborate through chat,
-            boards, and files.
+            Communities exchange messages. Workframe teams exchange work.
           </p>
         </section>
 

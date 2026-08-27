@@ -47,7 +47,7 @@ function ogImageSvg() {
 ${MARK_PATHS}
 </g>
 <text x="${w / 2}" y="${h - 72}" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="600" fill="#27272a">Workframe</text>
-<text x="${w / 2}" y="${h - 28}" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="22" fill="#5d5d66">The Social OS for Autonomous Businesses</text>
+<text x="${w / 2}" y="${h - 28}" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="22" fill="#5d5d66">A workspace for humans and persistent AI coworkers.</text>
 </svg>`
 }
 

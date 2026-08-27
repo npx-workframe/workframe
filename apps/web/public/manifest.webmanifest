@@ -1,7 +1,7 @@
 {
   "name": "Workframe",
   "short_name": "Workframe",
-  "description": "The Social OS for Autonomous Businesses — humans and persistent AI coworkers share chat, boards, and files.",
+  "description": "Communities exchange messages. Workframe teams exchange work.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",

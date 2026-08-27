@@ -1,7 +1,7 @@
 # North star (summary)
 
 **Full brief:** [strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md](../strategy/workframe_v0_1_1_docs/WORKFRAME_v0.1.1_MASTER.md)  
-**Tagline:** The Social OS for Autonomous Businesses
+**Tagline:** Workframe. A workspace for humans and persistent AI coworkers.
 
 ## First principle
 

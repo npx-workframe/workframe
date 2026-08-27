@@ -9,12 +9,9 @@ from urllib.parse import urljoin
 
 import stack_config
 
-DEFAULT_TITLE = "Workframe"
+DEFAULT_TITLE = "Workframe. A workspace for humans and persistent AI coworkers."
 DEFAULT_SHORT_NAME = "Workframe"
-DEFAULT_DESCRIPTION = (
-    "The Social OS for Autonomous Businesses — humans and persistent AI coworkers "
-    "share chat, boards, and files."
-)
+DEFAULT_DESCRIPTION = "Communities exchange messages. Workframe teams exchange work."
 DEFAULT_THEME_COLOR = "#79689D"
 DEFAULT_OG_IMAGE = "/assets/branding/og-default.png"
 DEFAULT_FAVICON = "/favicon.svg"
@@ -186,7 +183,12 @@ def resolve_site_meta(
         favicon = _browser_asset_url(app_base_url, DEFAULT_FAVICON)
         apple_touch = _browser_asset_url(app_base_url, DEFAULT_APPLE_TOUCH_ICON)
 
-    short_name = title if len(title) <= 16 else title[:15].rstrip() + "…"
+    if title == DEFAULT_TITLE:
+        short_name = DEFAULT_SHORT_NAME
+    elif len(title) <= 16:
+        short_name = title
+    else:
+        short_name = title[:15].rstrip() + "…"
     canonical = app_base_url.rstrip("/") + "/" if app_base_url else "/"
 
     return {
