@@ -40,12 +40,16 @@ def materialize_provider_secret(provider: str, binding_id: str, secret: str) -> 
         return str(secret or ""), "ok" if str(secret or "").strip() else "missing"
     access = str(bundle.get("access_token") or "").strip()
     expires_at = float(bundle.get("expires_at") or 0)
-    if access and (not expires_at or expires_at > time.time() + 30):
-        return access, "ok"
     refresh = str(bundle.get("refresh_token") or "").strip()
     token_url = str(bundle.get("token_url") or "").strip()
     client_id = str(bundle.get("client_id") or "").strip()
-    if not refresh or not token_url or not client_id:
+    can_refresh = bool(refresh and token_url and client_id)
+    known_fresh = bool(access and expires_at and expires_at > time.time() + 30)
+    if known_fresh:
+        return access, "ok"
+    if not can_refresh:
+        if access and not expires_at:
+            return access, "ok"
         return "", "oauth_refresh_unavailable"
     form = {
         "grant_type": "refresh_token",

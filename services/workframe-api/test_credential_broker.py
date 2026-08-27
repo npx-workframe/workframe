@@ -51,4 +51,19 @@ try:
 finally:
     urllib.request.urlopen = _orig_urlopen
 
+
+no_expiry = json.dumps({
+    "kind": "oauth",
+    "access_token": "stale",
+    "refresh_token": "rt",
+    "token_url": "https://auth.openai.com/oauth/token",
+    "client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
+})
+urllib.request.urlopen = lambda *_a, **_k: _Resp()  # type: ignore[assignment]
+try:
+    materialized, status = credential_broker.materialize_provider_secret("codex", "", no_expiry)
+    assert materialized == "new-access" and status == "ok"
+finally:
+    urllib.request.urlopen = _orig_urlopen
+
 print("credential broker self-check ok")
