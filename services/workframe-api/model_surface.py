@@ -383,9 +383,8 @@ def _live_suggestions_for_connected_llm_providers(
     for provider in sorted(connected):
         spec = _srv()._catalog_provider_for_llm(provider) or {}
         if str(spec.get("connect_mode") or "") == "oauth":
-            auth_id = str(spec.get("hermes_auth_id") or provider)
-            auth = _srv()._load_user_hermes_auth(user_id) if user_id else None
-            credentials[provider] = provider_model_catalog.oauth_access_token(auth, auth_id)
+            # OAuth LLM providers are never connected through runtime auth.json.
+            # Live catalog discovery must not read reusable upstream tokens from disk.
             continue
         resolved = _srv()._resolve_credential(
             user_id,

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "description": "Workframe harness scenarios — backend/install-gate focus; UI dogfood is local-only.",
-  "updated": "2026-08-02",
+  "updated": "2026-08-27",
   "scenarios": [
     {
       "id": "api-typecheck",
@@ -42,6 +42,34 @@
       "id": "api-resource-scope",
       "description": "Two-workspace target authorization and legacy bootstrap closure",
       "verify": "python services/workframe-api/test_resource_scope.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-wf048-acceptance",
+      "description": "WF-048 capability lifecycle acceptance matrix",
+      "verify": "python services/workframe-api/test_wf048_acceptance_matrix.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-wf048-authority-scan",
+      "description": "WF-048 raw-authority scan over runtime auth metadata",
+      "verify": "python services/workframe-api/test_wf048_authority_scan.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-credential-lifecycle",
+      "description": "WF-048 durable credential lifecycle recovery and revocation",
+      "verify": "python services/workframe-api/test_credential_lifecycle.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
+      "id": "api-credential-lease-matrix",
+      "description": "WF-048 generation-bound lease validation matrix",
+      "verify": "python services/workframe-api/test_credential_lease_matrix.py",
       "passes": true,
       "owner": "cursor-cloud"
     },

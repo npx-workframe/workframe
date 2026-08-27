@@ -2603,6 +2603,17 @@ def main() -> None:
             print(f"  Credential lifecycle startup recovery marked {len(recovered)} interrupted operation(s)", flush=True)
     except (sqlite3.Error, OSError) as exc:
         raise SystemExit(f"credential lifecycle startup recovery failed: {exc}") from exc
+    try:
+        oauth_migration = provider_bindings.migrate_legacy_runtime_oauth_authority()
+        if oauth_migration.get("scrubbed") or oauth_migration.get("quarantined"):
+            print(
+                "  Credential OAuth migration scrubbed "
+                f"{oauth_migration.get('scrubbed', 0)} runtime auth file(s), "
+                f"quarantined {oauth_migration.get('quarantined', 0)}",
+                flush=True,
+            )
+    except (OSError, RuntimeError, sqlite3.Error, ValueError) as exc:
+        raise SystemExit(f"credential oauth migration failed: {exc}") from exc
     internal_proxy_auth.bootstrap_proxy_token(
         allow_generate_file=DEPLOYMENT_MODE != "public_multi_user",
     )
