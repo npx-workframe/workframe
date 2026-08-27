@@ -111,6 +111,14 @@ _DEVICE_OAUTH_PROVIDER_IDS: frozenset[str] = frozenset({"codex", "nous"})
 _oauth_device_lock = threading.Lock()
 _oauth_device_sessions: dict[str, dict[str, Any]] = {}
 
+# Public Codex CLI OAuth client used by Hermes (`nousresearch/hermes-agent`).
+CODEX_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
+CODEX_OAUTH_TOKEN_URL = "https://auth.openai.com/oauth/token"
+CODEX_OAUTH_BASE_URL = "https://chatgpt.com/backend-api/codex"
+CODEX_OAUTH_AUTH_TYPE = "oauth_external"
+_OAUTH_ACCESS_FIELDS = ("access_token", "accessToken")
+_OAUTH_REFRESH_FIELDS = ("refresh_token", "refreshToken")
+
 
 def _strip_ansi(text: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", str(text or ""))
@@ -148,20 +156,43 @@ def _auth_json_has_oauth_material(data: dict[str, Any]) -> bool:
     return isinstance(creds, list) and bool(creds)
 
 
-def _extract_oauth_block_from_auth(loaded: dict[str, Any], hermes_auth_id: str) -> dict[str, Any] | None:
+def _codex_oauth_provider(provider_id: str, hermes_auth_id: str = "") -> bool:
+    keys = {str(provider_id or "").strip().lower(), str(hermes_auth_id or "").strip().lower()}
+    return bool(keys & {"codex", "openai-codex", "openai_codex"})
+
+
+def _oauth_source_dicts(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    sources: list[dict[str, Any]] = []
+    tokens = entry.get("tokens")
+    if isinstance(tokens, dict):
+        sources.append(tokens)
+    sources.append(entry)
+    return sources
+
+
+def _oauth_field(entry: dict[str, Any], names: tuple[str, ...]) -> str:
+    for source in _oauth_source_dicts(entry):
+        for name in names:
+            value = str(source.get(name) or "").strip()
+            if value:
+                return value
+    return ""
+
+
+def _oauth_entry_has_tokens(entry: dict[str, Any]) -> bool:
+    return bool(
+        _oauth_field(entry, _OAUTH_ACCESS_FIELDS)
+        or _oauth_field(entry, _OAUTH_REFRESH_FIELDS)
+    )
+
+
+def _iter_oauth_auth_entries(loaded: dict[str, Any], hermes_auth_id: str):
     keys = _hermes_oauth_auth_keys(hermes_auth_id)
     providers = loaded.get("providers")
     if isinstance(providers, dict):
         for key, entry in providers.items():
             if str(key).lower() in keys and isinstance(entry, dict):
-                tokens = entry.get("tokens")
-                if isinstance(tokens, dict) and any(
-                    str(tokens.get(field) or "").strip()
-                    for field in ("access_token", "refresh_token", "api_key", "id_token")
-                ):
-                    return entry
-                if entry:
-                    return entry
+                yield entry
     creds = loaded.get("credentials")
     if isinstance(creds, list):
         for row in creds:
@@ -169,8 +200,70 @@ def _extract_oauth_block_from_auth(loaded: dict[str, Any], hermes_auth_id: str) 
                 continue
             pid = str(row.get("provider") or row.get("id") or "").lower()
             if pid in keys:
-                return row
+                yield row
+    pool = loaded.get("credential_pool")
+    if isinstance(pool, dict):
+        for key, entries in pool.items():
+            if str(key).lower() not in keys or not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if isinstance(entry, dict):
+                    yield entry
+
+
+def _extract_oauth_block_from_auth(loaded: dict[str, Any], hermes_auth_id: str) -> dict[str, Any] | None:
+    first: dict[str, Any] | None = None
+    for entry in _iter_oauth_auth_entries(loaded, hermes_auth_id):
+        if _oauth_entry_has_tokens(entry):
+            return entry
+        if first is None and entry:
+            first = entry
+    return first
+
+
+def _extract_oauth_token_material(loaded: dict[str, Any] | None, hermes_auth_id: str) -> dict[str, Any] | None:
+    if not isinstance(loaded, dict):
+        return None
+    for entry in _iter_oauth_auth_entries(loaded, hermes_auth_id):
+        access = _oauth_field(entry, _OAUTH_ACCESS_FIELDS)
+        refresh = _oauth_field(entry, _OAUTH_REFRESH_FIELDS)
+        if access or refresh:
+            return {"entry": entry, "access_token": access, "refresh_token": refresh}
     return None
+
+
+def _build_oauth_vault_bundle(provider_id: str, hermes_auth_id: str, material: dict[str, Any]) -> dict[str, Any]:
+    entry = material.get("entry") if isinstance(material.get("entry"), dict) else {}
+    token_url = _oauth_field(entry, ("token_url", "tokenUrl"))
+    client_id = _oauth_field(entry, ("client_id", "clientId"))
+    if _codex_oauth_provider(provider_id, hermes_auth_id):
+        token_url = token_url or CODEX_OAUTH_TOKEN_URL
+        client_id = client_id or CODEX_OAUTH_CLIENT_ID
+    expires_raw = entry.get("expires_at")
+    if expires_raw in (None, ""):
+        expires_raw = entry.get("expiresAt")
+    tokens = entry.get("tokens") if isinstance(entry.get("tokens"), dict) else {}
+    if expires_raw in (None, "") and isinstance(tokens, dict):
+        expires_raw = tokens.get("expires_at") or tokens.get("expiresAt")
+    expires_at: float | None = None
+    try:
+        if expires_raw not in (None, ""):
+            expires_at = float(expires_raw)
+    except (TypeError, ValueError):
+        expires_at = None
+    bundle: dict[str, Any] = {
+        "kind": "oauth",
+        "provider": provider_id,
+        "access_token": str(material.get("access_token") or ""),
+        "refresh_token": str(material.get("refresh_token") or ""),
+        "token_type": _oauth_field(entry, ("token_type", "tokenType")) or "bearer",
+        "token_url": token_url,
+        "client_id": client_id,
+        "authority": entry,
+    }
+    if expires_at:
+        bundle["expires_at"] = expires_at
+    return bundle
 
 
 def _merge_oauth_auth_into_profile(
@@ -205,9 +298,8 @@ def _merge_oauth_auth_into_profile(
 def _scrub_oauth_auth_material(auth: dict[str, Any], hermes_auth_id: str) -> bool:
     """Remove reusable OAuth material from runtime auth metadata.
 
-    Workframe does not yet have a provider refresh broker. Keeping a refresh or
-    access token in a profile auth.json would make the runtime a second secret
-    authority, so unsupported OAuth is deliberately fail-closed and scrubbed.
+    Refresh tokens stay vault-only. Turn overlay republishes an access-token-only
+    credential_pool row for the duration of a run, then scrubs again.
     """
     keys = _hermes_oauth_auth_keys(hermes_auth_id)
     changed = False
@@ -301,18 +393,7 @@ def _hermes_oauth_tokens_present(user_id: str, hermes_auth_id: str) -> bool:
     hermes_auth_id = str(hermes_auth_id or "").strip()
     if not hermes_auth_id:
         return False
-    loaded = _load_user_hermes_auth(user_id)
-    if not isinstance(loaded, dict):
-        return False
-    if _extract_oauth_block_from_auth(loaded, hermes_auth_id):
-        return True
-    keys = _hermes_oauth_auth_keys(hermes_auth_id)
-    pool = loaded.get("credential_pool")
-    if isinstance(pool, dict):
-        for key, entries in pool.items():
-            if str(key).lower() in keys and isinstance(entries, list) and entries:
-                return True
-    return False
+    return _extract_oauth_token_material(_load_user_hermes_auth(user_id), hermes_auth_id) is not None
 
 
 def _load_user_hermes_auth(user_id: str) -> dict[str, Any] | None:
@@ -374,12 +455,21 @@ def _read_gateway_data_file(rel_path: str) -> str:
 
 def _user_provider_connected(user_id: str, spec: dict[str, Any]) -> bool:
     """Connected = this user's credential resolves with a live secret (no stack/install bleed)."""
-    if str(spec.get("connect_mode") or "") == "oauth":
-        # Reusable OAuth requires a server-owned refresh broker. Until that
-        # exists, never expose a runtime auth.json token as a connected
-        # Workframe credential or allow it to flow into a profile.
-        return False
     provider_id = str(spec["id"])
+    if str(spec.get("connect_mode") or "") == "oauth":
+        resolved = _srv()._resolve_credential(user_id, "", provider_id, user_only=True)
+        secret = _srv()._credential_secret(resolved, user_id) if resolved else ""
+        if not secret:
+            return False
+        import credential_broker
+        bundle = credential_broker._oauth_bundle(secret)
+        return bool(
+            bundle
+            and (
+                str(bundle.get("access_token") or "").strip()
+                or str(bundle.get("refresh_token") or "").strip()
+            )
+        )
     if str(spec.get("category") or "") == "llm":
         resolved = _srv()._resolve_credential(user_id, "", provider_id, user_only=True)
         return bool(resolved and _srv()._credential_secret(resolved, user_id))
@@ -676,17 +766,163 @@ def _sync_user_oauth_provider_to_runtime_profiles(user_id: str, hermes_auth_id: 
         _srv()._publish_profile_gateway_secrets(prof_dir.name)
 
 
+def _publish_turn_oauth_access(
+    profile: str,
+    provider: str,
+    access_token: str,
+    authority: dict[str, Any] | None = None,
+) -> bool:
+    """Publish an access-token-only credential_pool row for Hermes native OAuth."""
+    access_token = str(access_token or "").strip()
+    if not access_token:
+        return False
+    spec = _oauth_llm_provider_spec(provider) or _srv()._catalog_provider(provider) or {}
+    hermes_auth_id = _hermes_auth_id_for_spec(spec) or str(provider or "").strip()
+    if not hermes_auth_id:
+        return False
+    prof = _srv().resolve_hermes_profile(profile)
+    auth = _load_profile_auth_json(prof)
+    auth_path = _srv()._profile_dir(prof) / "auth.json"
+    pool = auth.get("credential_pool")
+    if not isinstance(pool, dict):
+        pool = {}
+        auth["credential_pool"] = pool
+    authority = authority if isinstance(authority, dict) else {}
+    auth_type = str(authority.get("auth_type") or authority.get("authType") or "").strip()
+    base_url = str(authority.get("base_url") or authority.get("baseUrl") or "").strip()
+    label = str(authority.get("label") or "").strip()
+    entry_id = str(authority.get("id") or "").strip() or "workframe-turn"
+    if _codex_oauth_provider(provider, hermes_auth_id):
+        auth_type = CODEX_OAUTH_AUTH_TYPE
+        base_url = base_url or CODEX_OAUTH_BASE_URL
+        label = label or "Codex"
+    entry = {
+        "id": entry_id,
+        "label": label or hermes_auth_id,
+        "auth_type": auth_type or "oauth",
+        "access_token": access_token,
+    }
+    if base_url:
+        entry["base_url"] = base_url
+    pool[hermes_auth_id] = [entry]
+    auth["version"] = 1
+    auth["updated_at"] = _srv()._utc_now()
+    auth_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _srv()._publish_profile_gateway_secrets(prof)
+    return True
+
+
+def _scrub_profile_oauth_auth(profile: str) -> bool:
+    """Scrub reusable OAuth LLM material from one runtime profile auth.json."""
+    try:
+        prof = _srv().resolve_hermes_profile(profile)
+    except ValueError:
+        return False
+    auth = _load_profile_auth_json(prof)
+    auth_path = _srv()._profile_dir(prof) / "auth.json"
+    changed = False
+    for spec in _srv().PROVIDER_CONNECT_CATALOG:
+        if str(spec.get("connect_mode") or "") != "oauth":
+            continue
+        if str(spec.get("category") or "") != "llm":
+            continue
+        auth_id = _hermes_auth_id_for_spec(spec)
+        if auth_id and _scrub_oauth_auth_material(auth, auth_id):
+            changed = True
+    if not changed:
+        return False
+    auth["version"] = 1
+    auth["updated_at"] = _srv()._utc_now()
+    auth_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_path.write_text(json.dumps(auth, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _srv()._publish_profile_gateway_secrets(prof)
+    return True
+
+
 def _finalize_hermes_device_oauth(user_id: str, provider_id: str, spec: dict[str, Any]) -> None:
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
     _sync_user_oauth_provider_to_runtime_profiles(user_id, hermes_auth_id)
-    # The picker caches connected providers for one minute. OAuth material is
-    # stored outside credential_bindings, so the ordinary secret-save
-    # invalidation path never runs; clear it before selecting/bootstraping the
-    # new provider or the completed Codex connection remains invisible.
+    # The picker caches connected providers for one minute. Clear it after
+    # vault adopt so the completed Codex connection is visible immediately.
     _srv()._invalidate_user_llm_picker_cache(user_id)
-    # Do not claim OAuth is connected until a server-side refresh broker exists.
-    # The caller can surface the stable error while the scrub keeps runtime files safe.
     return None
+
+
+def _connected_device_oauth_payload(
+    user_id: str,
+    provider_id: str,
+    session_id: str,
+    *,
+    credential_id: str = "",
+    verification_uri: Any = None,
+    user_code: Any = None,
+) -> dict[str, Any]:
+    payload = {
+        "ok": True,
+        "provider": provider_id,
+        "session_id": session_id,
+        "status": "connected",
+        "connected": True,
+        "verification_uri": verification_uri,
+        "user_code": user_code,
+    }
+    if credential_id:
+        payload["credential_id"] = credential_id
+    return payload
+
+
+def _adopt_hermes_device_oauth(
+    user_id: str,
+    provider_id: str,
+    spec: dict[str, Any],
+    session_id: str,
+    workspace_id: str = "",
+) -> dict[str, Any]:
+    """Move completed device OAuth tokens into the vault as a connected provider."""
+    hermes_auth_id = _hermes_auth_id_for_spec(spec)
+    material = _extract_oauth_token_material(_load_user_hermes_auth(user_id), hermes_auth_id)
+    if not material:
+        return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
+    bundle = _build_oauth_vault_bundle(provider_id, hermes_auth_id, material)
+    env_var = str(spec.get("env_var") or "")
+    entry = material.get("entry") if isinstance(material.get("entry"), dict) else {}
+    label = str(entry.get("label") or "").strip() or f"{spec.get('label') or provider_id} OAuth"
+    try:
+        payload = _srv()._store_user_credential(
+            user_id,
+            provider_id,
+            "oauth",
+            json.dumps(bundle, sort_keys=True),
+            env_var,
+            label,
+        )
+        cred_id = str(payload["credential_id"])
+        _srv()._credential_lifecycle_revoke_other_bindings(
+            user_id=user_id,
+            provider=provider_id,
+            keep_id=cred_id,
+            reason="oauth_replacement",
+        )
+    except (OSError, RuntimeError, sqlite3.Error, ValueError):
+        _device_oauth_session_patch(session_id, {"status": "error", "finalized": False})
+        return {
+            "ok": False,
+            "provider": provider_id,
+            "session_id": session_id,
+            "status": "error",
+            "error": "oauth_adopt_failed",
+            "message": "OAuth completed upstream, but Workframe could not store the vault-backed provider.",
+        }
+    _finalize_hermes_device_oauth(user_id, provider_id, spec)
+    _srv()._bootstrap_model_after_llm_connect(user_id, workspace_id, provider_id)
+    _device_oauth_session_patch(session_id, {"status": "connected", "finalized": True})
+    return _connected_device_oauth_payload(
+        user_id,
+        provider_id,
+        session_id,
+        credential_id=cred_id,
+    )
 
 
 def _oauth_broker_unsupported(user_id: str, provider_id: str, spec: dict[str, Any], session_id: str) -> dict[str, Any]:
@@ -781,8 +1017,38 @@ def _spawn_hermes_device_oauth(user_id: str, hermes_auth_id: str, log_container:
     return _srv()._gateway_container_exec_detached(["sh", "-lc", shell])
 
 
-def _start_device_oauth(user_id: str, provider_id: str, spec: dict[str, Any]) -> dict[str, Any]:
+def _start_device_oauth(
+    user_id: str,
+    provider_id: str,
+    spec: dict[str, Any],
+    workspace_id: str = "",
+) -> dict[str, Any]:
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
+    if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
+        session_id = secrets.token_urlsafe(16)
+        with _oauth_device_lock:
+            _oauth_device_sessions[session_id] = {
+                "user_id": user_id,
+                "provider_id": provider_id,
+                "hermes_auth_id": hermes_auth_id,
+                "log_path": "",
+                "status": "pending",
+                "verification_uri": None,
+                "user_code": None,
+                "finalized": False,
+                "started_at": time.time(),
+                "workspace_id": workspace_id,
+            }
+        return _adopt_hermes_device_oauth(user_id, provider_id, spec, session_id, workspace_id)
+    if _user_provider_connected(user_id, spec):
+        return {
+            "ok": True,
+            "provider": provider_id,
+            "hermes_auth_id": hermes_auth_id,
+            "flow": "device_code",
+            "status": "connected",
+            "connected": True,
+        }
     reusable = _reusable_device_oauth_session(user_id, provider_id)
     if reusable:
         reusable_id, _ = reusable
@@ -829,6 +1095,7 @@ def _start_device_oauth(user_id: str, provider_id: str, spec: dict[str, Any]) ->
             "user_code": None,
             "finalized": False,
             "started_at": time.time(),
+            "workspace_id": workspace_id,
         }
     status = device_oauth_status(user_id, provider_id, session_id)
     return {
@@ -881,12 +1148,31 @@ def device_oauth_status(user_id: str, provider_id: str, session_id: str) -> dict
             "verification_uri": sess.get("verification_uri"),
             "user_code": sess.get("user_code"),
         }
+    if sess.get("status") == "connected" and sess.get("finalized"):
+        return _connected_device_oauth_payload(
+            user_id,
+            provider_id,
+            session_id,
+            verification_uri=sess.get("verification_uri"),
+            user_code=sess.get("user_code"),
+        )
+    workspace_id = str(sess.get("workspace_id") or "")
     if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-        return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
+        return _adopt_hermes_device_oauth(user_id, provider_id, spec, session_id, workspace_id)
     lowered = log_text.lower()
     if any(token in lowered for token in ("login successful", "auth added", "credentials saved", "successfully authenticated", "logged in")):
         if _hermes_oauth_tokens_present(user_id, hermes_auth_id):
-            return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
+            return _adopt_hermes_device_oauth(user_id, provider_id, spec, session_id, workspace_id)
+        if _user_provider_connected(user_id, spec):
+            _device_oauth_session_patch(session_id, {"status": "connected", "finalized": True})
+            return _connected_device_oauth_payload(
+                user_id,
+                provider_id,
+                session_id,
+                verification_uri=sess.get("verification_uri"),
+                user_code=sess.get("user_code"),
+            )
+        return _oauth_broker_unsupported(user_id, provider_id, spec, session_id)
     if any(token in lowered for token in ("autherror", "login timed out", "login cancelled", "failed")):
         _device_oauth_session_patch(session_id, {"status": "error"})
         return {
@@ -933,7 +1219,7 @@ def start_user_oauth(user_id: str, provider_id: str, workspace_id: str = "") -> 
     if oauth_provider == "stripe":
         return {**_srv()._start_stripe_oauth(user_id, workspace_id, spec), "flow": "redirect"}
     if str(provider_id).lower() in _DEVICE_OAUTH_PROVIDER_IDS:
-        return _start_device_oauth(user_id, provider_id, spec)
+        return _start_device_oauth(user_id, provider_id, spec, workspace_id)
     hermes_auth_id = _hermes_auth_id_for_spec(spec)
     rc, out = _srv()._hermes_user_exec(user_id, ["auth", "add", hermes_auth_id])
     redirect_url = None

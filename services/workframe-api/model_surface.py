@@ -613,14 +613,25 @@ def _strip_profile_model_proxy_fields(profile: str) -> None:
         return
     out: list[str] = []
     in_model = False
+    skip_headers = False
     for line in lines:
         stripped = line.lstrip()
+        indent = len(line) - len(stripped)
         if stripped.startswith("model:") and not line.startswith((" ", "\t")):
             in_model = True
+            skip_headers = False
             out.append(line)
             continue
         if in_model and stripped and not line.startswith((" ", "\t", "#")):
             in_model = False
+            skip_headers = False
+        if skip_headers:
+            if stripped and indent >= 4:
+                continue
+            skip_headers = False
+        if in_model and stripped.startswith("default_headers:"):
+            skip_headers = True
+            continue
         if in_model and stripped.startswith(("base_url:", "api_key:")):
             continue
         out.append(line)
@@ -649,9 +660,15 @@ def _apply_model_for_billing_provider(
             return False
         _strip_profile_model_proxy_fields(profile)
         fallbacks = PROVIDER_MVP_MODELS.get(billing, {}).get("fallbacks") or []
-        if isinstance(fallbacks, list):
+        if isinstance(fallbacks, list) and fallbacks:
             chain = _read_model_block(profile).get("fallback_chain") or []
-            if not chain:
+            oauth_ids = {billing, _hermes_config_provider_id(billing), "openai-codex"}
+            leftover = (not chain) or any(
+                str(entry.get("provider") or "").strip().lower() not in oauth_ids
+                for entry in chain
+                if isinstance(entry, dict)
+            )
+            if leftover:
                 _write_fallback_chain(profile, fallbacks)
         user = str(user_id or "").strip()
         if user:
