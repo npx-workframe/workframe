@@ -41,6 +41,7 @@ export function MessageList({
   const [reactions, setReactions] = useState<Record<string, ChatReaction[]>>({})
   const [activeMessageId, setActiveMessageId] = useState('')
   const [listOverflows, setListOverflows] = useState(false)
+  const [packPadPx, setPackPadPx] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -228,14 +229,26 @@ export function MessageList({
     stickToBottomRef.current = true
     initialScrollRef.current = false
     setActiveMessageId(displayMessages.at(-1)?.id ?? '')
-    setListOverflows(host.scrollHeight > host.clientHeight + 8)
+    const rows = Array.from(host.querySelectorAll<HTMLElement>('.wf-message-row'))
+    const anchor = host.querySelector<HTMLElement>('.wf-message-list__anchor')
+    const contentHeight =
+      rows.reduce((sum, row) => sum + row.offsetHeight, 0) + (anchor?.offsetHeight ?? 0)
+    const slack = Math.max(0, host.clientHeight - contentHeight)
+    setPackPadPx(slack)
+    setListOverflows(contentHeight > host.clientHeight + 32)
   }, [displayMessages])
 
   useEffect(() => {
     const host = scrollRef.current
     if (!host || typeof ResizeObserver === 'undefined') return
     const updateOverflow = () => {
-      setListOverflows(host.scrollHeight > host.clientHeight + 8)
+      const rows = Array.from(host.querySelectorAll<HTMLElement>('.wf-message-row'))
+      const anchor = host.querySelector<HTMLElement>('.wf-message-list__anchor')
+      const contentHeight =
+        rows.reduce((sum, row) => sum + row.offsetHeight, 0) + (anchor?.offsetHeight ?? 0)
+      const slack = Math.max(0, host.clientHeight - contentHeight)
+      setPackPadPx(slack)
+      setListOverflows(contentHeight > host.clientHeight + 32)
     }
     updateOverflow()
     const observer = new ResizeObserver(updateOverflow)
@@ -249,7 +262,7 @@ export function MessageList({
         messages={displayMessages}
         activeMessageId={activeMessageId}
         onJump={jumpToMessage}
-        visible={listOverflows}
+        visible={listOverflows && displayMessages.length > 3}
       />
       <ScrollArea
         ref={scrollRef}
@@ -273,6 +286,9 @@ export function MessageList({
       >
         {displayMessages.length === 0 ? (
           <p className="wf-message-list__empty">No messages yet — say hello to your agent.</p>
+        ) : null}
+        {displayMessages.length > 0 && packPadPx > 0 ? (
+          <div className="wf-message-list__pack-pad" style={{ height: packPadPx }} aria-hidden="true" />
         ) : null}
         {displayMessages.map((message, index, arr) => (
           <div
