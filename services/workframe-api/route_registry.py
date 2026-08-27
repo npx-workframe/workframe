@@ -228,6 +228,8 @@ _ROUTE_PATTERNS_RAW: tuple[tuple, ...] = (
     ("DELETE", r"^/api/rooms/[^/]+$", "/api/rooms/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_room"),
     ("DELETE", r"^/api/memory/[^/]+$", "/api/memory/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_memory"),
     ("DELETE", r"^/api/workspace/[^/]+/members$", "/api/workspace/{id}/members", AuthLevel.SESSION, False, False, "_route_pattern_delete_workspace_members"),
+    ("DELETE", r"^/api/workspace/[^/]+$", "/api/workspace/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_workspace"),
+    ("DELETE", r"^/api/agents/[^/]+$", "/api/agents/{id}", AuthLevel.SESSION, False, False, "_route_pattern_delete_agent"),
     ("DELETE", r"^/api/me/credentials/[^/]+$", "/api/me/credentials/{provider}", AuthLevel.SESSION, False, False, "_route_pattern_delete_me_credentials"),
 )
 

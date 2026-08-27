@@ -604,6 +604,9 @@ def _scoped_request_policy(method: str, path: str) -> tuple[str, str, bool] | No
     if parts[1] == "memory":
         return "memory", parts[2], m == "DELETE"
 
+    if parts[1] == "agents" and len(parts) == 3:
+        return "agent", parts[2], m == "DELETE"
+
     if parts[1] == "agents" and len(parts) >= 4 and parts[3] == "credentials":
         return "agent", parts[2], True
 

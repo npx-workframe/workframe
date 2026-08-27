@@ -18,6 +18,8 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from handler_modules import handler_provider, handler_workspace
+
 DATA_DIR = Path(tempfile.mkdtemp(prefix="wf-048-revoke-"))
 HERMES_DIR = Path(tempfile.mkdtemp(prefix="wf-048-revoke-hermes-"))
 os.environ["WORKFRAME_API_DATA_DIR"] = str(DATA_DIR)
@@ -133,6 +135,17 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS agent_profiles (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            slug TEXT NOT NULL,
+            display_name TEXT NOT NULL DEFAULT '',
+            is_native INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'available',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT
+        );
         """
     )
 
@@ -200,6 +213,19 @@ def _binding_state(conn: sqlite3.Connection, binding_id: str) -> tuple[int, str,
     return int(row[0]), str(row[1]), int(row[2])
 
 
+class _DeleteHandler(handler_workspace.WorkspaceRoutesMixin, handler_provider.ProviderRoutesMixin):
+    auth_user = "user-1"
+
+    def __init__(self) -> None:
+        self.responses: list[tuple[int, dict]] = []
+
+    def _json(self, status: int, payload: dict) -> None:
+        self.responses.append((status, payload))
+
+    def _log_audit(self, *_args, **_kwargs) -> None:
+        return None
+
+
 class Wf048LifecycleRevocationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.server = _install_server_stub()
@@ -231,8 +257,20 @@ class Wf048LifecycleRevocationTests(unittest.TestCase):
                VALUES ('m-admin', 'ws-1', 'user-1', 'owner', 'active', 't', 't'),
                       ('m-member', 'ws-1', 'user-2', 'member', 'active', 't', 't')"""
         )
+        conn.execute(
+            """INSERT INTO agent_profiles
+               (id, workspace_id, slug, display_name, is_native, status, created_at, updated_at)
+               VALUES ('agent-1', 'ws-1', 'agent-one', 'Agent One', 0, 'available', 't', 't')"""
+        )
         conn.commit()
         conn.close()
+        self.server._resolve_wid = lambda ref: str(ref)  # type: ignore[attr-defined]
+        self.server._workspace_member_role = rooms._workspace_member_role  # type: ignore[attr-defined]
+        self.server._install_window_open = lambda: False  # type: ignore[attr-defined]
+        self.server._promote_workspace_owner_if_unclaimed = lambda *_args, **_kwargs: False  # type: ignore[attr-defined]
+        self.server._delete_workspace = rooms._delete_workspace  # type: ignore[attr-defined]
+        self.server._delete_agent_profile = rooms._delete_agent_profile  # type: ignore[attr-defined]
+        self.server._log_audit = lambda *_args, **_kwargs: None  # type: ignore[attr-defined]
         self.server._parse_workspace_settings = lambda row: json.loads(str(row["settings_json"]))  # type: ignore[attr-defined]
         self.server._parse_messaging_settings_patch = lambda body, settings: settings  # type: ignore[attr-defined]
         self.server._sync_workspace_messaging_gateway = lambda _ws: {"ok": True}  # type: ignore[attr-defined]
@@ -298,32 +336,53 @@ class Wf048LifecycleRevocationTests(unittest.TestCase):
         if auth_path.is_file():
             self.assertNotIn("sk-bind-disconnect", auth_path.read_text(encoding="utf-8"))
 
-    def test_workspace_deletion_revokes_bindings_and_leases(self) -> None:
+    def test_workspace_delete_handler_revokes_bindings_and_leases(self) -> None:
         conn = sqlite3.connect(str(DATA_DIR / "workframe.db"))
         _insert_binding(conn, "bind-ws", workspace_id="ws-1")
         conn.close()
         token = _issue_lease("bind-ws", workspace_id="ws-1")
-        credential_revocation.revoke_workspace_authority("ws-1")
+        handler = _DeleteHandler()
+        with mock.patch.object(handler_workspace, "_srv", return_value=self.server), mock.patch.object(
+            rooms, "_srv", return_value=self.server
+        ):
+            handler._route_pattern_delete_workspace("/api/workspace/ws-1", {})
+        self.assertEqual(handler.responses, [(200, {"ok": True, "workspace_id": "ws-1", "status": "deleted"})])
         self.assertFalse(_lease_active(token))
         conn = sqlite3.connect(str(DATA_DIR / "workframe.db"))
         generation, lifecycle_state, is_active = _binding_state(conn, "bind-ws")
+        ws_row = conn.execute("SELECT deleted_at, status FROM workspaces WHERE id = 'ws-1'").fetchone()
         conn.close()
         self.assertEqual(lifecycle_state, "revoked")
         self.assertEqual(is_active, 0)
         self.assertGreaterEqual(generation, 2)
+        self.assertIsNotNone(ws_row[0])
+        self.assertEqual(ws_row[1], "deleted")
 
-    def test_agent_deletion_revokes_bindings_and_leases(self) -> None:
+    def test_agent_delete_handler_revokes_bindings_and_leases(self) -> None:
         conn = sqlite3.connect(str(DATA_DIR / "workframe.db"))
         _insert_binding(conn, "bind-agent", agent_profile_id="agent-1")
         conn.close()
         token = _issue_lease("bind-agent", user_id="user-1")
-        credential_revocation.revoke_agent_profile_authority("agent-1")
+        handler = _DeleteHandler()
+        with mock.patch.object(handler_provider, "_srv", return_value=self.server), mock.patch.object(
+            rooms, "_srv", return_value=self.server
+        ):
+            handler._route_pattern_delete_agent("/api/agents/agent-1", {})
+        self.assertEqual(
+            handler.responses,
+            [(200, {"ok": True, "agent_profile_id": "agent-1", "status": "deleted"})],
+        )
         self.assertFalse(_lease_active(token))
         conn = sqlite3.connect(str(DATA_DIR / "workframe.db"))
         generation, lifecycle_state, is_active = _binding_state(conn, "bind-agent")
+        agent_row = conn.execute(
+            "SELECT deleted_at, status FROM agent_profiles WHERE id = 'agent-1'"
+        ).fetchone()
         conn.close()
         self.assertEqual(lifecycle_state, "revoked")
         self.assertEqual(is_active, 0)
+        self.assertIsNotNone(agent_row[0])
+        self.assertEqual(agent_row[1], "deleted")
 
     def test_payer_mode_change_revokes_workspace_leases(self) -> None:
         conn = sqlite3.connect(str(DATA_DIR / "workframe.db"))

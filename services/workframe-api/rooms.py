@@ -1023,6 +1023,102 @@ def _patch_workspace(workspace_id: str, body: dict[str, Any], user_id: str) -> t
         conn.close()
 
 
+def _delete_workspace(workspace_id: str, user_id: str) -> tuple[int, dict[str, Any]]:
+    workspace_id = str(workspace_id or "").strip()
+    user_id = str(user_id or "").strip()
+    if not workspace_id:
+        return 400, {"ok": False, "error": "workspace_id required"}
+    if not user_id:
+        return 401, {"ok": False, "error": "no_session"}
+    try:
+        conn = _srv()._workframe_db()
+    except sqlite3.Error as exc:
+        return 500, {"ok": False, "error": f"workframe_db_unavailable: {exc}"}
+    try:
+        if not _workspace_exists(conn, workspace_id):
+            return 404, {"ok": False, "error": "workspace_not_found", "workspace_id": workspace_id}
+        role = _resolve_workspace_integrations_role(conn, workspace_id, user_id, {})
+        if not role or (
+            role not in OWNER_ADMIN_ROLES and not _srv()._install_window_open()
+        ):
+            return 403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"}
+        now_ts = str(int(time.time()))
+        cur = conn.execute(
+            """
+            UPDATE workspaces
+            SET deleted_at = ?, status = 'deleted', updated_at = ?
+            WHERE id = ? AND deleted_at IS NULL
+            """,
+            (now_ts, now_ts, workspace_id),
+        )
+        if cur.rowcount < 1:
+            return 404, {"ok": False, "error": "workspace_not_found", "workspace_id": workspace_id}
+        conn.commit()
+    except sqlite3.Error as exc:
+        conn.rollback()
+        return 500, {"ok": False, "error": f"workspace_delete_failed: {exc}"}
+    finally:
+        conn.close()
+    credential_revocation.revoke_workspace_authority(workspace_id)
+    return 200, {"ok": True, "workspace_id": workspace_id, "status": "deleted"}
+
+
+def _delete_agent_profile(agent_profile_id: str, user_id: str) -> tuple[int, dict[str, Any]]:
+    agent_profile_id = str(agent_profile_id or "").strip()
+    user_id = str(user_id or "").strip()
+    if not agent_profile_id:
+        return 400, {"ok": False, "error": "agent_profile_id required"}
+    if not user_id:
+        return 401, {"ok": False, "error": "no_session"}
+    try:
+        conn = _srv()._workframe_db()
+    except sqlite3.Error as exc:
+        return 500, {"ok": False, "error": f"workframe_db_unavailable: {exc}"}
+    try:
+        row = conn.execute(
+            """
+            SELECT id, workspace_id, slug, is_native
+            FROM agent_profiles
+            WHERE (id = ? OR slug = ?) AND deleted_at IS NULL
+            ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
+            LIMIT 1
+            """,
+            (agent_profile_id, agent_profile_id, agent_profile_id),
+        ).fetchone()
+        if not row:
+            return 404, {"ok": False, "error": "agent_not_found", "agent_profile_id": agent_profile_id}
+        agent_id = str(row["id"])
+        workspace_id = str(row["workspace_id"])
+        if int(row["is_native"] or 0):
+            return 409, {"ok": False, "error": "cannot_delete_native_agent", "agent_profile_id": agent_id}
+        if not _workspace_exists(conn, workspace_id):
+            return 404, {"ok": False, "error": "workspace_not_found", "workspace_id": workspace_id}
+        role = _resolve_workspace_integrations_role(conn, workspace_id, user_id, {})
+        if not role or (
+            role not in OWNER_ADMIN_ROLES and not _srv()._install_window_open()
+        ):
+            return 403, {"ok": False, "error": "forbidden", "required_role": "owner_or_admin"}
+        now_ts = str(int(time.time()))
+        cur = conn.execute(
+            """
+            UPDATE agent_profiles
+            SET deleted_at = ?, updated_at = ?, status = 'deleted'
+            WHERE id = ? AND deleted_at IS NULL
+            """,
+            (now_ts, now_ts, agent_id),
+        )
+        if cur.rowcount < 1:
+            return 404, {"ok": False, "error": "agent_not_found", "agent_profile_id": agent_profile_id}
+        conn.commit()
+    except sqlite3.Error as exc:
+        conn.rollback()
+        return 500, {"ok": False, "error": f"agent_delete_failed: {exc}"}
+    finally:
+        conn.close()
+    credential_revocation.revoke_agent_profile_authority(agent_id)
+    return 200, {"ok": True, "agent_profile_id": agent_id, "status": "deleted"}
+
+
 def _patch_workspace_integrations(
     workspace_id: str,
     body: dict[str, Any],
