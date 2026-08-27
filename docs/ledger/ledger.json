@@ -1,11 +1,11 @@
 {
   "schema_version": "2.0",
   "project": "workframe",
-  "updated": "2026-08-02",
-  "release_target": "multi-user beta",
+  "updated": "2026-08-27",
+  "release_target": "Harbor",
   "versions": {
-    "create_workframe": "0.1.51",
-    "standalone_cli": "0.4.1"
+    "create_workframe": "0.1.64",
+    "standalone_cli": "0.2.2"
   },
   "vision": "Start a security-first semi-autonomous multiplayer AI organization through one reviewed Architectonic plan, with Workframe as the shared UI/workspace/supervision surface and Hermes as the first replaceable runtime adapter.",
   "authority": {
@@ -29,7 +29,7 @@
       "real multiplayer workspace, room, message, file, invite, activity, credential, budget, grant, and agent surfaces",
       "Hermes-native profile/runtime provisioning and user-proxy cohort behavior",
       "standalone CLI Socratic begin, inference, constitutional draft, Architectonic plan/apply handoff, Workframe deployment plan, and immutable apply boundaries",
-      "create-workframe 0.1.51 and standalone workframe CLI 0.4.1 source/package truth"
+      "create-workframe 0.1.64 and standalone workframe CLI 0.2.2 source/package truth"
     ],
     "limitations": [
       "Historical completion means the named bounded contract passed; it does not imply public multi-user beta readiness.",
@@ -179,6 +179,26 @@
         "one second runtime adapter after the Hermes contract is stable"
       ],
       "stop_line": "Do not market Electron, future adapters, or generative UI as shipped before bounded end-to-end acceptance."
+    },
+    {
+      "id": "WF-054",
+      "title": "Stop the ledger from claiming multi-user beta; pin create-workframe to source 0.1.64",
+      "status": "done",
+      "priority": "P1",
+      "owner_role": "implementer",
+      "acceptance": [
+        "release_target is not multi-user beta; Harbor is the named bar.",
+        "versions.create_workframe and completed_baseline match source 0.1.64.",
+        "versions.standalone_cli and completed_baseline match docs/VERSION.md 0.2.2.",
+        "ledger updated date reflects the change.",
+        "WF-048 remains the open P0 credential work."
+      ],
+      "evidence": [
+        "docs/ledger/ledger.json release_target Harbor, versions create-workframe 0.1.64 and standalone_cli 0.2.2, updated 2026-08-27.",
+        "pnpm verify:version and pnpm verify:docs green.",
+        "README.md does not claim public or multi-user beta."
+      ],
+      "stop_line": "No ledger, README, or release-target beta claim until Harbor is walked."
     },
     {
       "id": "WF-BETA-01",
