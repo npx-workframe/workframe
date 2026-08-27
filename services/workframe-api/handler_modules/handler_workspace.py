@@ -1649,7 +1649,9 @@ class WorkspaceRoutesMixin:
         # Membership removal changes run authority for this workspace. Revoke
         # only the removed member's workspace-scoped runtime leases; their
         # personal credential may remain valid in other workspaces.
-        srv._revoke_runtime_llm_leases(payer_user_id=target_user_id, workspace_id=ws_id)
+        import credential_revocation
+
+        credential_revocation.revoke_member_workspace_access(target_user_id, ws_id)
         self._log_audit(
             "workspace_member_removed",
             "workspace_membership",

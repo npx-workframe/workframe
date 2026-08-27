@@ -53,6 +53,13 @@
       "owner": "cursor-cloud"
     },
     {
+      "id": "api-wf048-lifecycle-revocation",
+      "description": "WF-048 lifecycle revocation and restore fixtures",
+      "verify": "python services/workframe-api/test_wf048_lifecycle_revocation.py",
+      "passes": true,
+      "owner": "cursor-cloud"
+    },
+    {
       "id": "api-wf048-authority-scan",
       "description": "WF-048 raw-authority scan over runtime auth metadata",
       "verify": "python services/workframe-api/test_wf048_authority_scan.py",

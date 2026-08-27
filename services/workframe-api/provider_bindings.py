@@ -14,6 +14,7 @@ from typing import Any
 
 import provider_bootstrap
 import credential_lifecycle
+import credential_revocation
 import credential_vault
 
 
@@ -582,13 +583,13 @@ def disconnect_user_credential(user_id: str, credential_id: str) -> dict[str, An
         conn.close()
     except sqlite3.Error as exc:
         return {"ok": False, "error": f"db_error: {exc}"}
-    if not credential_lifecycle.revoke_binding(credential_id, reason="user_disconnect"):
-        return {"ok": False, "error": "credential_revoke_failed"}
-    _srv()._revoke_runtime_llm_leases(
-        payer_user_id=user_id,
+    revoked = credential_revocation.revoke_provider_disconnect(
+        binding_id=credential_id,
+        user_id=user_id,
         provider=str(row["provider"]),
-        credential_binding_id=credential_id,
     )
+    if not revoked["bindings_revoked"]:
+        return {"ok": False, "error": "credential_revoke_failed"}
     return {"ok": True, "credential_id": credential_id, "provider": str(row["provider"])}
 
 

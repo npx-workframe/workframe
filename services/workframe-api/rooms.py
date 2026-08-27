@@ -12,7 +12,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import credential_revocation
+
 from http.server import BaseHTTPRequestHandler
+
+WORKSPACE_MEMBER_ROLES = {"owner", "admin", "editor", "viewer", "member"}
+WORKSPACE_MEMBER_STATUSES = {"active", "invited", "removed"}
 
 import user_prefs
 import zk_auth as _zk
@@ -428,7 +433,11 @@ def _workspace_membership_update_payload(
     if not row:
         return 404, {"ok": False, "error": "member_not_found", "workspace_id": workspace_id, "user_id": user_id}
 
-    role = str(row["role"])
+    previous_role = str(row["role"])
+    previous_status = str(row["status"])
+    target_user_id = str(row["user_id"])
+
+    role = previous_role
     status = str(row["status"])
     if "role" in updates:
         role = str(updates.get("role", "") or "").strip()
@@ -494,7 +503,43 @@ def _workspace_membership_update_payload(
     ).fetchone()
     if not updated:
         return 404, {"ok": False, "error": "member_not_found", "workspace_id": workspace_id, "user_id": user_id}
-    return 200, {"ok": True, "membership": _workspace_member_payload(updated)}
+    revocation: dict[str, Any] | None = None
+    if status == "removed" and previous_status != "removed":
+        revocation = {
+            "kind": "removal",
+            "user_id": target_user_id,
+            "workspace_id": workspace_id,
+        }
+    elif previous_role != role:
+        revocation = {
+            "kind": "role_change",
+            "user_id": target_user_id,
+            "workspace_id": workspace_id,
+            "previous_role": previous_role,
+            "new_role": role,
+        }
+    return 200, {
+        "ok": True,
+        "membership": _workspace_member_payload(updated),
+        "_credential_revocation": revocation,
+    }
+
+
+def _apply_membership_credential_revocation(revocation: dict[str, Any] | None) -> None:
+    if not revocation:
+        return
+    kind = str(revocation.get("kind") or "").strip()
+    user_id = str(revocation.get("user_id") or "").strip()
+    workspace_id = str(revocation.get("workspace_id") or "").strip()
+    if kind == "removal":
+        credential_revocation.revoke_member_workspace_access(user_id, workspace_id)
+    elif kind == "role_change":
+        credential_revocation.revoke_member_role_downgrade(
+            user_id,
+            workspace_id,
+            previous_role=str(revocation.get("previous_role") or ""),
+            new_role=str(revocation.get("new_role") or ""),
+        )
 
 
 def _patch_workspace_members(
@@ -529,6 +574,7 @@ def _patch_workspace_members(
             if not bulk:
                 return 400, {"ok": False, "error": "memberships list cannot be empty"}
             results = []
+            pending_revocations: list[dict[str, Any]] = []
             for item in bulk:
                 if not isinstance(item, dict):
                     return 400, {"ok": False, "error": "each membership update must be an object"}
@@ -538,8 +584,13 @@ def _patch_workspace_members(
                 status, payload = _workspace_membership_update_payload(conn, workspace_id, user_id, item, actor_user_id)
                 if status != 200:
                     return status, payload
+                revocation = payload.get("_credential_revocation")
+                if revocation:
+                    pending_revocations.append(revocation)
                 results.append(payload["membership"])
             conn.commit()
+            for revocation in pending_revocations:
+                _apply_membership_credential_revocation(revocation)
             return 200, {"ok": True, "workspace_id": workspace_id, "memberships": results}
 
         user_id = str(body.get("user_id", "") or "").strip()
@@ -552,6 +603,8 @@ def _patch_workspace_members(
         status, payload = _workspace_membership_update_payload(conn, workspace_id, user_id, update_body, actor_user_id)
         if status == 200:
             conn.commit()
+            _apply_membership_credential_revocation(payload.get("_credential_revocation"))
+            payload.pop("_credential_revocation", None)
         return status, payload
     except sqlite3.Error as exc:
         conn.rollback()
@@ -998,6 +1051,8 @@ def _patch_workspace_integrations(
         if not row:
             return 404, {"ok": False, "error": "workspace_not_found"}
         settings = _srv()._parse_workspace_settings(row)
+        previous_credential_mode = str(settings.get("credential_mode") or "byok").strip().lower()
+        revoke_payer_leases = False
         gh = settings.get("github_oauth") if isinstance(settings.get("github_oauth"), dict) else {}
         if "github_oauth_client_id" in body:
             gh["client_id"] = str(body.get("github_oauth_client_id") or "").strip()
@@ -1012,6 +1067,8 @@ def _patch_workspace_integrations(
             if mode not in {"byok", "workspace"}:
                 return 400, {"ok": False, "error": "invalid_credential_mode"}
             settings["credential_mode"] = mode
+            if mode != previous_credential_mode:
+                revoke_payer_leases = True
         if body.get("admin_onboarding_done") is True:
             settings["admin_onboarding_done"] = True
         if body.get("admin_integrations_done") is True:
@@ -1023,6 +1080,8 @@ def _patch_workspace_integrations(
             (json.dumps(settings, sort_keys=True), now_ts, workspace_id),
         )
         conn.commit()
+        if revoke_payer_leases:
+            credential_revocation.revoke_payer_mode_change(workspace_id)
         if "messaging" in body:
             sync_result = _srv()._sync_workspace_messaging_gateway(workspace_id)
             if not sync_result.get("ok"):
