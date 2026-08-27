@@ -310,6 +310,15 @@ def _profile_turn_payload(profile: str, text: str, room_id: str = "") -> dict[st
     soul = _srv()._profile_soul_text(profile, workspace_id)
     if soul:
         payload["instructions"] = soul
+    # Pin the live profile model on every turn. A Hermes session created under
+    # a previous provider otherwise keeps that slug (Codex then 400s on it).
+    provider, model = _srv()._read_model_from_config(profile)
+    model = str(model or "").strip()
+    provider = str(provider or "").strip()
+    if model:
+        payload["model"] = model
+    if provider and provider not in {"custom", "auto", ""}:
+        payload["provider"] = provider
     return payload
 
 
