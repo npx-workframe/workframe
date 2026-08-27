@@ -69,7 +69,7 @@ export function emailOtpCopy(step: EmailOtpStep, email: string, devOtpHint: stri
   }
   return purpose === 'register'
     ? 'Register with your email to become the Workframe admin.'
-    : 'Sign in with your email to open Workframe.'
+    : 'Sign in with your email to open\u00a0Workframe.'
 }
 
 export function EmailOtpVerification({

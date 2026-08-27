@@ -247,16 +247,17 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
 [data-chrome-mode='relief'] .wf-dialog-content.wf-auth-dialog .wf-action-btn[data-tone='primary'] {
   background: var(--wf-control-bg-raised);
   border: none;
-  box-shadow: var(--wf-relief-outset-s);
+  box-shadow: var(--wf-control-shadow-raised);
   color: var(--wf-purple);
 }
 
 [data-chrome-mode='relief'] .wf-dialog-content.wf-auth-dialog .wf-action-btn[data-tone='primary']:disabled {
   background: var(--wf-control-bg-raised);
   border: none;
-  box-shadow: var(--wf-relief-outset-s);
-  color: var(--wf-btn-fg-inactive);
-  opacity: 0.72;
+  box-shadow: var(--wf-control-shadow-raised);
+  color: color-mix(in srgb, var(--wf-purple) 50%, var(--wf-muted));
+  opacity: 1;
+  cursor: not-allowed;
 }
 
 .wf-dialog-content.wf-dialog-content--device-oauth {

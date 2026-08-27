@@ -279,6 +279,9 @@ export function MessageList({
         {displayMessages.length === 0 ? (
           <p className="wf-message-list__empty">No messages yet — say hello to your agent.</p>
         ) : null}
+        {displayMessages.length > 0 ? (
+          <div className="wf-message-list__head-spacer" aria-hidden="true" />
+        ) : null}
         {displayMessages.map((message, index, arr) => (
           <div
             key={message.id}
