@@ -228,18 +228,23 @@ export function MessageList({
     stickToBottomRef.current = true
     initialScrollRef.current = false
     setActiveMessageId(displayMessages.at(-1)?.id ?? '')
-    setListOverflows(host.scrollHeight > host.clientHeight + 4)
+    const rows = Array.from(host.querySelectorAll<HTMLElement>('.wf-message-row'))
+    const contentHeight = rows.reduce((sum, row) => sum + row.offsetHeight, 0)
+    setListOverflows(contentHeight > host.clientHeight + 4)
   }, [displayMessages])
 
   useEffect(() => {
     const host = scrollRef.current
     if (!host || typeof ResizeObserver === 'undefined') return
     const updateOverflow = () => {
-      setListOverflows(host.scrollHeight > host.clientHeight + 4)
+      const rows = Array.from(host.querySelectorAll<HTMLElement>('.wf-message-row'))
+      const contentHeight = rows.reduce((sum, row) => sum + row.offsetHeight, 0)
+      setListOverflows(contentHeight > host.clientHeight + 4)
     }
     updateOverflow()
     const observer = new ResizeObserver(updateOverflow)
     observer.observe(host)
+    host.querySelectorAll<HTMLElement>('.wf-message-row').forEach((row) => observer.observe(row))
     return () => observer.disconnect()
   }, [displayMessages])
 

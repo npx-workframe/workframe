@@ -210,7 +210,7 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
 
 /* Onboarding / auth dialogs */
 .wf-dialog-content.wf-auth-dialog {
-  width: min(calc(100vw - 32px), 28rem);
+  width: min(calc(100vw - 32px), 29rem);
   max-height: min(calc(100vh - 2rem), 42rem);
 }
 
@@ -231,7 +231,7 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
 }
 
 .wf-dialog-content.wf-auth-dialog .wf-dialog-description {
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 
 .wf-dialog-content.wf-auth-dialog .wf-auth__form .wf-auth__row {
@@ -241,6 +241,22 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
 .wf-dialog-content.wf-auth-dialog .wf-auth__form .wf-auth__row > .wf-action-btn[data-tone='primary'] {
   flex: 1 1 auto;
   width: 100%;
+  font-weight: 600;
+}
+
+[data-chrome-mode='relief'] .wf-dialog-content.wf-auth-dialog .wf-action-btn[data-tone='primary'] {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-relief-outset-s);
+  color: var(--wf-purple);
+}
+
+[data-chrome-mode='relief'] .wf-dialog-content.wf-auth-dialog .wf-action-btn[data-tone='primary']:disabled {
+  background: var(--wf-control-bg-raised);
+  border: none;
+  box-shadow: var(--wf-relief-outset-s);
+  color: var(--wf-btn-fg-inactive);
+  opacity: 0.72;
 }
 
 .wf-dialog-content.wf-dialog-content--device-oauth {
