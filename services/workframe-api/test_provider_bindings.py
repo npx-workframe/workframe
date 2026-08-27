@@ -222,6 +222,9 @@ def test_extract_oauth_from_credential_pool() -> None:
     }
     block = provider_bindings._extract_oauth_block_from_auth(loaded, "openai-codex")
     assert block and block["access_token"] == "at-live"
+    camel = {"credential_pool": {"openai-codex": [{"accessToken": "camel-access"}]}}
+    camel_block = provider_bindings._extract_oauth_block_from_auth(camel, "openai-codex")
+    assert camel_block and provider_bindings._oauth_field(camel_block, provider_bindings._OAUTH_ACCESS_FIELDS) == "camel-access"
     material = provider_bindings._extract_oauth_token_material(loaded, "openai-codex")
     assert material and material["refresh_token"] == "rt-live"
     bundle = provider_bindings._build_oauth_vault_bundle("codex", "openai-codex", material)
@@ -300,6 +303,7 @@ def test_adopt_device_oauth_stores_vault_binding() -> None:
 
 def test_publish_turn_oauth_access_omits_refresh(tmp_path) -> None:
     profile = "u-user-mybusiness-agent"
+    tmp_path.mkdir(parents=True, exist_ok=True)
     auth_path = tmp_path / "auth.json"
     auth_path.write_text("{\n  \"version\": 1\n}\n", encoding="utf-8")
 
@@ -346,6 +350,27 @@ def test_publish_turn_oauth_access_omits_refresh(tmp_path) -> None:
     assert entry["base_url"] == provider_bindings.CODEX_OAUTH_BASE_URL
 
 
+def test_user_provider_connected_oauth_uses_vault() -> None:
+    class _Srv:
+        def _resolve_credential(self, user_id, workspace_id, provider, *, user_only=False):
+            assert user_only is True
+            return {"credential_ref": "vault:codex", "credential_type": "oauth"}
+
+        def _credential_secret(self, resolved, user_id=""):
+            return "{\"kind\": \"oauth\", \"access_token\": \"x\"}" if resolved else ""
+
+        def _user_auth_env_keys(self, _user_id):
+            raise AssertionError("oauth connected must not fall through to env keys")
+
+    orig = provider_bindings._srv
+    try:
+        provider_bindings._srv = lambda: _Srv()  # type: ignore[method-assign]
+        spec = {"id": "codex", "connect_mode": "oauth", "category": "llm"}
+        assert provider_bindings._user_provider_connected("user-1", spec) is True
+    finally:
+        provider_bindings._srv = orig
+
+
 if __name__ == "__main__":
     from pathlib import Path as _Path
     test_hermes_oauth_auth_keys()
@@ -356,5 +381,6 @@ if __name__ == "__main__":
     test_reusable_device_oauth_session()
     test_extract_oauth_from_credential_pool()
     test_adopt_device_oauth_stores_vault_binding()
+    test_user_provider_connected_oauth_uses_vault()
     test_publish_turn_oauth_access_omits_refresh(_Path("/tmp/wf-oauth-publish-test"))
     print("test_provider_bindings: ok")

@@ -20,4 +20,35 @@ expired = json.dumps({"kind": "oauth", "access_token": "old", "expires_at": 1})
 materialized, status = credential_broker.materialize_provider_secret("github", "", expired)
 assert materialized == "" and status == "oauth_refresh_unavailable"
 
+expired_codex = json.dumps({
+    "kind": "oauth",
+    "access_token": "old",
+    "refresh_token": "rt",
+    "expires_at": 1,
+    "token_url": "https://auth.openai.com/oauth/token",
+    "client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
+})
+
+
+class _Resp:
+    def read(self):
+        return json.dumps({"access_token": "new-access", "expires_in": 3600}).encode()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+
+import urllib.request
+
+_orig_urlopen = urllib.request.urlopen
+urllib.request.urlopen = lambda *_a, **_k: _Resp()  # type: ignore[assignment]
+try:
+    materialized, status = credential_broker.materialize_provider_secret("codex", "", expired_codex)
+    assert materialized == "new-access" and status == "ok"
+finally:
+    urllib.request.urlopen = _orig_urlopen
+
 print("credential broker self-check ok")
