@@ -255,7 +255,7 @@ html:has(.wf-desktop-frame) .wf-dialog-content.wf-auth-dialog {
   background: var(--wf-control-bg-raised);
   border: none;
   box-shadow: var(--wf-control-shadow-raised);
-  color: color-mix(in srgb, var(--wf-purple) 50%, var(--wf-muted));
+  color: color-mix(in srgb, var(--wf-purple) 78%, var(--wf-muted));
   opacity: 1;
   cursor: not-allowed;
 }

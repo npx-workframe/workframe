@@ -44,12 +44,13 @@
 }
 
 .wf-chat-column--messages .wf-message-list-shell {
-  flex: 1;
+  flex: 1 1 0%;
   min-height: 0;
+  align-self: stretch;
 }
 
 .wf-chat-split__messages .wf-message-list {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
   height: 100%;
 }

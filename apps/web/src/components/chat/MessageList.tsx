@@ -228,23 +228,18 @@ export function MessageList({
     stickToBottomRef.current = true
     initialScrollRef.current = false
     setActiveMessageId(displayMessages.at(-1)?.id ?? '')
-    const rows = Array.from(host.querySelectorAll<HTMLElement>('.wf-message-row'))
-    const contentHeight = rows.reduce((sum, row) => sum + row.offsetHeight, 0)
-    setListOverflows(contentHeight > host.clientHeight + 4)
+    setListOverflows(host.scrollHeight > host.clientHeight + 8)
   }, [displayMessages])
 
   useEffect(() => {
     const host = scrollRef.current
     if (!host || typeof ResizeObserver === 'undefined') return
     const updateOverflow = () => {
-      const rows = Array.from(host.querySelectorAll<HTMLElement>('.wf-message-row'))
-      const contentHeight = rows.reduce((sum, row) => sum + row.offsetHeight, 0)
-      setListOverflows(contentHeight > host.clientHeight + 4)
+      setListOverflows(host.scrollHeight > host.clientHeight + 8)
     }
     updateOverflow()
     const observer = new ResizeObserver(updateOverflow)
     observer.observe(host)
-    host.querySelectorAll<HTMLElement>('.wf-message-row').forEach((row) => observer.observe(row))
     return () => observer.disconnect()
   }, [displayMessages])
 
@@ -278,9 +273,6 @@ export function MessageList({
       >
         {displayMessages.length === 0 ? (
           <p className="wf-message-list__empty">No messages yet — say hello to your agent.</p>
-        ) : null}
-        {displayMessages.length > 0 ? (
-          <div className="wf-message-list__head-spacer" aria-hidden="true" />
         ) : null}
         {displayMessages.map((message, index, arr) => (
           <div
