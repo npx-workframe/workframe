@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 import uuid
 from typing import Any
 
+import credential_broker
 import credential_vault
 import internal_proxy_auth
 import profile_config_yaml
@@ -466,7 +468,25 @@ def _apply_turn_credential_lease(
         resolved = _require_user_provider(user_id, workspace_id, provider)
     oauth_spec = _srv()._oauth_llm_provider_spec(provider)
     if oauth_spec and str(resolved.get("credential_type") or "") == "oauth":
-        _srv()._sync_oauth_llm_to_profile(prof, user_id, provider)
+        secret = _srv()._credential_secret(resolved, user_id)
+        binding_id = str(
+            resolved.get("credential_binding_id") or resolved.get("credential_id") or ""
+        ).strip()
+        vault_id = credential_vault.parse_vault_ref(str(resolved.get("credential_ref") or ""))
+        if vault_id:
+            binding_id = vault_id
+        access, _status = credential_broker.materialize_provider_secret(provider, binding_id, secret)
+        if not access:
+            raise ValueError(
+                "no_llm_provider_for_user: Connect an LLM provider under Profile → Connected accts before chatting with agents."
+            )
+        authority = None
+        try:
+            parsed = json.loads(secret) if secret else None
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            authority = parsed.get("authority") if isinstance(parsed.get("authority"), dict) else parsed
         if not _srv()._profile_routing_matches_billing(prof, provider):
             current_model = str(_srv()._read_model_from_config(prof)[1] or "").strip()
             if not current_model:
@@ -474,6 +494,9 @@ def _apply_turn_credential_lease(
                     (_srv().PROVIDER_MVP_MODELS.get(provider) or {}).get("primary") or current_model
                 ).strip()
             _srv()._apply_model_for_billing_provider(prof, provider, current_model, user_id)
+        else:
+            _srv()._sync_oauth_llm_to_profile(prof, user_id, provider)
+        _srv()._publish_turn_oauth_access(prof, provider, access, authority)
         return ""
     binding_id = str(
         resolved.get("credential_binding_id") or resolved.get("credential_id") or ""
@@ -640,15 +663,20 @@ def _apply_action_credential_lease(
 def _revoke_turn_credential_lease(run_id: str, profile: str) -> None:
     """Revoke genuinely turn-scoped action leases after a run.
 
-    The profile's LLM broker token is deliberately retained. It contains no
-    provider secret, is profile-bound by the internal proxy, and is resolved
-    against the owner's current vault binding on every request.
+    Opaque LLM broker tokens are deliberately retained. OAuth access material
+    published into profile auth.json is scrubbed so refresh stays vault-only.
     """
     run_id = str(run_id or "").strip()
     if not run_id:
         return
     for provider_id, _env_var in _user_action_env_specs():
         turn_credentials.revoke_lease(f"{run_id}::{provider_id}")
+    scrub = getattr(_srv(), "_scrub_profile_oauth_auth", None)
+    if callable(scrub):
+        try:
+            scrub(profile)
+        except (OSError, ValueError):
+            return
 
 
 def _revoke_runtime_llm_leases(

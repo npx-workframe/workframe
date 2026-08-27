@@ -204,11 +204,157 @@ def test_read_gateway_data_file_via_supervisor(monkeypatch) -> None:
     ]
 
 
+
+def test_extract_oauth_from_credential_pool() -> None:
+    loaded = {
+        "version": 1,
+        "providers": {},
+        "credential_pool": {
+            "openai-codex": [
+                {
+                    "id": "pool-1",
+                    "auth_type": "oauth",
+                    "access_token": "at-live",
+                    "refresh_token": "rt-live",
+                }
+            ]
+        },
+    }
+    block = provider_bindings._extract_oauth_block_from_auth(loaded, "openai-codex")
+    assert block and block["access_token"] == "at-live"
+    material = provider_bindings._extract_oauth_token_material(loaded, "openai-codex")
+    assert material and material["refresh_token"] == "rt-live"
+    bundle = provider_bindings._build_oauth_vault_bundle("codex", "openai-codex", material)
+    assert bundle["kind"] == "oauth"
+    assert bundle["provider"] == "codex"
+    assert bundle["token_url"] == provider_bindings.CODEX_OAUTH_TOKEN_URL
+    assert bundle["client_id"] == provider_bindings.CODEX_OAUTH_CLIENT_ID
+    assert "refresh_token" in bundle
+
+
+def test_adopt_device_oauth_stores_vault_binding() -> None:
+    calls: list[tuple] = []
+    auth = {
+        "version": 1,
+        "providers": {},
+        "credential_pool": {
+            "openai-codex": [{"access_token": "at-live", "refresh_token": "rt-live", "auth_type": "oauth"}]
+        },
+    }
+
+    class _Srv:
+        def _store_user_credential(self, user_id, provider, cred_type, secret, env_var, label):
+            calls.append(("store", user_id, provider, cred_type, env_var, label))
+            import json
+            bundle = json.loads(secret)
+            assert bundle["kind"] == "oauth"
+            assert bundle["refresh_token"] == "rt-live"
+            assert bundle["token_url"] == provider_bindings.CODEX_OAUTH_TOKEN_URL
+            return {"credential_id": "cred-1"}
+
+        def _credential_lifecycle_revoke_other_bindings(self, **kwargs):
+            calls.append(("revoke", kwargs["reason"], kwargs["keep_id"]))
+
+        def _bootstrap_model_after_llm_connect(self, user_id, workspace_id, provider_id):
+            calls.append(("bootstrap", user_id, workspace_id, provider_id))
+
+        def _invalidate_user_llm_picker_cache(self, user_id):
+            calls.append(("invalidate", user_id))
+
+        def _utc_now(self) -> str:
+            return "now"
+
+    orig_srv = provider_bindings._srv
+    orig_load = provider_bindings._load_user_hermes_auth
+    orig_sync = provider_bindings._sync_user_oauth_provider_to_runtime_profiles
+    orig_patch = provider_bindings._device_oauth_session_patch
+    try:
+        provider_bindings._srv = lambda: _Srv()  # type: ignore[method-assign]
+        provider_bindings._load_user_hermes_auth = lambda _uid: auth  # type: ignore[method-assign]
+        provider_bindings._sync_user_oauth_provider_to_runtime_profiles = (
+            lambda user_id, auth_id: calls.append(("sync", user_id, auth_id))
+        )  # type: ignore[method-assign]
+        provider_bindings._device_oauth_session_patch = lambda *_a, **_k: None  # type: ignore[method-assign]
+        result = provider_bindings._adopt_hermes_device_oauth(
+            "user-1",
+            "codex",
+            {"id": "codex", "hermes_auth_id": "openai-codex", "label": "OpenAI Codex", "connect_mode": "oauth"},
+            "sess-1",
+            "ws-1",
+        )
+    finally:
+        provider_bindings._srv = orig_srv
+        provider_bindings._load_user_hermes_auth = orig_load
+        provider_bindings._sync_user_oauth_provider_to_runtime_profiles = orig_sync
+        provider_bindings._device_oauth_session_patch = orig_patch
+    assert result["ok"] is True
+    assert result["status"] == "connected"
+    assert result["credential_id"] == "cred-1"
+    assert ("store", "user-1", "codex", "oauth", "", "OpenAI Codex") in calls or any(
+        row[0] == "store" and row[2] == "codex" and row[3] == "oauth" for row in calls
+    )
+    assert any(row[0] == "bootstrap" for row in calls)
+    assert any(row[0] == "sync" for row in calls)
+    assert any(row[0] == "invalidate" for row in calls)
+
+
+def test_publish_turn_oauth_access_omits_refresh(tmp_path) -> None:
+    profile = "u-user-mybusiness-agent"
+    auth_path = tmp_path / "auth.json"
+    auth_path.write_text("{\n  \"version\": 1\n}\n", encoding="utf-8")
+
+    class _Srv:
+        def resolve_hermes_profile(self, name: str) -> str:
+            return name
+
+        def _profile_dir(self, _name: str):
+            return tmp_path
+
+        def _utc_now(self) -> str:
+            return "now"
+
+        def _publish_profile_gateway_secrets(self, _name: str) -> None:
+            return None
+
+        def _catalog_provider(self, _pid: str):
+            return {"id": "codex", "hermes_auth_id": "openai-codex", "connect_mode": "oauth", "category": "llm"}
+
+        def _catalog_provider_for_llm(self, _pid: str):
+            return self._catalog_provider(_pid)
+
+    orig_srv = provider_bindings._srv
+    orig_load = provider_bindings._load_profile_auth_json
+    try:
+        provider_bindings._srv = lambda: _Srv()  # type: ignore[method-assign]
+        provider_bindings._load_profile_auth_json = lambda _name: {"version": 1}  # type: ignore[method-assign]
+        ok = provider_bindings._publish_turn_oauth_access(
+            profile,
+            "codex",
+            "at-only",
+            {"id": "pool-1", "refresh_token": "must-not-publish", "auth_type": "oauth_external"},
+        )
+    finally:
+        provider_bindings._srv = orig_srv
+        provider_bindings._load_profile_auth_json = orig_load
+    assert ok is True
+    import json
+    written = json.loads(auth_path.read_text(encoding="utf-8"))
+    entry = written["credential_pool"]["openai-codex"][0]
+    assert entry["access_token"] == "at-only"
+    assert "refresh_token" not in entry
+    assert entry["auth_type"] == "oauth_external"
+    assert entry["base_url"] == provider_bindings.CODEX_OAUTH_BASE_URL
+
+
 if __name__ == "__main__":
+    from pathlib import Path as _Path
     test_hermes_oauth_auth_keys()
     test_auth_json_has_oauth_material()
     test_merge_oauth_auth_into_profile()
     test_parse_device_oauth_log()
     test_device_oauth_error_from_log()
     test_reusable_device_oauth_session()
+    test_extract_oauth_from_credential_pool()
+    test_adopt_device_oauth_stores_vault_binding()
+    test_publish_turn_oauth_access_omits_refresh(_Path("/tmp/wf-oauth-publish-test"))
     print("test_provider_bindings: ok")

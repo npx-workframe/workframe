@@ -170,9 +170,6 @@ def _user_can_use_llm(user_id: str, workspace_id: str = "", provider: str = "ope
     user = str(user_id or "").strip()
     if not user:
         return False
-    spec = _srv()._catalog_provider_for_llm(provider)
-    if spec and str(spec.get("connect_mode") or "") == "oauth":
-        return False
     try:
         resolved = _srv()._require_user_provider(user, workspace_id, provider)
         return bool(_srv()._credential_secret(resolved, user))
